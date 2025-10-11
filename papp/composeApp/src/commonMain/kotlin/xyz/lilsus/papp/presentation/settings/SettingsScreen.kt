@@ -9,7 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.settings_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,7 +26,11 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Settings") },
+                title = {
+                    Text(
+                        stringResource(Res.string.settings_title),
+                    )
+                },
                 navigationIcon = {
 
 
