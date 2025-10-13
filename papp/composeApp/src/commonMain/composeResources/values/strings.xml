@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Settings</string>
+    <string name="tap_continue">Tap to continue…</string>
+    <string name="app_name_long" translatable="false">Payment App</string>
+    <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
+    <string name="confirm_payment_title">Confirm Payment</string>
+    <string name="pay_button">Pay</string>
+    <string name="dismiss_button">Dismiss</string>
+    <string name="enter_amount_title">Enter amount</string>
+    <string name="enter_amount_range_min">Min %1$s</string>
+    <string name="enter_amount_range_max">Max %1$s</string>
 </resources>
