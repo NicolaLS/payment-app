@@ -29,3 +29,8 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
+includeBuild("../../../Nostr/nwc-kmp") {
+    dependencySubstitution {
+        substitute(module("io.github.nostr:nwc-kmp")).using(project(":library"))
+    }
+}

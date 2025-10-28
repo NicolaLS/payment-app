@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Ajustes</string>
+    <string name="tap_continue">Toca para continuar…</string>
+    <string name="point_camera_message_subtitle">Apunta la cámara a una factura.</string>
+    <string name="confirm_payment_title">Confirmar pago</string>
+    <string name="pay_button">Pagar</string>
+    <string name="dismiss_button">Cerrar</string>
+    <string name="enter_amount_title">Introduce el importe</string>
+    <string name="enter_amount_range_min">Mín %1$s</string>
+    <string name="enter_amount_range_max">Máx %1$s</string>
+    <string name="error_missing_wallet_connection">Conecta una billetera para continuar.</string>
+    <string name="error_payment_rejected_generic">El pago fue rechazado.</string>
+    <string name="error_payment_rejected_code">El pago fue rechazado (%1$s).</string>
+    <string name="error_payment_rejected_message">El pago fue rechazado: %1$s</string>
+    <string name="error_payment_rejected_full">El pago fue rechazado (%1$s): %2$s</string>
+    <string name="error_network_unavailable">Sin conexión. Verifica tu red.</string>
+    <string name="error_timeout">La billetera no respondió. Inténtalo de nuevo.</string>
+    <string name="error_unexpected_generic">Algo salió mal.</string>
+    <string name="error_unexpected_with_details">Algo salió mal: %1$s</string>
 </resources>

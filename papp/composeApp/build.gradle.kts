@@ -43,6 +43,9 @@ kotlin {
             implementation(libs.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
             implementation(compose.materialIconsExtended)
+            implementation(libs.koin.core)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.nwc.kmp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
