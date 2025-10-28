@@ -12,6 +12,7 @@ expect class DefaultAmountFormatter(locale: AppLocale) : AmountFormatter
 
 // TODO: Profiling test whether too many AmountFormatter's are being created.
 @Composable
-fun rememberAmountFormatter(locale: AppLocale = rememberAppLocale()): AmountFormatter {
-    return remember(locale) { DefaultAmountFormatter(locale) }
+fun rememberAmountFormatter(locale: AppLocale? = null): AmountFormatter {
+    val resolved = locale ?: runCatching { rememberAppLocale() }.getOrElse { currentAppLocale() }
+    return remember(resolved) { DefaultAmountFormatter(resolved) }
 }
