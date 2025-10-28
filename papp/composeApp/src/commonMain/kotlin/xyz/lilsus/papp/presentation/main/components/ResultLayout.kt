@@ -17,6 +17,8 @@ import papp.composeapp.generated.resources.tap_continue
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.presentation.common.errorMessageFor
 import xyz.lilsus.papp.presentation.main.MainUiState
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -54,7 +56,7 @@ fun ResultLayout(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = result.data,
+                    text = errorMessageFor(result.error),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.tertiary
                 )
@@ -90,7 +92,7 @@ fun ResultLayoutPreviewError() {
     AppTheme {
         ResultLayout(
             modifier = Modifier.fillMaxWidth(),
-            result = MainUiState.Error(errorMsg)
+            result = MainUiState.Error(AppError.Unexpected(errorMsg))
         )
     }
 }

@@ -31,6 +31,7 @@ fun MainScreen(
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountSubmit: () -> Unit = {},
     onManualAmountDismiss: () -> Unit = {},
+    onResultDismiss: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -41,7 +42,7 @@ fun MainScreen(
             modifier = Modifier
                 .tapToDismiss(
                     enabled = uiState is MainUiState.Success || uiState is MainUiState.Error,
-                    onDismiss = { /*viewModel.dispatch(Intent.Dismiss) */ }
+                    onDismiss = onResultDismiss
                 )
                 .fillMaxSize()
                 .padding(paddingValues),

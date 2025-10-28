@@ -9,6 +9,7 @@ import org.koin.dsl.module
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
+import xyz.lilsus.papp.presentation.main.MainViewModel
 
 val nwcModule = module {
     single<CoroutineDispatcher> { Dispatchers.Default }
@@ -24,6 +25,13 @@ val nwcModule = module {
     factory { (connectUri: String) ->
         PayInvoiceUseCase(
             repository = get<NwcWalletRepository> { parametersOf(connectUri) },
+            dispatcher = get(),
+        )
+    }
+
+    factory { (connectUri: String) ->
+        MainViewModel(
+            payInvoice = get { parametersOf(connectUri) },
             dispatcher = get(),
         )
     }
