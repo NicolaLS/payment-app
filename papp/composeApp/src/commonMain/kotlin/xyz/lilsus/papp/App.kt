@@ -19,6 +19,7 @@ fun App() {
                 onNavigateToConnectWallet = { pkh -> navController.navigateToConnectWallet(pkh) },
             )
             settingsScreen(
+                navController = navController,
                 onBack = { navController.navigateUp() },
             )
             connectWalletDialog()
