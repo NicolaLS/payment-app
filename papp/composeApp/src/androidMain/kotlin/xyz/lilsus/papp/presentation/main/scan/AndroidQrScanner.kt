@@ -14,6 +14,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -90,10 +91,13 @@ actual fun CameraPreviewHost(
     }
     val surface = remember { CameraPreviewSurface(previewView) }
 
-    LaunchedEffect(visible) {
+    DisposableEffect(controller, surface, visible) {
         if (visible) {
             controller.bindPreview(surface)
         } else {
+            controller.unbindPreview()
+        }
+        onDispose {
             controller.unbindPreview()
         }
     }

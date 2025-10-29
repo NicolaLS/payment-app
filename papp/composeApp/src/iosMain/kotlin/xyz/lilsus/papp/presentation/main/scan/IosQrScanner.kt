@@ -112,10 +112,13 @@ actual fun CameraPreviewHost(
 ) {
     val surface = remember { CameraPreviewSurface(UIView()) }
 
-    LaunchedEffect(visible) {
+    DisposableEffect(controller, surface, visible) {
         if (visible) {
             controller.bindPreview(surface)
         } else {
+            controller.unbindPreview()
+        }
+        onDispose {
             controller.unbindPreview()
         }
     }
