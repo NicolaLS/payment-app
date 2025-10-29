@@ -26,18 +26,26 @@ import platform.AVFoundation.AVCaptureMetadataOutputObjectsDelegateProtocol
 import platform.AVFoundation.AVCaptureOutput
 import platform.AVFoundation.AVCaptureSession
 import platform.AVFoundation.AVCaptureSessionPresetHigh
+import platform.AVFoundation.AVCaptureVideoPreviewLayer
+import platform.AVFoundation.AVCaptureVideoOrientationPortrait
+import platform.AVFoundation.AVLayerVideoGravityResizeAspectFill
 import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.AVMetadataMachineReadableCodeObject
 import platform.AVFoundation.AVMetadataObjectTypeQRCode
 import platform.AVFoundation.authorizationStatusForMediaType
 import platform.AVFoundation.requestAccessForMediaType
+import platform.AVFoundation.videoZoomFactor
 import platform.Foundation.NSError
+import platform.Foundation.NSNumber
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSLog
+import platform.Foundation.valueForKey
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIView
+import platform.UIKit.layoutIfNeeded
+import kotlinx.cinterop.memScoped
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_queue_create
@@ -51,7 +59,11 @@ actual fun rememberQrScannerController(): QrScannerController {
     return remember { IosQrScannerController() }
 }
 
-actual class CameraPreviewSurface internal constructor(val view: UIView)
+actual class CameraPreviewSurface internal constructor(val view: UIView) {
+    init {
+        view.clipsToBounds = true
+    }
+}
 
 @Composable
 actual fun rememberCameraPermissionState(): CameraPermissionState {
@@ -130,6 +142,9 @@ private class IosQrScannerController : QrScannerController {
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private var configured = false
     private var paused: Boolean = true
+    private var previewLayer: AVCaptureVideoPreviewLayer? = null
+    private var previewSurface: CameraPreviewSurface? = null
+    private var currentDevice: AVCaptureDevice? = null
 
     private val delegate = MetadataDelegate(
         isPaused = { paused },
@@ -175,19 +190,53 @@ private class IosQrScannerController : QrScannerController {
             }
             paused = true
         }
+        previewSurface = null
+        currentDevice = null
+        dispatch_async(dispatch_get_main_queue()) {
+            previewLayer?.removeFromSuperlayer()
+            previewLayer = null
+        }
         onQrCodeScanned = null
     }
 
     override fun bindPreview(surface: CameraPreviewSurface) {
-        // TODO: Attach AVCaptureVideoPreviewLayer when preview mode is added.
+        previewSurface = surface
+        dispatch_async(dispatch_get_main_queue()) {
+            val layer = previewLayer ?: AVCaptureVideoPreviewLayer.layerWithSession(session).apply {
+                videoGravity = AVLayerVideoGravityResizeAspectFill
+                connection?.videoOrientation = AVCaptureVideoOrientationPortrait
+                previewLayer = this
+            }
+            layer.removeFromSuperlayer()
+            surface.view.layoutIfNeeded()
+            layer.frame = surface.view.bounds
+            surface.view.layer.addSublayer(layer)
+            previewLayer = layer
+        }
     }
 
     override fun unbindPreview() {
-        // TODO: Detach preview layer when preview mode is added.
+        previewSurface = null
+        dispatch_async(dispatch_get_main_queue()) {
+            previewLayer?.removeFromSuperlayer()
+        }
     }
 
     override fun setZoom(zoomFraction: Float) {
-        // TODO: Implement zoom control when preview mode is added.
+        val device = currentDevice ?: return
+        val clamped = zoomFraction.coerceIn(0f, 1f)
+        dispatch_async(sessionQueue) {
+            memScoped {
+                val minZoom = 1.0
+                val maxZoom = (device.activeFormat.valueForKey("videoMaxZoomFactor") as? NSNumber)?.doubleValue ?: 4.0
+                val target = (minZoom + (maxZoom - minZoom) * clamped).coerceIn(minZoom, maxZoom)
+                val errorPtr = alloc<ObjCObjectVar<NSError?>>()
+                if (device.lockForConfiguration(errorPtr.ptr)) {
+                    device.videoZoomFactor = target
+                    device.unlockForConfiguration()
+                }
+            }
+        }
     }
 
     @OptIn(ExperimentalForeignApi::class)
@@ -203,6 +252,7 @@ private class IosQrScannerController : QrScannerController {
             NSLog("Failed to acquire capture device for QR scanning")
             return
         }
+        currentDevice = device
 
         val input = createDeviceInput(device)
         if (input != null && session.canAddInput(input)) {
