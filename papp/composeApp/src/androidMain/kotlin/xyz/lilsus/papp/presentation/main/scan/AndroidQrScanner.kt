@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -133,6 +134,7 @@ private class AndroidQrScannerController(
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private val isActive = AtomicBoolean(false)
     private val isBound = AtomicBoolean(false)
+    private var camera: Camera? = null
 
     override fun start(onQrCodeScanned: (String) -> Unit) {
         this.onQrCodeScanned = onQrCodeScanned
@@ -163,6 +165,7 @@ private class AndroidQrScannerController(
         analyzer = null
         previewUseCase = null
         previewSurface = null
+        camera = null
         analysisExecutor?.shutdown()
         analysisExecutor = null
         cameraProvider = null
@@ -172,14 +175,18 @@ private class AndroidQrScannerController(
 
     override fun bindPreview(surface: CameraPreviewSurface) {
         previewSurface = surface
+        previewUseCase?.setSurfaceProvider(surface.previewView.surfaceProvider)
     }
 
     override fun unbindPreview() {
+        previewUseCase?.setSurfaceProvider(null)
         previewSurface = null
     }
 
     override fun setZoom(zoomFraction: Float) {
-        // TODO: Implement CameraX zoom control when preview mode is added.
+        val target = camera ?: return
+        val clamped = zoomFraction.coerceIn(0f, 1f)
+        target.cameraControl.setLinearZoom(clamped)
     }
 
     private fun bindCamera() {
@@ -216,10 +223,19 @@ private class AndroidQrScannerController(
 
                     imageAnalysis = analysis
 
+                    val preview = Preview.Builder()
+                        .build()
+                        .also { previewUseCase = it }
+
+                    previewSurface?.let { surface ->
+                        preview.setSurfaceProvider(surface.previewView.surfaceProvider)
+                    }
+
                     provider.unbindAll()
-                    provider.bindToLifecycle(
+                    camera = provider.bindToLifecycle(
                         lifecycleOwner,
                         CameraSelector.DEFAULT_BACK_CAMERA,
+                        preview,
                         analysis
                     )
 
