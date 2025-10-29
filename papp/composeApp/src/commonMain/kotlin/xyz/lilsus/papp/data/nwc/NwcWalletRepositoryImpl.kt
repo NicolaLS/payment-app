@@ -13,6 +13,7 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
 /**
  * Default [NwcWalletRepository] implementation backed by the nwc-kmp client.
@@ -21,16 +22,10 @@ import xyz.lilsus.papp.domain.repository.NwcWalletRepository
  * current wallet-connect URI provided by [connectUriProvider].
  */
 class NwcWalletRepositoryImpl(
-    private val connectUriProvider: () -> String,
+    private val walletSettingsRepository: WalletSettingsRepository,
     private val scope: CoroutineScope,
     private val requestTimeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
 ) : NwcWalletRepository {
-
-    constructor(
-        connectUri: String,
-        scope: CoroutineScope,
-        requestTimeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
-    ) : this({ connectUri }, scope, requestTimeoutMillis)
 
     private val clientMutex = Mutex()
     private var cachedClient: NwcClient? = null
@@ -38,10 +33,8 @@ class NwcWalletRepositoryImpl(
 
     override suspend fun payInvoice(invoice: String): PaidInvoice {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
-        val uri = connectUriProvider().trim()
-        if (uri.isEmpty()) {
-            throw AppErrorException(AppError.MissingWalletConnection)
-        }
+        val uri = walletSettingsRepository.getWalletConnection()?.uri?.trim()
+            ?: throw AppErrorException(AppError.MissingWalletConnection)
         return try {
             val client = ensureClient(uri)
             val response = client.payInvoice(

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.domain.model.AppError
 import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.error_invalid_wallet_uri
 import papp.composeapp.generated.resources.error_missing_wallet_connection
 import papp.composeapp.generated.resources.error_network_unavailable
 import papp.composeapp.generated.resources.error_payment_rejected_code
@@ -38,6 +39,9 @@ fun errorMessageFor(error: AppError): String = when (error) {
 
     AppError.NetworkUnavailable -> stringResource(Res.string.error_network_unavailable)
     AppError.Timeout -> stringResource(Res.string.error_timeout)
+    is AppError.InvalidWalletUri -> stringResource(
+        Res.string.error_invalid_wallet_uri
+    )
     is AppError.Unexpected -> {
         val details = error.message?.takeUnless { it.isBlank() }
         if (details != null) {

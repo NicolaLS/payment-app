@@ -31,6 +31,11 @@ sealed class AppError {
     data object Timeout : AppError()
 
     /**
+     * Provided wallet URI is invalid or malformed.
+     */
+    data class InvalidWalletUri(val reason: String? = null) : AppError()
+
+    /**
      * Any other unexpected error. The optional [message] can be used for logging.
      */
     data class Unexpected(val message: String? = null) : AppError()

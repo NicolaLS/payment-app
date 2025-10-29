@@ -10,7 +10,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
-import org.koin.core.parameter.parametersOf
 import org.koin.mp.KoinPlatformTools
 import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
@@ -38,11 +37,7 @@ private fun MainScreenEntry(
     onNavigateToConnectWallet: (String) -> Unit,
 ) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    // TODO: Inject real wallet URI when connection flow is implemented.
-    val connectUri = ""
-    val viewModel = remember(connectUri) {
-        koin.get<MainViewModel> { parametersOf(connectUri) }
-    }
+    val viewModel = remember { koin.get<MainViewModel>() }
 
     DisposableEffect(viewModel) {
         onDispose { viewModel.clear() }

@@ -48,13 +48,14 @@ fun SettingsScreen(
     onPayments: () -> Unit,
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
+    walletSubtitle: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val entries = listOf(
         SettingsEntry(
             title = stringResource(Res.string.settings_manage_wallets),
-            subtitle = stringResource(Res.string.settings_manage_wallets_subtitle),
+            subtitle = walletSubtitle ?: stringResource(Res.string.settings_manage_wallets_subtitle),
             onClick = onManageWallets,
         ),
         SettingsEntry(

@@ -16,11 +16,13 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 
 class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
+    private val observeWalletConnection: ObserveWalletConnectionUseCase,
     dispatcher: CoroutineDispatcher,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -30,6 +32,16 @@ class MainViewModel internal constructor(
 
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
+
+    init {
+        scope.launch {
+            observeWalletConnection().collect { connection ->
+                if (connection == null && _uiState.value is MainUiState.Success) {
+                    _uiState.value = MainUiState.Active
+                }
+            }
+        }
+    }
 
     fun dispatch(intent: MainIntent) {
         when (intent) {

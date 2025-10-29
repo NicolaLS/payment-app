@@ -22,7 +22,7 @@ fun App() {
                 navController = navController,
                 onBack = { navController.navigateUp() },
             )
-            connectWalletDialog()
+            connectWalletDialog(navController)
         }
     }
 }

@@ -20,7 +20,7 @@
     <string name="error_unexpected_generic">Something went wrong.</string>
     <string name="error_unexpected_with_details">Something went wrong: %1$s</string>
     <string name="settings_manage_wallets">Manage Wallets</string>
-    <string name="settings_manage_wallets_subtitle">Blink</string>
+    <string name="settings_manage_wallets_subtitle">Not connected</string>
     <string name="settings_payments">Payments</string>
     <string name="settings_currency">Currency</string>
     <string name="settings_currency_subtitle">USD</string>
@@ -47,5 +47,15 @@
     <string name="settings_language_german">Deutsch</string>
     <string name="settings_language_spanish">Español</string>
     <string name="settings_manage_wallets_title">Wallets</string>
-    <string name="settings_manage_wallets_placeholder">Wallet management coming soon.</string>
+    <string name="settings_manage_wallets_placeholder">No wallet connected yet. Add one to start paying.</string>
+    <string name="settings_manage_wallets_add">Add Wallet</string>
+    <string name="settings_manage_wallets_remove">Remove Wallet</string>
+    <string name="settings_manage_wallets_replace">Replace Wallet</string>
+    <string name="connect_wallet_title">Add Wallet</string>
+    <string name="connect_wallet_description">Paste a Nostr Wallet Connect URI to link your wallet.</string>
+    <string name="connect_wallet_input_label">Wallet Connect URI</string>
+    <string name="connect_wallet_paste_placeholder">nostr+walletconnect://your-wallet-public-key?relay=…</string>
+    <string name="connect_wallet_cancel">Cancel</string>
+    <string name="connect_wallet_confirm">Connect</string>
+    <string name="error_invalid_wallet_uri">This wallet URI isn't valid. Please double-check and try again.</string>
 </resources>

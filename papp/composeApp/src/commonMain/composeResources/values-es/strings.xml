@@ -19,7 +19,7 @@
     <string name="error_unexpected_generic">Algo salió mal.</string>
     <string name="error_unexpected_with_details">Algo salió mal: %1$s</string>
     <string name="settings_manage_wallets">Gestionar billeteras</string>
-    <string name="settings_manage_wallets_subtitle">Blink</string>
+    <string name="settings_manage_wallets_subtitle">Sin conexión</string>
     <string name="settings_payments">Pagos</string>
     <string name="settings_currency">Moneda</string>
     <string name="settings_currency_subtitle">USD</string>
@@ -46,5 +46,15 @@
     <string name="settings_language_german">Alemán</string>
     <string name="settings_language_spanish">Español</string>
     <string name="settings_manage_wallets_title">Billeteras</string>
-    <string name="settings_manage_wallets_placeholder">La gestión de billeteras llegará pronto.</string>
+    <string name="settings_manage_wallets_placeholder">Aún no hay una billetera conectada. Añade una para comenzar a pagar.</string>
+    <string name="settings_manage_wallets_add">Añadir billetera</string>
+    <string name="settings_manage_wallets_remove">Eliminar billetera</string>
+    <string name="settings_manage_wallets_replace">Reemplazar billetera</string>
+    <string name="connect_wallet_title">Añadir billetera</string>
+    <string name="connect_wallet_description">Pega una URI de Nostr Wallet Connect para enlazar tu billetera.</string>
+    <string name="connect_wallet_input_label">URI de Wallet Connect</string>
+    <string name="connect_wallet_paste_placeholder">nostr+walletconnect://tu-wallet-public-key?relay=…</string>
+    <string name="connect_wallet_cancel">Cancelar</string>
+    <string name="connect_wallet_confirm">Conectar</string>
+    <string name="error_invalid_wallet_uri">La URI de la billetera no es válida. Verifícala e inténtalo de nuevo.</string>
 </resources>

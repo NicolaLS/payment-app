@@ -5,10 +5,17 @@ import org.koin.core.context.startKoin
 import xyz.lilsus.papp.di.nwcModule
 
 class PappApplication : Application() {
+
     override fun onCreate() {
         super.onCreate()
+        instance = this
         startKoin {
             modules(nwcModule)
         }
+    }
+
+    companion object {
+        lateinit var instance: PappApplication
+            private set
     }
 }

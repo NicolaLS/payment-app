@@ -15,15 +15,34 @@ internal data class ConnectWallet(
     val lud16: String? = null,
 )
 
-fun NavGraphBuilder.connectWalletDialog() {
+fun NavGraphBuilder.connectWalletDialog(navController: NavController) {
     dialog<ConnectWallet> { navBackStackEntry ->
         val info: ConnectWallet = navBackStackEntry.toRoute()
-        ConnectWalletDialog(pubKeyHex = info.pubKeyHex)
+        ConnectWalletDialog(
+            initialUri = info.toUriOrNull(),
+            onDismiss = { navController.popBackStack() }
+        )
     }
 }
 
-fun NavController.navigateToConnectWallet(pubKeyHex: String) {
+fun NavController.navigateToConnectWallet(
+    pubKeyHex: String = "",
+    relay: String? = null,
+    secretHex: String? = null,
+    lud16: String? = null,
+) {
     // TODO: Handle nwc uri deep link:
     // https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-navigation-deep-links.html
-    navigate(route = ConnectWallet(pubKeyHex))
+    navigate(route = ConnectWallet(pubKeyHex, relay, secretHex, lud16))
+}
+
+private fun ConnectWallet.toUriOrNull(): String? {
+    if (pubKeyHex.isBlank() || secretHex.isNullOrBlank()) return null
+    val params = buildList {
+        add("secret=$secretHex")
+        relay?.let { add("relay=$it") }
+        lud16?.let { add("lud16=$it") }
+    }
+    val query = params.joinToString(separator = "&")
+    return "nostr+walletconnect://$pubKeyHex" + if (query.isNotEmpty()) "?$query" else ""
 }
