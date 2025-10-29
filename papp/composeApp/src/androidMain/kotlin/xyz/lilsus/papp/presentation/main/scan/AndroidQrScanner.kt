@@ -9,13 +9,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.content.ContextCompat
@@ -30,6 +34,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val TAG = "QrScanner"
+
+actual class CameraPreviewSurface internal constructor(val previewView: PreviewView)
 
 @Composable
 actual fun rememberQrScannerController(): QrScannerController {
@@ -69,6 +75,36 @@ actual fun rememberCameraPermissionState(): CameraPermissionState {
     }
 }
 
+@Composable
+actual fun CameraPreviewHost(
+    controller: QrScannerController,
+    visible: Boolean,
+    modifier: Modifier,
+) {
+    val context = LocalContext.current
+    val previewView = remember {
+        PreviewView(context).apply {
+            scaleType = PreviewView.ScaleType.FILL_CENTER
+        }
+    }
+    val surface = remember { CameraPreviewSurface(previewView) }
+
+    LaunchedEffect(visible) {
+        if (visible) {
+            controller.bindPreview(surface)
+        } else {
+            controller.unbindPreview()
+        }
+    }
+
+    if (visible) {
+        AndroidView(
+            modifier = modifier,
+            factory = { previewView }
+        )
+    }
+}
+
 private class AndroidCameraPermissionState(
     private val permissionState: MutableState<Boolean>,
     private val launcher: ActivityResultLauncher<String>,
@@ -91,6 +127,8 @@ private class AndroidQrScannerController(
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysis: ImageAnalysis? = null
     private var analyzer: QrCodeAnalyzer? = null
+    private var previewUseCase: Preview? = null
+    private var previewSurface: CameraPreviewSurface? = null
     private var analysisExecutor: ExecutorService? = null
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private val isActive = AtomicBoolean(false)
@@ -123,11 +161,25 @@ private class AndroidQrScannerController(
         imageAnalysis = null
         analyzer?.close()
         analyzer = null
+        previewUseCase = null
+        previewSurface = null
         analysisExecutor?.shutdown()
         analysisExecutor = null
         cameraProvider = null
         onQrCodeScanned = null
         isBound.set(false)
+    }
+
+    override fun bindPreview(surface: CameraPreviewSurface) {
+        previewSurface = surface
+    }
+
+    override fun unbindPreview() {
+        previewSurface = null
+    }
+
+    override fun setZoom(zoomFraction: Float) {
+        // TODO: Implement CameraX zoom control when preview mode is added.
     }
 
     private fun bindCamera() {

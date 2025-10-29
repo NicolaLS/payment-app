@@ -9,6 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.interop.UIKitView
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCObjectVar
@@ -35,6 +37,7 @@ import platform.Foundation.NSOperationQueue
 import platform.Foundation.NSLog
 import platform.UIKit.UIApplication
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
+import platform.UIKit.UIView
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_queue_create
@@ -47,6 +50,8 @@ import kotlinx.cinterop.value
 actual fun rememberQrScannerController(): QrScannerController {
     return remember { IosQrScannerController() }
 }
+
+actual class CameraPreviewSurface internal constructor(val view: UIView)
 
 @Composable
 actual fun rememberCameraPermissionState(): CameraPermissionState {
@@ -84,6 +89,30 @@ actual fun rememberCameraPermissionState(): CameraPermissionState {
                 }
             }
         }
+    }
+}
+
+@Composable
+actual fun CameraPreviewHost(
+    controller: QrScannerController,
+    visible: Boolean,
+    modifier: Modifier,
+) {
+    val surface = remember { CameraPreviewSurface(UIView()) }
+
+    LaunchedEffect(visible) {
+        if (visible) {
+            controller.bindPreview(surface)
+        } else {
+            controller.unbindPreview()
+        }
+    }
+
+    if (visible) {
+        UIKitView(
+            modifier = modifier,
+            factory = { surface.view }
+        )
     }
 }
 
@@ -147,6 +176,18 @@ private class IosQrScannerController : QrScannerController {
             paused = true
         }
         onQrCodeScanned = null
+    }
+
+    override fun bindPreview(surface: CameraPreviewSurface) {
+        // TODO: Attach AVCaptureVideoPreviewLayer when preview mode is added.
+    }
+
+    override fun unbindPreview() {
+        // TODO: Detach preview layer when preview mode is added.
+    }
+
+    override fun setZoom(zoomFraction: Float) {
+        // TODO: Implement zoom control when preview mode is added.
     }
 
     @OptIn(ExperimentalForeignApi::class)
