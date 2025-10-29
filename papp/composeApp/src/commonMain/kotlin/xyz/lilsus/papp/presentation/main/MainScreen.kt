@@ -120,7 +120,10 @@ fun MainScreenPreviewSuccess() {
         MainScreen(
             onNavigateSettings = {},
             onNavigateConnectWallet = {},
-            uiState = MainUiState.Success(DisplayAmount(69, DisplayCurrency.Satoshi)),
+            uiState = MainUiState.Success(
+                amountPaid = DisplayAmount(12345, DisplayCurrency.Satoshi),
+                feePaid = DisplayAmount(69, DisplayCurrency.Satoshi),
+            ),
             onRequestScannerStart = {},
             onScannerResume = {},
             onScannerPause = {},

@@ -50,7 +50,12 @@ fun ResultLayout(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                // TODO: Display the paid amount once invoice parsing provides it.
+                Text(
+                    text = formatter.format(result.amountPaid),
+                    style = MaterialTheme.typography.displaySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(
                         Res.string.result_paid_fee,
@@ -100,11 +105,15 @@ fun ResultLayout(
 @Preview(showBackground = true)
 @Composable
 fun ResultLayoutPreviewSuccess() {
+    val amountPaid = DisplayAmount(12345, DisplayCurrency.Satoshi)
     val feePaid = DisplayAmount(69, DisplayCurrency.Satoshi)
     AppTheme {
         ResultLayout(
             modifier = Modifier.fillMaxWidth(),
-            result = MainUiState.Success(feePaid)
+            result = MainUiState.Success(
+                amountPaid = amountPaid,
+                feePaid = feePaid,
+            )
         )
     }
 }

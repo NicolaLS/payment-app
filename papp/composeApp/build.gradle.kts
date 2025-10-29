@@ -53,6 +53,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.nwc.kmp)
             implementation(libs.multiplatform.settings)
+            implementation(libs.bitcoin.kmp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -16,6 +16,8 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.Result
+import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
+import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
@@ -23,6 +25,7 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
+    private val bolt11Parser: Bolt11InvoiceParser,
     dispatcher: CoroutineDispatcher,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -54,19 +57,30 @@ class MainViewModel internal constructor(
     }
 
     private fun handleInvoiceDetected(invoice: String) {
-        if (!invoice.startsWith("lnbc")) {
-            // TODO: Handle LNURLs or other invoice formats.
-            return
+        val summary = when (val parsed = bolt11Parser.parse(invoice)) {
+            is Bolt11ParseResult.Success -> parsed.invoice
+            is Bolt11ParseResult.Failure -> {
+                val error = AppError.InvalidWalletUri(parsed.reason)
+                _uiState.value = MainUiState.Error(error)
+                _events.tryEmit(MainEvent.ShowError(error))
+                return
+            }
         }
 
         scope.launch {
-            payInvoice(invoice).collect { result ->
+            payInvoice(summary.paymentRequest).collect { result ->
                 when (result) {
                     Result.Loading -> _uiState.value = MainUiState.Loading
                     is Result.Success -> {
-                        val feesPaidSats = result.data.feesPaidMsats?.div(1_000) ?: 0L
-                        val displayAmount = DisplayAmount(feesPaidSats, DisplayCurrency.Satoshi)
-                        _uiState.value = MainUiState.Success(displayAmount)
+                        val invoiceSats = summary.amountMsats?.div(1_000)
+                        val feeSats = result.data.feesPaidMsats?.div(1_000) ?: 0L
+                        val paidSats = invoiceSats ?: feeSats
+                        val amountDisplay = DisplayAmount(paidSats, DisplayCurrency.Satoshi)
+                        val feeDisplay = DisplayAmount(feeSats, DisplayCurrency.Satoshi)
+                        _uiState.value = MainUiState.Success(
+                            amountPaid = amountDisplay,
+                            feePaid = feeDisplay,
+                        )
                     }
 
                     is Result.Error -> {
