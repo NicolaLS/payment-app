@@ -19,8 +19,8 @@ import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
 import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
 import xyz.lilsus.papp.presentation.settings.SettingsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
-import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
 
 @Serializable
 internal object Settings
@@ -94,8 +94,9 @@ private fun WalletSettingsEntry(navController: NavController) {
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
-            if (event is WalletSettingsEvent.WalletRemoved) {
-                // No-op for now; could show toast/snackbar when available.
+            when (event) {
+                is WalletSettingsEvent.WalletRemoved,
+                is WalletSettingsEvent.WalletActivated -> Unit // TODO surface feedback when snackbars are available
             }
         }
     }
@@ -106,7 +107,8 @@ private fun WalletSettingsEntry(navController: NavController) {
         state = uiState,
         onBack = { navController.popBackStack() },
         onAddWallet = { navController.navigateToConnectWallet() },
-        onRemoveWallet = { viewModel.removeWallet() },
+        onSelectWallet = { viewModel.selectWallet(it) },
+        onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) },
     )
 }
 

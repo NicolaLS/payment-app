@@ -49,7 +49,8 @@
     <string name="settings_manage_wallets_placeholder">Aún no hay una billetera conectada. Añade una para comenzar a pagar.</string>
     <string name="settings_manage_wallets_add">Añadir billetera</string>
     <string name="settings_manage_wallets_remove">Eliminar billetera</string>
-    <string name="settings_manage_wallets_replace">Reemplazar billetera</string>
+    <string name="settings_manage_wallets_set_active">Establecer como activa</string>
+    <string name="settings_manage_wallets_active">Billetera activa</string>
     <string name="connect_wallet_title">Añadir billetera</string>
     <string name="connect_wallet_description">Pega una URI de Nostr Wallet Connect para enlazar tu billetera.</string>
     <string name="connect_wallet_input_label">URI de Wallet Connect</string>

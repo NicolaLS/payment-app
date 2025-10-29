@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -32,9 +33,11 @@ import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.settings_manage_wallets_placeholder
 import papp.composeapp.generated.resources.settings_manage_wallets_add
 import papp.composeapp.generated.resources.settings_manage_wallets_remove
-import papp.composeapp.generated.resources.settings_manage_wallets_replace
 import papp.composeapp.generated.resources.settings_manage_wallets_title
+import papp.composeapp.generated.resources.settings_manage_wallets_active
+import papp.composeapp.generated.resources.settings_manage_wallets_set_active
 import xyz.lilsus.papp.presentation.settings.wallet.WalletDisplay
+import xyz.lilsus.papp.presentation.settings.wallet.WalletRow
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsUiState
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -44,7 +47,8 @@ fun ManageWalletsScreen(
     state: WalletSettingsUiState,
     onBack: () -> Unit,
     onAddWallet: () -> Unit,
-    onRemoveWallet: () -> Unit,
+    onSelectWallet: (String) -> Unit,
+    onRemoveWallet: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -72,13 +76,24 @@ fun ManageWalletsScreen(
                 .padding(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            state.wallet?.let { wallet ->
-                WalletCard(
-                    wallet = wallet,
-                    onRemoveWallet = onRemoveWallet,
-                    onReplaceWallet = onAddWallet,
-                )
-            } ?: run {
+            if (state.hasWallets) {
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    state.wallets.forEach { row ->
+                        WalletCard(
+                            wallet = row.wallet,
+                            isActive = row.isActive,
+                            onRemoveWallet = { onRemoveWallet(row.wallet.pubKey) },
+                            onSetActive = { onSelectWallet(row.wallet.pubKey) },
+                        )
+                    }
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onAddWallet,
+                    ) {
+                        Text(text = stringResource(Res.string.settings_manage_wallets_add))
+                    }
+                }
+            } else {
                 EmptyWalletState(onAddWallet = onAddWallet)
             }
         }
@@ -88,12 +103,13 @@ fun ManageWalletsScreen(
 @Composable
 private fun WalletCard(
     wallet: WalletDisplay,
+    isActive: Boolean,
     onRemoveWallet: () -> Unit,
-    onReplaceWallet: () -> Unit,
+    onSetActive: () -> Unit,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 6.dp,
+        tonalElevation = if (isActive) 8.dp else 4.dp,
         shape = MaterialTheme.shapes.large,
     ) {
         Column(
@@ -102,11 +118,26 @@ private fun WalletCard(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = abbreviateKey(wallet.pubKey),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = abbreviateKey(wallet.pubKey),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (isActive) {
+                    Text(
+                        text = stringResource(Res.string.settings_manage_wallets_active),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
             wallet.relay?.let {
                 Text(
                     text = it,
@@ -130,8 +161,11 @@ private fun WalletCard(
                 OutlinedButton(onClick = onRemoveWallet) {
                     Text(text = stringResource(Res.string.settings_manage_wallets_remove))
                 }
-                Button(onClick = onReplaceWallet) {
-                    Text(text = stringResource(Res.string.settings_manage_wallets_replace))
+                Button(
+                    onClick = onSetActive,
+                    enabled = !isActive,
+                ) {
+                    Text(text = stringResource(Res.string.settings_manage_wallets_set_active))
                 }
             }
         }
@@ -168,14 +202,28 @@ private fun ManageWalletsScreenPreview() {
     AppTheme {
         ManageWalletsScreen(
             state = WalletSettingsUiState(
-                wallet = WalletDisplay(
-                    pubKey = "npub1exampleexampleexampleexampleexample",
-                    relay = "wss://relay.example.com",
-                    lud16 = "user@example.com",
+                wallets = listOf(
+                    WalletRow(
+                        wallet = WalletDisplay(
+                            pubKey = "npub1exampleexampleexampleexampleexample",
+                            relay = "wss://relay.example.com",
+                            lud16 = "user@example.com",
+                        ),
+                        isActive = true,
+                    ),
+                    WalletRow(
+                        wallet = WalletDisplay(
+                            pubKey = "npub1anotherexampleexampleexample",
+                            relay = "wss://relay.example2.com",
+                            lud16 = null,
+                        ),
+                        isActive = false,
+                    ),
                 )
             ),
             onBack = {},
             onAddWallet = {},
+            onSelectWallet = {},
             onRemoveWallet = {},
         )
     }

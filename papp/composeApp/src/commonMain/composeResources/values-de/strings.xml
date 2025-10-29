@@ -49,7 +49,8 @@
     <string name="settings_manage_wallets_placeholder">Noch keine Wallet verbunden. Jetzt hinzufügen, um Zahlungen zu senden.</string>
     <string name="settings_manage_wallets_add">Wallet hinzufügen</string>
     <string name="settings_manage_wallets_remove">Wallet entfernen</string>
-    <string name="settings_manage_wallets_replace">Wallet ersetzen</string>
+    <string name="settings_manage_wallets_set_active">Als aktiv festlegen</string>
+    <string name="settings_manage_wallets_active">Aktive Wallet</string>
     <string name="connect_wallet_title">Wallet hinzufügen</string>
     <string name="connect_wallet_description">Füge eine Nostr Wallet Connect URI ein, um deine Wallet zu verknüpfen.</string>
     <string name="connect_wallet_input_label">Wallet Connect URI</string>

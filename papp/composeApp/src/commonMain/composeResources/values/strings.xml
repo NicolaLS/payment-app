@@ -50,7 +50,8 @@
     <string name="settings_manage_wallets_placeholder">No wallet connected yet. Add one to start paying.</string>
     <string name="settings_manage_wallets_add">Add Wallet</string>
     <string name="settings_manage_wallets_remove">Remove Wallet</string>
-    <string name="settings_manage_wallets_replace">Replace Wallet</string>
+    <string name="settings_manage_wallets_set_active">Set Active</string>
+    <string name="settings_manage_wallets_active">Active Wallet</string>
     <string name="connect_wallet_title">Add Wallet</string>
     <string name="connect_wallet_description">Paste a Nostr Wallet Connect URI to link your wallet.</string>
     <string name="connect_wallet_input_label">Wallet Connect URI</string>
