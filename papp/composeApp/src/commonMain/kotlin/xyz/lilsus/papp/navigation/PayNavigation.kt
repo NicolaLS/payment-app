@@ -6,6 +6,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
@@ -15,6 +17,9 @@ import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
 import xyz.lilsus.papp.presentation.main.MainScreen
 import xyz.lilsus.papp.presentation.main.MainViewModel
+import xyz.lilsus.papp.presentation.main.MainUiState
+import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
+import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
 
 @Serializable
 object Pay
@@ -38,21 +43,57 @@ private fun MainScreenEntry(
 ) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = remember { koin.get<MainViewModel>() }
+    val cameraPermission = rememberCameraPermissionState()
+    val scannerController = rememberQrScannerController()
+    var hasRequestedPermission by remember { mutableStateOf(false) }
+    var scannerStarted by remember { mutableStateOf(false) }
 
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clear() }
+    DisposableEffect(viewModel, scannerController) {
+        onDispose {
+            scannerController.stop()
+            scannerStarted = false
+            viewModel.clear()
+        }
     }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collectLatest { event ->
             when (event) {
-                MainEvent.OpenScanner -> Unit // Scanner integration handled later.
-                is MainEvent.ShowError -> Unit // Surface via snackbar/dialog later.
+                is MainEvent.ShowError -> Unit // TODO: hook up snackbar/toast presentation.
+            }
+        }
+    }
+
+    fun startScannerIfNeeded() {
+        if (scannerStarted) return
+        if (!cameraPermission.hasPermission) return
+        scannerController.start { invoice ->
+            viewModel.dispatch(MainIntent.InvoiceDetected(invoice))
+        }
+        scannerStarted = true
+    }
+
+    LaunchedEffect(cameraPermission.hasPermission) {
+        if (cameraPermission.hasPermission) {
+            hasRequestedPermission = false
+            if (viewModel.uiState.value == MainUiState.Active) {
+                startScannerIfNeeded()
+                scannerController.resume()
+            }
+        } else {
+            if (scannerStarted) {
+                scannerController.stop()
+                scannerStarted = false
+            }
+            if (!hasRequestedPermission) {
+                hasRequestedPermission = true
+                cameraPermission.request()
             }
         }
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    val lastScan by viewModel.latestScan.collectAsState()
 
     MainScreen(
         onNavigateSettings = onNavigateToSettings,
@@ -64,5 +105,27 @@ private fun MainScreenEntry(
         onManualAmountSubmit = { viewModel.dispatch(MainIntent.ManualAmountSubmit) },
         onManualAmountDismiss = { viewModel.dispatch(MainIntent.ManualAmountDismiss) },
         onResultDismiss = { viewModel.dispatch(MainIntent.DismissResult) },
+        onRequestScannerStart = {
+            if (!cameraPermission.hasPermission) {
+                if (!hasRequestedPermission) {
+                    hasRequestedPermission = true
+                    cameraPermission.request()
+                }
+            } else {
+                startScannerIfNeeded()
+            }
+        },
+        onScannerResume = {
+            if (!cameraPermission.hasPermission) return@MainScreen
+            startScannerIfNeeded()
+            scannerController.resume()
+        },
+        onScannerPause = {
+            if (scannerStarted) {
+                scannerController.pause()
+            }
+        },
+        lastScannedInvoice = lastScan,
+        isCameraPermissionGranted = cameraPermission.hasPermission,
     )
 }

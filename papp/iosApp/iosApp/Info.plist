@@ -12,5 +12,7 @@
         </array>
         <key>CADisableMinimumFrameDurationOnPhone</key>
         <true/>
+        <key>NSCameraUsageDescription</key>
+        <string>Camera access is required to scan Lightning invoices.</string>
     </dict>
 </plist>

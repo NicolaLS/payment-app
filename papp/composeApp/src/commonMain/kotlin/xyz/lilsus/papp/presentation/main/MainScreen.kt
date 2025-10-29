@@ -2,11 +2,21 @@ package xyz.lilsus.papp.presentation.main
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
@@ -32,8 +42,33 @@ fun MainScreen(
     onManualAmountSubmit: () -> Unit = {},
     onManualAmountDismiss: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
+    onRequestScannerStart: () -> Unit,
+    onScannerResume: () -> Unit,
+    onScannerPause: () -> Unit,
+    lastScannedInvoice: String? = null,
+    isCameraPermissionGranted: Boolean,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(Unit) {
+        onRequestScannerStart()
+    }
+
+    LaunchedEffect(isCameraPermissionGranted) {
+        if (isCameraPermissionGranted) {
+            onRequestScannerStart()
+        } else {
+            onScannerPause()
+        }
+    }
+
+    LaunchedEffect(uiState, isCameraPermissionGranted) {
+        if (!isCameraPermissionGranted) return@LaunchedEffect
+        when (uiState) {
+            MainUiState.Active -> onScannerResume()
+            else -> onScannerPause()
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         floatingActionButton = { SettingsFAB(onNavigateSettings) }
@@ -65,6 +100,13 @@ fun MainScreen(
                     )
                 }
             }
+            lastScannedInvoice?.let { scanned ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = scanned,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 
@@ -91,7 +133,12 @@ fun MainScreenPreviewSuccess() {
         MainScreen(
             onNavigateSettings = {},
             onNavigateConnectWallet = {},
-            uiState = MainUiState.Success(DisplayAmount(69, DisplayCurrency.Satoshi))
+            uiState = MainUiState.Success(DisplayAmount(69, DisplayCurrency.Satoshi)),
+            onRequestScannerStart = {},
+            onScannerResume = {},
+            onScannerPause = {},
+            lastScannedInvoice = "lnbc1...",
+            isCameraPermissionGranted = true,
         )
     }
 }
@@ -111,7 +158,11 @@ fun MainScreenPreviewEnterAmount() {
                     max = DisplayAmount(1000, DisplayCurrency.Satoshi),
                     allowDecimal = false
                 )
-            )
+            ),
+            onRequestScannerStart = {},
+            onScannerResume = {},
+            onScannerPause = {},
+            isCameraPermissionGranted = true,
         )
     }
 }
