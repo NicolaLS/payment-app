@@ -9,7 +9,9 @@ import platform.Foundation.NSNumberFormatterDecimalStyle
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 
-actual class DefaultAmountFormatter actual constructor(private val locale: AppLocale) : AmountFormatter {
+actual fun createAmountFormatter(locale: AppLocale): AmountFormatter = IosAmountFormatter(locale)
+
+private class IosAmountFormatter(private val locale: AppLocale) : AmountFormatter {
 
     private val nsLocale = NSLocale(localeIdentifier = locale.bcp47)
 
