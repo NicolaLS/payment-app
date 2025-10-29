@@ -57,4 +57,7 @@
     <string name="connect_wallet_cancel">Cancelar</string>
     <string name="connect_wallet_confirm">Conectar</string>
     <string name="error_invalid_wallet_uri">La URI de la billetera no es válida. Verifícala e inténtalo de nuevo.</string>
+    <string name="result_paid_title">Pagado</string>
+    <string name="result_paid_fee">Comisión: %1$s</string>
+    <string name="result_error_title">Error</string>
 </resources>

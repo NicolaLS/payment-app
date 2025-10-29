@@ -93,8 +93,6 @@ private fun MainScreenEntry(
     }
 
     val uiState by viewModel.uiState.collectAsState()
-    val lastScan by viewModel.latestScan.collectAsState()
-
     MainScreen(
         onNavigateSettings = onNavigateToSettings,
         onNavigateConnectWallet = onNavigateToConnectWallet,
@@ -125,7 +123,6 @@ private fun MainScreenEntry(
                 scannerController.pause()
             }
         },
-        lastScannedInvoice = lastScan,
         isCameraPermissionGranted = cameraPermission.hasPermission,
     )
 }

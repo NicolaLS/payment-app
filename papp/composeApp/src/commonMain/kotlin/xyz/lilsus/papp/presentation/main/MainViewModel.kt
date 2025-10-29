@@ -13,12 +13,15 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.DisplayAmount
+import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 
 class MainViewModel internal constructor(
-    @Suppress("unused") private val payInvoice: PayInvoiceUseCase,
+    private val payInvoice: PayInvoiceUseCase,
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
     dispatcher: CoroutineDispatcher,
 ) {
@@ -29,9 +32,6 @@ class MainViewModel internal constructor(
 
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
-
-    private val _latestScan = MutableStateFlow<String?>(null)
-    val latestScan: StateFlow<String?> = _latestScan.asStateFlow()
 
     init {
         scope.launch {
@@ -54,9 +54,28 @@ class MainViewModel internal constructor(
     }
 
     private fun handleInvoiceDetected(invoice: String) {
-        // Temporary: expose raw invoice for manual testing.
-        _latestScan.value = invoice
-        _uiState.value = MainUiState.Active
+        if (!invoice.startsWith("lnbc")) {
+            // TODO: Handle LNURLs or other invoice formats.
+            return
+        }
+
+        scope.launch {
+            payInvoice(invoice).collect { result ->
+                when (result) {
+                    Result.Loading -> _uiState.value = MainUiState.Loading
+                    is Result.Success -> {
+                        val feesPaidSats = result.data.feesPaidMsats?.div(1_000) ?: 0L
+                        val displayAmount = DisplayAmount(feesPaidSats, DisplayCurrency.Satoshi)
+                        _uiState.value = MainUiState.Success(displayAmount)
+                    }
+
+                    is Result.Error -> {
+                        _uiState.value = MainUiState.Error(result.error)
+                        _events.tryEmit(MainEvent.ShowError(result.error))
+                    }
+                }
+            }
+        }
     }
 
     private fun handleDismissResult() {

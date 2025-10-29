@@ -57,4 +57,7 @@
     <string name="connect_wallet_cancel">Abbrechen</string>
     <string name="connect_wallet_confirm">Verbinden</string>
     <string name="error_invalid_wallet_uri">Diese Wallet-URI ist ungültig. Bitte überprüfe sie und versuche es erneut.</string>
+    <string name="result_paid_title">Bezahlt</string>
+    <string name="result_paid_fee">Gebühr: %1$s</string>
+    <string name="result_error_title">Fehler</string>
 </resources>
