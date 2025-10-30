@@ -5,8 +5,8 @@ Cross-Platform NWC Payment App
 
 Descending priority.
 
-- [ ] BOLT11 (with/without amount)
-- [ ] LNURL
-- [ ] LUD16 / Lightning Address
+- [x] BOLT11 (with/without amount)
+- [x] LNURL
+- [x] LUD16 / Lightning Address
 - [ ] BOLT12
 - [ ] BIP353 DNS Payment Instructions
