@@ -174,6 +174,8 @@ private fun MainScreenEntry(
             },
             onManualAmountSubmit = { viewModel.dispatch(MainIntent.ManualAmountSubmit) },
             onManualAmountDismiss = { viewModel.dispatch(MainIntent.ManualAmountDismiss) },
+            onConfirmPaymentSubmit = { viewModel.dispatch(MainIntent.ConfirmPaymentSubmit) },
+            onConfirmPaymentDismiss = { viewModel.dispatch(MainIntent.ConfirmPaymentDismiss) },
             onResultDismiss = { viewModel.dispatch(MainIntent.DismissResult) },
             onRequestScannerStart = {
                 if (!cameraPermission.hasPermission) {

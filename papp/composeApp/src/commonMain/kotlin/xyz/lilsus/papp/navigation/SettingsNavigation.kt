@@ -19,6 +19,7 @@ import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
 import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
 import xyz.lilsus.papp.presentation.settings.SettingsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
+import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
 
@@ -49,7 +50,7 @@ fun NavGraphBuilder.settingsScreen(
             SettingsOverviewEntry(navController = navController, onBack = onBack)
         }
         composable<SettingsPayments> {
-            PaymentsSettingsScreen(onBack = { navController.popBackStack() })
+            PaymentsSettingsEntry(onBack = { navController.popBackStack() })
         }
         composable<SettingsCurrency> {
             CurrencySettingsScreen(onBack = { navController.popBackStack() })
@@ -109,6 +110,26 @@ private fun WalletSettingsEntry(navController: NavController) {
         onAddWallet = { navController.navigateToConnectWallet() },
         onSelectWallet = { viewModel.selectWallet(it) },
         onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) },
+    )
+}
+
+@Composable
+private fun PaymentsSettingsEntry(onBack: () -> Unit) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = remember { koin.get<PaymentsSettingsViewModel>() }
+
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.clear() }
+    }
+
+    val state by viewModel.uiState.collectAsState()
+
+    PaymentsSettingsScreen(
+        state = state,
+        onBack = onBack,
+        onModeSelected = { viewModel.selectMode(it) },
+        onThresholdChanged = { threshold -> viewModel.updateThreshold(threshold) },
+        onConfirmManualEntryChanged = { enabled -> viewModel.setConfirmManualEntry(enabled) },
     )
 }
 

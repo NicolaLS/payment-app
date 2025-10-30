@@ -31,6 +31,7 @@
     <string name="settings_payments_confirm_threshold">Above %1$s SAT</string>
     <string name="settings_payments_option_always">Always</string>
     <string name="settings_payments_option_above">Above</string>
+    <string name="settings_payments_confirm_manual_entry">Confirm amounts I enter manually</string>
     <string name="settings_currency_title">Currency</string>
     <string name="settings_language_title">Language</string>
     <string name="search_placeholder">Search…</string>

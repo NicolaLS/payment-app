@@ -30,6 +30,7 @@
     <string name="settings_payments_confirm_threshold">Por encima de %1$s SAT</string>
     <string name="settings_payments_option_always">Siempre</string>
     <string name="settings_payments_option_above">Superior</string>
+    <string name="settings_payments_confirm_manual_entry">Confirmar importes introducidos manualmente</string>
     <string name="settings_currency_title">Moneda</string>
     <string name="settings_language_title">Idioma</string>
     <string name="search_placeholder">Buscar…</string>

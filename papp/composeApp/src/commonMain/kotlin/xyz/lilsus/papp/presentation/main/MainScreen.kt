@@ -23,6 +23,7 @@ import xyz.lilsus.papp.presentation.main.components.BottomLayout
 import xyz.lilsus.papp.presentation.main.components.ManualAmountBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
+import xyz.lilsus.papp.presentation.main.components.ConfirmationBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ResultLayout
 import xyz.lilsus.papp.presentation.main.components.SettingsFAB
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
@@ -36,6 +37,8 @@ fun MainScreen(
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountSubmit: () -> Unit = {},
     onManualAmountDismiss: () -> Unit = {},
+    onConfirmPaymentSubmit: () -> Unit = {},
+    onConfirmPaymentDismiss: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
     onRequestScannerStart: () -> Unit,
     onScannerResume: () -> Unit,
@@ -105,6 +108,14 @@ fun MainScreen(
             onDismiss = onManualAmountDismiss
         )
     }
+
+    if (uiState is MainUiState.Confirm) {
+        ConfirmationBottomSheet(
+            confirmAmount = uiState.amount,
+            onPay = onConfirmPaymentSubmit,
+            onDismiss = onConfirmPaymentDismiss,
+        )
+    }
 }
 
 fun Modifier.tapToDismiss(enabled: Boolean, onDismiss: () -> Unit) = clickable(
@@ -147,6 +158,24 @@ fun MainScreenPreviewEnterAmount() {
                     max = DisplayAmount(1000, DisplayCurrency.Satoshi),
                     allowDecimal = false
                 )
+            ),
+            onRequestScannerStart = {},
+            onScannerResume = {},
+            onScannerPause = {},
+            isCameraPermissionGranted = true,
+        )
+    }
+}
+
+@Preview
+@Composable
+fun MainScreenPreviewConfirm() {
+    AppTheme {
+        MainScreen(
+            onNavigateSettings = {},
+            onNavigateConnectWallet = {},
+            uiState = MainUiState.Confirm(
+                amount = DisplayAmount(500_000, DisplayCurrency.Satoshi),
             ),
             onRequestScannerStart = {},
             onScannerResume = {},

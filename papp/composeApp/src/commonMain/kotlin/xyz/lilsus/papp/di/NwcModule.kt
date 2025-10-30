@@ -6,19 +6,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
+import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.data.settings.createSecureSettings
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.use_cases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationModeUseCase
+import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationThresholdUseCase
+import xyz.lilsus.papp.domain.use_cases.SetConfirmManualEntryUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.SetActiveWalletUseCase
+import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
+import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.add_connection.ConnectWalletViewModel
 
@@ -28,6 +36,7 @@ val nwcModule = module {
 
     single { createSecureSettings() }
     single<WalletSettingsRepository> { WalletSettingsRepositoryImpl(get()) }
+    single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
 
     single<NwcWalletRepository> {
         NwcWalletRepositoryImpl(
@@ -40,10 +49,15 @@ val nwcModule = module {
 
     factory { PayInvoiceUseCase(repository = get(), dispatcher = get()) }
     factory { ObserveWalletConnectionUseCase(repository = get()) }
+    factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }
     factory { ClearWalletConnectionUseCase(repository = get()) }
+    factory { SetPaymentConfirmationModeUseCase(repository = get()) }
+    factory { SetPaymentConfirmationThresholdUseCase(repository = get()) }
+    factory { SetConfirmManualEntryUseCase(repository = get()) }
+    factory { ShouldConfirmPaymentUseCase(repository = get()) }
     factory { ManualAmountController() }
 
     factory {
@@ -52,6 +66,7 @@ val nwcModule = module {
             observeWalletConnection = get(),
             bolt11Parser = get(),
             manualAmount = get(),
+            shouldConfirmPayment = get(),
             dispatcher = get(),
         )
     }
@@ -62,6 +77,15 @@ val nwcModule = module {
             observeActiveWallet = get(),
             setActiveWallet = get(),
             clearWalletConnection = get(),
+        )
+    }
+
+    factory {
+        PaymentsSettingsViewModel(
+            observePreferences = get(),
+            setConfirmationMode = get(),
+            setConfirmationThreshold = get(),
+            setConfirmManualEntryPreference = get(),
         )
     }
 

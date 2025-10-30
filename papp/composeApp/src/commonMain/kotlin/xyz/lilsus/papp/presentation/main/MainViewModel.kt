@@ -22,6 +22,7 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
@@ -31,6 +32,7 @@ class MainViewModel internal constructor(
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
     private val bolt11Parser: Bolt11InvoiceParser,
     private val manualAmount: ManualAmountController = ManualAmountController(),
+    private val shouldConfirmPayment: ShouldConfirmPaymentUseCase,
     dispatcher: CoroutineDispatcher,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -43,6 +45,7 @@ class MainViewModel internal constructor(
 
     private var pendingInvoice: Bolt11InvoiceSummary? = null
     private var activePaymentJob: Job? = null
+    private var pendingPayment: PendingPayment? = null
 
     init {
         scope.launch {
@@ -61,6 +64,8 @@ class MainViewModel internal constructor(
             MainIntent.ManualAmountDismiss -> handleManualAmountDismiss()
             MainIntent.ManualAmountSubmit -> handleManualAmountSubmit()
             is MainIntent.ManualAmountKeyPress -> handleManualAmountKeyPress(intent.key)
+            MainIntent.ConfirmPaymentDismiss -> handleConfirmPaymentDismiss()
+            MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
         }
     }
 
@@ -88,9 +93,10 @@ class MainViewModel internal constructor(
             return
         }
 
-        startPayment(
+        requestPayment(
             summary = summary,
             amountOverrideMsats = null,
+            origin = PendingOrigin.Invoice,
         )
     }
 
@@ -118,11 +124,13 @@ class MainViewModel internal constructor(
                             feePaid = feeDisplay,
                         )
                         pendingInvoice = null
+                        pendingPayment = null
                         manualAmount.reset()
                     }
 
                     is Result.Error -> {
                         pendingInvoice = null
+                        pendingPayment = null
                         _uiState.value = MainUiState.Error(result.error)
                         _events.tryEmit(MainEvent.ShowError(result.error))
                     }
@@ -159,9 +167,10 @@ class MainViewModel internal constructor(
             ?.takeIf { it > 0 }
             ?: return
 
-        startPayment(
+        requestPayment(
             summary = invoice,
             amountOverrideMsats = amountMsats,
+            origin = PendingOrigin.ManualEntry,
         )
     }
 
@@ -171,9 +180,73 @@ class MainViewModel internal constructor(
         _uiState.value = MainUiState.Active
     }
 
+    private fun handleConfirmPaymentDismiss() {
+        val pending = pendingPayment ?: return
+        pendingPayment = null
+        when (pending.origin) {
+            PendingOrigin.Invoice -> {
+                pendingInvoice = null
+                _uiState.value = MainUiState.Active
+            }
+            PendingOrigin.ManualEntry -> {
+                _uiState.value = MainUiState.EnterAmount(entry = manualAmount.current())
+            }
+        }
+    }
+
+    private fun handleConfirmPaymentSubmit() {
+        val pending = pendingPayment ?: return
+        pendingPayment = null
+        startPayment(
+            summary = pending.summary,
+            amountOverrideMsats = pending.overrideAmountMsats,
+        )
+    }
+
+    private fun requestPayment(
+        summary: Bolt11InvoiceSummary,
+        amountOverrideMsats: Long?,
+        origin: PendingOrigin,
+    ) {
+        scope.launch {
+            val amountMsats = amountOverrideMsats ?: summary.amountMsats
+            val isManualEntry = origin == PendingOrigin.ManualEntry
+            if (amountMsats != null && shouldConfirmPayment(amountMsats, isManualEntry)) {
+                val display = DisplayAmount(
+                    minor = amountMsats / MSATS_PER_SAT,
+                    currency = DisplayCurrency.Satoshi,
+                )
+                pendingPayment = PendingPayment(
+                    summary = summary,
+                    overrideAmountMsats = amountOverrideMsats,
+                    displayAmount = display,
+                    origin = origin,
+                )
+                _uiState.value = MainUiState.Confirm(display)
+            } else {
+                startPayment(
+                    summary = summary,
+                    amountOverrideMsats = amountOverrideMsats,
+                )
+            }
+        }
+    }
+
     fun clear() {
         scope.cancel()
     }
 }
 
 private const val MSATS_PER_SAT = 1_000L
+
+private data class PendingPayment(
+    val summary: Bolt11InvoiceSummary,
+    val overrideAmountMsats: Long?,
+    val displayAmount: DisplayAmount,
+    val origin: PendingOrigin,
+)
+
+private enum class PendingOrigin {
+    Invoice,
+    ManualEntry,
+}

@@ -17,11 +17,15 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
 import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
 import xyz.lilsus.papp.domain.model.PaidInvoice
+import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
+import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 
 class MainViewModelTest {
@@ -126,6 +130,85 @@ class MainViewModelTest {
     }
 
     @Test
+    fun manualAmountSubmitRequiresConfirmationWhenPreferenceEnabled() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    amountMsats = null,
+                    memo = Bolt11Memo.None,
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = 50,
+                confirmManualEntry = true,
+            ),
+        )
+        try {
+            viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
+            viewModel.uiState.first { it is MainUiState.EnterAmount }
+
+            listOf(1, 0, 0).forEach { digit ->
+                viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(digit)))
+            }
+
+            viewModel.dispatch(MainIntent.ManualAmountSubmit)
+
+            val confirm = viewModel.uiState.first { it is MainUiState.Confirm } as MainUiState.Confirm
+            assertEquals(100L, confirm.amount.minor)
+            assertNull(repository.lastInvoice)
+
+            viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
+
+            viewModel.uiState.first { it is MainUiState.Success }
+            assertEquals(MANUAL_PAYMENT_REQUEST, repository.lastInvoice)
+            assertEquals(100_000L, repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun invoiceAmountRequiresConfirmationWhenPreferenceDemands() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None,
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(confirmationMode = PaymentConfirmationMode.Always),
+        )
+        try {
+            viewModel.dispatch(MainIntent.InvoiceDetected(AMOUNT_INVOICE_INPUT))
+
+            val confirm = viewModel.uiState.first { it is MainUiState.Confirm } as MainUiState.Confirm
+            assertEquals(250L, confirm.amount.minor)
+            assertNull(repository.lastInvoice)
+
+            viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
+
+            viewModel.uiState.first { it is MainUiState.Success }
+            assertEquals(AMOUNT_PAYMENT_REQUEST, repository.lastInvoice)
+            assertNull(repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
     fun ignoresNewInvoiceWhilePaymentInFlight() {
         runBlocking {
             val parser = FakeBolt11InvoiceParser(
@@ -166,12 +249,16 @@ class MainViewModelTest {
     private fun createViewModel(
         parser: Bolt11InvoiceParser,
         repository: NwcWalletRepository,
+        preferences: PaymentPreferences = PaymentPreferences(),
     ): MainViewModel {
         val payInvoice = PayInvoiceUseCase(repository, dispatcher = dispatcher)
+        val paymentPreferencesRepository = FakePaymentPreferencesRepository(preferences)
+        val shouldConfirm = ShouldConfirmPaymentUseCase(paymentPreferencesRepository)
         return MainViewModel(
             payInvoice = payInvoice,
             observeWalletConnection = walletConnection,
             bolt11Parser = parser,
+            shouldConfirmPayment = shouldConfirm,
             dispatcher = dispatcher,
         )
     }
@@ -224,6 +311,27 @@ private class FakeBolt11InvoiceParser(
     override fun parse(invoice: String): Bolt11ParseResult {
         return summaries[invoice]?.let { Bolt11ParseResult.Success(it) }
             ?: Bolt11ParseResult.Failure("Invoice not stubbed: $invoice")
+    }
+}
+
+private class FakePaymentPreferencesRepository(
+    initial: PaymentPreferences,
+) : PaymentPreferencesRepository {
+    private val state = MutableStateFlow(initial)
+    override val preferences: Flow<PaymentPreferences> = state
+
+    override suspend fun getPreferences(): PaymentPreferences = state.value
+
+    override suspend fun setConfirmationMode(mode: PaymentConfirmationMode) {
+        state.value = state.value.copy(confirmationMode = mode)
+    }
+
+    override suspend fun setConfirmationThreshold(thresholdSats: Long) {
+        state.value = state.value.copy(thresholdSats = thresholdSats)
+    }
+
+    override suspend fun setConfirmManualEntry(enabled: Boolean) {
+        state.value = state.value.copy(confirmManualEntry = enabled)
     }
 }
 

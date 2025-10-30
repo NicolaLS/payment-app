@@ -22,4 +22,6 @@ sealed interface MainIntent {
     data class ManualAmountKeyPress(val key: ManualAmountKey) : MainIntent
     data object ManualAmountSubmit : MainIntent
     data object ManualAmountDismiss : MainIntent
+    data object ConfirmPaymentSubmit : MainIntent
+    data object ConfirmPaymentDismiss : MainIntent
 }

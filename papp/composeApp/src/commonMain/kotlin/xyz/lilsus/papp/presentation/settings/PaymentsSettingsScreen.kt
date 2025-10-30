@@ -16,17 +16,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
@@ -35,32 +33,36 @@ import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.settings_payments
 import papp.composeapp.generated.resources.settings_payments_confirm_label
+import papp.composeapp.generated.resources.settings_payments_confirm_manual_entry
 import papp.composeapp.generated.resources.settings_payments_confirm_threshold
 import papp.composeapp.generated.resources.settings_payments_option_above
 import papp.composeapp.generated.resources.settings_payments_option_always
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
+import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.presentation.theme.AppTheme
-
-private enum class PaymentConfirmationMode { Always, Above }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentsSettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun PaymentsSettingsScreen(
+    state: PaymentsSettingsUiState,
+    onBack: () -> Unit,
+    onModeSelected: (PaymentConfirmationMode) -> Unit,
+    onThresholdChanged: (Long) -> Unit,
+    onConfirmManualEntryChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    var mode by remember { mutableStateOf(PaymentConfirmationMode.Above) }
-    var threshold by remember { mutableFloatStateOf(100_000f) }
-
     val formatter = rememberAmountFormatter()
-    val displayThreshold = DisplayAmount(threshold.toLong(), DisplayCurrency.Satoshi)
-    val thresholdText = if (mode == PaymentConfirmationMode.Above) {
-        stringResource(
+    val displayThreshold = DisplayAmount(state.thresholdSats, DisplayCurrency.Satoshi)
+    val thresholdText = when (state.confirmationMode) {
+        PaymentConfirmationMode.Above -> stringResource(
             Res.string.settings_payments_confirm_threshold,
             formatter.format(displayThreshold)
         )
-    } else {
-        stringResource(Res.string.settings_payments_option_always)
+        PaymentConfirmationMode.Always -> stringResource(Res.string.settings_payments_option_always)
     }
 
     Scaffold(
@@ -108,15 +110,30 @@ fun PaymentsSettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    PaymentModeChips(
-                        selected = mode,
-                        onSelected = { mode = it }
-                    )
-                    if (mode == PaymentConfirmationMode.Above) {
+                    PaymentModeChips(selected = state.confirmationMode, onSelected = onModeSelected)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.settings_payments_confirm_manual_entry),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.confirmManualEntry,
+                            onCheckedChange = onConfirmManualEntryChanged,
+                        )
+                    }
+                    if (state.confirmationMode == PaymentConfirmationMode.Above) {
                         Slider(
-                            value = threshold,
-                            onValueChange = { threshold = it },
-                            valueRange = 10_000f..1_000_000f,
+                            value = state.thresholdSats.toFloat(),
+                            onValueChange = { onThresholdChanged(it.toLong()) },
+                            valueRange = state.minThreshold.toFloat()..state.maxThreshold.toFloat(),
                         )
                     } else {
                         // keep layout height consistent
@@ -154,6 +171,16 @@ private fun PaymentModeChips(
 @Composable
 private fun PaymentsSettingsScreenPreview() {
     AppTheme {
-        PaymentsSettingsScreen(onBack = {})
+        PaymentsSettingsScreen(
+            state = PaymentsSettingsUiState(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
+                confirmManualEntry = true,
+            ),
+            onBack = {},
+            onModeSelected = {},
+            onThresholdChanged = {},
+            onConfirmManualEntryChanged = {},
+        )
     }
 }
