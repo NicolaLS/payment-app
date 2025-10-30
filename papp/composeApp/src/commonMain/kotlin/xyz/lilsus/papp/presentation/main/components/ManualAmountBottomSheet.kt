@@ -105,6 +105,7 @@ fun ManualAmountBottomSheet(
 
             Button(
                 onClick = onSubmit,
+                enabled = state.amount?.minor?.let { it > 0 } == true,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(text = stringResource(Res.string.pay_button))

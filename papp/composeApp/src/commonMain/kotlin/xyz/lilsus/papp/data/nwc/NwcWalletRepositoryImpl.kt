@@ -4,6 +4,7 @@ import io.github.nostr.nwc.NwcClient
 import io.github.nostr.nwc.NwcException
 import io.github.nostr.nwc.NwcRequestException
 import io.github.nostr.nwc.NwcTimeoutException
+import io.github.nostr.nwc.model.BitcoinAmount
 import io.github.nostr.nwc.model.PayInvoiceParams
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -31,14 +32,23 @@ class NwcWalletRepositoryImpl(
     private var cachedClient: NwcClient? = null
     private var cachedUri: String? = null
 
-    override suspend fun payInvoice(invoice: String): PaidInvoice {
+    override suspend fun payInvoice(
+        invoice: String,
+        amountMsats: Long?,
+    ): PaidInvoice {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
+        if (amountMsats != null) {
+            require(amountMsats > 0) { "Amount must be greater than zero." }
+        }
         val uri = walletSettingsRepository.getWalletConnection()?.uri?.trim()
             ?: throw AppErrorException(AppError.MissingWalletConnection)
         return try {
             val client = ensureClient(uri)
             val response = client.payInvoice(
-                params = PayInvoiceParams(invoice = invoice),
+                params = PayInvoiceParams(
+                    invoice = invoice,
+                    amount = amountMsats?.let(BitcoinAmount::fromMsats),
+                ),
                 timeoutMillis = requestTimeoutMillis,
             )
             PaidInvoice(

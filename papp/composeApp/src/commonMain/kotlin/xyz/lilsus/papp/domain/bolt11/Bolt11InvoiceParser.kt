@@ -5,9 +5,9 @@ import fr.acinq.bitcoin.Bech32
 /**
  * Minimal BOLT11 parser that extracts the optional amount (in millisatoshis) and the memo/description.
  */
-class Bolt11InvoiceParser {
+open class Bolt11InvoiceParser {
 
-    fun parse(invoice: String): Bolt11ParseResult {
+    open fun parse(invoice: String): Bolt11ParseResult {
         val trimmed = invoice.trim()
         if (trimmed.isEmpty()) {
             return Bolt11ParseResult.Failure("Invoice is blank")

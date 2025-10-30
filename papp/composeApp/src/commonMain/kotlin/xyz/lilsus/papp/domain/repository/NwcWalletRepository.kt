@@ -11,5 +11,12 @@ interface NwcWalletRepository {
      *
      * @throws Throwable when the underlying payment fails; callers should translate the failure to UI state.
      */
-    suspend fun payInvoice(invoice: String): PaidInvoice
+    suspend fun payInvoice(
+        invoice: String,
+        /**
+         * Optional amount overrides in millisatoshis for amount-less invoices.
+         * When null the wallet must infer the amount from the invoice itself.
+         */
+        amountMsats: Long? = null,
+    ): PaidInvoice
 }

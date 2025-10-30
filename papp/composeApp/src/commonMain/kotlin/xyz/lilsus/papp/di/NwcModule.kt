@@ -18,6 +18,7 @@ import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.SetActiveWalletUseCase
 import xyz.lilsus.papp.presentation.main.MainViewModel
+import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.add_connection.ConnectWalletViewModel
 
@@ -43,13 +44,15 @@ val nwcModule = module {
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }
     factory { ClearWalletConnectionUseCase(repository = get()) }
+    factory { ManualAmountController() }
 
     factory {
         MainViewModel(
             payInvoice = get(),
-            dispatcher = get(),
             observeWalletConnection = get(),
             bolt11Parser = get(),
+            manualAmount = get(),
+            dispatcher = get(),
         )
     }
 
