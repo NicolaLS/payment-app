@@ -16,6 +16,10 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
 import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
+import xyz.lilsus.papp.domain.lnurl.LightningInputParser
+import xyz.lilsus.papp.domain.lnurl.LightningAddress
+import xyz.lilsus.papp.domain.lnurl.LnurlPayMetadata
+import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.DisplayCurrency
@@ -27,13 +31,17 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
 import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
+import xyz.lilsus.papp.domain.repository.LnurlRepository
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.use_cases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.RequestLnurlInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
@@ -305,12 +313,107 @@ class MainViewModelTest {
         }
     }
 
+    @Test
+    fun lnurlFixedAmountPaysInvoice() = runBlocking {
+        val amountMsats = 50_000L
+        val lnurlInvoice = "lnbc1lnurlfixed"
+        val params = LnurlPayParams(
+            callback = LNURL_CALLBACK,
+            minSendable = amountMsats,
+            maxSendable = amountMsats,
+            metadataRaw = LNURL_METADATA_RAW,
+            metadata = LNURL_METADATA,
+            commentAllowed = null,
+            domain = "example.com",
+        )
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
+            stubInvoice(LNURL_CALLBACK, amountMsats, Result.Success(lnurlInvoice))
+        }
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                lnurlInvoice to Bolt11InvoiceSummary(
+                    paymentRequest = lnurlInvoice,
+                    amountMsats = amountMsats,
+                    memo = Bolt11Memo.Text("Payment"),
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            lnurlRepository = lnurlRepository,
+        )
+        try {
+            viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
+
+            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            assertEquals(lnurlInvoice, repository.lastInvoice)
+            assertEquals(amountMsats, repository.lastAmountMsats)
+            assertEquals(amountMsats / MSATS_PER_SAT, success.amountPaid.minor)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun lnurlRangeRequestsManualAmount() = runBlocking {
+        val minMsats = 1_000L
+        val maxMsats = 5_000L
+        val chosenMsats = 2_000L
+        val lnurlInvoice = "lnbc1lnurlrange"
+        val params = LnurlPayParams(
+            callback = LNURL_CALLBACK,
+            minSendable = minMsats,
+            maxSendable = maxMsats,
+            metadataRaw = LNURL_METADATA_RAW,
+            metadata = LNURL_METADATA,
+            commentAllowed = null,
+            domain = "example.com",
+        )
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
+            stubInvoice(LNURL_CALLBACK, chosenMsats, Result.Success(lnurlInvoice))
+        }
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                lnurlInvoice to Bolt11InvoiceSummary(
+                    paymentRequest = lnurlInvoice,
+                    amountMsats = chosenMsats,
+                    memo = Bolt11Memo.Text("Payment"),
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            lnurlRepository = lnurlRepository,
+        )
+        try {
+            viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
+            viewModel.uiState.first { it is MainUiState.EnterAmount }
+
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(2)))
+            viewModel.dispatch(MainIntent.ManualAmountSubmit)
+
+            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            assertEquals(lnurlInvoice, repository.lastInvoice)
+            assertEquals(chosenMsats, repository.lastAmountMsats)
+            assertEquals(chosenMsats / MSATS_PER_SAT, success.amountPaid.minor)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
     private fun createViewModel(
         parser: Bolt11InvoiceParser,
         repository: NwcWalletRepository,
         preferences: PaymentPreferences = PaymentPreferences(),
         currencyCode: String = CurrencyCatalog.DEFAULT_CODE,
         exchangeRateResult: Result<ExchangeRate>? = null,
+        lnurlRepository: FakeLnurlRepository = FakeLnurlRepository(),
     ): MainViewModel {
         val payInvoice = PayInvoiceUseCase(repository, dispatcher = dispatcher)
         val paymentPreferencesRepository = FakePaymentPreferencesRepository(preferences)
@@ -319,6 +422,9 @@ class MainViewModelTest {
         val observeCurrencyPreference = ObserveCurrencyPreferenceUseCase(currencyPreferencesRepository)
         val exchangeRateRepository = FakeExchangeRateRepository(exchangeRateResult)
         val getExchangeRate = GetExchangeRateUseCase(exchangeRateRepository)
+        val fetchLnurl = FetchLnurlPayParamsUseCase(lnurlRepository)
+        val resolveLightningAddress = ResolveLightningAddressUseCase(lnurlRepository)
+        val requestLnurlInvoice = RequestLnurlInvoiceUseCase(lnurlRepository)
         val manualAmount = ManualAmountController(
             ManualAmountConfig(
                 info = CurrencyCatalog.infoFor(currencyCode),
@@ -333,6 +439,10 @@ class MainViewModelTest {
             bolt11Parser = parser,
             manualAmount = manualAmount,
             shouldConfirmPayment = shouldConfirm,
+            lightningInputParser = LightningInputParser(),
+            fetchLnurlPayParams = fetchLnurl,
+            resolveLightningAddressUseCase = resolveLightningAddress,
+            requestLnurlInvoice = requestLnurlInvoice,
             dispatcher = dispatcher,
         )
     }
@@ -423,6 +533,41 @@ private class FakeCurrencyPreferencesRepository(
     }
 }
 
+private class FakeLnurlRepository(
+    private val endpointResponses: MutableMap<String, Result<LnurlPayParams>> = mutableMapOf(),
+    private val addressResponses: MutableMap<String, Result<LnurlPayParams>> = mutableMapOf(),
+    private val invoiceResponses: MutableMap<String, Result<String>> = mutableMapOf(),
+) : LnurlRepository {
+
+    fun stubEndpoint(endpoint: String, result: Result<LnurlPayParams>) {
+        endpointResponses[endpoint] = result
+    }
+
+    fun stubAddress(address: String, result: Result<LnurlPayParams>) {
+        addressResponses[address] = result
+    }
+
+    fun stubInvoice(callback: String, amountMsats: Long, result: Result<String>) {
+        invoiceResponses["$callback:$amountMsats"] = result
+    }
+
+    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> {
+        return endpointResponses[endpoint]
+            ?: Result.Error(AppError.InvalidWalletUri("LNURL not stubbed: $endpoint"))
+    }
+
+    override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> {
+        return addressResponses[address.full]
+            ?: Result.Error(AppError.InvalidWalletUri("Lightning address not stubbed: ${address.full}"))
+    }
+
+    override suspend fun requestInvoice(callback: String, amountMsats: Long, comment: String?): Result<String> {
+        return invoiceResponses["$callback:$amountMsats"]
+            ?: invoiceResponses[callback]
+            ?: Result.Error(AppError.InvalidWalletUri("Invoice not stubbed"))
+    }
+}
+
 private class FakeExchangeRateRepository(
     private val result: Result<ExchangeRate>?,
 ) : ExchangeRateRepository {
@@ -467,3 +612,16 @@ private class FakeWalletSettingsRepository : WalletSettingsRepository {
         stored.value = emptyList()
     }
 }
+private const val LNURL_ENDPOINT = "https://example.com/lnurl"
+private const val LNURL_CALLBACK = "https://example.com/callback"
+private const val LNURL_METADATA_RAW = "[[\"text/plain\",\"Payment\"]]"
+private val LNURL_METADATA = LnurlPayMetadata(
+    plainText = "Payment",
+    longText = null,
+    imagePng = null,
+    imageJpeg = null,
+    identifier = null,
+    email = null,
+    tag = null,
+)
+private const val MSATS_PER_SAT = 1_000L

@@ -117,7 +117,7 @@ open class Bolt11InvoiceParser {
 
         var index = TIMESTAMP_WORD_COUNT
         var descriptionText: String? = null
-        var hasDescriptionHash = false
+        var descriptionHash: ByteArray? = null
 
         while (index < payload.size) {
             if (index + 2 >= payload.size) {
@@ -137,14 +137,21 @@ open class Bolt11InvoiceParser {
                     descriptionText = runCatching { bytes.decodeToString() }.getOrNull()
                         ?: return MemoResult.Failure("Description is not valid UTF-8")
                 }
-                TYPE_DESCRIPTION_HASH -> hasDescriptionHash = true
+                TYPE_DESCRIPTION_HASH -> if (descriptionHash == null) {
+                    val bytes = fiveBitWordsToBytes(fieldWords)
+                        ?: return MemoResult.Failure("Description hash padding is invalid")
+                    if (bytes.size != 32) {
+                        return MemoResult.Failure("Description hash must be 32 bytes")
+                    }
+                    descriptionHash = bytes
+                }
             }
             index += dataLength
         }
 
         val memo = when {
             descriptionText != null -> Bolt11Memo.Text(descriptionText)
-            hasDescriptionHash -> Bolt11Memo.HashOnly
+            descriptionHash != null -> Bolt11Memo.HashOnly(descriptionHash)
             else -> Bolt11Memo.None
         }
 
@@ -283,7 +290,7 @@ data class Bolt11InvoiceSummary(
 
 sealed class Bolt11Memo {
     data class Text(val value: String) : Bolt11Memo()
-    data object HashOnly : Bolt11Memo()
+    data class HashOnly(val hash: ByteArray) : Bolt11Memo()
     data object None : Bolt11Memo()
 }
 

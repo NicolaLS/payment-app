@@ -40,7 +40,9 @@ class Bolt11InvoiceParserTest {
 
         assertEquals(SAMPLE_WITH_HASHED_DESCRIPTION, invoice.paymentRequest)
         assertEquals(2_000_000_000L, invoice.amountMsats)
-        assertTrue(invoice.memo is Bolt11Memo.HashOnly)
+        val memo = invoice.memo
+        assertTrue(memo is Bolt11Memo.HashOnly)
+        assertEquals(32, memo.hash.size)
     }
 
     @Test
