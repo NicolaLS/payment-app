@@ -6,16 +6,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
+import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
+import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.data.settings.createSecureSettings
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
+import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.use_cases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationModeUseCase
@@ -24,11 +29,16 @@ import xyz.lilsus.papp.domain.use_cases.SetConfirmManualEntryUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.domain.use_cases.SetCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
 import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
+import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.add_connection.ConnectWalletViewModel
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
 
 val nwcModule = module {
     single<CoroutineDispatcher> { Dispatchers.Default }
@@ -37,6 +47,8 @@ val nwcModule = module {
     single { createSecureSettings() }
     single<WalletSettingsRepository> { WalletSettingsRepositoryImpl(get()) }
     single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
+    single<CurrencyPreferencesRepository> { CurrencyPreferencesRepositoryImpl(get()) }
+    single<ExchangeRateRepository> { CoinGeckoExchangeRateRepository() }
 
     single<NwcWalletRepository> {
         NwcWalletRepositoryImpl(
@@ -50,6 +62,7 @@ val nwcModule = module {
     factory { PayInvoiceUseCase(repository = get(), dispatcher = get()) }
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
+    factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }
@@ -58,12 +71,24 @@ val nwcModule = module {
     factory { SetPaymentConfirmationThresholdUseCase(repository = get()) }
     factory { SetConfirmManualEntryUseCase(repository = get()) }
     factory { ShouldConfirmPaymentUseCase(repository = get()) }
-    factory { ManualAmountController() }
+    factory {
+        val info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
+        ManualAmountController(
+            defaultConfig = ManualAmountConfig(
+                info = info,
+                exchangeRate = null,
+            )
+        )
+    }
+    factory { SetCurrencyPreferenceUseCase(repository = get()) }
+    factory { GetExchangeRateUseCase(repository = get()) }
 
     factory {
         MainViewModel(
             payInvoice = get(),
             observeWalletConnection = get(),
+            observeCurrencyPreference = get(),
+            getExchangeRate = get(),
             bolt11Parser = get(),
             manualAmount = get(),
             shouldConfirmPayment = get(),
@@ -86,6 +111,13 @@ val nwcModule = module {
             setConfirmationMode = get(),
             setConfirmationThreshold = get(),
             setConfirmManualEntryPreference = get(),
+        )
+    }
+
+    factory {
+        CurrencySettingsViewModel(
+            observeCurrency = get(),
+            setCurrency = get(),
         )
     }
 

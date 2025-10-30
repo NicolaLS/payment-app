@@ -43,14 +43,26 @@ class PaymentPreferencesRepositoryImpl(
     }
 
     private fun loadPreferences(): PaymentPreferences {
-        val mode = when (settings.stringOrNullCompat(KEY_CONFIRM_MODE)?.lowercase()) {
+        val modeRaw = if (settings.hasKey(KEY_CONFIRM_MODE)) {
+            settings.getString(KEY_CONFIRM_MODE, "")
+        } else {
+            null
+        }
+        val mode = when (modeRaw?.lowercase()) {
             "always" -> PaymentConfirmationMode.Always
             "above" -> PaymentConfirmationMode.Above
             else -> PaymentConfirmationMode.Above
         }
-        val threshold = settings.longOrNullCompat(KEY_CONFIRM_THRESHOLD_SATS)
-            ?: PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS
-        val confirmManual = settings.booleanOrNullCompat(KEY_CONFIRM_MANUAL_ENTRY) ?: false
+        val threshold = if (settings.hasKey(KEY_CONFIRM_THRESHOLD_SATS)) {
+            settings.getLong(KEY_CONFIRM_THRESHOLD_SATS, PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS)
+        } else {
+            PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS
+        }
+        val confirmManual = if (settings.hasKey(KEY_CONFIRM_MANUAL_ENTRY)) {
+            settings.getBoolean(KEY_CONFIRM_MANUAL_ENTRY, false)
+        } else {
+            false
+        }
         return PaymentPreferences(
             confirmationMode = mode,
             thresholdSats = threshold,
@@ -69,19 +81,4 @@ class PaymentPreferencesRepositoryImpl(
         settings.putLong(KEY_CONFIRM_THRESHOLD_SATS, preferences.thresholdSats)
         settings.putBoolean(KEY_CONFIRM_MANUAL_ENTRY, preferences.confirmManualEntry)
     }
-}
-
-private fun Settings.booleanOrNullCompat(key: String): Boolean? = when {
-    hasKey(key) -> getBoolean(key, false)
-    else -> null
-}
-
-private fun Settings.stringOrNullCompat(key: String): String? = when {
-    hasKey(key) -> getString(key, "")
-    else -> null
-}
-
-private fun Settings.longOrNullCompat(key: String): Long? = when {
-    hasKey(key) -> getLong(key, 0L)
-    else -> null
 }

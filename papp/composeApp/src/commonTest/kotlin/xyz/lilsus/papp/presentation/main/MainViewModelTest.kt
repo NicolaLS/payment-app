@@ -16,16 +16,27 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
 import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
+import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
+import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
+import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
+import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 
 class MainViewModelTest {
@@ -124,6 +135,54 @@ class MainViewModelTest {
             assertEquals(MANUAL_PAYMENT_REQUEST, repository.lastInvoice)
             assertEquals(123_000L, repository.lastAmountMsats)
             assertEquals(123L, success.amountPaid.minor)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun manualAmountSubmitConvertsFiatAmount() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    amountMsats = null,
+                    memo = Bolt11Memo.None,
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val exchangeRate = 60_000.0
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            currencyCode = "USD",
+            exchangeRateResult = Result.Success(
+                ExchangeRate(currencyCode = "USD", pricePerBitcoin = exchangeRate),
+            ),
+        )
+        try {
+            viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
+            viewModel.uiState.first { it is MainUiState.EnterAmount }
+
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(3)))
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(0)))
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Decimal))
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(0)))
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(0)))
+
+            viewModel.uiState.first {
+                it is MainUiState.EnterAmount &&
+                    it.entry.amount?.minor == 3_000L &&
+                    it.entry.currency == DisplayCurrency.Fiat("USD")
+            }
+
+            viewModel.dispatch(MainIntent.ManualAmountSubmit)
+
+            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            assertEquals(50_000_000L, repository.lastAmountMsats)
+            assertEquals(DisplayCurrency.Fiat("USD"), success.amountPaid.currency)
+            assertEquals(3_000L, success.amountPaid.minor)
         } finally {
             viewModel.clear()
         }
@@ -250,14 +309,29 @@ class MainViewModelTest {
         parser: Bolt11InvoiceParser,
         repository: NwcWalletRepository,
         preferences: PaymentPreferences = PaymentPreferences(),
+        currencyCode: String = CurrencyCatalog.DEFAULT_CODE,
+        exchangeRateResult: Result<ExchangeRate>? = null,
     ): MainViewModel {
         val payInvoice = PayInvoiceUseCase(repository, dispatcher = dispatcher)
         val paymentPreferencesRepository = FakePaymentPreferencesRepository(preferences)
         val shouldConfirm = ShouldConfirmPaymentUseCase(paymentPreferencesRepository)
+        val currencyPreferencesRepository = FakeCurrencyPreferencesRepository(currencyCode)
+        val observeCurrencyPreference = ObserveCurrencyPreferenceUseCase(currencyPreferencesRepository)
+        val exchangeRateRepository = FakeExchangeRateRepository(exchangeRateResult)
+        val getExchangeRate = GetExchangeRateUseCase(exchangeRateRepository)
+        val manualAmount = ManualAmountController(
+            ManualAmountConfig(
+                info = CurrencyCatalog.infoFor(currencyCode),
+                exchangeRate = null,
+            )
+        )
         return MainViewModel(
             payInvoice = payInvoice,
             observeWalletConnection = walletConnection,
+            observeCurrencyPreference = observeCurrencyPreference,
+            getExchangeRate = getExchangeRate,
             bolt11Parser = parser,
+            manualAmount = manualAmount,
             shouldConfirmPayment = shouldConfirm,
             dispatcher = dispatcher,
         )
@@ -332,6 +406,28 @@ private class FakePaymentPreferencesRepository(
 
     override suspend fun setConfirmManualEntry(enabled: Boolean) {
         state.value = state.value.copy(confirmManualEntry = enabled)
+    }
+}
+
+private class FakeCurrencyPreferencesRepository(
+    initialCode: String,
+) : CurrencyPreferencesRepository {
+    private val initial = CurrencyCatalog.infoFor(initialCode).code
+    private val state = MutableStateFlow(initial)
+    override val currencyCode: Flow<String> = state
+
+    override suspend fun getCurrencyCode(): String = state.value
+
+    override suspend fun setCurrencyCode(code: String) {
+        state.value = CurrencyCatalog.infoFor(code).code
+    }
+}
+
+private class FakeExchangeRateRepository(
+    private val result: Result<ExchangeRate>?,
+) : ExchangeRateRepository {
+    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> {
+        return result ?: Result.Error(AppError.Unexpected("Missing stub for $currencyCode"))
     }
 }
 

@@ -38,6 +38,7 @@ import papp.composeapp.generated.resources.settings_manage_wallets
 import papp.composeapp.generated.resources.settings_manage_wallets_subtitle
 import papp.composeapp.generated.resources.settings_payments
 import papp.composeapp.generated.resources.settings_title
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +50,7 @@ fun SettingsScreen(
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
     walletSubtitle: String? = null,
+    currencySubtitle: String? = null,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -64,7 +66,7 @@ fun SettingsScreen(
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_currency),
-            subtitle = stringResource(Res.string.settings_currency_subtitle),
+            subtitle = currencySubtitle ?: stringResource(Res.string.settings_currency_subtitle),
             onClick = onCurrency,
         ),
         SettingsEntry(
@@ -164,6 +166,7 @@ private fun SettingsScreenPreview() {
             onPayments = {},
             onCurrency = {},
             onLanguage = {},
+            currencySubtitle = stringResource(CurrencyCatalog.infoFor("USD").nameRes),
         )
     }
 }

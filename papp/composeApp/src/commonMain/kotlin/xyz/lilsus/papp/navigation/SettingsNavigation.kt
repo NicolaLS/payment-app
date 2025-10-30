@@ -11,17 +11,21 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsScreen
+import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
 import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
-import xyz.lilsus.papp.presentation.settings.SettingsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.SettingsScreen
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
 
 @Serializable
 internal object Settings
@@ -53,7 +57,7 @@ fun NavGraphBuilder.settingsScreen(
             PaymentsSettingsEntry(onBack = { navController.popBackStack() })
         }
         composable<SettingsCurrency> {
-            CurrencySettingsScreen(onBack = { navController.popBackStack() })
+            CurrencySettingsEntry(onBack = { navController.popBackStack() })
         }
         composable<SettingsLanguage> {
             LanguageSettingsScreen(onBack = { navController.popBackStack() })
@@ -114,6 +118,25 @@ private fun WalletSettingsEntry(navController: NavController) {
 }
 
 @Composable
+private fun CurrencySettingsEntry(onBack: () -> Unit) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = remember { koin.get<CurrencySettingsViewModel>() }
+
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.clear() }
+    }
+
+    val state by viewModel.uiState.collectAsState()
+
+    CurrencySettingsScreen(
+        state = state,
+        onQueryChange = { viewModel.updateSearch(it) },
+        onCurrencySelected = { viewModel.selectCurrency(it) },
+        onBack = onBack,
+    )
+}
+
+@Composable
 private fun PaymentsSettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = remember { koin.get<PaymentsSettingsViewModel>() }
@@ -137,8 +160,11 @@ private fun PaymentsSettingsEntry(onBack: () -> Unit) {
 private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val observeWalletConnection = remember { koin.get<ObserveWalletConnectionUseCase>() }
+    val observeCurrencyPreference = remember { koin.get<ObserveCurrencyPreferenceUseCase>() }
     val wallet by observeWalletConnection().collectAsState(initial = null)
     val subtitle = wallet?.let { formatWalletSubtitle(it) }
+    val currency by observeCurrencyPreference().collectAsState(initial = CurrencyCatalog.infoFor("SAT").currency)
+    val currencyLabel = stringResource(CurrencyCatalog.infoFor(currency).nameRes)
 
     SettingsScreen(
         onBack = onBack,
@@ -147,6 +173,7 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         onCurrency = { navController.navigateToSettingsCurrency() },
         onLanguage = { navController.navigateToSettingsLanguage() },
         walletSubtitle = subtitle,
+        currencySubtitle = currencyLabel,
     )
 }
 

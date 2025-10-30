@@ -24,9 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,29 +46,16 @@ import xyz.lilsus.papp.presentation.theme.AppTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CurrencySettingsScreen(
+    state: CurrencySettingsUiState,
+    onQueryChange: (String) -> Unit,
+    onCurrencySelected: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    var query by remember { mutableStateOf("") }
-    var selected by remember { mutableStateOf("USD") }
 
-    val currencies = remember {
-        listOf(
-            "SAT" to Res.string.settings_currency_satoshi,
-            "BTC" to Res.string.settings_currency_bitcoin,
-            "USD" to Res.string.settings_currency_usd,
-            "EUR" to Res.string.settings_currency_eur,
-            "GBP" to Res.string.settings_currency_gbp,
-            "CAD" to Res.string.settings_currency_cad,
-            "AUD" to Res.string.settings_currency_aud,
-            "CHF" to Res.string.settings_currency_chf,
-            "JPY" to Res.string.settings_currency_jpy,
-        )
-    }
-    val localized = currencies.map { (code, nameRes) -> code to stringResource(nameRes) }
-    val filtered = localized.filter { (_, label) ->
-        label.contains(query, ignoreCase = true)
+    val filtered = state.options.filter { option ->
+        option.label.contains(state.searchQuery, ignoreCase = true)
     }
 
     Scaffold(
@@ -98,12 +82,11 @@ fun CurrencySettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 24.dp),
         ) {
             OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier
-                    .fillMaxWidth(),
+                value = state.searchQuery,
+                onValueChange = onQueryChange,
+                modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(Res.string.search_placeholder)) },
-                leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true,
             )
             LazyColumn(
@@ -112,11 +95,11 @@ fun CurrencySettingsScreen(
                     .padding(top = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(filtered, key = { it.first }) { (code, label) ->
+                items(filtered, key = { it.code }) { option ->
                     CurrencyRow(
-                        title = label,
-                        selected = selected == code,
-                        onClick = { selected = code }
+                        title = option.label,
+                        selected = state.selectedCode == option.code,
+                        onClick = { onCurrencySelected(option.code) }
                     )
                 }
             }
@@ -165,6 +148,24 @@ private fun CurrencyRow(
 @Composable
 private fun CurrencySettingsScreenPreview() {
     AppTheme {
-        CurrencySettingsScreen(onBack = {})
+        CurrencySettingsScreen(
+            state = CurrencySettingsUiState(
+                selectedCode = "USD",
+                options = listOf(
+                    CurrencyOption("SAT", stringResource(Res.string.settings_currency_satoshi)),
+                    CurrencyOption("BTC", stringResource(Res.string.settings_currency_bitcoin)),
+                    CurrencyOption("USD", stringResource(Res.string.settings_currency_usd)),
+                    CurrencyOption("EUR", stringResource(Res.string.settings_currency_eur)),
+                    CurrencyOption("GBP", stringResource(Res.string.settings_currency_gbp)),
+                    CurrencyOption("CAD", stringResource(Res.string.settings_currency_cad)),
+                    CurrencyOption("AUD", stringResource(Res.string.settings_currency_aud)),
+                    CurrencyOption("CHF", stringResource(Res.string.settings_currency_chf)),
+                    CurrencyOption("JPY", stringResource(Res.string.settings_currency_jpy)),
+                )
+            ),
+            onQueryChange = {},
+            onCurrencySelected = {},
+            onBack = {},
+        )
     }
 }

@@ -4,18 +4,23 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.cancel
+import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToLong
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.model.CurrencyInfo
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
@@ -23,15 +28,20 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
+import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 
 class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
+    private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
+    private val getExchangeRate: GetExchangeRateUseCase,
     private val bolt11Parser: Bolt11InvoiceParser,
-    private val manualAmount: ManualAmountController = ManualAmountController(),
+    private val manualAmount: ManualAmountController,
     private val shouldConfirmPayment: ShouldConfirmPaymentUseCase,
     dispatcher: CoroutineDispatcher,
 ) {
@@ -43,16 +53,29 @@ class MainViewModel internal constructor(
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
 
+    private val _currencyState = MutableStateFlow(
+        CurrencyState(info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE), exchangeRate = null)
+    )
     private var pendingInvoice: Bolt11InvoiceSummary? = null
     private var activePaymentJob: Job? = null
     private var pendingPayment: PendingPayment? = null
+    private var exchangeRateJob: Job? = null
 
     init {
         scope.launch {
-            observeWalletConnection().collect { connection ->
+            observeWalletConnection().collectLatest { connection ->
                 if (connection == null && _uiState.value is MainUiState.Success) {
                     _uiState.value = MainUiState.Active
                 }
+            }
+        }
+        scope.launch {
+            observeCurrencyPreference().collectLatest { currency ->
+                val info = CurrencyCatalog.infoFor(currency)
+                val current = _currencyState.value
+                _currencyState.value = CurrencyState(info = info, exchangeRate = current.exchangeRate.takeIf { info.code == current.info.code })
+                ensureExchangeRateIfNeeded(info)
+                refreshManualAmountState()
             }
         }
     }
@@ -83,7 +106,13 @@ class MainViewModel internal constructor(
             }
         }
 
-        val entryState = manualAmount.reset()
+        val currencyState = _currencyState.value
+        val entryState = manualAmount.reset(
+            ManualAmountConfig(
+                info = currencyState.info,
+                exchangeRate = currencyState.exchangeRate,
+            )
+        )
         pendingInvoice = summary
 
         if (summary.amountMsats == null) {
@@ -113,19 +142,21 @@ class MainViewModel internal constructor(
                 when (result) {
                     Result.Loading -> _uiState.value = MainUiState.Loading
                     is Result.Success -> {
-                        val invoiceMsats = amountOverrideMsats ?: summary.amountMsats
-                        val invoiceSats = invoiceMsats?.div(MSATS_PER_SAT)
-                        val feeSats = result.data.feesPaidMsats?.div(MSATS_PER_SAT) ?: 0L
-                        val paidSats = invoiceSats ?: feeSats
-                        val amountDisplay = DisplayAmount(paidSats, DisplayCurrency.Satoshi)
-                        val feeDisplay = DisplayAmount(feeSats, DisplayCurrency.Satoshi)
+                        val currencyState = _currencyState.value
+                        val paidDisplay = convertMsatsToDisplay(amountOverrideMsats ?: summary.amountMsats ?: 0L, currencyState)
+                        val feeDisplay = convertMsatsToDisplay(result.data.feesPaidMsats ?: 0L, currencyState)
                         _uiState.value = MainUiState.Success(
-                            amountPaid = amountDisplay,
+                            amountPaid = paidDisplay,
                             feePaid = feeDisplay,
                         )
                         pendingInvoice = null
                         pendingPayment = null
-                        manualAmount.reset()
+                        manualAmount.reset(
+                            ManualAmountConfig(
+                                info = currencyState.info,
+                                exchangeRate = currencyState.exchangeRate,
+                            )
+                        )
                     }
 
                     is Result.Error -> {
@@ -164,8 +195,12 @@ class MainViewModel internal constructor(
         val invoice = pendingInvoice ?: return
         if (invoice.amountMsats != null) return
         val amountMsats = manualAmount.enteredAmountMsats()
-            ?.takeIf { it > 0 }
-            ?: return
+        if (amountMsats == null || amountMsats <= 0) {
+            if (needsExchangeRate()) {
+                ensureExchangeRateIfNeeded(_currencyState.value.info)
+            }
+            return
+        }
 
         requestPayment(
             summary = invoice,
@@ -211,11 +246,10 @@ class MainViewModel internal constructor(
         scope.launch {
             val amountMsats = amountOverrideMsats ?: summary.amountMsats
             val isManualEntry = origin == PendingOrigin.ManualEntry
-            if (amountMsats != null && shouldConfirmPayment(amountMsats, isManualEntry)) {
-                val display = DisplayAmount(
-                    minor = amountMsats / MSATS_PER_SAT,
-                    currency = DisplayCurrency.Satoshi,
-                )
+            val currencyState = _currencyState.value
+            val requiresConfirmation = amountMsats != null && shouldConfirmPayment(amountMsats, isManualEntry)
+            if (requiresConfirmation) {
+                val display = convertMsatsToDisplay(amountMsats!!, currencyState)
                 pendingPayment = PendingPayment(
                     summary = summary,
                     overrideAmountMsats = amountOverrideMsats,
@@ -232,12 +266,73 @@ class MainViewModel internal constructor(
         }
     }
 
+    private fun refreshManualAmountState(preserveInput: Boolean = false) {
+        val currencyState = _currencyState.value
+        val entry = manualAmount.reset(
+            ManualAmountConfig(
+                info = currencyState.info,
+                exchangeRate = currencyState.exchangeRate,
+            ),
+            clearInput = !preserveInput,
+        )
+        if (_uiState.value is MainUiState.EnterAmount) {
+            _uiState.value = MainUiState.EnterAmount(entry = entry)
+        }
+    }
+
+    private fun ensureExchangeRateIfNeeded(info: CurrencyInfo) {
+        if (info.currency !is DisplayCurrency.Fiat) {
+            _currencyState.value = _currencyState.value.copy(exchangeRate = null, info = info)
+            return
+        }
+        exchangeRateJob?.cancel()
+        exchangeRateJob = scope.launch {
+            when (val result = getExchangeRate(info.code)) {
+                is Result.Success -> {
+                    _currencyState.value = CurrencyState(info = info, exchangeRate = max(result.data.pricePerBitcoin, 0.0))
+                    refreshManualAmountState(preserveInput = _uiState.value is MainUiState.EnterAmount)
+                }
+                is Result.Error -> {
+                    _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    _events.tryEmit(MainEvent.ShowError(result.error))
+                }
+                Result.Loading -> Unit
+            }
+        }
+    }
+
+    private fun needsExchangeRate(): Boolean {
+        val info = _currencyState.value.info
+        return info.currency is DisplayCurrency.Fiat && _currencyState.value.exchangeRate == null
+    }
+
+    private fun convertMsatsToDisplay(msats: Long, state: CurrencyState): DisplayAmount {
+        val info = state.info
+        return when (val currency = info.currency) {
+            DisplayCurrency.Satoshi -> DisplayAmount(msats / MSATS_PER_SAT, currency)
+            DisplayCurrency.Bitcoin -> DisplayAmount(msats / MSATS_PER_SAT, currency)
+            is DisplayCurrency.Fiat -> {
+                val rate = state.exchangeRate
+                if (rate == null) {
+                    DisplayAmount(msats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
+                } else {
+                    val btc = msats.toDouble() / MSATS_PER_BTC
+                    val fiatMajor = btc * rate
+                    val factor = 10.0.pow(info.fractionDigits)
+                    val minor = (fiatMajor * factor).roundToLong()
+                    DisplayAmount(minor, currency)
+                }
+            }
+        }
+    }
+
     fun clear() {
         scope.cancel()
     }
 }
 
 private const val MSATS_PER_SAT = 1_000L
+private const val MSATS_PER_BTC = 100_000_000_000L
 
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
@@ -250,3 +345,8 @@ private enum class PendingOrigin {
     Invoice,
     ManualEntry,
 }
+
+private data class CurrencyState(
+    val info: CurrencyInfo,
+    val exchangeRate: Double?,
+)
