@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import io.github.nostr.nwc.parseNwcUri
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
@@ -45,6 +46,17 @@ class ConnectWalletViewModel internal constructor(
         _uiState.update { current ->
             current.copy(uri = uri, error = null)
         }
+    }
+
+    fun prefillUriIfValid(candidate: String?) {
+        if (candidate.isNullOrBlank()) return
+        if (_uiState.value.uri.isNotBlank()) return
+
+        val trimmed = candidate.trim()
+        val isValid = runCatching { parseNwcUri(trimmed) }.isSuccess
+        if (!isValid) return
+
+        _uiState.update { it.copy(uri = trimmed, error = null) }
     }
 
     fun submit() {

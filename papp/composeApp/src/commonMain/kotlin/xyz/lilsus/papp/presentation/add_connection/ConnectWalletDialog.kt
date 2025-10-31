@@ -18,7 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
@@ -39,6 +39,7 @@ fun ConnectWalletDialog(
 ) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = remember { koin.get<ConnectWalletViewModel>() }
+    val clipboardManager = LocalClipboardManager.current
 
     DisposableEffect(viewModel) {
         onDispose { viewModel.clear() }
@@ -47,6 +48,12 @@ fun ConnectWalletDialog(
     LaunchedEffect(initialUri) {
         if (!initialUri.isNullOrBlank()) {
             viewModel.updateUri(initialUri)
+        }
+    }
+
+    if (initialUri.isNullOrBlank()) {
+        LaunchedEffect(viewModel) {
+            viewModel.prefillUriIfValid(clipboardManager.getText()?.text)
         }
     }
 
@@ -84,7 +91,7 @@ fun ConnectWalletDialog(
                 state.error?.let { error ->
                     Text(
                         text = errorMessageFor(error),
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
@@ -113,4 +120,3 @@ fun ConnectWalletDialog(
         }
     )
 }
-
