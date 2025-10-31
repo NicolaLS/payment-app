@@ -26,6 +26,7 @@
     <string name="settings_currency_subtitle">USD</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_subtitle">English</string>
+    <string name="settings_language_system_default">Use device language (%1$s)</string>
     <string name="settings_payments_title">Payments</string>
     <string name="settings_payments_confirm_label">Confirm Payment</string>
     <string name="settings_payments_confirm_threshold">Above %1$s SAT</string>

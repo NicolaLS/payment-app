@@ -13,11 +13,14 @@ import androidx.navigation.navigation
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
+import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.settings_language_system_default
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsScreen
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
+import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
@@ -26,6 +29,9 @@ import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.model.LanguageCatalog
+import xyz.lilsus.papp.domain.model.LanguagePreference
+import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
 
 @Serializable
 internal object Settings
@@ -60,7 +66,7 @@ fun NavGraphBuilder.settingsScreen(
             CurrencySettingsEntry(onBack = { navController.popBackStack() })
         }
         composable<SettingsLanguage> {
-            LanguageSettingsScreen(onBack = { navController.popBackStack() })
+            LanguageSettingsEntry(onBack = { navController.popBackStack() })
         }
         composable<SettingsManageWallets> {
             WalletSettingsEntry(navController = navController)
@@ -137,6 +143,25 @@ private fun CurrencySettingsEntry(onBack: () -> Unit) {
 }
 
 @Composable
+private fun LanguageSettingsEntry(onBack: () -> Unit) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = remember { koin.get<LanguageSettingsViewModel>() }
+
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.clear() }
+    }
+
+    val state by viewModel.uiState.collectAsState()
+
+    LanguageSettingsScreen(
+        state = state,
+        onQueryChange = { viewModel.updateSearch(it) },
+        onOptionSelected = { viewModel.selectOption(it) },
+        onBack = onBack,
+    )
+}
+
+@Composable
 private fun PaymentsSettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = remember { koin.get<PaymentsSettingsViewModel>() }
@@ -161,10 +186,15 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val observeWalletConnection = remember { koin.get<ObserveWalletConnectionUseCase>() }
     val observeCurrencyPreference = remember { koin.get<ObserveCurrencyPreferenceUseCase>() }
+    val observeLanguagePreference = remember { koin.get<ObserveLanguagePreferenceUseCase>() }
     val wallet by observeWalletConnection().collectAsState(initial = null)
     val subtitle = wallet?.let { formatWalletSubtitle(it) }
     val currency by observeCurrencyPreference().collectAsState(initial = CurrencyCatalog.infoFor("SAT").currency)
     val currencyLabel = stringResource(CurrencyCatalog.infoFor(currency).nameRes)
+    val languagePreference by observeLanguagePreference().collectAsState(
+        initial = LanguagePreference.System(LanguageCatalog.fallback.tag),
+    )
+    val languageLabel = formatLanguageSubtitle(languagePreference)
 
     SettingsScreen(
         onBack = onBack,
@@ -174,6 +204,7 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         onLanguage = { navController.navigateToSettingsLanguage() },
         walletSubtitle = subtitle,
         currencySubtitle = currencyLabel,
+        languageSubtitle = languageLabel,
     )
 }
 
@@ -184,4 +215,25 @@ private fun formatWalletSubtitle(connection: WalletConnection): String {
         append("…")
         append(key.takeLast(4))
     }
+}
+
+@Composable
+private fun formatLanguageSubtitle(preference: LanguagePreference): String {
+    val resolvedName = resolveLanguageName(preference.resolvedTag)
+    return when (preference) {
+        is LanguagePreference.System -> stringResource(Res.string.settings_language_system_default, resolvedName)
+        is LanguagePreference.Override -> resolveLanguageName(preference.overrideTag)
+    }
+}
+
+@Composable
+private fun resolveLanguageName(tag: String): String {
+    LanguageCatalog.infoForTag(tag)?.let { info ->
+        return info.displayName
+    }
+    val fallbackCode = tag.substringBefore('-')
+    LanguageCatalog.infoForCode(fallbackCode)?.let { info ->
+        return info.displayName
+    }
+    return tag
 }

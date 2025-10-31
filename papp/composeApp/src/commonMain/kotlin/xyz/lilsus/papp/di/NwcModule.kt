@@ -12,6 +12,7 @@ import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.data.settings.createSecureSettings
+import xyz.lilsus.papp.data.settings.createLanguageRepository
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
@@ -20,10 +21,12 @@ import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.repository.LnurlRepository
+import xyz.lilsus.papp.domain.repository.LanguageRepository
 import xyz.lilsus.papp.domain.use_cases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationModeUseCase
@@ -33,15 +36,19 @@ import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.domain.use_cases.SetCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.SetLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.use_cases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.use_cases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.use_cases.RequestLnurlInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.ClearLanguageOverrideUseCase
+import xyz.lilsus.papp.domain.use_cases.RefreshLanguagePreferenceUseCase
 import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
+import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.add_connection.ConnectWalletViewModel
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
@@ -54,6 +61,7 @@ val nwcModule = module {
     single<WalletSettingsRepository> { WalletSettingsRepositoryImpl(get()) }
     single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
     single<CurrencyPreferencesRepository> { CurrencyPreferencesRepositoryImpl(get()) }
+    single<LanguageRepository> { createLanguageRepository() }
     single<ExchangeRateRepository> { CoinGeckoExchangeRateRepository() }
     single<LnurlRepository> { LnurlRepositoryImpl() }
 
@@ -71,6 +79,7 @@ val nwcModule = module {
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
+    factory { ObserveLanguagePreferenceUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }
@@ -89,6 +98,9 @@ val nwcModule = module {
         )
     }
     factory { SetCurrencyPreferenceUseCase(repository = get()) }
+    factory { SetLanguagePreferenceUseCase(repository = get()) }
+    factory { ClearLanguageOverrideUseCase(repository = get()) }
+    factory { RefreshLanguagePreferenceUseCase(repository = get()) }
     factory { GetExchangeRateUseCase(repository = get()) }
     factory { FetchLnurlPayParamsUseCase(repository = get()) }
     factory { ResolveLightningAddressUseCase(repository = get()) }
@@ -133,6 +145,15 @@ val nwcModule = module {
         CurrencySettingsViewModel(
             observeCurrency = get(),
             setCurrency = get(),
+        )
+    }
+
+    factory {
+        LanguageSettingsViewModel(
+            observeLanguage = get(),
+            setLanguage = get(),
+            clearOverride = get(),
+            refreshLanguage = get(),
         )
     }
 

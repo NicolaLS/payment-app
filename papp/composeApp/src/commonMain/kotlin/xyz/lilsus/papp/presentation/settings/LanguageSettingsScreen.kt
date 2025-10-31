@@ -23,10 +23,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,36 +31,28 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.search_placeholder
 import papp.composeapp.generated.resources.settings_language
-import papp.composeapp.generated.resources.settings_language_english
-import papp.composeapp.generated.resources.settings_language_german
-import papp.composeapp.generated.resources.settings_language_spanish
 import xyz.lilsus.papp.presentation.theme.AppTheme
+import xyz.lilsus.papp.domain.model.LanguageCatalog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanguageSettingsScreen(
+    state: LanguageSettingsUiState,
+    onQueryChange: (String) -> Unit,
+    onOptionSelected: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    var query by remember { mutableStateOf("") }
-    var selected by remember { mutableStateOf("en") }
-
-    val languages = listOf(
-        "en" to Res.string.settings_language_english,
-        "de" to Res.string.settings_language_german,
-        "es" to Res.string.settings_language_spanish,
-    )
-    val localized = languages.map { (code, nameRes) -> code to stringResource(nameRes) }
-    val filtered = localized.filter { (_, label) ->
-        label.contains(query, ignoreCase = true)
+    val filtered = state.options.filter { option ->
+        option.title.contains(state.searchQuery, ignoreCase = true)
     }
 
     Scaffold(
         modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.settings_language)) },
+                title = { Text(state.title.ifEmpty { stringResource(Res.string.settings_language) }) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -84,8 +72,8 @@ fun LanguageSettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 24.dp),
         ) {
             OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
+                value = state.searchQuery,
+                onValueChange = onQueryChange,
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(Res.string.search_placeholder)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
@@ -97,11 +85,11 @@ fun LanguageSettingsScreen(
                     .padding(top = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(filtered, key = { it.first }) { (code, label) ->
+                items(filtered, key = { it.id }) { option ->
                     LanguageRow(
-                        title = label,
-                        selected = selected == code,
-                        onClick = { selected = code },
+                        title = option.title,
+                        selected = state.selectedCode == option.id,
+                        onClick = { onOptionSelected(option.id) },
                     )
                 }
             }
@@ -150,6 +138,20 @@ private fun LanguageRow(
 @Composable
 private fun LanguageSettingsScreenPreview() {
     AppTheme {
-        LanguageSettingsScreen(onBack = {})
+        LanguageSettingsScreen(
+            state = LanguageSettingsUiState(
+                selectedCode = "de",
+                deviceCode = "de",
+                title = stringResource(Res.string.settings_language),
+                options = listOf(
+                    LanguageOption("en", LanguageCatalog.displayName("en"), "en"),
+                    LanguageOption("de", LanguageCatalog.displayName("de"), "de"),
+                    LanguageOption("es", LanguageCatalog.displayName("es"), "es"),
+                ),
+            ),
+            onQueryChange = {},
+            onOptionSelected = {},
+            onBack = {},
+        )
     }
 }
