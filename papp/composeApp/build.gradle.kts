@@ -80,6 +80,12 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        ndk {
+            //noinspection ChromeOsAbiSupport
+            abiFilters += listOf(
+                "arm64-v8a",
+            ) // FIXME: Support 32bit systems once upstream ML Kit ,acinq-secp256k1 ships 16KB-aligned natives.
+        }
     }
     packaging {
         resources {
