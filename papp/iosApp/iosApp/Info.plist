@@ -14,5 +14,13 @@
         <true/>
         <key>NSCameraUsageDescription</key>
         <string>Camera access is required to scan Lightning invoices.</string>
+        <key>UISupportedInterfaceOrientations</key>
+        <array>
+            <string>UIInterfaceOrientationPortrait</string>
+        </array>
+        <key>UISupportedInterfaceOrientations~ipad</key>
+        <array>
+            <string>UIInterfaceOrientationPortrait</string>
+        </array>
     </dict>
 </plist>
