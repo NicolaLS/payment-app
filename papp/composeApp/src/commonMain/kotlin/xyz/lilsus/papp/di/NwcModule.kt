@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
+import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
 import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
@@ -20,6 +21,7 @@ import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
 import xyz.lilsus.papp.domain.repository.LnurlRepository
 import xyz.lilsus.papp.domain.repository.LanguageRepository
 import xyz.lilsus.papp.domain.use_cases.ClearWalletConnectionUseCase
@@ -42,6 +44,8 @@ import xyz.lilsus.papp.domain.use_cases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.use_cases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.use_cases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.use_cases.ClearLanguageOverrideUseCase
+import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
+import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.RefreshLanguagePreferenceUseCase
 import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
@@ -52,6 +56,7 @@ import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.add_connection.ConnectWalletViewModel
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletViewModel
 
 val nwcModule = module {
     single<CoroutineDispatcher> { Dispatchers.Default }
@@ -71,6 +76,7 @@ val nwcModule = module {
             scope = get(),
         )
     }
+    single<WalletDiscoveryRepository> { WalletDiscoveryRepositoryImpl() }
 
     single { Bolt11InvoiceParser() }
     factory { LightningInputParser() }
@@ -81,6 +87,8 @@ val nwcModule = module {
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
     factory { ObserveLanguagePreferenceUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
+    factory { GetWalletsUseCase(repository = get()) }
+    factory { DiscoverWalletUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }
     factory { ClearWalletConnectionUseCase(repository = get()) }
@@ -132,6 +140,8 @@ val nwcModule = module {
         )
     }
 
+    factory { AddWalletViewModel(dispatcher = get()) }
+
     factory {
         PaymentsSettingsViewModel(
             observePreferences = get(),
@@ -159,8 +169,9 @@ val nwcModule = module {
 
     factory {
         ConnectWalletViewModel(
+            discoverWallet = get(),
             setWalletConnection = get(),
-            observeWalletConnection = get(),
+            getWallets = get(),
         )
     }
 }

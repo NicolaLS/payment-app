@@ -8,4 +8,5 @@ data class WalletConnection(
     val walletPublicKey: String,
     val relayUrl: String?,
     val lud16: String?,
+    val alias: String?,
 )

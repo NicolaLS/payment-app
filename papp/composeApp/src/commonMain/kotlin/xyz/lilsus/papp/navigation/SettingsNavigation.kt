@@ -1,11 +1,15 @@
 package xyz.lilsus.papp.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -27,11 +31,18 @@ import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.SettingsScreen
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
+import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletEvent
+import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletScreen
+import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletViewModel
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.model.LanguageCatalog
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
+import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
+import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 
 @Serializable
 internal object Settings
@@ -50,6 +61,9 @@ internal object SettingsLanguage
 
 @Serializable
 internal object SettingsManageWallets
+
+@Serializable
+internal object SettingsAddWallet
 
 fun NavGraphBuilder.settingsScreen(
     navController: NavController,
@@ -70,6 +84,9 @@ fun NavGraphBuilder.settingsScreen(
         }
         composable<SettingsManageWallets> {
             WalletSettingsEntry(navController = navController)
+        }
+        composable<SettingsAddWallet> {
+            AddWalletEntry(navController = navController)
         }
     }
 }
@@ -92,6 +109,10 @@ fun NavController.navigateToSettingsLanguage() {
 
 fun NavController.navigateToSettingsManageWallets() {
     navigate(route = SettingsManageWallets)
+}
+
+fun NavController.navigateToSettingsAddWallet() {
+    navigate(route = SettingsAddWallet)
 }
 
 @Composable
@@ -117,10 +138,80 @@ private fun WalletSettingsEntry(navController: NavController) {
     ManageWalletsScreen(
         state = uiState,
         onBack = { navController.popBackStack() },
-        onAddWallet = { navController.navigateToConnectWallet() },
+        onAddWallet = { navController.navigateToSettingsAddWallet() },
         onSelectWallet = { viewModel.selectWallet(it) },
         onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) },
     )
+}
+
+@Composable
+private fun AddWalletEntry(navController: NavController) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = remember { koin.get<AddWalletViewModel>() }
+    val clipboard = LocalClipboardManager.current
+    val state by viewModel.uiState.collectAsState()
+    val scannerController = rememberQrScannerController()
+    val cameraPermission = rememberCameraPermissionState()
+    var scannerStarted by remember { mutableStateOf(false) }
+    var permissionRequested by remember { mutableStateOf(false) }
+
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.clear() }
+    }
+
+    DisposableEffect(scannerController) {
+        onDispose { scannerController.stop() }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is AddWalletEvent.NavigateToConfirm -> {
+                    navController.popBackStack()
+                    navController.navigateToConnectWallet(uri = event.uri)
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.prefillUriIfValid(clipboard.getText()?.text)
+    }
+
+    LaunchedEffect(cameraPermission.hasPermission) {
+        if (!cameraPermission.hasPermission) {
+            if (scannerStarted) {
+                scannerController.stop()
+                scannerStarted = false
+            }
+            if (!permissionRequested) {
+                permissionRequested = true
+                cameraPermission.request()
+            }
+            return@LaunchedEffect
+        }
+
+        permissionRequested = false
+        if (!scannerStarted) {
+            scannerController.start { value ->
+                viewModel.handleScannedValue(value)
+            }
+            scannerStarted = true
+        } else {
+            scannerController.resume()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AddWalletScreen(
+            state = state,
+            onBack = { navController.popBackStack() },
+            onUriChange = viewModel::updateUri,
+            onSubmit = viewModel::submit,
+            controller = scannerController,
+            isCameraPermissionGranted = cameraPermission.hasPermission,
+        )
+    }
 }
 
 @Composable
@@ -209,6 +300,7 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
 }
 
 private fun formatWalletSubtitle(connection: WalletConnection): String {
+    connection.alias?.takeIf { it.isNotBlank() }?.let { return it }
     val key = connection.walletPublicKey
     return if (key.length <= 12) key else buildString {
         append(key.take(6))

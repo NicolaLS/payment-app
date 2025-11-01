@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -12,16 +13,19 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.cancel
-import io.github.nostr.nwc.parseNwcUri
+import kotlinx.coroutines.CancellationException
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
-import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletDiscovery
+import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
+import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
 
 class ConnectWalletViewModel internal constructor(
+    private val discoverWallet: DiscoverWalletUseCase,
     private val setWalletConnection: SetWalletConnectionUseCase,
-    private val observeWalletConnection: ObserveWalletConnectionUseCase,
+    private val getWallets: GetWalletsUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -32,52 +36,77 @@ class ConnectWalletViewModel internal constructor(
     private val _events = MutableSharedFlow<ConnectWalletEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<ConnectWalletEvent> = _events.asSharedFlow()
 
-    init {
+    fun load(uri: String) {
+        val trimmed = uri.trim()
+        if (trimmed.isEmpty()) {
+            _uiState.value = ConnectWalletUiState(uri = "", error = AppError.InvalidWalletUri())
+            return
+        }
+        if (_uiState.value.uri == trimmed && _uiState.value.discovery != null) return
         scope.launch {
-            observeWalletConnection().collect { connection ->
-                if (connection != null && _uiState.value.isSubmitting) {
-                    _uiState.value = ConnectWalletUiState()
+            _uiState.update { it.copy(uri = trimmed, isDiscoveryLoading = true, error = null) }
+            val defaultSetActive = runCatching { getWallets().isNotEmpty() }.getOrDefault(false)
+            runCatching { discoverWallet(trimmed) }
+                .onSuccess { discovery ->
+                    _uiState.update { current ->
+                        val aliasSuggestion = discovery.aliasSuggestion.orEmpty()
+                        val alias = if (current.aliasInput.isBlank()) aliasSuggestion else current.aliasInput
+                        current.copy(
+                            discovery = discovery,
+                            aliasInput = alias,
+                            isDiscoveryLoading = false,
+                            error = null,
+                            setActive = if (current.discovery == null) defaultSetActive || current.setActive else current.setActive,
+                        )
+                    }
                 }
-            }
+                .onFailure { throwable ->
+                    val error = (throwable as? AppErrorException)?.error
+                        ?: AppError.Unexpected(throwable.message)
+                    _uiState.update {
+                        it.copy(
+                            uri = trimmed,
+                            discovery = null,
+                            isDiscoveryLoading = false,
+                            error = error,
+                        )
+                    }
+                }
         }
     }
 
-    fun updateUri(uri: String) {
-        _uiState.update { current ->
-            current.copy(uri = uri, error = null)
-        }
-    }
-
-    fun prefillUriIfValid(candidate: String?) {
-        if (candidate.isNullOrBlank()) return
-        if (_uiState.value.uri.isNotBlank()) return
-
-        val trimmed = candidate.trim()
-        val isValid = runCatching { parseNwcUri(trimmed) }.isSuccess
-        if (!isValid) return
-
-        _uiState.update { it.copy(uri = trimmed, error = null) }
-    }
-
-    fun submit() {
+    fun retryDiscovery() {
         val uri = _uiState.value.uri
-        if (uri.isBlank()) {
-            _uiState.update { it.copy(error = AppError.InvalidWalletUri()) }
+        if (uri.isNotBlank()) {
+            load(uri)
+        }
+    }
+
+    fun updateAlias(alias: String) {
+        _uiState.update { it.copy(aliasInput = alias) }
+    }
+
+    fun updateSetActive(setActive: Boolean) {
+        _uiState.update { it.copy(setActive = setActive) }
+    }
+
+    fun confirm() {
+        val state = _uiState.value
+        if (state.uri.isBlank() || state.discovery == null) {
             return
         }
         scope.launch {
-            _uiState.update { it.copy(isSubmitting = true, error = null) }
+            _uiState.update { it.copy(isSaving = true, error = null) }
             runCatching {
-                setWalletConnection(uri)
-            }.onSuccess {
-                _events.emit(ConnectWalletEvent.Success)
-                _uiState.value = ConnectWalletUiState()
+                setWalletConnection(state.uri, state.aliasInput, state.setActive)
+            }.onSuccess { connection ->
+                _events.emit(ConnectWalletEvent.Success(connection))
+                _uiState.update { it.copy(isSaving = false) }
             }.onFailure { throwable ->
-                val error = when (throwable) {
-                    is AppErrorException -> throwable.error
-                    else -> AppError.Unexpected(throwable.message)
-                }
-                _uiState.update { it.copy(isSubmitting = false, error = error) }
+                if (throwable is CancellationException) throw throwable
+                val error = (throwable as? AppErrorException)?.error
+                    ?: AppError.Unexpected(throwable.message)
+                _uiState.update { it.copy(isSaving = false, error = error) }
             }
         }
     }
@@ -95,11 +124,15 @@ class ConnectWalletViewModel internal constructor(
 
 data class ConnectWalletUiState(
     val uri: String = "",
-    val isSubmitting: Boolean = false,
+    val isDiscoveryLoading: Boolean = false,
+    val discovery: WalletDiscovery? = null,
+    val aliasInput: String = "",
+    val setActive: Boolean = true,
+    val isSaving: Boolean = false,
     val error: AppError? = null,
 )
 
 sealed interface ConnectWalletEvent {
-    data object Success : ConnectWalletEvent
+    data class Success(val connection: WalletConnection) : ConnectWalletEvent
     data object Cancelled : ConnectWalletEvent
 }

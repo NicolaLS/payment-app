@@ -48,18 +48,42 @@
     <string name="settings_language_german">Deutsch</string>
     <string name="settings_language_spanish">Spanisch</string>
     <string name="settings_manage_wallets_title">Wallets</string>
-    <string name="settings_manage_wallets_placeholder">Noch keine Wallet verbunden. Jetzt hinzufügen, um Zahlungen zu senden.</string>
+    <string name="settings_manage_wallets_placeholder">Noch keine Wallet verbunden. Jetzt hinzufügen, um Zahlungen zu
+        senden.
+    </string>
     <string name="settings_manage_wallets_add">Wallet hinzufügen</string>
     <string name="settings_manage_wallets_remove">Wallet entfernen</string>
     <string name="settings_manage_wallets_set_active">Als aktiv festlegen</string>
     <string name="settings_manage_wallets_active">Aktive Wallet</string>
+    <string name="add_wallet_title">Wallet verbinden</string>
+    <string name="add_wallet_continue">Weiter</string>
+    <string name="add_wallet_description">Kopiere eine NWC-URI und komme zurück, oder Scanne einen QR-Code.</string>
+    <string name="add_wallet_uri_label">Wallet-Connect-URI</string>
+    <string name="add_wallet_uri_placeholder">nostr+walletconnect://deine-wallet-public-key?relay=…</string>
+    <string name="add_wallet_scan_instruction">Richte den QR-Code im Rahmen aus.</string>
+    <string name="add_wallet_scan_permission">Für das Scannen wird Kamerazugriff benötigt.</string>
     <string name="connect_wallet_title">Wallet hinzufügen</string>
-    <string name="connect_wallet_description">Füge eine Nostr Wallet Connect URI ein, um deine Wallet zu verknüpfen.</string>
-    <string name="connect_wallet_input_label">Wallet Connect URI</string>
-    <string name="connect_wallet_paste_placeholder">nostr+walletconnect://deine-wallet-public-key?relay=…</string>
+    <string name="connect_wallet_description">Prüfe die Wallet-Details, bevor du verbindest.</string>
     <string name="connect_wallet_cancel">Abbrechen</string>
-    <string name="connect_wallet_confirm">Verbinden</string>
-    <string name="error_invalid_wallet_uri">Diese Wallet-URI ist ungültig. Bitte überprüfe sie und versuche es erneut.</string>
+    <string name="connect_wallet_confirm">Wallet hinzufügen</string>
+    <string name="connect_wallet_alias_label">Wallet-Alias (optional)</string>
+    <string name="connect_wallet_set_active">Als aktive Wallet festlegen</string>
+    <string name="connect_wallet_details_pubkey">Wallet Public Key</string>
+    <string name="connect_wallet_details_relay">Primärer Relay</string>
+    <string name="connect_wallet_details_lud16">Lightning-Adresse</string>
+    <string name="connect_wallet_details_methods">Unterstützte Methoden</string>
+    <string name="connect_wallet_details_encryption">Unterstützte Verschlüsselung</string>
+    <string name="connect_wallet_loading">Wallet-Informationen werden geladen…</string>
+    <string name="connect_wallet_retry">Erneut versuchen</string>
+    <string name="connect_wallet_warning_missing_pay_invoice">Diese Wallet meldet keine pay_invoice-Funktion. Zahlungen
+        schlagen fehl.
+    </string>
+    <string name="connect_wallet_warning_missing_nip44">Diese Wallet meldet keine NIP-44-Verschlüsselung. Anfragen
+        könnten fehlschlagen.
+    </string>
+    <string name="connect_wallet_warning_heading">Bitte prüfen</string>
+    <string name="error_invalid_wallet_uri">Diese Wallet-URI ist ungültig. Bitte überprüfe sie und versuche es erneut.
+    </string>
     <string name="result_paid_title">Bezahlt</string>
     <string name="result_paid_fee">Gebühr: %1$s</string>
     <string name="result_error_title">Fehler</string>

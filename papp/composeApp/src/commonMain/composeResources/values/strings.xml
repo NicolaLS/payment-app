@@ -54,12 +54,33 @@
     <string name="settings_manage_wallets_remove">Remove Wallet</string>
     <string name="settings_manage_wallets_set_active">Set Active</string>
     <string name="settings_manage_wallets_active">Active Wallet</string>
+    <string name="add_wallet_title">Connect Wallet</string>
+    <string name="add_wallet_continue">Continue</string>
+    <string name="add_wallet_description">Copy a NWC URI and come back here, or scan the QR code.</string>
+    <string name="add_wallet_uri_label">Wallet Connect URI</string>
+    <string name="add_wallet_uri_placeholder">nostr+walletconnect://your-wallet-public-key?relay=…</string>
+    <string name="add_wallet_scan_instruction">Align the QR code within the frame.</string>
+    <string name="add_wallet_scan_permission">Camera access is required to scan QR codes.</string>
     <string name="connect_wallet_title">Add Wallet</string>
-    <string name="connect_wallet_description">Paste a Nostr Wallet Connect URI to link your wallet.</string>
-    <string name="connect_wallet_input_label">Wallet Connect URI</string>
-    <string name="connect_wallet_paste_placeholder">nostr+walletconnect://your-wallet-public-key?relay=…</string>
+    <string name="connect_wallet_description">Review the wallet details before connecting.</string>
     <string name="connect_wallet_cancel">Cancel</string>
-    <string name="connect_wallet_confirm">Connect</string>
+    <string name="connect_wallet_confirm">Add Wallet</string>
+    <string name="connect_wallet_alias_label">Wallet alias (optional)</string>
+    <string name="connect_wallet_set_active">Set as active wallet</string>
+    <string name="connect_wallet_details_pubkey">Wallet public key</string>
+    <string name="connect_wallet_details_relay">Primary relay</string>
+    <string name="connect_wallet_details_lud16">Lightning address</string>
+    <string name="connect_wallet_details_methods">Supported methods</string>
+    <string name="connect_wallet_details_encryption">Supported encryption</string>
+    <string name="connect_wallet_loading">Fetching wallet information…</string>
+    <string name="connect_wallet_retry">Retry</string>
+    <string name="connect_wallet_warning_missing_pay_invoice">This wallet does not advertise the pay_invoice capability.
+        Payments will fail.
+    </string>
+    <string name="connect_wallet_warning_missing_nip44">This wallet does not advertise NIP-44 encryption. Requests may
+        fail.
+    </string>
+    <string name="connect_wallet_warning_heading">Review before connecting</string>
     <string name="error_invalid_wallet_uri">This wallet URI isn't valid. Please double-check and try again.</string>
     <string name="result_paid_title">Paid</string>
     <string name="result_paid_fee">Fee: %1$s</string>

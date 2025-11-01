@@ -19,7 +19,7 @@ interface WalletSettingsRepository {
 
     suspend fun getWalletConnection(): WalletConnection?
 
-    suspend fun saveWalletConnection(connection: WalletConnection)
+    suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean = true)
 
     suspend fun setActiveWallet(walletPublicKey: String)
 

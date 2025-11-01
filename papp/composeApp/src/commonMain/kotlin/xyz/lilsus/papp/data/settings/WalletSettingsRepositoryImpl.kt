@@ -40,13 +40,17 @@ class WalletSettingsRepositoryImpl(
 
     override suspend fun getWallets(): List<WalletConnection> = state.value.wallets
 
-    override suspend fun saveWalletConnection(connection: WalletConnection) {
+    override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
         updateState { current ->
             val existing = current.wallets.filterNot { it.walletPublicKey == connection.walletPublicKey }
             val updatedWallets = existing + connection
             current.copy(
                 wallets = updatedWallets,
-                activePubKey = connection.walletPublicKey,
+                activePubKey = when {
+                    activate -> connection.walletPublicKey
+                    current.activePubKey == connection.walletPublicKey -> connection.walletPublicKey
+                    else -> current.activePubKey
+                },
             )
         }
     }
@@ -117,6 +121,7 @@ class WalletSettingsRepositoryImpl(
         walletPublicKey = walletPublicKey,
         relayUrl = relayUrl,
         lud16 = lud16,
+        alias = alias,
     )
 
     private fun StoredWallet.toDomain(): WalletConnection = WalletConnection(
@@ -124,6 +129,7 @@ class WalletSettingsRepositoryImpl(
         walletPublicKey = walletPublicKey,
         relayUrl = relayUrl,
         lud16 = lud16,
+        alias = alias,
     )
 
     private data class WalletState(
@@ -148,5 +154,6 @@ class WalletSettingsRepositoryImpl(
         val walletPublicKey: String,
         val relayUrl: String? = null,
         val lud16: String? = null,
+        val alias: String? = null,
     )
 }

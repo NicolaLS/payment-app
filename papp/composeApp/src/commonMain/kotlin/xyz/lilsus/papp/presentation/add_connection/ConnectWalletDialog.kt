@@ -1,35 +1,22 @@
 package xyz.lilsus.papp.presentation.add_connection
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
+import papp.composeapp.generated.resources.*
+import xyz.lilsus.papp.domain.model.WalletDiscovery
+import xyz.lilsus.papp.domain.model.supportsNip44
+import xyz.lilsus.papp.domain.model.supportsPayInvoice
 import xyz.lilsus.papp.presentation.common.errorMessageFor
-import papp.composeapp.generated.resources.Res
-import papp.composeapp.generated.resources.connect_wallet_cancel
-import papp.composeapp.generated.resources.connect_wallet_confirm
-import papp.composeapp.generated.resources.connect_wallet_description
-import papp.composeapp.generated.resources.connect_wallet_input_label
-import papp.composeapp.generated.resources.connect_wallet_paste_placeholder
-import papp.composeapp.generated.resources.connect_wallet_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,21 +26,14 @@ fun ConnectWalletDialog(
 ) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = remember { koin.get<ConnectWalletViewModel>() }
-    val clipboardManager = LocalClipboardManager.current
 
     DisposableEffect(viewModel) {
         onDispose { viewModel.clear() }
     }
 
     LaunchedEffect(initialUri) {
-        if (!initialUri.isNullOrBlank()) {
-            viewModel.updateUri(initialUri)
-        }
-    }
-
-    if (initialUri.isNullOrBlank()) {
-        LaunchedEffect(viewModel) {
-            viewModel.prefillUriIfValid(clipboardManager.getText()?.text)
+        if (initialUri != null) {
+            viewModel.load(initialUri)
         }
     }
 
@@ -61,7 +41,7 @@ fun ConnectWalletDialog(
         viewModel.events.collect { event ->
             when (event) {
                 ConnectWalletEvent.Cancelled -> onDismiss()
-                ConnectWalletEvent.Success -> onDismiss()
+                is ConnectWalletEvent.Success -> onDismiss()
             }
         }
     }
@@ -74,35 +54,19 @@ fun ConnectWalletDialog(
         },
         title = { Text(text = stringResource(Res.string.connect_wallet_title)) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = stringResource(Res.string.connect_wallet_description),
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                OutlinedTextField(
-                    value = state.uri,
-                    onValueChange = viewModel::updateUri,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text(stringResource(Res.string.connect_wallet_input_label)) },
-                    placeholder = { Text(stringResource(Res.string.connect_wallet_paste_placeholder)) },
-                    enabled = !state.isSubmitting,
-                )
-                state.error?.let { error ->
-                    Text(
-                        text = errorMessageFor(error),
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-            }
+            ConnectWalletDialogContent(
+                state = state,
+                onAliasChange = viewModel::updateAlias,
+                onSetActiveChange = viewModel::updateSetActive,
+                onRetryDiscovery = viewModel::retryDiscovery,
+            )
         },
         confirmButton = {
             TextButton(
-                onClick = { viewModel.submit() },
-                enabled = state.uri.isNotBlank() && !state.isSubmitting,
+                onClick = { viewModel.confirm() },
+                enabled = state.discovery != null && !state.isSaving && !state.isDiscoveryLoading,
             ) {
-                if (state.isSubmitting) {
+                if (state.isSaving) {
                     CircularProgressIndicator(
                         modifier = Modifier
                             .padding(end = 8.dp)
@@ -119,4 +83,208 @@ fun ConnectWalletDialog(
             }
         }
     )
+}
+
+@Composable
+private fun ConnectWalletDialogContent(
+    state: ConnectWalletUiState,
+    onAliasChange: (String) -> Unit,
+    onSetActiveChange: (Boolean) -> Unit,
+    onRetryDiscovery: () -> Unit,
+) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(scrollState),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(text = stringResource(Res.string.connect_wallet_description))
+        state.discovery?.let { discovery ->
+            WarningSection(discovery)
+        }
+
+        when {
+            state.isDiscoveryLoading -> DiscoveryLoading()
+            state.discovery != null -> DiscoveryDetails(
+                state = state,
+                onAliasChange = onAliasChange,
+                onSetActiveChange = onSetActiveChange,
+            )
+
+            else -> Unit
+        }
+
+        state.error?.let { error ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = errorMessageFor(error),
+                    color = MaterialTheme.colorScheme.error,
+                )
+                if (!state.isDiscoveryLoading && state.discovery == null) {
+                    TextButton(onClick = onRetryDiscovery) {
+                        Text(text = stringResource(Res.string.connect_wallet_retry))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiscoveryLoading() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+        Text(text = stringResource(Res.string.connect_wallet_loading))
+    }
+}
+
+@Composable
+private fun DiscoveryDetails(
+    state: ConnectWalletUiState,
+    onAliasChange: (String) -> Unit,
+    onSetActiveChange: (Boolean) -> Unit,
+) {
+    val discovery = state.discovery ?: return
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinedTextField(
+            value = state.aliasInput,
+            onValueChange = onAliasChange,
+            label = { Text(stringResource(Res.string.connect_wallet_alias_label)) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !state.isSaving,
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Checkbox(
+                checked = state.setActive,
+                onCheckedChange = { onSetActiveChange(it) },
+                enabled = !state.isSaving,
+            )
+            Text(text = stringResource(Res.string.connect_wallet_set_active))
+        }
+
+        WalletSummary(discovery)
+
+        CapabilitySection(
+            title = stringResource(Res.string.connect_wallet_details_methods),
+            values = discovery.methods,
+        )
+
+        CapabilitySection(
+            title = stringResource(Res.string.connect_wallet_details_encryption),
+            values = discovery.encryptionSchemes,
+        )
+    }
+}
+
+@Composable
+private fun WalletSummary(discovery: WalletDiscovery) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(Res.string.connect_wallet_details_pubkey),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = ellipsize(discovery.walletPublicKey),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        discovery.relayUrl?.let { relay ->
+            Spacer(Modifier.size(4.dp))
+            Text(
+                text = stringResource(Res.string.connect_wallet_details_relay),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = relay,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        discovery.lud16?.let { address ->
+            Spacer(Modifier.size(4.dp))
+            Text(
+                text = stringResource(Res.string.connect_wallet_details_lud16),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = address,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CapabilitySection(
+    title: String,
+    values: Set<String>,
+) {
+    if (values.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = values.sorted().joinToString(separator = ", "),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+@Composable
+private fun WarningSection(discovery: WalletDiscovery) {
+    val warnings = buildList {
+        if (!discovery.supportsPayInvoice) {
+            add(stringResource(Res.string.connect_wallet_warning_missing_pay_invoice))
+        }
+        if (!discovery.supportsNip44) {
+            add(stringResource(Res.string.connect_wallet_warning_missing_nip44))
+        }
+    }
+    if (warnings.isEmpty()) return
+    Surface(
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.connect_wallet_warning_heading),
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                style = MaterialTheme.typography.labelMedium,
+            )
+            warnings.forEach { warning ->
+                Text(
+                    text = warning,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
+}
+
+private fun ellipsize(value: String): String {
+    return if (value.length <= 24) value else value.take(12) + "…" + value.takeLast(6)
 }

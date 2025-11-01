@@ -5,11 +5,16 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.util.parseWalletPublicKey
 
 class SetWalletConnectionUseCase(
     private val repository: WalletSettingsRepository,
 ) {
-    suspend operator fun invoke(uri: String): WalletConnection {
+    suspend operator fun invoke(
+        uri: String,
+        alias: String?,
+        activate: Boolean = true,
+    ): WalletConnection {
         val trimmed = uri.trim()
         if (trimmed.isEmpty()) {
             throw AppErrorException(AppError.InvalidWalletUri())
@@ -17,7 +22,7 @@ class SetWalletConnectionUseCase(
         val credentials = runCatching { parseNwcUri(trimmed) }.getOrElse { error ->
             throw AppErrorException(AppError.InvalidWalletUri(error.message), error)
         }
-        val walletPublicKey = runCatching { extractWalletPublicKey(trimmed) }.getOrElse { error ->
+        val walletPublicKey = runCatching { parseWalletPublicKey(trimmed) }.getOrElse { error ->
             throw AppErrorException(AppError.InvalidWalletUri(error.message), error)
         }
         val connection = WalletConnection(
@@ -25,24 +30,9 @@ class SetWalletConnectionUseCase(
             walletPublicKey = walletPublicKey,
             relayUrl = credentials.relays.firstOrNull(),
             lud16 = credentials.lud16,
+            alias = alias?.takeIf { it.isNotBlank() }?.trim(),
         )
-        repository.saveWalletConnection(connection)
+        repository.saveWalletConnection(connection, activate = activate)
         return connection
-    }
-
-    private fun extractWalletPublicKey(uri: String): String {
-        val trimmed = uri.trim()
-        val schemeSeparator = trimmed.indexOf("://")
-        val remainder = if (schemeSeparator >= 0) {
-            trimmed.substring(schemeSeparator + 3)
-        } else {
-            val colonIndex = trimmed.indexOf(':')
-            require(colonIndex > 0) { "Nostr Wallet Connect URI missing scheme" }
-            trimmed.substring(colonIndex + 1)
-        }
-        val withoutSlashes = remainder.removePrefix("//")
-        val pubKeyPart = withoutSlashes.substringBefore('?')
-        require(pubKeyPart.isNotBlank()) { "Nostr Wallet Connect URI missing wallet public key" }
-        return pubKeyPart.lowercase()
     }
 }

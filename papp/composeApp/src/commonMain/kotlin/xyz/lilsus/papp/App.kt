@@ -16,7 +16,7 @@ fun App() {
         NavHost(navController, startDestination = Pay) {
             paymentScreen(
                 onNavigateToSettings = { navController.navigateToSettings() },
-                onNavigateToConnectWallet = { pkh -> navController.navigateToConnectWallet(pkh) },
+                onNavigateToConnectWallet = { pkh -> navController.navigateToConnectWallet(pubKeyHex = pkh) },
             )
             settingsScreen(
                 navController = navController,

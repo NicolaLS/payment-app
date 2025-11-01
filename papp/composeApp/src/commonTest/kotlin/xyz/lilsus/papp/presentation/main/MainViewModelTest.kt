@@ -585,7 +585,7 @@ private class FakeWalletSettingsRepository : WalletSettingsRepository {
 
     override suspend fun getWalletConnection(): WalletConnection? = connections.value
 
-    override suspend fun saveWalletConnection(connection: WalletConnection) {
+    override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
         stored.value = stored.value + connection
         connections.value = connection
     }

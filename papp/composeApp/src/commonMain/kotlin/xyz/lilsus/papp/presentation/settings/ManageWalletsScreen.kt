@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -69,6 +71,7 @@ fun ManageWalletsScreen(
             )
         },
     ) { padding ->
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -76,8 +79,17 @@ fun ManageWalletsScreen(
                 .padding(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onAddWallet,
+            ) {
+                Text(text = stringResource(Res.string.settings_manage_wallets_add))
+            }
             if (state.hasWallets) {
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(scrollState),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
                     state.wallets.forEach { row ->
                         WalletCard(
                             wallet = row.wallet,
@@ -85,12 +97,6 @@ fun ManageWalletsScreen(
                             onRemoveWallet = { onRemoveWallet(row.wallet.pubKey) },
                             onSetActive = { onSelectWallet(row.wallet.pubKey) },
                         )
-                    }
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onAddWallet,
-                    ) {
-                        Text(text = stringResource(Res.string.settings_manage_wallets_add))
                     }
                 }
             } else {
@@ -123,13 +129,30 @@ private fun WalletCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = abbreviateKey(wallet.pubKey),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Column(modifier = Modifier.weight(1f, fill = false)) {
+                    wallet.alias?.takeIf { it.isNotBlank() }?.let { alias ->
+                        Text(
+                            text = alias,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = abbreviateKey(wallet.pubKey),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } ?: Text(
+                        text = abbreviateKey(wallet.pubKey),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 if (isActive) {
                     Text(
                         text = stringResource(Res.string.settings_manage_wallets_active),
@@ -208,6 +231,7 @@ private fun ManageWalletsScreenPreview() {
                             pubKey = "npub1exampleexampleexampleexampleexample",
                             relay = "wss://relay.example.com",
                             lud16 = "user@example.com",
+                            alias = "Primary Wallet",
                         ),
                         isActive = true,
                     ),
@@ -216,6 +240,7 @@ private fun ManageWalletsScreenPreview() {
                             pubKey = "npub1anotherexampleexampleexample",
                             relay = "wss://relay.example2.com",
                             lud16 = null,
+                            alias = null,
                         ),
                         isActive = false,
                     ),

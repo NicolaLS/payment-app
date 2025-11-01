@@ -73,6 +73,7 @@ class WalletSettingsViewModel internal constructor(
                 pubKey = walletPublicKey,
                 relay = relayUrl,
                 lud16 = lud16,
+                alias = alias,
             ),
             isActive = isActive,
         )
@@ -94,6 +95,7 @@ data class WalletDisplay(
     val pubKey: String,
     val relay: String?,
     val lud16: String?,
+    val alias: String?,
 )
 
 sealed interface WalletSettingsEvent {
