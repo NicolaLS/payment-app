@@ -1,14 +1,18 @@
 package xyz.lilsus.papp.presentation.add_connection
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
@@ -33,43 +37,64 @@ class ConnectWalletViewModelTest {
     }
 
     @Test
-    fun loadEmitsDiscoveryAndAliasSuggestion() = runBlocking<Unit> {
-        walletRepository.saveWalletConnection(EXISTING_WALLET, activate = true)
-        discoveryRepository.stub(VALID_URI, TEST_DISCOVERY)
-        val viewModel = createViewModel()
+    fun loadEmitsDiscoveryAndAliasSuggestion() {
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            walletRepository.saveWalletConnection(EXISTING_WALLET, activate = true)
+            discoveryRepository.stub(VALID_URI, TEST_DISCOVERY)
+            val viewModel = createViewModel(dispatcher)
+            try {
+                viewModel.load(VALID_URI)
+                advanceUntilIdle()
 
-        viewModel.load(VALID_URI)
-
-        val state = viewModel.uiState.first { !it.isDiscoveryLoading }
-        assertEquals(VALID_URI, state.uri)
-        assertEquals(TEST_DISCOVERY, state.discovery)
-        assertEquals(TEST_DISCOVERY.aliasSuggestion, state.aliasInput)
-        assertTrue(state.setActive)
+                val state = viewModel.uiState.value
+                assertEquals(VALID_URI, state.uri)
+                assertEquals(TEST_DISCOVERY, state.discovery)
+                assertEquals(TEST_DISCOVERY.aliasSuggestion, state.aliasInput)
+                assertTrue(state.setActive)
+            } finally {
+                viewModel.clear()
+            }
+        }
     }
 
     @Test
-    fun confirmSavesWalletAndEmitsSuccess() = runBlocking<Unit> {
-        discoveryRepository.stub(VALID_URI, TEST_DISCOVERY)
-        val viewModel = createViewModel()
-        viewModel.load(VALID_URI)
-        viewModel.uiState.first { it.discovery != null }
-        viewModel.updateAlias(" My Wallet \n")
-        viewModel.updateSetActive(true)
+    fun confirmSavesWalletAndEmitsSuccess() {
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            discoveryRepository.stub(VALID_URI, TEST_DISCOVERY)
+            val viewModel = createViewModel(dispatcher)
+            try {
+                viewModel.load(VALID_URI)
+                advanceUntilIdle()
 
-        viewModel.confirm()
+                assertNotNull(viewModel.uiState.value.discovery)
+                viewModel.updateAlias(" My Wallet \n")
+                viewModel.updateSetActive(true)
 
-        val event = viewModel.events.first { it is ConnectWalletEvent.Success } as ConnectWalletEvent.Success
-        assertEquals("My Wallet", walletRepository.lastSavedAlias)
-        assertEquals(event.connection.alias, walletRepository.lastSavedAlias)
-        assertNotNull(walletRepository.getWalletConnection())
+                val eventDeferred = async {
+                    viewModel.events.first { it is ConnectWalletEvent.Success }
+                }
+
+                viewModel.confirm()
+                advanceUntilIdle()
+
+                val event = eventDeferred.await() as ConnectWalletEvent.Success
+                assertEquals("My Wallet", walletRepository.lastSavedAlias)
+                assertEquals(event.connection.alias, walletRepository.lastSavedAlias)
+                assertNotNull(walletRepository.getWalletConnection())
+            } finally {
+                viewModel.clear()
+            }
+        }
     }
 
-    private fun createViewModel(): ConnectWalletViewModel {
+    private fun createViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Unconfined): ConnectWalletViewModel {
         return ConnectWalletViewModel(
             discoverWallet = discoverWallet,
             setWalletConnection = setWalletConnection,
             getWallets = getWallets,
-            dispatcher = Dispatchers.Unconfined,
+            dispatcher = dispatcher,
         )
     }
 

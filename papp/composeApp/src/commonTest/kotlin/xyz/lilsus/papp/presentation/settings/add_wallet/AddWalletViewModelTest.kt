@@ -1,51 +1,77 @@
 package xyz.lilsus.papp.presentation.settings.add_wallet
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 class AddWalletViewModelTest {
 
     @Test
-    fun submitEmitsNavigationEventForValidUri() = runBlocking<Unit> {
-        val viewModel = AddWalletViewModel(dispatcher = Dispatchers.Unconfined)
-        viewModel.updateUri(VALID_URI)
-        assertTrue(viewModel.uiState.value.canContinue)
+    fun submitEmitsNavigationEventForValidUri() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val viewModel = createViewModel(dispatcher)
+        try {
+            viewModel.updateUri(VALID_URI)
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.canContinue)
 
-        viewModel.submit()
+            val eventDeferred = async { viewModel.events.first() }
+            viewModel.submit()
+            advanceUntilIdle()
 
-        val event = viewModel.events.first()
-        assertTrue(event is AddWalletEvent.NavigateToConfirm)
-        assertEquals(VALID_URI, event.uri)
+            val event = eventDeferred.await()
+            assertTrue(event is AddWalletEvent.NavigateToConfirm)
+            assertEquals(VALID_URI, event.uri)
+        } finally {
+            viewModel.clear()
+        }
     }
 
     @Test
     fun submitSetsErrorWhenUriBlank() {
-        val viewModel = AddWalletViewModel(dispatcher = Dispatchers.Unconfined)
+        val viewModel = createViewModel()
+        try {
+            viewModel.submit()
 
-        viewModel.submit()
-
-        assertNotNull(viewModel.uiState.value.error)
-        assertTrue(!viewModel.uiState.value.canContinue)
+            assertNotNull(viewModel.uiState.value.error)
+            assertTrue(!viewModel.uiState.value.canContinue)
+        } finally {
+            viewModel.clear()
+        }
     }
 
     @Test
-    fun handleScannedValueTrimsAndAllowsSubmit() = runBlocking<Unit> {
-        val viewModel = AddWalletViewModel(dispatcher = Dispatchers.Unconfined)
+    fun handleScannedValueTrimsAndAllowsSubmit() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val viewModel = createViewModel(dispatcher)
+        try {
+            val eventDeferred = async { viewModel.events.first() }
 
-        viewModel.handleScannedValue("  $VALID_URI  ")
+            viewModel.handleScannedValue("  $VALID_URI  ")
+            advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertEquals(VALID_URI, state.uri)
-        assertTrue(state.canContinue)
-        viewModel.submit()
-        val event = viewModel.events.first()
-        assertTrue(event is AddWalletEvent.NavigateToConfirm)
-        assertEquals(VALID_URI, event.uri)
+            val state = viewModel.uiState.value
+            assertEquals(VALID_URI, state.uri)
+            assertTrue(state.canContinue)
+
+            val event = eventDeferred.await()
+            assertTrue(event is AddWalletEvent.NavigateToConfirm)
+            assertEquals(VALID_URI, event.uri)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    private fun createViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Unconfined): AddWalletViewModel {
+        return AddWalletViewModel(dispatcher = dispatcher)
     }
 
     companion object {
