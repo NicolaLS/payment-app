@@ -209,7 +209,6 @@ private class AndroidQrScannerController(
                     val analyzer = analyzer ?: QrCodeAnalyzer(
                         barcodeScanner = newBarcodeScanner(),
                         active = isActive,
-                        analysisExecutor = analysisExecutor,
                         mainExecutor = mainExecutor,
                         onQrCodeScanned = { value ->
                             onQrCodeScanned?.invoke(value)
@@ -265,7 +264,6 @@ private class AndroidQrScannerController(
 private class QrCodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
     private val active: AtomicBoolean,
-    private val analysisExecutor: ExecutorService,
     private val mainExecutor: Executor,
     private val onQrCodeScanned: (String) -> Unit,
 ) : ImageAnalysis.Analyzer {
@@ -304,17 +302,18 @@ private class QrCodeAnalyzer(
 
             val input = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
             barcodeScanner.process(input)
-                .addOnSuccessListener(analysisExecutor) { barcodes ->
+                .addOnSuccessListener { barcodes ->
                     val value = barcodes.firstOrNull()?.rawValue
                     if (value != null) {
                         pause()
                         mainExecutor.execute { onQrCodeScanned(value) }
                     }
                 }
-                .addOnFailureListener(analysisExecutor) { error ->
+                .addOnFailureListener { error ->
                     Log.e(TAG, "Barcode scanning failed", error)
                 }
-                .addOnCompleteListener(analysisExecutor) {
+                // TODO: Explore dedicated executor for callbacks if post-processing ever grows heavy.
+                .addOnCompleteListener {
                     processing.set(false)
                     image.close()
                 }
