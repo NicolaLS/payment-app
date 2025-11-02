@@ -11,6 +11,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
 
 private const val KEY_WALLETS = "wallet.list"
 private const val KEY_ACTIVE_PUBKEY = "wallet.active"
@@ -122,6 +123,7 @@ class WalletSettingsRepositoryImpl(
         relayUrl = relayUrl,
         lud16 = lud16,
         alias = alias,
+        metadata = metadata?.toStored(),
     )
 
     private fun StoredWallet.toDomain(): WalletConnection = WalletConnection(
@@ -130,6 +132,7 @@ class WalletSettingsRepositoryImpl(
         relayUrl = relayUrl,
         lud16 = lud16,
         alias = alias,
+        metadata = metadata?.toDomain(),
     )
 
     private data class WalletState(
@@ -155,5 +158,31 @@ class WalletSettingsRepositoryImpl(
         val relayUrl: String? = null,
         val lud16: String? = null,
         val alias: String? = null,
+        val metadata: StoredWalletMetadata? = null,
+    )
+
+    @Serializable
+    private data class StoredWalletMetadata(
+        val methods: Set<String> = emptySet(),
+        val encryptionSchemes: Set<String> = emptySet(),
+        val notifications: Set<String> = emptySet(),
+        val network: String? = null,
+        val color: String? = null,
+    )
+
+    private fun WalletMetadataSnapshot.toStored(): StoredWalletMetadata = StoredWalletMetadata(
+        methods = methods,
+        encryptionSchemes = encryptionSchemes,
+        notifications = notifications,
+        network = network,
+        color = color,
+    )
+
+    private fun StoredWalletMetadata.toDomain(): WalletMetadataSnapshot = WalletMetadataSnapshot(
+        methods = methods,
+        encryptionSchemes = encryptionSchemes,
+        notifications = notifications,
+        network = network,
+        color = color,
     )
 }

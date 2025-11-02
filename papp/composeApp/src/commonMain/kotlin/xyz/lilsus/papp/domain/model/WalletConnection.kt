@@ -9,4 +9,13 @@ data class WalletConnection(
     val relayUrl: String?,
     val lud16: String?,
     val alias: String?,
+    val metadata: WalletMetadataSnapshot? = null,
+)
+
+data class WalletMetadataSnapshot(
+    val methods: Set<String> = emptySet(),
+    val encryptionSchemes: Set<String> = emptySet(),
+    val notifications: Set<String> = emptySet(),
+    val network: String? = null,
+    val color: String? = null,
 )

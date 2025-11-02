@@ -21,3 +21,11 @@ val WalletDiscovery.supportsPayInvoice: Boolean
 
 val WalletDiscovery.supportsNip44: Boolean
     get() = encryptionSchemes.any { it.equals("nip44_v2", ignoreCase = true) }
+
+fun WalletDiscovery.toMetadataSnapshot(): WalletMetadataSnapshot = WalletMetadataSnapshot(
+    methods = methods,
+    encryptionSchemes = encryptionSchemes,
+    notifications = notifications,
+    network = network,
+    color = color,
+)

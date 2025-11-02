@@ -17,6 +17,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        mavenLocal()
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -25,12 +26,8 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
+        maven("https://central.sonatype.com/repository/maven-snapshots/")
     }
 }
 
 include(":composeApp")
-includeBuild("../../../Nostr/nwc-kmp") {
-    dependencySubstitution {
-        substitute(module("io.github.nostr:nwc-kmp")).using(project(":library"))
-    }
-}

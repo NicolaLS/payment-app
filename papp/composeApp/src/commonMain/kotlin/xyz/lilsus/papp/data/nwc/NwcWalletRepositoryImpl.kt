@@ -1,13 +1,9 @@
 package xyz.lilsus.papp.data.nwc
 
-import io.github.nostr.nwc.NwcClient
-import io.github.nostr.nwc.NwcException
-import io.github.nostr.nwc.NwcRequestException
-import io.github.nostr.nwc.NwcTimeoutException
 import io.github.nostr.nwc.model.BitcoinAmount
+import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.PayInvoiceParams
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import xyz.lilsus.papp.domain.model.AppError
@@ -19,18 +15,17 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 /**
  * Default [NwcWalletRepository] implementation backed by the nwc-kmp client.
  *
- * The repository lazily instantiates and caches an [NwcClient] bound to the
- * current wallet-connect URI provided by [connectUriProvider].
+ * The repository lazily instantiates and caches an [NwcClientHandle] bound to the
+ * current wallet-connect URI provided by [walletSettingsRepository].
  */
 class NwcWalletRepositoryImpl(
     private val walletSettingsRepository: WalletSettingsRepository,
-    private val scope: CoroutineScope,
-    private val requestTimeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
+    private val clientFactory: NwcClientFactory,
+    private val requestTimeoutMillis: Long = DEFAULT_NWC_TIMEOUT_MILLIS,
 ) : NwcWalletRepository {
 
     private val clientMutex = Mutex()
-    private var cachedClient: NwcClient? = null
-    private var cachedUri: String? = null
+    private var cachedHandle: NwcClientHandle? = null
 
     override suspend fun payInvoice(
         invoice: String,
@@ -40,82 +35,47 @@ class NwcWalletRepositoryImpl(
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
         }
-        val uri = walletSettingsRepository.getWalletConnection()?.uri?.trim()
+
+        val connection = walletSettingsRepository.getWalletConnection()
             ?: throw AppErrorException(AppError.MissingWalletConnection)
-        return try {
-            val client = ensureClient(uri)
-            val response = client.payInvoice(
+
+        val handle = ensureClient(connection.uri.trim())
+        val result = try {
+            handle.client.payInvoice(
                 params = PayInvoiceParams(
                     invoice = invoice,
                     amount = amountMsats?.let(BitcoinAmount::fromMsats),
                 ),
                 timeoutMillis = requestTimeoutMillis,
             )
-            PaidInvoice(
-                preimage = response.preimage,
-                feesPaidMsats = response.feesPaid?.msats,
-            )
         } catch (cancellation: CancellationException) {
             throw cancellation
-        } catch (app: AppErrorException) {
-            throw app
-        } catch (request: NwcRequestException) {
-            val error = request.error
-            throw AppErrorException(
-                AppError.PaymentRejected(code = error.code, message = error.message),
-                cause = request,
+        }
+
+        return when (result) {
+            is NwcResult.Success -> PaidInvoice(
+                preimage = result.value.preimage,
+                feesPaidMsats = result.value.feesPaid?.msats,
             )
-        } catch (timeout: NwcTimeoutException) {
-            throw AppErrorException(AppError.Timeout, timeout)
-        } catch (nwc: NwcException) {
-            val appError = when {
-                nwc.cause?.isNetworkIOException() == true -> AppError.NetworkUnavailable
-                else -> AppError.Unexpected(nwc.message)
-            }
-            throw AppErrorException(appError, nwc)
-        } catch (throwable: Throwable) {
-            val appError = when {
-                throwable.isNetworkIOException() -> AppError.NetworkUnavailable
-                else -> AppError.Unexpected(throwable.message)
-            }
-            throw AppErrorException(appError, throwable)
+
+            is NwcResult.Failure -> throw result.failure.toAppErrorException()
         }
     }
 
-    private suspend fun ensureClient(uri: String): NwcClient {
-        cachedClient?.takeIf { cachedUri == uri }?.let { return it }
+    private suspend fun ensureClient(uri: String): NwcClientHandle {
+        cachedHandle?.takeIf { it.uri == uri }?.let { return it }
         return clientMutex.withLock {
-            cachedClient?.takeIf { cachedUri == uri }?.let { return it }
+            cachedHandle?.takeIf { it.uri == uri }?.let { return@withLock it }
 
-            val previous = cachedClient
+            val previous = cachedHandle
+            cachedHandle = null
             if (previous != null) {
-                try {
-                    previous.close()
-                } catch (_: Throwable) {
-                    // Ignore cleanup issues; we'll establish a fresh connection below.
-                }
+                runCatching { previous.release() }
             }
 
-            val created = NwcClient.create(
-                uri = uri,
-                scope = scope,
-            )
-            cachedClient = created
-            cachedUri = uri
+            val created = clientFactory.create(uri)
+            cachedHandle = created
             created
         }
     }
-
-    companion object {
-        private const val DEFAULT_TIMEOUT_MILLIS = 30_000L
-    }
-}
-
-private fun Throwable.isNetworkIOException(): Boolean {
-    val name = this::class.qualifiedName
-    if (name == "io.ktor.utils.io.errors.IOException") {
-        return true
-    }
-    val cause = this.cause
-    return cause != null && cause !== this && cause.isNetworkIOException()
 }

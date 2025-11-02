@@ -22,6 +22,8 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
+import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
+import xyz.lilsus.papp.domain.model.toMetadataSnapshot
 
 class ConnectWalletViewModelTest {
     private val walletRepository = FakeWalletSettingsRepository()
@@ -82,6 +84,7 @@ class ConnectWalletViewModelTest {
                 val event = eventDeferred.await() as ConnectWalletEvent.Success
                 assertEquals("My Wallet", walletRepository.lastSavedAlias)
                 assertEquals(event.connection.alias, walletRepository.lastSavedAlias)
+                assertEquals(TEST_DISCOVERY.toMetadataSnapshot(), walletRepository.lastSavedMetadata)
                 assertNotNull(walletRepository.getWalletConnection())
             } finally {
                 viewModel.clear()
@@ -120,6 +123,7 @@ class ConnectWalletViewModelTest {
         private val walletsFlow = kotlinx.coroutines.flow.MutableStateFlow<List<WalletConnection>>(emptyList())
         private val activeFlow = kotlinx.coroutines.flow.MutableStateFlow<WalletConnection?>(null)
         var lastSavedAlias: String? = null
+        var lastSavedMetadata: WalletMetadataSnapshot? = null
 
         override val wallets: Flow<List<WalletConnection>> = walletsFlow
         override val walletConnection: Flow<WalletConnection?> = activeFlow
@@ -135,6 +139,7 @@ class ConnectWalletViewModelTest {
             walletsFlow.value = storedWallets.toList()
             activeFlow.value = active
             lastSavedAlias = connection.alias
+            lastSavedMetadata = connection.metadata
         }
 
         override suspend fun setActiveWallet(walletPublicKey: String) {
@@ -166,6 +171,7 @@ class ConnectWalletViewModelTest {
             walletsFlow.value = emptyList()
             activeFlow.value = null
             lastSavedAlias = null
+            lastSavedMetadata = null
         }
     }
 

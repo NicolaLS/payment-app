@@ -21,6 +21,7 @@ import xyz.lilsus.papp.domain.model.WalletDiscovery
 import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
+import xyz.lilsus.papp.domain.model.toMetadataSnapshot
 
 class ConnectWalletViewModel internal constructor(
     private val discoverWallet: DiscoverWalletUseCase,
@@ -98,7 +99,12 @@ class ConnectWalletViewModel internal constructor(
         scope.launch {
             _uiState.update { it.copy(isSaving = true, error = null) }
             runCatching {
-                setWalletConnection(state.uri, state.aliasInput, state.setActive)
+                setWalletConnection(
+                    uri = state.uri,
+                    alias = state.aliasInput,
+                    activate = state.setActive,
+                    metadata = state.discovery?.toMetadataSnapshot(),
+                )
             }.onSuccess { connection ->
                 _events.emit(ConnectWalletEvent.Success(connection))
                 _uiState.update { it.copy(isSaving = false) }

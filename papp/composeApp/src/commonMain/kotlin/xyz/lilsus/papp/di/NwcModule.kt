@@ -1,14 +1,19 @@
 package xyz.lilsus.papp.di
 
+import io.github.nostr.nwc.NwcSessionManager
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
-import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
-import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
 import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
+import xyz.lilsus.papp.data.network.createNwcHttpClient
+import xyz.lilsus.papp.data.nwc.NwcClientFactory
+import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
+import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
+import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
+import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
@@ -69,14 +74,30 @@ val nwcModule = module {
     single<LanguageRepository> { createLanguageRepository() }
     single<ExchangeRateRepository> { CoinGeckoExchangeRateRepository() }
     single<LnurlRepository> { LnurlRepositoryImpl() }
+    single { createNwcHttpClient() }
+    single { NwcSessionManager.create(scope = get(), httpClient = get()) }
+    single<NwcClientFactory> {
+        RealNwcClientFactory(
+            sessionManager = get(),
+            scope = get(),
+            httpClient = get(),
+        )
+    }
 
     single<NwcWalletRepository> {
         NwcWalletRepositoryImpl(
             walletSettingsRepository = get(),
-            scope = get(),
+            clientFactory = get(),
         )
     }
     single<WalletDiscoveryRepository> { WalletDiscoveryRepositoryImpl() }
+    single(createdAtStart = true) {
+        WalletMetadataSynchronizer(
+            scope = get(),
+            discoveryRepository = get(),
+            walletSettingsRepository = get(),
+        ).also { it.start() }
+    }
 
     single { Bolt11InvoiceParser() }
     factory { LightningInputParser() }

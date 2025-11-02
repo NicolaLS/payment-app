@@ -1,8 +1,19 @@
 package xyz.lilsus.papp.presentation.settings.add_wallet
 
-import io.github.nostr.nwc.parseNwcUri
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import io.github.nostr.nwc.NwcUri
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.model.AppError
 
 class AddWalletViewModel internal constructor(
@@ -58,10 +69,8 @@ class AddWalletViewModel internal constructor(
         }
     }
 
-    private fun isValid(uri: String): Boolean {
-        if (uri.isEmpty()) return false
-        return runCatching { parseNwcUri(uri) }.isSuccess
-    }
+    private fun isValid(uri: String): Boolean =
+        uri.isNotEmpty() && runCatching { NwcUri.parse(uri) }.isSuccess
 
     fun clear() {
         scope.cancel()
