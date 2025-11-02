@@ -3,28 +3,23 @@ package xyz.lilsus.papp.presentation.main.scan
 import android.Manifest
 import android.content.Context
 import android.util.Log
+import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.Camera
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
+import androidx.annotation.OptIn
+import androidx.camera.core.*
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -219,6 +214,19 @@ private class AndroidQrScannerController(
 
                     val analysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .setResolutionSelector(
+                            ResolutionSelector.Builder()
+                                .setResolutionStrategy(
+                                    // NOTE: MlKit recommends around 1920x1080 resolution which is 16:9.
+                                    // But we do not need a WYSIWYG experience so we prefer the most common
+                                    // native sensor aspect ratio which is 4:3.
+                                    ResolutionStrategy(
+                                        Size(1920, 1440),
+                                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER,
+                                    )
+                                )
+                                .build()
+                        )
                         .build()
                         .also { imageAnalysis ->
                             imageAnalysis.setAnalyzer(analysisExecutor, analyzer)
@@ -268,8 +276,6 @@ private class QrCodeAnalyzer(
     private val onQrCodeScanned: (String) -> Unit,
 ) : ImageAnalysis.Analyzer {
 
-    private val processing = AtomicBoolean(false)
-
     fun pause() {
         active.set(false)
     }
@@ -283,6 +289,7 @@ private class QrCodeAnalyzer(
         barcodeScanner.close()
     }
 
+    @OptIn(ExperimentalGetImage::class)
     override fun analyze(image: ImageProxy) {
         try {
             if (!active.get()) {
@@ -295,30 +302,22 @@ private class QrCodeAnalyzer(
                 return
             }
 
-            if (!processing.compareAndSet(false, true)) {
-                image.close()
-                return
-            }
-
             val input = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
             barcodeScanner.process(input)
-                .addOnSuccessListener { barcodes ->
+                .addOnSuccessListener(mainExecutor) { barcodes ->
                     val value = barcodes.firstOrNull()?.rawValue
                     if (value != null) {
-                        pause()
-                        mainExecutor.execute { onQrCodeScanned(value) }
+                        onQrCodeScanned(value)
                     }
                 }
-                .addOnFailureListener { error ->
+                .addOnFailureListener(mainExecutor) { error ->
                     Log.e(TAG, "Barcode scanning failed", error)
                 }
                 // TODO: Explore dedicated executor for callbacks if post-processing ever grows heavy.
-                .addOnCompleteListener {
-                    processing.set(false)
+                .addOnCompleteListener(mainExecutor) {
                     image.close()
                 }
         } catch (failure: Throwable) {
-            processing.set(false)
             image.close()
             Log.e(TAG, "Unexpected failure while analyzing image", failure)
         }
