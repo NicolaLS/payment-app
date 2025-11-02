@@ -33,6 +33,10 @@ private class EncryptedSettings(
         delegate.putString(key, encrypt(value))
     }
 
+    override fun getString(key: String, defaultValue: String): String {
+        return getStringOrNull(key) ?: defaultValue
+    }
+
     override fun getStringOrNull(key: String): String? {
         val encrypted = delegate.getStringOrNull(key) ?: return null
         return runCatching { decrypt(encrypted) }.getOrNull()

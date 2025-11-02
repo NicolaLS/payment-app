@@ -27,11 +27,9 @@ class CurrencyPreferencesRepositoryImpl(
     }
 
     private fun loadCurrencyCode(): String {
-        val stored = if (settings.hasKey(KEY_DISPLAY_CURRENCY)) {
-            settings.getString(KEY_DISPLAY_CURRENCY, CurrencyCatalog.DEFAULT_CODE)
-        } else {
-            CurrencyCatalog.DEFAULT_CODE
-        }
+        val stored = settings.getStringOrNull(KEY_DISPLAY_CURRENCY)
+            ?.takeIf { it.isNotBlank() }
+            ?: CurrencyCatalog.DEFAULT_CODE
         return CurrencyCatalog.infoFor(stored).code
     }
 }

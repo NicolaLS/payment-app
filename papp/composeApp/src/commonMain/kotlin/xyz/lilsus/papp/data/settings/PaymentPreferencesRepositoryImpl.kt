@@ -43,11 +43,7 @@ class PaymentPreferencesRepositoryImpl(
     }
 
     private fun loadPreferences(): PaymentPreferences {
-        val modeRaw = if (settings.hasKey(KEY_CONFIRM_MODE)) {
-            settings.getString(KEY_CONFIRM_MODE, "")
-        } else {
-            null
-        }
+        val modeRaw = settings.getStringOrNull(KEY_CONFIRM_MODE)
         val mode = when (modeRaw?.lowercase()) {
             "always" -> PaymentConfirmationMode.Always
             "above" -> PaymentConfirmationMode.Above
