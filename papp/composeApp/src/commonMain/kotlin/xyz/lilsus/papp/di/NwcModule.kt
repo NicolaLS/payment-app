@@ -90,7 +90,12 @@ val nwcModule = module {
             clientFactory = get(),
         )
     }
-    single<WalletDiscoveryRepository> { WalletDiscoveryRepositoryImpl() }
+    single<WalletDiscoveryRepository> {
+        WalletDiscoveryRepositoryImpl(
+            dispatcher = get(),
+            httpClient = get(),
+        )
+    }
     single(createdAtStart = true) {
         WalletMetadataSynchronizer(
             scope = get(),

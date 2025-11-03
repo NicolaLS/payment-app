@@ -1,21 +1,28 @@
 package xyz.lilsus.papp.data.nwc
 
+import io.github.nostr.nwc.DEFAULT_REQUEST_TIMEOUT_MS
+import io.github.nostr.nwc.NwcClient
 import io.github.nostr.nwc.NwcUri
-import io.github.nostr.nwc.discoverWallet
 import io.github.nostr.nwc.model.Network
 import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.NwcWalletDescriptor
-import kotlinx.coroutines.CancellationException
+import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletDiscovery
 import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
 
+private const val DEFAULT_TIMEOUT_MILLIS = DEFAULT_REQUEST_TIMEOUT_MS
+
 class WalletDiscoveryRepositoryImpl(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val httpClient: HttpClient,
 ) : WalletDiscoveryRepository {
 
     override suspend fun discover(uri: String): WalletDiscovery = withContext(dispatcher) {
@@ -27,15 +34,22 @@ class WalletDiscoveryRepositoryImpl(
             throw AppErrorException(AppError.InvalidWalletUri(error.message), error)
         }
 
-        val result = try {
-            discoverWallet(parsed.toUriString())
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        }
+        val scope = CoroutineScope(SupervisorJob() + dispatcher)
+        val client = NwcClient.create(
+            uri = parsed,
+            scope = scope,
+            httpClient = httpClient,
+            requestTimeoutMillis = DEFAULT_TIMEOUT_MILLIS,
+        )
 
-        when (result) {
-            is NwcResult.Success -> result.value.toDomain()
-            is NwcResult.Failure -> throw result.failure.toAppErrorException()
+        try {
+            when (val result = client.describeWallet(DEFAULT_TIMEOUT_MILLIS)) {
+                is NwcResult.Success -> result.value.toDomain()
+                is NwcResult.Failure -> throw result.failure.toAppErrorException()
+            }
+        } finally {
+            client.close()
+            scope.cancel()
         }
     }
 
