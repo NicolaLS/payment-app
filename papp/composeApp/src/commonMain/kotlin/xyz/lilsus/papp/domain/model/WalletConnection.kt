@@ -15,6 +15,8 @@ data class WalletConnection(
 data class WalletMetadataSnapshot(
     val methods: Set<String> = emptySet(),
     val encryptionSchemes: Set<String> = emptySet(),
+    val negotiatedEncryption: String? = null,
+    val encryptionDefaultedToNip04: Boolean = false,
     val notifications: Set<String> = emptySet(),
     val network: String? = null,
     val color: String? = null,

@@ -188,6 +188,8 @@ class ConnectWalletViewModelTest {
             aliasSuggestion = "Suggested",
             methods = setOf("pay_invoice", "get_balance"),
             encryptionSchemes = setOf("nip44_v2"),
+            negotiatedEncryption = "nip44_v2",
+            encryptionDefaultedToNip04 = false,
             notifications = emptySet(),
             network = "mainnet",
             color = null,

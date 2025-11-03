@@ -14,8 +14,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
 import papp.composeapp.generated.resources.*
 import xyz.lilsus.papp.domain.model.WalletDiscovery
-import xyz.lilsus.papp.domain.model.supportsNip44
+import xyz.lilsus.papp.domain.model.activeEncryption
 import xyz.lilsus.papp.domain.model.supportsPayInvoice
+import xyz.lilsus.papp.domain.model.supportsNip44
+import xyz.lilsus.papp.domain.model.usesLegacyEncryption
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -182,6 +184,17 @@ private fun DiscoveryDetails(
             title = stringResource(Res.string.connect_wallet_details_encryption),
             values = discovery.encryptionSchemes,
         )
+
+        discovery.activeEncryption?.let { scheme ->
+            Text(
+                text = stringResource(
+                    Res.string.connect_wallet_details_encryption_active,
+                    formatEncryptionScheme(scheme)
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -255,8 +268,15 @@ private fun WarningSection(discovery: WalletDiscovery) {
         if (!discovery.supportsPayInvoice) {
             add(stringResource(Res.string.connect_wallet_warning_missing_pay_invoice))
         }
-        if (!discovery.supportsNip44) {
-            add(stringResource(Res.string.connect_wallet_warning_missing_nip44))
+        when {
+            discovery.usesLegacyEncryption && discovery.encryptionDefaultedToNip04 ->
+                add(stringResource(Res.string.connect_wallet_warning_legacy_nip04_default))
+
+            discovery.usesLegacyEncryption ->
+                add(stringResource(Res.string.connect_wallet_warning_legacy_nip04))
+
+            !discovery.supportsNip44 ->
+                add(stringResource(Res.string.connect_wallet_warning_missing_nip44))
         }
     }
     if (warnings.isEmpty()) return
@@ -287,4 +307,10 @@ private fun WarningSection(discovery: WalletDiscovery) {
 
 private fun ellipsize(value: String): String {
     return if (value.length <= 24) value else value.take(12) + "…" + value.takeLast(6)
+}
+
+private fun formatEncryptionScheme(value: String): String = when (value.lowercase()) {
+    "nip44_v2" -> "NIP-44 v2"
+    "nip04" -> "NIP-04"
+    else -> value
 }

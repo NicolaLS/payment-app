@@ -47,6 +47,8 @@ class WalletDiscoveryRepositoryImpl(
         aliasSuggestion = alias,
         methods = capabilities.map { it.wireName }.toSet(),
         encryptionSchemes = encryptionSchemes.map { it.wireName }.toSet(),
+        negotiatedEncryption = negotiatedEncryption?.wireName,
+        encryptionDefaultedToNip04 = metadata.encryptionDefaultedToNip04,
         notifications = notifications.map { it.wireName }.toSet(),
         network = network.takeUnless { it == Network.UNKNOWN }?.name?.lowercase(),
         color = color,

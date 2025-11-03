@@ -165,6 +165,8 @@ class WalletSettingsRepositoryImpl(
     private data class StoredWalletMetadata(
         val methods: Set<String> = emptySet(),
         val encryptionSchemes: Set<String> = emptySet(),
+        val negotiatedEncryption: String? = null,
+        val encryptionDefaultedToNip04: Boolean = false,
         val notifications: Set<String> = emptySet(),
         val network: String? = null,
         val color: String? = null,
@@ -173,6 +175,8 @@ class WalletSettingsRepositoryImpl(
     private fun WalletMetadataSnapshot.toStored(): StoredWalletMetadata = StoredWalletMetadata(
         methods = methods,
         encryptionSchemes = encryptionSchemes,
+        negotiatedEncryption = negotiatedEncryption,
+        encryptionDefaultedToNip04 = encryptionDefaultedToNip04,
         notifications = notifications,
         network = network,
         color = color,
@@ -181,6 +185,8 @@ class WalletSettingsRepositoryImpl(
     private fun StoredWalletMetadata.toDomain(): WalletMetadataSnapshot = WalletMetadataSnapshot(
         methods = methods,
         encryptionSchemes = encryptionSchemes,
+        negotiatedEncryption = negotiatedEncryption,
+        encryptionDefaultedToNip04 = encryptionDefaultedToNip04,
         notifications = notifications,
         network = network,
         color = color,

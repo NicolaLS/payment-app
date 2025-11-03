@@ -73,13 +73,20 @@
     <string name="connect_wallet_details_lud16">Dirección Lightning</string>
     <string name="connect_wallet_details_methods">Métodos compatibles</string>
     <string name="connect_wallet_details_encryption">Cifrado compatible</string>
+    <string name="connect_wallet_details_encryption_active">Cifrado activo: %1$s</string>
     <string name="connect_wallet_loading">Obteniendo información de la billetera…</string>
     <string name="connect_wallet_retry">Reintentar</string>
     <string name="connect_wallet_warning_missing_pay_invoice">Esta billetera no anuncia la capacidad pay_invoice. Los
         pagos fallarán.
     </string>
-    <string name="connect_wallet_warning_missing_nip44">Esta billetera no anuncia cifrado NIP-44. Las solicitudes
-        podrían fallar.
+    <string name="connect_wallet_warning_missing_nip44">Esta billetera no anuncia cifrado NIP-44 moderno. Usaremos el
+        cifrado heredado si está disponible, con menos protección.
+    </string>
+    <string name="connect_wallet_warning_legacy_nip04">Esta billetera solo admite el cifrado heredado NIP-04. Las
+        solicitudes funcionarán, pero la protección es más débil que con NIP-44.
+    </string>
+    <string name="connect_wallet_warning_legacy_nip04_default">Esta billetera no anunció un esquema de cifrado.
+        Supondremos el cifrado heredado NIP-04, que es menos seguro que NIP-44.
     </string>
     <string name="connect_wallet_warning_heading">Revisa antes de conectar</string>
     <string name="error_invalid_wallet_uri">La URI de la billetera no es válida. Verifícala e inténtalo de nuevo.

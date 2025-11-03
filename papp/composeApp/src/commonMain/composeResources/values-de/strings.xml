@@ -73,13 +73,20 @@
     <string name="connect_wallet_details_lud16">Lightning-Adresse</string>
     <string name="connect_wallet_details_methods">Unterstützte Methoden</string>
     <string name="connect_wallet_details_encryption">Unterstützte Verschlüsselung</string>
+    <string name="connect_wallet_details_encryption_active">Aktive Verschlüsselung: %1$s</string>
     <string name="connect_wallet_loading">Wallet-Informationen werden geladen…</string>
     <string name="connect_wallet_retry">Erneut versuchen</string>
     <string name="connect_wallet_warning_missing_pay_invoice">Diese Wallet meldet keine pay_invoice-Funktion. Zahlungen
         schlagen fehl.
     </string>
-    <string name="connect_wallet_warning_missing_nip44">Diese Wallet meldet keine NIP-44-Verschlüsselung. Anfragen
-        könnten fehlschlagen.
+    <string name="connect_wallet_warning_missing_nip44">Diese Wallet meldet keine moderne NIP-44-Verschlüsselung.
+        Wir nutzen bei Bedarf die veraltete Variante, die weniger Schutz bietet.
+    </string>
+    <string name="connect_wallet_warning_legacy_nip04">Diese Wallet unterstützt nur die veraltete
+        NIP-04-Verschlüsselung. Anfragen funktionieren, sind aber schwächer geschützt als mit NIP-44.
+    </string>
+    <string name="connect_wallet_warning_legacy_nip04_default">Diese Wallet hat kein Verschlüsselungsschema gemeldet. Wir
+        gehen von der veralteten NIP-04-Verschlüsselung aus, die weniger Schutz bietet als NIP-44.
     </string>
     <string name="connect_wallet_warning_heading">Bitte prüfen</string>
     <string name="error_invalid_wallet_uri">Diese Wallet-URI ist ungültig. Bitte überprüfe sie und versuche es erneut.
