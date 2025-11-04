@@ -1,6 +1,9 @@
 package xyz.lilsus.papp.di
 
 import io.github.nostr.nwc.NwcSessionManager
+import io.github.nostr.nwc.logging.ConsoleNwcLogger
+import io.github.nostr.nwc.logging.NwcLog
+import io.github.nostr.nwc.logging.NwcLogLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -64,6 +67,9 @@ import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletViewModel
 
 val nwcModule = module {
+    NwcLog.setLogger(ConsoleNwcLogger)
+    NwcLog.setMinimumLevel(NwcLogLevel.DEBUG)
+
     single<CoroutineDispatcher> { Dispatchers.Default }
     single { CoroutineScope(SupervisorJob() + get<CoroutineDispatcher>()) }
 
