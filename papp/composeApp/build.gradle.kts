@@ -88,6 +88,13 @@ android {
             ) // FIXME: Support 32bit systems once upstream ML Kit ,acinq-secp256k1 ships 16KB-aligned natives.
         }
     }
+
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -95,7 +102,15 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+
+
+            proguardFiles(
+                // Default file with automatically generated optimization rules.
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
         }
     }
     compileOptions {
