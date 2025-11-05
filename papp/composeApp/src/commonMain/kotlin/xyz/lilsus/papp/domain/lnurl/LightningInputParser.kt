@@ -70,7 +70,8 @@ class LightningInputParser {
             current.startsWith("lnurlw://", ignoreCase = true) -> convertSchemeToHttps(current, "lnurlw")
             current.startsWith("lnurl://", ignoreCase = true) -> convertSchemeToHttps(current, "lnurl")
             current.startsWith("https://", ignoreCase = true) ||
-                current.startsWith("http://", ignoreCase = true) -> current
+                    current.startsWith("http://", ignoreCase = true) -> current
+
             else -> null
         }
         if (lnurlEndpoint != null) {
@@ -183,6 +184,7 @@ class LightningInputParser {
                     sb.append(' ')
                     index += 1
                 }
+
                 '%' -> {
                     if (index + 2 >= value.length) {
                         return value
@@ -192,6 +194,7 @@ class LightningInputParser {
                     sb.append(decoded.toChar())
                     index += 3
                 }
+
                 else -> {
                     sb.append(ch)
                     index += 1

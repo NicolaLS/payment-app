@@ -8,12 +8,13 @@ data class LightningAddress(
     val domain: String,
     val tag: String? = null,
 ) {
-    val full: String get() = buildString {
-        append(username)
-        tag?.let { append('+').append(it) }
-        append('@')
-        append(domain)
-    }
+    val full: String
+        get() = buildString {
+            append(username)
+            tag?.let { append('+').append(it) }
+            append('@')
+            append(domain)
+        }
 }
 
 /**

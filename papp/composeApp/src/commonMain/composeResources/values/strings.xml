@@ -78,7 +78,8 @@
     <string name="connect_wallet_warning_missing_pay_invoice">This wallet does not advertise the pay_invoice capability.
         Payments will fail.
     </string>
-    <string name="connect_wallet_warning_missing_nip44">This wallet does not advertise modern NIP-44 encryption. We'll use
+    <string name="connect_wallet_warning_missing_nip44">This wallet does not advertise modern NIP-44 encryption. We'll
+        use
         legacy encryption if available, which is less secure.
     </string>
     <string name="connect_wallet_warning_legacy_nip04">This wallet only supports legacy NIP-04 encryption. Requests will

@@ -1,29 +1,20 @@
 package xyz.lilsus.papp.presentation.add_connection
 
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlin.test.AfterTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
-import xyz.lilsus.papp.domain.model.AppError
-import xyz.lilsus.papp.domain.model.AppErrorException
-import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletDiscovery
+import xyz.lilsus.papp.domain.model.*
 import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
-import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
-import xyz.lilsus.papp.domain.model.toMetadataSnapshot
+import kotlin.test.*
 
 class ConnectWalletViewModelTest {
     private val walletRepository = FakeWalletSettingsRepository()
@@ -178,8 +169,8 @@ class ConnectWalletViewModelTest {
     companion object {
         private const val VALID_URI =
             "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4" +
-                "?relay=wss://relay.example.com" +
-                "&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c"
+                    "?relay=wss://relay.example.com" +
+                    "&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c"
         private val TEST_DISCOVERY = WalletDiscovery(
             uri = VALID_URI,
             walletPublicKey = "b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4",
@@ -197,8 +188,8 @@ class ConnectWalletViewModelTest {
         private val EXISTING_WALLET = WalletConnection(
             uri =
                 "nostr+walletconnect://c889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d0" +
-                    "?relay=wss://relay.example.com" +
-                    "&secret=f1a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3d",
+                        "?relay=wss://relay.example.com" +
+                        "&secret=f1a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3d",
             walletPublicKey = "c889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d0",
             relayUrl = "wss://relay.example.com",
             lud16 = null,

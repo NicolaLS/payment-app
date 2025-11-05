@@ -13,11 +13,7 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
 import papp.composeapp.generated.resources.*
-import xyz.lilsus.papp.domain.model.WalletDiscovery
-import xyz.lilsus.papp.domain.model.activeEncryption
-import xyz.lilsus.papp.domain.model.supportsPayInvoice
-import xyz.lilsus.papp.domain.model.supportsNip44
-import xyz.lilsus.papp.domain.model.usesLegacyEncryption
+import xyz.lilsus.papp.domain.model.*
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 
 @OptIn(ExperimentalMaterial3Api::class)

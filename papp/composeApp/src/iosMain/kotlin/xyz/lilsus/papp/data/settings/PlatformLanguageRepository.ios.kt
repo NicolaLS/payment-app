@@ -3,12 +3,7 @@ package xyz.lilsus.papp.data.settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import platform.Foundation.NSCurrentLocaleDidChangeNotification
-import platform.Foundation.NSLocale
-import platform.Foundation.NSMutableArray
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSUserDefaults
-import platform.Foundation.arrayWithObject
+import platform.Foundation.*
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.repository.LanguageRepository
 
@@ -19,6 +14,7 @@ private class IosLanguageRepository : LanguageRepository {
     private val userDefaults = NSUserDefaults.standardUserDefaults()
 
     private val _preference = MutableStateFlow(currentPreference())
+
     @Suppress("unused")
     private val observer = NSNotificationCenter.defaultCenter.addObserverForName(
         name = NSCurrentLocaleDidChangeNotification,

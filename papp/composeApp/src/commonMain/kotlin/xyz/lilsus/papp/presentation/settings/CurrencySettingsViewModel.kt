@@ -1,19 +1,12 @@
 package xyz.lilsus.papp.presentation.settings
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
-import xyz.lilsus.papp.domain.model.CurrencyInfo
-import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.SetCurrencyPreferenceUseCase
 

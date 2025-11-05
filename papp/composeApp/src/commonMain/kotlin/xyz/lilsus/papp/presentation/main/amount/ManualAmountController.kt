@@ -1,12 +1,12 @@
 package xyz.lilsus.papp.presentation.main.amount
 
-import kotlin.math.pow
-import kotlin.math.roundToLong
 import xyz.lilsus.papp.domain.model.CurrencyInfo
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
+import kotlin.math.pow
+import kotlin.math.roundToLong
 
 data class ManualAmountConfig(
     val info: CurrencyInfo,

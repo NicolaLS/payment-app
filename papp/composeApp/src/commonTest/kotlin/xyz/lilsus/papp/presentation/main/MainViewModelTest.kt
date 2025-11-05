@@ -1,11 +1,5 @@
 package xyz.lilsus.papp.presentation.main
 
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -16,36 +10,18 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
 import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
-import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
+import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LnurlPayMetadata
 import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
-import xyz.lilsus.papp.domain.model.AppError
-import xyz.lilsus.papp.domain.model.CurrencyCatalog
-import xyz.lilsus.papp.domain.model.DisplayCurrency
-import xyz.lilsus.papp.domain.model.PaidInvoice
-import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
-import xyz.lilsus.papp.domain.model.PaymentPreferences
-import xyz.lilsus.papp.domain.model.Result
-import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.*
 import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
-import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
-import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
-import xyz.lilsus.papp.domain.repository.LnurlRepository
-import xyz.lilsus.papp.domain.repository.NwcWalletRepository
-import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
-import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
-import xyz.lilsus.papp.domain.use_cases.FetchLnurlPayParamsUseCase
-import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
-import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
-import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
-import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
-import xyz.lilsus.papp.domain.use_cases.RequestLnurlInvoiceUseCase
-import xyz.lilsus.papp.domain.use_cases.ResolveLightningAddressUseCase
-import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.domain.repository.*
+import xyz.lilsus.papp.domain.use_cases.*
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
+import kotlin.test.*
 
 class MainViewModelTest {
     private lateinit var walletSettingsRepository: FakeWalletSettingsRepository
@@ -181,8 +157,8 @@ class MainViewModelTest {
 
             viewModel.uiState.first {
                 it is MainUiState.EnterAmount &&
-                    it.entry.amount?.minor == 3_000L &&
-                    it.entry.currency == DisplayCurrency.Fiat("USD")
+                        it.entry.amount?.minor == 3_000L &&
+                        it.entry.currency == DisplayCurrency.Fiat("USD")
             }
 
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
@@ -612,6 +588,7 @@ private class FakeWalletSettingsRepository : WalletSettingsRepository {
         stored.value = emptyList()
     }
 }
+
 private const val LNURL_ENDPOINT = "https://example.com/lnurl"
 private const val LNURL_CALLBACK = "https://example.com/callback"
 private const val LNURL_METADATA_RAW = "[[\"text/plain\",\"Payment\"]]"

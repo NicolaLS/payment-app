@@ -2,14 +2,9 @@ package xyz.lilsus.papp.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -19,30 +14,21 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.settings_language_system_default
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.model.LanguageCatalog
+import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
-import xyz.lilsus.papp.presentation.settings.CurrencySettingsScreen
-import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
-import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
-import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
-import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
-import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
-import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
-import xyz.lilsus.papp.presentation.settings.SettingsScreen
-import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
-import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
+import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
+import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
+import xyz.lilsus.papp.presentation.settings.*
 import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletEvent
 import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletScreen
 import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletViewModel
-import xyz.lilsus.papp.domain.model.CurrencyCatalog
-import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
-import xyz.lilsus.papp.domain.model.LanguageCatalog
-import xyz.lilsus.papp.domain.model.LanguagePreference
-import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
-import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
-import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
+import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
 @Serializable
 internal object Settings

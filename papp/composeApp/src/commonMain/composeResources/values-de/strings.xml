@@ -85,7 +85,8 @@
     <string name="connect_wallet_warning_legacy_nip04">Diese Wallet unterstützt nur die veraltete
         NIP-04-Verschlüsselung. Anfragen funktionieren, sind aber schwächer geschützt als mit NIP-44.
     </string>
-    <string name="connect_wallet_warning_legacy_nip04_default">Diese Wallet hat kein Verschlüsselungsschema gemeldet. Wir
+    <string name="connect_wallet_warning_legacy_nip04_default">Diese Wallet hat kein Verschlüsselungsschema gemeldet.
+        Wir
         gehen von der veralteten NIP-04-Verschlüsselung aus, die weniger Schutz bietet als NIP-44.
     </string>
     <string name="connect_wallet_warning_heading">Bitte prüfen</string>

@@ -1,21 +1,16 @@
 package xyz.lilsus.papp.presentation.settings
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.use_cases.SetConfirmManualEntryUseCase
 import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationThresholdUseCase
-import xyz.lilsus.papp.domain.use_cases.SetConfirmManualEntryUseCase
 
 class PaymentsSettingsViewModel internal constructor(
     observePreferences: ObservePaymentPreferencesUseCase,

@@ -1,21 +1,7 @@
 package xyz.lilsus.papp.presentation.main
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-import kotlin.math.max
-import kotlin.math.pow
-import kotlin.math.roundToLong
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
@@ -23,24 +9,14 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
-import xyz.lilsus.papp.domain.model.AppError
-import xyz.lilsus.papp.domain.model.CurrencyCatalog
-import xyz.lilsus.papp.domain.model.CurrencyInfo
-import xyz.lilsus.papp.domain.model.DisplayAmount
-import xyz.lilsus.papp.domain.model.DisplayCurrency
-import xyz.lilsus.papp.domain.model.Result
-import xyz.lilsus.papp.domain.use_cases.FetchLnurlPayParamsUseCase
-import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
-import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
-import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
-import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
-import xyz.lilsus.papp.domain.use_cases.RequestLnurlInvoiceUseCase
-import xyz.lilsus.papp.domain.use_cases.ResolveLightningAddressUseCase
-import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.domain.model.*
+import xyz.lilsus.papp.domain.use_cases.*
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
-import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
+import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToLong
 
 class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
@@ -221,6 +197,7 @@ class MainViewModel internal constructor(
                         emitError(result.error)
                     }
                 }
+
                 Result.Loading -> Unit
             }
         }
@@ -282,6 +259,7 @@ class MainViewModel internal constructor(
             is Bolt11Memo.Text -> {
                 params.metadata.plainText?.let { it == memo.value } ?: true
             }
+
             is Bolt11Memo.HashOnly -> true
             Bolt11Memo.None -> true
         }
@@ -312,6 +290,7 @@ class MainViewModel internal constructor(
                     origin = PendingOrigin.ManualEntry,
                 )
             }
+
             is ManualEntryContext.Lnurl -> {
                 val params = context.session.params
                 if (amountMsats < params.minSendable || amountMsats > params.maxSendable) {
@@ -343,12 +322,15 @@ class MainViewModel internal constructor(
                 manualEntryContext = null
                 _uiState.value = MainUiState.Active
             }
+
             PendingOrigin.ManualEntry -> {
                 _uiState.value = MainUiState.EnterAmount(entry = manualAmount.current())
             }
+
             PendingOrigin.LnurlManual -> {
                 _uiState.value = MainUiState.EnterAmount(entry = manualAmount.current())
             }
+
             PendingOrigin.LnurlFixed -> {
                 _uiState.value = MainUiState.Active
             }
@@ -429,6 +411,7 @@ class MainViewModel internal constructor(
                             clearInput = true,
                         )
                     }
+
                     is Result.Error -> {
                         pendingInvoice = null
                         _uiState.value = MainUiState.Error(result.error)
@@ -451,8 +434,7 @@ class MainViewModel internal constructor(
 
     private fun refreshManualAmountState(preserveInput: Boolean = false) {
         val currencyState = _currencyState.value
-        val context = manualEntryContext
-        val config = when (context) {
+        val config = when (val context = manualEntryContext) {
             is ManualEntryContext.Lnurl -> {
                 val params = context.session.params
                 ManualAmountConfig(
@@ -462,6 +444,7 @@ class MainViewModel internal constructor(
                     max = convertMsatsToDisplay(params.maxSendable, currencyState),
                 )
             }
+
             else -> ManualAmountConfig(
                 info = currencyState.info,
                 exchangeRate = currencyState.exchangeRate,
@@ -482,13 +465,16 @@ class MainViewModel internal constructor(
         exchangeRateJob = scope.launch {
             when (val result = getExchangeRate(info.code)) {
                 is Result.Success -> {
-                    _currencyState.value = CurrencyState(info = info, exchangeRate = max(result.data.pricePerBitcoin, 0.0))
+                    _currencyState.value =
+                        CurrencyState(info = info, exchangeRate = max(result.data.pricePerBitcoin, 0.0))
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
                 }
+
                 is Result.Error -> {
                     _currencyState.value = CurrencyState(info = info, exchangeRate = null)
                     _events.tryEmit(MainEvent.ShowError(result.error))
                 }
+
                 Result.Loading -> Unit
             }
         }

@@ -4,7 +4,7 @@ import io.github.nostr.nwc.NwcClient
 import io.github.nostr.nwc.NwcClientContract
 import io.github.nostr.nwc.NwcSession
 import io.github.nostr.nwc.NwcSessionManager
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import kotlinx.coroutines.CoroutineScope
 
 data class NwcClientHandle(

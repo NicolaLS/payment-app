@@ -14,5 +14,6 @@ sealed class MainUiState {
         val amountPaid: DisplayAmount,
         val feePaid: DisplayAmount,
     ) : MainUiState()
+
     data class Error(val error: AppError) : MainUiState()
 }

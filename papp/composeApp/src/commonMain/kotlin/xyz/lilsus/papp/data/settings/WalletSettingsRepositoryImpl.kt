@@ -1,17 +1,12 @@
 package xyz.lilsus.papp.data.settings
 
 import com.russhwolf.settings.Settings
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
+import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
 private const val KEY_WALLETS = "wallet.list"
 private const val KEY_ACTIVE_PUBKEY = "wallet.active"

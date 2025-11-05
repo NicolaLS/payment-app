@@ -2,57 +2,15 @@
 
 package xyz.lilsus.papp.presentation.main.scan
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.UIKitView
-import kotlinx.cinterop.BetaInteropApi
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.cinterop.ObjCObjectVar
-import kotlinx.cinterop.alloc
-import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.ptr
-import platform.AVFoundation.AVAuthorizationStatusAuthorized
-import platform.AVFoundation.AVCaptureConnection
-import platform.AVFoundation.AVCaptureDevice
-import platform.AVFoundation.AVCaptureDeviceInput
-import platform.AVFoundation.AVCaptureMetadataOutput
-import platform.AVFoundation.AVCaptureMetadataOutputObjectsDelegateProtocol
-import platform.AVFoundation.AVCaptureOutput
-import platform.AVFoundation.AVCaptureSession
-import platform.AVFoundation.AVCaptureSessionPresetHigh
-import platform.AVFoundation.AVCaptureVideoPreviewLayer
-import platform.AVFoundation.AVCaptureVideoOrientationPortrait
-import platform.AVFoundation.AVLayerVideoGravityResizeAspectFill
-import platform.AVFoundation.AVMediaTypeVideo
-import platform.AVFoundation.AVMetadataMachineReadableCodeObject
-import platform.AVFoundation.AVMetadataObjectTypeQRCode
-import platform.AVFoundation.authorizationStatusForMediaType
-import platform.AVFoundation.requestAccessForMediaType
-import platform.AVFoundation.videoZoomFactor
-import platform.Foundation.NSError
-import platform.Foundation.NSNumber
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSOperationQueue
-import platform.Foundation.NSLog
-import platform.Foundation.valueForKey
-import platform.UIKit.UIApplication
+import kotlinx.cinterop.*
+import platform.AVFoundation.*
+import platform.Foundation.*
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIView
-import platform.UIKit.layoutIfNeeded
-import kotlinx.cinterop.memScoped
-import platform.darwin.dispatch_async
-import platform.darwin.dispatch_get_main_queue
-import platform.darwin.dispatch_queue_create
-import platform.darwin.dispatch_queue_t
-import platform.darwin.NSObject
-import platform.darwin.NSObjectProtocol
-import kotlinx.cinterop.value
+import platform.darwin.*
 
 @Composable
 actual fun rememberQrScannerController(): QrScannerController {

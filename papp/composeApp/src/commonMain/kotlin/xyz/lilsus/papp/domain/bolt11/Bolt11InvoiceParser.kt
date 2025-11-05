@@ -95,6 +95,7 @@ open class Bolt11InvoiceParser {
                 }
                 parsedDigits / 10
             }
+
             else -> return AmountResult.Failure("Unknown amount multiplier '$multiplier'")
         } ?: return AmountResult.Failure("Amount is too large")
 
@@ -137,6 +138,7 @@ open class Bolt11InvoiceParser {
                     descriptionText = runCatching { bytes.decodeToString() }.getOrNull()
                         ?: return MemoResult.Failure("Description is not valid UTF-8")
                 }
+
                 TYPE_DESCRIPTION_HASH -> if (descriptionHash == null) {
                     val bytes = fiveBitWordsToBytes(fieldWords)
                         ?: return MemoResult.Failure("Description hash padding is invalid")
@@ -235,6 +237,7 @@ open class Bolt11InvoiceParser {
                     } ?: trimmed
                 }
             }
+
             else -> trimmed
         }
     }
@@ -244,12 +247,12 @@ open class Bolt11InvoiceParser {
         val sb = StringBuilder(value.length)
         var index = 0
         while (index < value.length) {
-            val ch = value[index]
-            when (ch) {
+            when (val ch = value[index]) {
                 '+' -> {
                     sb.append(' ')
                     index += 1
                 }
+
                 '%' -> {
                     if (index + 2 >= value.length) {
                         return value
@@ -259,6 +262,7 @@ open class Bolt11InvoiceParser {
                     sb.append(decoded.toChar())
                     index += 3
                 }
+
                 else -> {
                     sb.append(ch)
                     index += 1

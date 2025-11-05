@@ -1,42 +1,17 @@
 package xyz.lilsus.papp.presentation.settings
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import org.jetbrains.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
-import papp.composeapp.generated.resources.Res
-import papp.composeapp.generated.resources.settings_payments
-import papp.composeapp.generated.resources.settings_payments_confirm_label
-import papp.composeapp.generated.resources.settings_payments_confirm_manual_entry
-import papp.composeapp.generated.resources.settings_payments_confirm_threshold
-import papp.composeapp.generated.resources.settings_payments_option_above
-import papp.composeapp.generated.resources.settings_payments_option_always
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import papp.composeapp.generated.resources.*
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
@@ -62,6 +37,7 @@ fun PaymentsSettingsScreen(
             Res.string.settings_payments_confirm_threshold,
             formatter.format(displayThreshold)
         )
+
         PaymentConfirmationMode.Always -> stringResource(Res.string.settings_payments_option_always)
     }
 

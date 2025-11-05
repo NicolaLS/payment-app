@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import xyz.lilsus.papp.PappApplication
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.repository.LanguageRepository
-import java.util.Locale
+import java.util.*
 
 private class AndroidLanguageRepository : LanguageRepository {
 

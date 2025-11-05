@@ -1,27 +1,11 @@
 package xyz.lilsus.papp.presentation.add_connection
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.CancellationException
-import xyz.lilsus.papp.domain.model.AppError
-import xyz.lilsus.papp.domain.model.AppErrorException
-import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletDiscovery
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import xyz.lilsus.papp.domain.model.*
 import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
-import xyz.lilsus.papp.domain.model.toMetadataSnapshot
 
 class ConnectWalletViewModel internal constructor(
     private val discoverWallet: DiscoverWalletUseCase,

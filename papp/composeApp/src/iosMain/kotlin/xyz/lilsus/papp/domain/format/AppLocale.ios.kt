@@ -4,13 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import platform.Foundation.NSCurrentLocaleDidChangeNotification
-import platform.Foundation.NSLocale
-import platform.Foundation.currentLocale
-import platform.Foundation.localeIdentifier
-import platform.Foundation.preferredLanguages
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSOperationQueue
+import platform.Foundation.*
 
 actual fun currentAppLocale(): AppLocale {
     val preferred = NSLocale.preferredLanguages.firstOrNull() as? String

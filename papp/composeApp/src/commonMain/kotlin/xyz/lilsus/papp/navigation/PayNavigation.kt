@@ -3,34 +3,22 @@ package xyz.lilsus.papp.navigation
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
-import kotlin.math.absoluteValue
-import xyz.lilsus.papp.presentation.main.scan.CameraPreviewHost
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
 import org.koin.mp.KoinPlatformTools
-import xyz.lilsus.papp.presentation.main.MainEvent
-import xyz.lilsus.papp.presentation.main.MainIntent
-import xyz.lilsus.papp.presentation.main.MainScreen
-import xyz.lilsus.papp.presentation.main.MainViewModel
-import xyz.lilsus.papp.presentation.main.MainUiState
+import xyz.lilsus.papp.presentation.main.*
+import xyz.lilsus.papp.presentation.main.scan.CameraPreviewHost
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
 import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
+import kotlin.math.absoluteValue
 
 @Serializable
 object Pay
@@ -153,11 +141,11 @@ private fun MainScreenEntry(
                     val height = containerSize.height.takeIf { it > 0 } ?: return@detectDragGesturesAfterLongPress
                     accumulatedDrag = (accumulatedDrag + dragAmount.y)
                     val normalized = (
-                        accumulatedDrag / (height * PREVIEW_ZOOM_DRAG_FRACTION)
-                    ).coerceIn(-1f, 1f)
+                            accumulatedDrag / (height * PREVIEW_ZOOM_DRAG_FRACTION)
+                            ).coerceIn(-1f, 1f)
                     val curve = normalized * (
-                        PREVIEW_ZOOM_BASE_SPEED + PREVIEW_ZOOM_ACCELERATION * normalized.absoluteValue
-                    )
+                            PREVIEW_ZOOM_BASE_SPEED + PREVIEW_ZOOM_ACCELERATION * normalized.absoluteValue
+                            )
                     zoomFraction = (dragStartZoom + curve).coerceIn(0f, 1f)
                     scannerController.setZoom(zoomFraction)
                 }

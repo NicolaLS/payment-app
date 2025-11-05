@@ -4,7 +4,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
-import java.util.Locale
+import java.util.*
 
 actual fun currentAppLocale(): AppLocale {
     val appLocales = AppCompatDelegate.getApplicationLocales()

@@ -8,13 +8,13 @@ import io.github.nostr.nwc.model.PayInvoiceResult
 import io.github.nostr.nwc.testing.FakeNwcClient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class NwcWalletRepositoryImplTest {
 

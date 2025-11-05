@@ -174,11 +174,11 @@ private class AndroidQrScannerController(
 
     override fun bindPreview(surface: CameraPreviewSurface) {
         previewSurface = surface
-        previewUseCase?.setSurfaceProvider(surface.previewView.surfaceProvider)
+        previewUseCase?.surfaceProvider = surface.previewView.surfaceProvider
     }
 
     override fun unbindPreview() {
-        previewUseCase?.setSurfaceProvider(null)
+        previewUseCase?.surfaceProvider = null
         previewSurface = null
     }
 
@@ -239,7 +239,7 @@ private class AndroidQrScannerController(
                         .also { previewUseCase = it }
 
                     previewSurface?.let { surface ->
-                        preview.setSurfaceProvider(surface.previewView.surfaceProvider)
+                        preview.surfaceProvider = surface.previewView.surfaceProvider
                     }
 
                     provider.unbindAll()
