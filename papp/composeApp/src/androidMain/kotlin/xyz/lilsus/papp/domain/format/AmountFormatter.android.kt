@@ -4,9 +4,11 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import java.math.BigDecimal
 import java.text.NumberFormat
-import java.util.*
+import java.util.Currency
+import java.util.Locale
 
-actual fun createAmountFormatter(locale: AppLocale): AmountFormatter = AndroidAmountFormatter(locale)
+actual fun createAmountFormatter(locale: AppLocale): AmountFormatter =
+    AndroidAmountFormatter(locale)
 
 private class AndroidAmountFormatter(private val locale: AppLocale) : AmountFormatter {
 

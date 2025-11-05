@@ -8,12 +8,22 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
-import androidx.camera.core.*
+import androidx.camera.core.Camera
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -196,9 +206,10 @@ private class AndroidQrScannerController(
                     val provider = cameraProviderFuture.get()
                     cameraProvider = provider
 
-                    val analysisExecutor = analysisExecutor ?: Executors.newSingleThreadExecutor().also {
-                        analysisExecutor = it
-                    }
+                    val analysisExecutor =
+                        analysisExecutor ?: Executors.newSingleThreadExecutor().also {
+                            analysisExecutor = it
+                        }
                     val mainExecutor = ContextCompat.getMainExecutor(context)
 
                     val analyzer = analyzer ?: QrCodeAnalyzer(

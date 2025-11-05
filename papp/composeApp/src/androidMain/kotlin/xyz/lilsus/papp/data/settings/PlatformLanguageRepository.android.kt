@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import xyz.lilsus.papp.PappApplication
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.repository.LanguageRepository
-import java.util.*
+import java.util.Locale
 
 private class AndroidLanguageRepository : LanguageRepository {
 
@@ -19,7 +19,11 @@ private class AndroidLanguageRepository : LanguageRepository {
 
     override suspend fun setLanguage(tag: String) {
         val current = state.value
-        if (current is LanguagePreference.Override && current.overrideTag.equals(tag, ignoreCase = true)) {
+        if (current is LanguagePreference.Override && current.overrideTag.equals(
+                tag,
+                ignoreCase = true
+            )
+        ) {
             return
         }
         val locales = LocaleListCompat.forLanguageTags(tag)
