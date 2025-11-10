@@ -18,6 +18,7 @@ androidx-camera = "1.5.1"
 mlkit-barcode = "17.3.0"
 bitcoin-kmp = "0.28.0"
 ktor = "3.3.2"
+androidx-window = "1.3.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -45,6 +46,8 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
+androidx-window = { module = "androidx.window:window", version.ref = "androidx-window" }
+androidx-window-core = { module = "androidx.window:window-core", version.ref = "androidx-window" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
