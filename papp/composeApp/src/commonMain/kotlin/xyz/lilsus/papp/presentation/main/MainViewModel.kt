@@ -48,6 +48,7 @@ class MainViewModel internal constructor(
     private var activePaymentJob: Job? = null
     private var pendingPayment: PendingPayment? = null
     private var exchangeRateJob: Job? = null
+    private var lastPaymentResult: CompletedPayment? = null
 
     init {
         scope.launch {
@@ -67,6 +68,7 @@ class MainViewModel internal constructor(
                 )
                 ensureExchangeRateIfNeeded(info)
                 refreshManualAmountState(preserveInput = manualEntryContext != null)
+                refreshResultState()
             }
         }
     }
@@ -361,7 +363,6 @@ class MainViewModel internal constructor(
                 pendingPayment = PendingPayment(
                     summary = summary,
                     overrideAmountMsats = amountOverrideMsats,
-                    displayAmount = display,
                     origin = origin,
                 )
                 _uiState.value = MainUiState.Confirm(display)
@@ -400,6 +401,10 @@ class MainViewModel internal constructor(
                             amountPaid = paidDisplay,
                             feePaid = feeDisplay,
                         )
+                        lastPaymentResult = CompletedPayment(
+                            amountMsats = paidMsats,
+                            feeMsats = result.data.feesPaidMsats ?: 0L,
+                        )
                         pendingInvoice = null
                         manualEntryContext = null
                         pendingPayment = null
@@ -430,6 +435,7 @@ class MainViewModel internal constructor(
 
     private fun handleDismissResult() {
         _uiState.value = MainUiState.Active
+        lastPaymentResult = null
     }
 
     private fun refreshManualAmountState(preserveInput: Boolean = false) {
@@ -468,6 +474,7 @@ class MainViewModel internal constructor(
                     _currencyState.value =
                         CurrencyState(info = info, exchangeRate = max(result.data.pricePerBitcoin, 0.0))
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
+                    refreshResultState()
                 }
 
                 is Result.Error -> {
@@ -477,6 +484,28 @@ class MainViewModel internal constructor(
 
                 Result.Loading -> Unit
             }
+        }
+    }
+
+    private fun refreshResultState() {
+        val currencyState = _currencyState.value
+        when (val state = _uiState.value) {
+            is MainUiState.Success -> {
+                val payment = lastPaymentResult ?: return
+                _uiState.value = MainUiState.Success(
+                    amountPaid = convertMsatsToDisplay(payment.amountMsats, currencyState),
+                    feePaid = convertMsatsToDisplay(payment.feeMsats, currencyState),
+                )
+            }
+
+            is MainUiState.Confirm -> {
+                val pending = pendingPayment ?: return
+                val amountMsats = pending.overrideAmountMsats ?: pending.summary.amountMsats ?: return
+                val display = convertMsatsToDisplay(amountMsats, currencyState)
+                _uiState.value = MainUiState.Confirm(display)
+            }
+
+            else -> Unit
         }
     }
 
@@ -516,8 +545,12 @@ private const val MSATS_PER_BTC = 100_000_000_000L
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
     val overrideAmountMsats: Long?,
-    val displayAmount: DisplayAmount,
     val origin: PendingOrigin,
+)
+
+private data class CompletedPayment(
+    val amountMsats: Long,
+    val feeMsats: Long,
 )
 
 private enum class PendingOrigin {
