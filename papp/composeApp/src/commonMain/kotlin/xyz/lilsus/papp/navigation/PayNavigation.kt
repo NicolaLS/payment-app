@@ -13,7 +13,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
-import org.koin.mp.KoinPlatformTools
 import xyz.lilsus.papp.presentation.main.*
 import xyz.lilsus.papp.presentation.main.scan.CameraPreviewHost
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
@@ -44,8 +43,7 @@ private fun MainScreenEntry(
     onNavigateToSettings: () -> Unit,
     onNavigateToConnectWallet: (String) -> Unit,
 ) {
-    val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val viewModel = remember { koin.get<MainViewModel>() }
+    val viewModel = rememberMainViewModel()
     val cameraPermission = rememberCameraPermissionState()
     val scannerController = rememberQrScannerController()
     var hasRequestedPermission by remember { mutableStateOf(false) }
@@ -69,7 +67,6 @@ private fun MainScreenEntry(
             scannerController.stop()
             scannerStarted = false
             previewVisible = false
-            viewModel.clear()
         }
     }
 

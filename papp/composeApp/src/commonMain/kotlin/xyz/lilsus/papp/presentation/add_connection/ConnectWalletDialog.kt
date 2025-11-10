@@ -15,6 +15,7 @@ import org.koin.mp.KoinPlatformTools
 import papp.composeapp.generated.resources.*
 import xyz.lilsus.papp.domain.model.*
 import xyz.lilsus.papp.presentation.common.errorMessageFor
+import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,11 +24,10 @@ fun ConnectWalletDialog(
     onDismiss: () -> Unit,
 ) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val viewModel = remember { koin.get<ConnectWalletViewModel>() }
-
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clear() }
-    }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<ConnectWalletViewModel>() },
+        onDispose = { it.clear() },
+    )
 
     LaunchedEffect(initialUri) {
         if (initialUri != null) {

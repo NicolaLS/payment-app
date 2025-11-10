@@ -21,6 +21,7 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
 import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
 import xyz.lilsus.papp.presentation.settings.*
@@ -104,11 +105,10 @@ fun NavController.navigateToSettingsAddWallet() {
 @Composable
 private fun WalletSettingsEntry(navController: NavController) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val viewModel = remember { koin.get<WalletSettingsViewModel>() }
-
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clear() }
-    }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<WalletSettingsViewModel>() },
+        onDispose = { it.clear() },
+    )
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -133,17 +133,16 @@ private fun WalletSettingsEntry(navController: NavController) {
 @Composable
 private fun AddWalletEntry(navController: NavController) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val viewModel = remember { koin.get<AddWalletViewModel>() }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<AddWalletViewModel>() },
+        onDispose = { it.clear() },
+    )
     val clipboard = LocalClipboardManager.current
     val state by viewModel.uiState.collectAsState()
     val scannerController = rememberQrScannerController()
     val cameraPermission = rememberCameraPermissionState()
     var scannerStarted by remember { mutableStateOf(false) }
     var permissionRequested by remember { mutableStateOf(false) }
-
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clear() }
-    }
 
     DisposableEffect(scannerController) {
         onDispose { scannerController.stop() }
@@ -203,11 +202,10 @@ private fun AddWalletEntry(navController: NavController) {
 @Composable
 private fun CurrencySettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val viewModel = remember { koin.get<CurrencySettingsViewModel>() }
-
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clear() }
-    }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<CurrencySettingsViewModel>() },
+        onDispose = { it.clear() },
+    )
 
     val state by viewModel.uiState.collectAsState()
 
@@ -222,11 +220,10 @@ private fun CurrencySettingsEntry(onBack: () -> Unit) {
 @Composable
 private fun LanguageSettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val viewModel = remember { koin.get<LanguageSettingsViewModel>() }
-
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clear() }
-    }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<LanguageSettingsViewModel>() },
+        onDispose = { it.clear() },
+    )
 
     val state by viewModel.uiState.collectAsState()
 
@@ -241,11 +238,10 @@ private fun LanguageSettingsEntry(onBack: () -> Unit) {
 @Composable
 private fun PaymentsSettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val viewModel = remember { koin.get<PaymentsSettingsViewModel>() }
-
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.clear() }
-    }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<PaymentsSettingsViewModel>() },
+        onDispose = { it.clear() },
+    )
 
     val state by viewModel.uiState.collectAsState()
 
