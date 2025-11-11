@@ -49,6 +49,7 @@ class MainViewModel internal constructor(
     private var pendingPayment: PendingPayment? = null
     private var exchangeRateJob: Job? = null
     private var lastPaymentResult: CompletedPayment? = null
+    private var parsedInvoiceCache: Pair<String, Bolt11InvoiceSummary>? = null
 
     init {
         scope.launch {
@@ -124,13 +125,27 @@ class MainViewModel internal constructor(
         }
     }
 
-    private fun processBoltInvoice(invoice: String) {
-        val summary = when (val result = bolt11Parser.parse(invoice)) {
-            is Bolt11ParseResult.Success -> result.invoice
-            is Bolt11ParseResult.Failure -> {
-                emitError(AppError.InvalidWalletUri(result.reason))
-                return
+    private fun parseBolt11Invoice(invoice: String): Bolt11InvoiceSummary? {
+        // Check cache first
+        parsedInvoiceCache?.let { (cachedInvoice, summary) ->
+            if (cachedInvoice == invoice) return summary
+        }
+
+        // Parse and cache
+        return when (val result = bolt11Parser.parse(invoice)) {
+            is Bolt11ParseResult.Success -> {
+                parsedInvoiceCache = invoice to result.invoice
+                result.invoice
             }
+            is Bolt11ParseResult.Failure -> null
+        }
+    }
+
+    private fun processBoltInvoice(invoice: String) {
+        val summary = parseBolt11Invoice(invoice)
+        if (summary == null) {
+            emitError(AppError.InvalidWalletUri("Failed to parse BOLT11 invoice"))
+            return
         }
 
         pendingInvoice = summary
@@ -233,17 +248,16 @@ class MainViewModel internal constructor(
         invoice: String,
         isManualEntry: Boolean,
     ) {
-        val parsed = when (val result = bolt11Parser.parse(invoice)) {
-            is Bolt11ParseResult.Success -> result.invoice
-            is Bolt11ParseResult.Failure -> {
-                if (isManualEntry) {
-                    _events.tryEmit(MainEvent.ShowError(AppError.InvalidWalletUri(result.reason)))
-                    _uiState.value = MainUiState.EnterAmount(manualAmount.current())
-                } else {
-                    emitError(AppError.InvalidWalletUri(result.reason))
-                }
-                return
+        val parsed = parseBolt11Invoice(invoice)
+        if (parsed == null) {
+            val error = AppError.InvalidWalletUri("Failed to parse BOLT11 invoice")
+            if (isManualEntry) {
+                _events.tryEmit(MainEvent.ShowError(error))
+                _uiState.value = MainUiState.EnterAmount(manualAmount.current())
+            } else {
+                emitError(error)
             }
+            return
         }
 
         if (parsed.amountMsats != amountMsats) {
