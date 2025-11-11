@@ -203,15 +203,19 @@ private class AndroidQrScannerController(
         cameraProviderFuture.addListener(
             {
                 try {
+                    if (!isBound.get()) return@addListener
                     val provider = cameraProviderFuture.get()
+                    if (!isBound.get()) return@addListener
                     cameraProvider = provider
 
+                    if (!isBound.get()) return@addListener
                     val analysisExecutor =
                         analysisExecutor ?: Executors.newSingleThreadExecutor().also {
                             analysisExecutor = it
                         }
                     val mainExecutor = ContextCompat.getMainExecutor(context)
 
+                    if (!isBound.get()) return@addListener
                     val analyzer = analyzer ?: QrCodeAnalyzer(
                         barcodeScanner = newBarcodeScanner(),
                         active = isActive,
@@ -224,6 +228,7 @@ private class AndroidQrScannerController(
                         analyzer = it
                     }
 
+                    if (!isBound.get()) return@addListener
                     val analysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .setResolutionSelector(
@@ -252,6 +257,11 @@ private class AndroidQrScannerController(
 
                     previewSurface?.let { surface ->
                         preview.surfaceProvider = surface.previewView.surfaceProvider
+                    }
+
+                    if (!isBound.get()) {
+                        provider.unbindAll()
+                        return@addListener
                     }
 
                     provider.unbindAll()
