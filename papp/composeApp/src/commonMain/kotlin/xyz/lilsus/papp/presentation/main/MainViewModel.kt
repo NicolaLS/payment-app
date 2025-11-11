@@ -226,15 +226,13 @@ class MainViewModel internal constructor(
     private fun payLnurlInvoice(session: LnurlSession, amountMsats: Long, isManualEntry: Boolean) {
         _uiState.value = MainUiState.Loading
         scope.launch {
-            when (val result = requestLnurlInvoice(session.params.callback, amountMsats)) {
-                is Result.Success -> handleLnurlInvoice(session, amountMsats, result.data, isManualEntry)
+            // Round to full satoshis - many Lightning servers only accept full sat amounts
+            val roundedAmount = roundToFullSatoshis(amountMsats)
+            when (val result = requestLnurlInvoice(session.params.callback, roundedAmount)) {
+                is Result.Success -> handleLnurlInvoice(session, roundedAmount, result.data, isManualEntry)
                 is Result.Error -> {
-                    if (isManualEntry) {
-                        _events.tryEmit(MainEvent.ShowError(result.error))
-                        _uiState.value = MainUiState.EnterAmount(manualAmount.current())
-                    } else {
-                        emitError(result.error)
-                    }
+                    manualEntryContext = null
+                    emitError(result.error)
                 }
 
                 Result.Loading -> Unit
@@ -250,36 +248,21 @@ class MainViewModel internal constructor(
     ) {
         val parsed = parseBolt11Invoice(invoice)
         if (parsed == null) {
-            val error = AppError.InvalidWalletUri("Failed to parse BOLT11 invoice")
-            if (isManualEntry) {
-                _events.tryEmit(MainEvent.ShowError(error))
-                _uiState.value = MainUiState.EnterAmount(manualAmount.current())
-            } else {
-                emitError(error)
-            }
+            manualEntryContext = null
+            emitError(AppError.InvalidWalletUri("Failed to parse BOLT11 invoice"))
             return
         }
 
         if (parsed.amountMsats != amountMsats) {
-            val error = AppError.InvalidWalletUri("LNURL invoice amount does not match requested amount")
-            if (isManualEntry) {
-                _events.tryEmit(MainEvent.ShowError(error))
-                _uiState.value = MainUiState.EnterAmount(manualAmount.current())
-            } else {
-                emitError(error)
-            }
+            manualEntryContext = null
+            emitError(AppError.InvalidWalletUri("LNURL server returned amount (${parsed.amountMsats} msat) that does not match requested amount ($amountMsats msat)"))
             return
         }
 
         val memoValid = validateLnurlMemo(parsed.memo, session.params)
         if (!memoValid) {
-            val error = AppError.InvalidWalletUri("LNURL invoice metadata mismatch")
-            if (isManualEntry) {
-                _events.tryEmit(MainEvent.ShowError(error))
-                _uiState.value = MainUiState.EnterAmount(manualAmount.current())
-            } else {
-                emitError(error)
-            }
+            manualEntryContext = null
+            emitError(AppError.InvalidWalletUri("LNURL invoice metadata mismatch"))
             return
         }
 
@@ -548,6 +531,15 @@ class MainViewModel internal constructor(
     private fun needsExchangeRate(): Boolean {
         val info = _currencyState.value.info
         return info.currency is DisplayCurrency.Fiat && _currencyState.value.exchangeRate == null
+    }
+
+    /**
+     * Rounds msats to full satoshis (always rounds UP).
+     * Many Lightning servers only accept full satoshi amounts.
+     * Examples: 1 msat -> 1000 msat, 1500 msat -> 2000 msat, 968504 msat -> 969000 msat
+     */
+    private fun roundToFullSatoshis(msats: Long): Long {
+        return ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
     }
 
     private fun convertMsatsToDisplay(msats: Long, state: CurrencyState): DisplayAmount {
