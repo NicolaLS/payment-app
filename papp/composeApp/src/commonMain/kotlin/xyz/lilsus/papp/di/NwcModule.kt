@@ -65,12 +65,12 @@ val nwcModule = module {
             httpClient = get(),
         )
     }
-    single(createdAtStart = true) {
+    single {
         WalletMetadataSynchronizer(
             scope = get(),
             discoveryRepository = get(),
             walletSettingsRepository = get(),
-        ).also { it.start() }
+        )
     }
 
     single { Bolt11InvoiceParser() }
