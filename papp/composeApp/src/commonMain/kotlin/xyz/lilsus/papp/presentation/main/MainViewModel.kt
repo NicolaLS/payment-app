@@ -61,14 +61,36 @@ class MainViewModel internal constructor(
         scope.launch {
             observeCurrencyPreference().collectLatest { currency ->
                 val info = CurrencyCatalog.infoFor(currency)
-                val current = _currencyState.value
-                _currencyState.value = CurrencyState(
-                    info = info,
-                    exchangeRate = current.exchangeRate.takeIf { info.code == current.info.code },
-                )
-                ensureExchangeRateIfNeeded(info)
-                refreshManualAmountState(preserveInput = manualEntryContext != null)
-                refreshResultState()
+
+                if (info.currency is DisplayCurrency.Fiat) {
+                    // Fetch rate first, then update state once with complete data
+                    _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    exchangeRateJob?.cancel()
+                    exchangeRateJob = launch {
+                        when (val result = getExchangeRate(info.code)) {
+                            is Result.Success -> {
+                                _currencyState.value = CurrencyState(
+                                    info = info,
+                                    exchangeRate = max(result.data.pricePerBitcoin, 0.0)
+                                )
+                                refreshManualAmountState(preserveInput = manualEntryContext != null)
+                                refreshResultState()
+                            }
+                            is Result.Error -> {
+                                _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                                _events.tryEmit(MainEvent.ShowError(result.error))
+                                refreshManualAmountState(preserveInput = manualEntryContext != null)
+                                refreshResultState()
+                            }
+                            Result.Loading -> Unit
+                        }
+                    }
+                } else {
+                    // Non-fiat: update immediately
+                    _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    refreshManualAmountState(preserveInput = manualEntryContext != null)
+                    refreshResultState()
+                }
             }
         }
     }
