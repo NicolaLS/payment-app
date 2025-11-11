@@ -21,6 +21,8 @@ class ConnectWalletViewModel internal constructor(
     private val _events = MutableSharedFlow<ConnectWalletEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<ConnectWalletEvent> = _events.asSharedFlow()
 
+    private var activeDiscoveryJob: Job? = null
+
     fun load(uri: String) {
         val trimmed = uri.trim()
         if (trimmed.isEmpty()) {
@@ -28,7 +30,11 @@ class ConnectWalletViewModel internal constructor(
             return
         }
         if (_uiState.value.uri == trimmed && _uiState.value.discovery != null) return
-        scope.launch {
+
+        // Cancel any in-flight discovery to prevent race conditions
+        activeDiscoveryJob?.cancel()
+
+        activeDiscoveryJob = scope.launch {
             _uiState.update { it.copy(uri = trimmed, isDiscoveryLoading = true, error = null) }
             val defaultSetActive = runCatching { getWallets().isNotEmpty() }.getOrDefault(false)
             runCatching { discoverWallet(trimmed) }
