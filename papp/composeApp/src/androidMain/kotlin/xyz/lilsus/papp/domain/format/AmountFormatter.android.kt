@@ -14,6 +14,18 @@ private class AndroidAmountFormatter(private val locale: AppLocale) : AmountForm
 
     private val javaLocale: Locale = locale.toLocale()
 
+    // Cache formatters to avoid expensive instantiation
+    private val fiatFormatters = mutableMapOf<String, NumberFormat>()
+    private val bitcoinFormatter by lazy {
+        NumberFormat.getNumberInstance(javaLocale).apply {
+            minimumFractionDigits = 2
+            maximumFractionDigits = 8
+        }
+    }
+    private val satoshiFormatter by lazy {
+        NumberFormat.getIntegerInstance(javaLocale)
+    }
+
     override fun format(amount: DisplayAmount): String = when (val currency = amount.currency) {
         is DisplayCurrency.Fiat -> formatFiat(amount.minor, currency)
         DisplayCurrency.Bitcoin -> formatBitcoin(amount.minor)
@@ -22,29 +34,28 @@ private class AndroidAmountFormatter(private val locale: AppLocale) : AmountForm
 
     private fun formatFiat(minor: Long, currency: DisplayCurrency.Fiat): String {
         val code = currency.iso4217.uppercase(Locale.ROOT)
-        val formatter = NumberFormat.getCurrencyInstance(javaLocale)
-        val javaCurrency = Currency.getInstance(code)
-        val fractionDigits = javaCurrency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
-        formatter.currency = javaCurrency
-        formatter.minimumFractionDigits = fractionDigits
-        formatter.maximumFractionDigits = fractionDigits
+        val formatter = fiatFormatters.getOrPut(code) {
+            NumberFormat.getCurrencyInstance(javaLocale).apply {
+                val javaCurrency = Currency.getInstance(code)
+                this.currency = javaCurrency
+                val fractionDigits = javaCurrency.defaultFractionDigits.takeIf { it >= 0 } ?: 2
+                minimumFractionDigits = fractionDigits
+                maximumFractionDigits = fractionDigits
+            }
+        }
+        val fractionDigits = formatter.currency?.defaultFractionDigits ?: 2
         val major = BigDecimal.valueOf(minor, fractionDigits)
         return formatter.format(major)
     }
 
     private fun formatBitcoin(minor: Long): String {
-        val formatter = NumberFormat.getNumberInstance(javaLocale).apply {
-            minimumFractionDigits = 2
-            maximumFractionDigits = 8
-        }
         val btc = BigDecimal.valueOf(minor, 8)
-        val number = formatter.format(btc)
+        val number = bitcoinFormatter.format(btc)
         return "$number BTC"
     }
 
     private fun formatSatoshi(minor: Long): String {
-        val formatter = NumberFormat.getIntegerInstance(javaLocale)
-        val number = formatter.format(minor)
+        val number = satoshiFormatter.format(minor)
         return "$number sat"
     }
 }

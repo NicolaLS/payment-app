@@ -10,6 +10,26 @@ private class IosAmountFormatter(private val locale: AppLocale) : AmountFormatte
 
     private val nsLocale = NSLocale(localeIdentifier = locale.bcp47)
 
+    // Cache formatters to avoid expensive instantiation
+    private val fiatFormatters = mutableMapOf<String, NSNumberFormatter>()
+    private val bitcoinFormatter by lazy {
+        NSNumberFormatter().apply {
+            numberStyle = NSNumberFormatterDecimalStyle
+            minimumFractionDigits = 2u
+            maximumFractionDigits = 8u
+            locale = nsLocale
+        }
+    }
+    private val satoshiFormatter by lazy {
+        NSNumberFormatter().apply {
+            numberStyle = NSNumberFormatterDecimalStyle
+            minimumFractionDigits = 0u
+            maximumFractionDigits = 0u
+            usesGroupingSeparator = true
+            locale = nsLocale
+        }
+    }
+
     override fun format(amount: DisplayAmount): String = when (val currency = amount.currency) {
         is DisplayCurrency.Fiat -> formatFiat(amount.minor, currency)
         DisplayCurrency.Bitcoin -> formatBitcoin(amount.minor)
@@ -17,42 +37,32 @@ private class IosAmountFormatter(private val locale: AppLocale) : AmountFormatte
     }
 
     private fun formatFiat(minor: Long, currency: DisplayCurrency.Fiat): String {
-        val formatter = NSNumberFormatter().apply {
-            numberStyle = NSNumberFormatterCurrencyStyle
-            this.locale = nsLocale
-            currencyCode = currency.iso4217.uppercase()
+        val code = currency.iso4217.uppercase()
+        val formatter = fiatFormatters.getOrPut(code) {
+            NSNumberFormatter().apply {
+                numberStyle = NSNumberFormatterCurrencyStyle
+                this.locale = nsLocale
+                currencyCode = code
+            }
         }
         val fractionDigitsNumber =
             (formatter.maximumFractionDigits as? NSNumber) ?: NSNumber(integer = 2)
         val fractionDigits = fractionDigitsNumber.intValue
         val decimalMinor = NSDecimalNumber(string = minor.toString())
         val major = decimalMinor.decimalNumberByMultiplyingByPowerOf10((-fractionDigits).toShort())
-        return formatter.stringFromNumber(major) ?: "${minor} ${currency.iso4217.uppercase()}"
+        return formatter.stringFromNumber(major) ?: "${minor} $code"
     }
 
     private fun formatBitcoin(minor: Long): String {
-        val formatter = NSNumberFormatter().apply {
-            numberStyle = NSNumberFormatterDecimalStyle
-            minimumFractionDigits = 2u
-            maximumFractionDigits = 8u
-            locale = nsLocale
-        }
         val decimalMinor = NSDecimalNumber(string = minor.toString())
         val btc = decimalMinor.decimalNumberByMultiplyingByPowerOf10((-8).toShort())
-        val formatted = formatter.stringFromNumber(btc) ?: btc.stringValue
+        val formatted = bitcoinFormatter.stringFromNumber(btc) ?: btc.stringValue
         return "$formatted BTC"
     }
 
     private fun formatSatoshi(minor: Long): String {
-        val formatter = NSNumberFormatter().apply {
-            numberStyle = NSNumberFormatterDecimalStyle
-            minimumFractionDigits = 0u
-            maximumFractionDigits = 0u
-            usesGroupingSeparator = true
-            locale = nsLocale
-        }
         val number = NSNumber(longLong = minor)
-        val formatted = formatter.stringFromNumber(number) ?: minor.toString()
+        val formatted = satoshiFormatter.stringFromNumber(number) ?: minor.toString()
         return "$formatted sat"
     }
 }
