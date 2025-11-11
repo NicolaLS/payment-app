@@ -36,23 +36,15 @@ fun MainScreen(
     isCameraPermissionGranted: Boolean,
     modifier: Modifier = Modifier
 ) {
-    LaunchedEffect(Unit) {
-        onRequestScannerStart()
-    }
-
-    LaunchedEffect(isCameraPermissionGranted) {
-        if (isCameraPermissionGranted) {
-            onRequestScannerStart()
-        } else {
-            onScannerPause()
-        }
-    }
-
     LaunchedEffect(uiState, isCameraPermissionGranted) {
-        if (!isCameraPermissionGranted) return@LaunchedEffect
-        when (uiState) {
-            MainUiState.Active -> onScannerResume()
-            else -> onScannerPause()
+        if (!isCameraPermissionGranted) {
+            onScannerPause()
+        } else {
+            onRequestScannerStart()
+            when (uiState) {
+                MainUiState.Active -> onScannerResume()
+                else -> onScannerPause()
+            }
         }
     }
 
