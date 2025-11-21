@@ -13,22 +13,23 @@ class WalletMetadataSynchronizer(
 ) {
     fun start() {
         scope.launch {
-            val wallets = runCatching { walletSettingsRepository.getWallets() }
-                .getOrElse { emptyList() }
-            if (wallets.isEmpty()) return@launch
+            // Only refresh metadata for the active wallet to avoid unnecessary network calls
+            // Inactive wallets' metadata will be refreshed if/when they become active
+            val active = runCatching { walletSettingsRepository.getWalletConnection() }
+                .getOrNull() ?: return@launch
 
-            val active = runCatching { walletSettingsRepository.getWalletConnection() }.getOrNull()
-            wallets.forEach { wallet ->
-                launch {
-                    val snapshot = runCatching { discoveryRepository.discover(wallet.uri) }
-                        .map { it.toMetadataSnapshot() }
-                        .getOrElse { return@launch }
-                    walletSettingsRepository.saveWalletConnection(
-                        connection = wallet.copy(metadata = snapshot),
-                        activate = wallet.walletPublicKey == active?.walletPublicKey,
-                    )
-                }
-            }
+            // Skip if metadata already exists and is fresh
+            // (In the future, could add timestamp check here to refresh stale metadata)
+            if (active.metadata != null) return@launch
+
+            val snapshot = runCatching { discoveryRepository.discover(active.uri) }
+                .map { it.toMetadataSnapshot() }
+                .getOrElse { return@launch }
+
+            walletSettingsRepository.saveWalletConnection(
+                connection = active.copy(metadata = snapshot),
+                activate = true,
+            )
         }
     }
 }

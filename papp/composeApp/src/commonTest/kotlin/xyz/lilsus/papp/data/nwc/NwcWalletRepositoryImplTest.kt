@@ -9,7 +9,8 @@ import io.github.nostr.nwc.testing.FakeNwcClient
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.AppError
@@ -135,8 +136,11 @@ class NwcWalletRepositoryImplTest {
     private class StubWalletSettingsRepository(
         private val connection: WalletConnection?,
     ) : WalletSettingsRepository {
-        override val wallets: Flow<List<WalletConnection>> = flowOf(connection?.let { listOf(it) } ?: emptyList())
-        override val walletConnection: Flow<WalletConnection?> = flowOf(connection)
+        private val _wallets = MutableStateFlow(connection?.let { listOf(it) } ?: emptyList())
+        private val _walletConnection = MutableStateFlow(connection)
+
+        override val wallets: Flow<List<WalletConnection>> = _wallets
+        override val walletConnection: StateFlow<WalletConnection?> = _walletConnection
 
         override suspend fun getWalletConnection(): WalletConnection? = connection
 

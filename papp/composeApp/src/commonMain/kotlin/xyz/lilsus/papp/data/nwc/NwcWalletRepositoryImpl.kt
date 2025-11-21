@@ -44,15 +44,14 @@ class NwcWalletRepositoryImpl(
                     closeCachedHandle()
                     return@collectLatest
                 }
+                // Close cached handle if wallet switched to a different one
                 clientMutex.withLock {
                     if (cachedHandle?.uri != null && cachedHandle?.uri != connection.uri) {
                         closeCachedHandleLocked()
                     }
                 }
-                // Warm the client for the active wallet, but avoid spawning extra sessions
-                // if a creation is already in-flight.
-                runCatching { ensureClient(connection) }
-                    .onFailure { closeCachedHandle() }
+                // Client will be created on-demand when payInvoice() is called
+                // This avoids 0-8s startup latency from eager handshake
             }
         }
     }
