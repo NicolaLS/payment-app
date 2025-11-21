@@ -6,6 +6,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration.Companion.milliseconds
 
 fun createBaseHttpClient(): HttpClient = platformHttpClient().config {
     install(ContentNegotiation) {
@@ -23,7 +24,16 @@ fun createBaseHttpClient(): HttpClient = platformHttpClient().config {
 }
 
 fun createNwcHttpClient(): HttpClient = platformHttpClient().config {
-    install(WebSockets)
+    install(HttpTimeout) {
+        // Keep NWC connect/read deadlines short to fail fast on dead relays.
+        connectTimeoutMillis = 7_000
+        socketTimeoutMillis = 12_000
+        requestTimeoutMillis = 12_000
+    }
+    install(WebSockets) {
+        // Keep the channel alive and detect half-open TCP connections quickly.
+        pingInterval = 5_000.milliseconds
+    }
 }
 
 expect fun platformHttpClient(): HttpClient

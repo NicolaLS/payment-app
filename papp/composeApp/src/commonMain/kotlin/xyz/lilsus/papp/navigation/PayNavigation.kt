@@ -90,10 +90,6 @@ private fun MainScreenEntry(
     LaunchedEffect(cameraPermission.hasPermission) {
         if (cameraPermission.hasPermission) {
             hasRequestedPermission = false
-            if (viewModel.uiState.value == MainUiState.Active) {
-                startScannerIfNeeded()
-                scannerController.resume()
-            }
         } else {
             if (scannerStarted) {
                 scannerController.stop()

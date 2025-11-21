@@ -7,6 +7,8 @@ import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.PayInvoiceResult
 import io.github.nostr.nwc.testing.FakeNwcClient
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
@@ -111,6 +113,7 @@ class NwcWalletRepositoryImplTest {
         val repository = NwcWalletRepositoryImpl(
             walletSettingsRepository = StubWalletSettingsRepository(connection),
             clientFactory = factory,
+            scope = kotlinx.coroutines.test.TestScope(),
         )
         return RepositoryContext(repository, factory, handle)
     }
@@ -118,8 +121,10 @@ class NwcWalletRepositoryImplTest {
     private class FakeClientFactory(
         private val handle: NwcClientHandle,
     ) : NwcClientFactory {
-        override suspend fun create(uri: String): NwcClientHandle {
-            require(uri == handle.uri)
+        override suspend fun create(connection: WalletConnection): NwcClientHandle {
+            require(connection.uri == handle.uri) {
+                "Test expects URI ${handle.uri} but got ${connection.uri}"
+            }
             return handle
         }
     }
@@ -127,10 +132,8 @@ class NwcWalletRepositoryImplTest {
     private class StubWalletSettingsRepository(
         private val connection: WalletConnection?,
     ) : WalletSettingsRepository {
-        override val wallets: Flow<List<WalletConnection>>
-            get() = throw UnsupportedOperationException()
-        override val walletConnection: Flow<WalletConnection?>
-            get() = throw UnsupportedOperationException()
+        override val wallets: Flow<List<WalletConnection>> = flowOf(connection?.let { listOf(it) } ?: emptyList())
+        override val walletConnection: Flow<WalletConnection?> = flowOf(connection)
 
         override suspend fun getWalletConnection(): WalletConnection? = connection
 

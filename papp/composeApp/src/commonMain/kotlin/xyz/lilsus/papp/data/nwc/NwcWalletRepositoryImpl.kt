@@ -4,11 +4,17 @@ import io.github.nostr.nwc.model.BitcoinAmount
 import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.PayInvoiceParams
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.PaidInvoice
+import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
@@ -21,11 +27,35 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 class NwcWalletRepositoryImpl(
     private val walletSettingsRepository: WalletSettingsRepository,
     private val clientFactory: NwcClientFactory,
-    private val requestTimeoutMillis: Long = DEFAULT_NWC_TIMEOUT_MILLIS,
+    private val scope: CoroutineScope,
+    private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS,
 ) : NwcWalletRepository {
 
     private val clientMutex = Mutex()
     private var cachedHandle: NwcClientHandle? = null
+    private var inFlightHandle: Deferred<NwcClientHandle>? = null
+    private var activeUri: String? = null
+
+    init {
+        scope.launch {
+            walletSettingsRepository.walletConnection.collectLatest { connection ->
+                if (connection == null) {
+                    // Close any cached handle when wallet is cleared to release resources
+                    closeCachedHandle()
+                    return@collectLatest
+                }
+                clientMutex.withLock {
+                    if (cachedHandle?.uri != null && cachedHandle?.uri != connection.uri) {
+                        closeCachedHandleLocked()
+                    }
+                }
+                // Warm the client for the active wallet, but avoid spawning extra sessions
+                // if a creation is already in-flight.
+                runCatching { ensureClient(connection) }
+                    .onFailure { closeCachedHandle() }
+            }
+        }
+    }
 
     override suspend fun payInvoice(
         invoice: String,
@@ -39,14 +69,14 @@ class NwcWalletRepositoryImpl(
         val connection = walletSettingsRepository.getWalletConnection()
             ?: throw AppErrorException(AppError.MissingWalletConnection)
 
-        val handle = ensureClient(connection.uri.trim())
+        val handle = ensureClient(connection)
         val result = try {
             handle.client.payInvoice(
                 params = PayInvoiceParams(
                     invoice = invoice,
                     amount = amountMsats?.let(BitcoinAmount::fromMsats),
                 ),
-                timeoutMillis = requestTimeoutMillis,
+                timeoutMillis = payTimeoutMillis,
             )
         } catch (cancellation: CancellationException) {
             throw cancellation
@@ -62,20 +92,59 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    private suspend fun ensureClient(uri: String): NwcClientHandle {
+    private suspend fun ensureClient(connection: WalletConnection): NwcClientHandle {
+        val uri = connection.uri
         cachedHandle?.takeIf { it.uri == uri }?.let { return it }
-        return clientMutex.withLock {
-            cachedHandle?.takeIf { it.uri == uri }?.let { return@withLock it }
+        val deferred = clientMutex.withLock {
+            cachedHandle?.takeIf { it.uri == uri }?.let { return@withLock null }
+            inFlightHandle?.takeIf { it.isActive }?.let { return@withLock it }
 
-            val previous = cachedHandle
-            cachedHandle = null
-            if (previous != null) {
-                runCatching { previous.release() }
+            val created = scope.async {
+                clientFactory.create(connection)
             }
-
-            val created = clientFactory.create(uri)
-            cachedHandle = created
+            inFlightHandle = created
+            activeUri = uri
             created
+        }
+        if (deferred == null) {
+            return cachedHandle ?: ensureClient(connection)
+        }
+
+        return try {
+            val handle = deferred.await()
+            clientMutex.withLock {
+                // Verify activeUri hasn't changed while we were creating the client
+                if (activeUri != uri) {
+                    // Wallet switched, discard this handle to prevent caching wrong wallet
+                    runCatching { handle.release() }
+                    throw CancellationException("Wallet changed during client creation")
+                }
+                cachedHandle = handle
+                inFlightHandle = null
+                handle
+            }
+        } catch (error: Throwable) {
+            clientMutex.withLock {
+                if (inFlightHandle === deferred) {
+                    inFlightHandle = null
+                    activeUri = null
+                }
+            }
+            throw error
+        }
+    }
+
+    private suspend fun closeCachedHandle() {
+        clientMutex.withLock { closeCachedHandleLocked() }
+    }
+
+    private suspend fun closeCachedHandleLocked() {
+        val previous = cachedHandle
+        cachedHandle = null
+        activeUri = null
+        inFlightHandle = null
+        if (previous != null) {
+            runCatching { previous.release() }
         }
     }
 }

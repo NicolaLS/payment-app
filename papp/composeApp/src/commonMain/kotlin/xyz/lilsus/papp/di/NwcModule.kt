@@ -12,13 +12,50 @@ import org.koin.dsl.module
 import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
 import xyz.lilsus.papp.data.network.createNwcHttpClient
-import xyz.lilsus.papp.data.nwc.*
-import xyz.lilsus.papp.data.settings.*
+import xyz.lilsus.papp.data.nwc.NwcClientFactory
+import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
+import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
+import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
+import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
+import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
+import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
+import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
+import xyz.lilsus.papp.data.settings.createLanguageRepository
+import xyz.lilsus.papp.data.settings.createSecureSettings
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
-import xyz.lilsus.papp.domain.repository.*
-import xyz.lilsus.papp.domain.use_cases.*
+import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
+import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
+import xyz.lilsus.papp.domain.repository.LanguageRepository
+import xyz.lilsus.papp.domain.repository.LnurlRepository
+import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
+import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
+import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.use_cases.ClearLanguageOverrideUseCase
+import xyz.lilsus.papp.domain.use_cases.ClearWalletConnectionUseCase
+import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
+import xyz.lilsus.papp.domain.use_cases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.use_cases.GetExchangeRateUseCase
+import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.use_cases.ObserveWalletsUseCase
+import xyz.lilsus.papp.domain.use_cases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.RefreshLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.RequestLnurlInvoiceUseCase
+import xyz.lilsus.papp.domain.use_cases.ResolveLightningAddressUseCase
+import xyz.lilsus.papp.domain.use_cases.SetActiveWalletUseCase
+import xyz.lilsus.papp.domain.use_cases.SetConfirmManualEntryUseCase
+import xyz.lilsus.papp.domain.use_cases.SetCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.SetLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationModeUseCase
+import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationThresholdUseCase
+import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
+import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.presentation.add_connection.ConnectWalletViewModel
 import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
@@ -31,13 +68,20 @@ import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
 val nwcModule = module {
     NwcLog.setLogger(ConsoleNwcLogger)
+    // Prefer quieter logs in production to avoid string formatting on the hot path.
     NwcLog.setMinimumLevel(NwcLogLevel.DEBUG)
 
     single<CoroutineDispatcher> { Dispatchers.Default }
     single { CoroutineScope(SupervisorJob() + get<CoroutineDispatcher>()) }
 
     single { createSecureSettings() }
-    single<WalletSettingsRepository> { WalletSettingsRepositoryImpl(get()) }
+    single<WalletSettingsRepository> {
+        WalletSettingsRepositoryImpl(
+            settings = get(),
+            dispatcher = get(),
+            scope = get(),
+        )
+    }
     single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
     single<CurrencyPreferencesRepository> { CurrencyPreferencesRepositoryImpl(get()) }
     single<LanguageRepository> { createLanguageRepository() }
@@ -57,6 +101,7 @@ val nwcModule = module {
         NwcWalletRepositoryImpl(
             walletSettingsRepository = get(),
             clientFactory = get(),
+            scope = get(),
         )
     }
     single<WalletDiscoveryRepository> {

@@ -6,6 +6,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import org.jetbrains.compose.resources.stringResource
@@ -36,13 +41,23 @@ fun MainScreen(
     isCameraPermissionGranted: Boolean,
     modifier: Modifier = Modifier
 ) {
+    var scannerInitialized by remember { mutableStateOf(false) }
+
     LaunchedEffect(uiState, isCameraPermissionGranted) {
         if (!isCameraPermissionGranted) {
+            scannerInitialized = false
             onScannerPause()
         } else {
-            onRequestScannerStart()
             when (uiState) {
-                MainUiState.Active -> onScannerResume()
+                MainUiState.Active -> {
+                    if (!scannerInitialized) {
+                        withFrameNanos { }
+                        onRequestScannerStart()
+                        scannerInitialized = true
+                    }
+                    onScannerResume()
+                }
+
                 else -> onScannerPause()
             }
         }

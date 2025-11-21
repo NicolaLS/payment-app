@@ -1,7 +1,11 @@
 package xyz.lilsus.papp.data.settings
 
 import com.russhwolf.settings.Settings
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import xyz.lilsus.papp.domain.model.WalletConnection
@@ -13,6 +17,8 @@ private const val KEY_ACTIVE_PUBKEY = "wallet.active"
 
 class WalletSettingsRepositoryImpl(
     private val settings: Settings,
+    private val dispatcher: CoroutineDispatcher = kotlinx.coroutines.Dispatchers.Default,
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher),
 ) : WalletSettingsRepository {
 
     private val json = Json {
@@ -20,7 +26,13 @@ class WalletSettingsRepositoryImpl(
         encodeDefaults = false
     }
 
-    private val state = MutableStateFlow(loadState())
+    private val state = MutableStateFlow(WalletState())
+
+    init {
+        scope.launch {
+            state.value = loadState()
+        }
+    }
 
     override val wallets: Flow<List<WalletConnection>> = state
         .asStateFlow()
