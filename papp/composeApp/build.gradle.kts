@@ -107,13 +107,15 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
 
-
             proguardFiles(
                 // Default file with automatically generated optimization rules.
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")
             )
         }
+    }
+    buildFeatures {
+        buildConfig = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

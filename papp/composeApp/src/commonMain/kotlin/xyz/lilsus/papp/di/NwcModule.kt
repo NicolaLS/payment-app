@@ -67,9 +67,12 @@ import xyz.lilsus.papp.presentation.settings.add_wallet.AddWalletViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
 val nwcModule = module {
-    NwcLog.setLogger(ConsoleNwcLogger)
-    // Prefer quieter logs in production to avoid string formatting on the hot path.
-    NwcLog.setMinimumLevel(NwcLogLevel.DEBUG)
+    // Only enable NWC logging in debug builds
+    // R8/ProGuard will strip these calls in release builds automatically
+    if (xyz.lilsus.papp.isDebugBuild) {
+        NwcLog.setLogger(ConsoleNwcLogger)
+        NwcLog.setMinimumLevel(NwcLogLevel.DEBUG)
+    }
 
     single<CoroutineDispatcher> { Dispatchers.Default }
     single { CoroutineScope(SupervisorJob() + get<CoroutineDispatcher>()) }

@@ -6,6 +6,8 @@ import io.github.nostr.nwc.model.NwcFailure
 import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.PayInvoiceResult
 import io.github.nostr.nwc.testing.FakeNwcClient
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestScope
@@ -110,12 +112,13 @@ class NwcWalletRepositoryImplTest {
             },
         )
         val factory = FakeClientFactory(handle)
+        val testScope = TestScope()
         val repository = NwcWalletRepositoryImpl(
             walletSettingsRepository = StubWalletSettingsRepository(connection),
             clientFactory = factory,
-            scope = kotlinx.coroutines.test.TestScope(),
+            scope = testScope,
         )
-        return RepositoryContext(repository, factory, handle)
+        return RepositoryContext(repository, factory, handle, testScope)
     }
 
     private class FakeClientFactory(
@@ -162,8 +165,10 @@ class NwcWalletRepositoryImplTest {
         val repository: NwcWalletRepositoryImpl,
         val factory: FakeClientFactory,
         val handle: NwcClientHandle,
+        val testScope: TestScope,
     ) {
         suspend fun close() {
+            testScope.cancel("Test completed")
             handle.release()
         }
     }
