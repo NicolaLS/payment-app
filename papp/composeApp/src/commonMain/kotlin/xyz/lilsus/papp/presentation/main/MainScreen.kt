@@ -30,6 +30,7 @@ fun MainScreen(
     onNavigateConnectWallet: (String) -> Unit,
     uiState: MainUiState,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
+    onManualAmountPreset: (DisplayAmount) -> Unit = {},
     onManualAmountSubmit: () -> Unit = {},
     onManualAmountDismiss: () -> Unit = {},
     onConfirmPaymentSubmit: () -> Unit = {},
@@ -101,6 +102,7 @@ fun MainScreen(
         ManualAmountBottomSheet(
             state = uiState.entry,
             onKeyPress = onManualAmountKeyPress,
+            onRangeClick = onManualAmountPreset,
             onSubmit = onManualAmountSubmit,
             onDismiss = onManualAmountDismiss
         )

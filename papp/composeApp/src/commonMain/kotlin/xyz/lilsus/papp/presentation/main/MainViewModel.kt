@@ -103,6 +103,7 @@ class MainViewModel internal constructor(
             MainIntent.ManualAmountDismiss -> handleManualAmountDismiss()
             MainIntent.ManualAmountSubmit -> handleManualAmountSubmit()
             is MainIntent.ManualAmountKeyPress -> handleManualAmountKeyPress(intent.key)
+            is MainIntent.ManualAmountPreset -> handleManualAmountPreset(intent.amount)
             MainIntent.ConfirmPaymentDismiss -> handleConfirmPaymentDismiss()
             MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
         }
@@ -154,6 +155,8 @@ class MainViewModel internal constructor(
             ManualAmountConfig(
                 info = currencyState.info,
                 exchangeRate = currencyState.exchangeRate,
+                minMsats = null,
+                maxMsats = null,
             ),
             clearInput = true,
         )
@@ -217,6 +220,8 @@ class MainViewModel internal constructor(
                 exchangeRate = currencyState.exchangeRate,
                 min = minDisplay,
                 max = maxDisplay,
+                minMsats = params.minSendable,
+                maxMsats = params.maxSendable,
             ),
             clearInput = true,
         )
@@ -292,6 +297,12 @@ class MainViewModel internal constructor(
         if (_uiState.value !is MainUiState.EnterAmount) return
         manualEntryContext ?: return
         _uiState.value = MainUiState.EnterAmount(entry = manualAmount.handleKeyPress(key))
+    }
+
+    private fun handleManualAmountPreset(amount: DisplayAmount) {
+        if (_uiState.value !is MainUiState.EnterAmount) return
+        manualEntryContext ?: return
+        _uiState.value = MainUiState.EnterAmount(entry = manualAmount.presetAmount(amount))
     }
 
     private fun handleManualAmountSubmit() {
@@ -471,6 +482,8 @@ class MainViewModel internal constructor(
                     exchangeRate = currencyState.exchangeRate,
                     min = convertMsatsToDisplay(params.minSendable, currencyState),
                     max = convertMsatsToDisplay(params.maxSendable, currencyState),
+                    minMsats = params.minSendable,
+                    maxMsats = params.maxSendable,
                 )
             }
 
@@ -560,7 +573,8 @@ class MainViewModel internal constructor(
                     val fiatMajor = btc * rate
                     val factor = 10.0.pow(info.fractionDigits)
                     val minor = (fiatMajor * factor).roundToLong()
-                    DisplayAmount(minor, currency)
+                    val clamped = if (minor <= 0 && msats > 0) 1 else minor
+                    DisplayAmount(clamped, currency)
                 }
             }
         }

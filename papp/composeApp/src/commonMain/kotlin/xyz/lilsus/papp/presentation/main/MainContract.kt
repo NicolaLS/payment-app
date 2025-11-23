@@ -1,6 +1,7 @@
 package xyz.lilsus.papp.presentation.main
 
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 
 /**
@@ -20,6 +21,7 @@ sealed interface MainIntent {
     data class InvoiceDetected(val invoice: String) : MainIntent
     data object DismissResult : MainIntent
     data class ManualAmountKeyPress(val key: ManualAmountKey) : MainIntent
+    data class ManualAmountPreset(val amount: DisplayAmount) : MainIntent
     data object ManualAmountSubmit : MainIntent
     data object ManualAmountDismiss : MainIntent
     data object ConfirmPaymentSubmit : MainIntent

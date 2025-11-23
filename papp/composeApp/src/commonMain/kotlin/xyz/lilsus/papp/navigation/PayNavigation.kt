@@ -153,6 +153,9 @@ private fun MainScreenEntry(
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))
             },
+            onManualAmountPreset = { amount ->
+                viewModel.dispatch(MainIntent.ManualAmountPreset(amount))
+            },
             onManualAmountSubmit = { viewModel.dispatch(MainIntent.ManualAmountSubmit) },
             onManualAmountDismiss = { viewModel.dispatch(MainIntent.ManualAmountDismiss) },
             onConfirmPaymentSubmit = { viewModel.dispatch(MainIntent.ConfirmPaymentSubmit) },

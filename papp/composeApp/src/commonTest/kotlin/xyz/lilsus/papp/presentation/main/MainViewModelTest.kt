@@ -22,6 +22,7 @@ import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import kotlin.test.*
+import kotlin.time.Duration.Companion.seconds
 
 class MainViewModelTest {
     private lateinit var walletSettingsRepository: FakeWalletSettingsRepository
@@ -380,6 +381,46 @@ class MainViewModelTest {
             // LNURL invoices already have amount embedded, so we shouldn't pass amount parameter
             assertEquals(null, repository.lastAmountMsats)
             assertEquals(chosenMsats / MSATS_PER_SAT, success.amountPaid.minor)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun lnurlRangeFiatClampsTinyMinToOneMinor() = runBlocking {
+        val minMsats = 1_000L // 1 sat -> below one cent
+        val maxMsats = 5_000L
+        val params = LnurlPayParams(
+            callback = LNURL_CALLBACK,
+            minSendable = minMsats,
+            maxSendable = maxMsats,
+            metadataRaw = LNURL_METADATA_RAW,
+            metadata = LNURL_METADATA,
+            commentAllowed = null,
+            domain = "example.com",
+        )
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
+        }
+        val parser = FakeBolt11InvoiceParser(emptyMap())
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            currencyCode = "USD",
+            exchangeRateResult = Result.Success(
+                ExchangeRate(currencyCode = "USD", pricePerBitcoin = 60_000.0),
+            ),
+            lnurlRepository = lnurlRepository,
+        )
+        try {
+            viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
+
+            val state = viewModel.uiState.first {
+                it is MainUiState.EnterAmount && it.entry.currency == DisplayCurrency.Fiat("USD")
+            } as MainUiState.EnterAmount
+
+            assertEquals(1L, state.entry.min?.minor)
         } finally {
             viewModel.clear()
         }

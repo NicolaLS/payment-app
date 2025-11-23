@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.presentation.main.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
@@ -34,7 +35,15 @@ data class ManualAmountUiState(
     val rawWhole: String = "0",
     val rawFraction: String = "",
     val hasDecimal: Boolean = false,
+    val rangeStatus: RangeStatus = RangeStatus.InRange,
 )
+
+sealed interface RangeStatus {
+    object InRange : RangeStatus
+    object Unknown : RangeStatus
+    data class BelowMin(val min: DisplayAmount) : RangeStatus
+    data class AboveMax(val max: DisplayAmount) : RangeStatus
+}
 
 sealed class ManualAmountKey {
     data class Digit(val value: Int) : ManualAmountKey()
@@ -47,6 +56,7 @@ sealed class ManualAmountKey {
 fun ManualAmountBottomSheet(
     state: ManualAmountUiState,
     onKeyPress: (ManualAmountKey) -> Unit,
+    onRangeClick: (DisplayAmount) -> Unit,
     onSubmit: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -74,8 +84,10 @@ fun ManualAmountBottomSheet(
 
             if (state.min != null || state.max != null) {
                 Spacer(modifier = Modifier.height(12.dp))
-                RangeHint(state.min, state.max)
+                RangeHint(state.min, state.max, onRangeClick)
             }
+
+            RangeFeedback(state.rangeStatus)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -88,7 +100,8 @@ fun ManualAmountBottomSheet(
 
             Button(
                 onClick = onSubmit,
-                enabled = state.amount?.minor?.let { it > 0 } == true,
+                enabled = state.amount?.minor?.let { it > 0 } == true &&
+                        state.rangeStatus == RangeStatus.InRange,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(text = stringResource(Res.string.pay_button))
@@ -173,6 +186,30 @@ private fun currencyLabel(currency: DisplayCurrency): String = when (currency) {
 }
 
 @Composable
+private fun RangeFeedback(rangeStatus: RangeStatus) {
+    val formatter = rememberAmountFormatter()
+    val feedback = when (rangeStatus) {
+        RangeStatus.InRange, RangeStatus.Unknown -> null
+        is RangeStatus.BelowMin -> stringResource(
+            Res.string.enter_amount_range_min,
+            formatter.format(rangeStatus.min),
+        )
+        is RangeStatus.AboveMax -> stringResource(
+            Res.string.enter_amount_range_max,
+            formatter.format(rangeStatus.max),
+        )
+    } ?: return
+
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        text = feedback,
+        style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.error),
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
 private fun CurrencyTag(label: String, active: Boolean) {
     val colors = MaterialTheme.colorScheme
     Surface(
@@ -189,7 +226,11 @@ private fun CurrencyTag(label: String, active: Boolean) {
 }
 
 @Composable
-private fun RangeHint(min: DisplayAmount?, max: DisplayAmount?) {
+private fun RangeHint(
+    min: DisplayAmount?,
+    max: DisplayAmount?,
+    onRangeClick: (DisplayAmount) -> Unit,
+) {
     val formatter = rememberAmountFormatter()
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -200,7 +241,8 @@ private fun RangeHint(min: DisplayAmount?, max: DisplayAmount?) {
                 label = stringResource(
                     Res.string.enter_amount_range_min,
                     formatter.format(min)
-                )
+                ),
+                onClick = { onRangeClick(min) },
             )
         }
         if (min != null && max != null) {
@@ -211,18 +253,20 @@ private fun RangeHint(min: DisplayAmount?, max: DisplayAmount?) {
                 label = stringResource(
                     Res.string.enter_amount_range_max,
                     formatter.format(max)
-                )
+                ),
+                onClick = { onRangeClick(max) },
             )
         }
     }
 }
 
 @Composable
-private fun RangePill(label: String) {
+private fun RangePill(label: String, onClick: () -> Unit) {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.clickable(onClick = onClick)
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -327,6 +371,7 @@ private fun ManualAmountBottomSheetPreview() {
                 currency = DisplayCurrency.Satoshi,
             ),
             onKeyPress = {},
+            onRangeClick = {},
             onSubmit = {},
             onDismiss = {}
         )
@@ -345,6 +390,7 @@ private fun ManualAmountBottomSheetPreviewWithRange() {
                 max = DisplayAmount(5000, DisplayCurrency.Fiat("usd"))
             ),
             onKeyPress = {},
+            onRangeClick = {},
             onSubmit = {},
             onDismiss = {}
         )

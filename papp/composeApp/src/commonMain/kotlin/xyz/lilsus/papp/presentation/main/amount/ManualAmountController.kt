@@ -5,6 +5,7 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
+import xyz.lilsus.papp.presentation.main.components.RangeStatus
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
@@ -13,6 +14,8 @@ data class ManualAmountConfig(
     val exchangeRate: Double?,
     val min: DisplayAmount? = null,
     val max: DisplayAmount? = null,
+    val minMsats: Long? = null,
+    val maxMsats: Long? = null,
 )
 
 class ManualAmountController(
@@ -32,6 +35,7 @@ class ManualAmountController(
         rawWhole = whole,
         rawFraction = fraction,
         hasDecimal = hasDecimal,
+        rangeStatus = RangeStatus.Unknown,
     )
 
     fun reset(
@@ -56,12 +60,30 @@ class ManualAmountController(
             rawWhole = whole,
             rawFraction = fraction,
             hasDecimal = hasDecimal,
+            rangeStatus = RangeStatus.Unknown,
         )
         updateState()
         return state
     }
 
     fun current(): ManualAmountUiState = state
+
+    fun presetAmount(amount: DisplayAmount): ManualAmountUiState {
+        if (amount.currency != config.info.currency) return state
+        val fractionDigits = config.info.fractionDigits
+        val divisor = 10.0.pow(fractionDigits).toLong().coerceAtLeast(1L)
+        val wholePart = amount.minor / divisor
+        val fractionPart = amount.minor % divisor
+        whole = wholePart.toString()
+        fraction = if (fractionDigits == 0) {
+            ""
+        } else {
+            fractionPart.toString().padStart(fractionDigits, '0').trimEnd('0')
+        }
+        hasDecimal = fractionDigits > 0 && fraction.isNotEmpty()
+        updateState()
+        return state
+    }
 
     fun handleKeyPress(key: ManualAmountKey): ManualAmountUiState {
         when (key) {
@@ -76,17 +98,7 @@ class ManualAmountController(
         val info = config.info
         val minor = parseMinor(whole, fraction, info.fractionDigits) ?: return null
         if (minor == 0L) return null
-        return when (info.currency) {
-            DisplayCurrency.Satoshi -> minor * MSATS_PER_SAT
-            DisplayCurrency.Bitcoin -> minor * MSATS_PER_SAT
-            is DisplayCurrency.Fiat -> {
-                val rate = config.exchangeRate ?: return null
-                val major = minor.toDouble() / 10.0.pow(info.fractionDigits)
-                val btc = major / rate
-                val msats = (btc * MSATS_PER_BTC).roundToLong()
-                if (msats <= 0) null else msats
-            }
-        }
+        return minorToMsats(minor)
     }
 
     private fun appendDigit(digit: Int) {
@@ -135,6 +147,17 @@ class ManualAmountController(
         val amount = minor?.takeIf { it > 0L }?.let {
             DisplayAmount(it, config.info.currency)
         }
+        val msats = minor?.takeIf { it > 0L }?.let { minorToMsats(it) }
+        val minMsats = config.minMsats
+        val maxMsats = config.maxMsats
+        val minDisplay = config.min
+        val maxDisplay = config.max
+        val rangeStatus = when {
+            msats == null -> RangeStatus.Unknown
+            minMsats != null && minDisplay != null && msats < minMsats -> RangeStatus.BelowMin(minDisplay)
+            maxMsats != null && maxDisplay != null && msats > maxMsats -> RangeStatus.AboveMax(maxDisplay)
+            else -> RangeStatus.InRange
+        }
         state = state.copy(
             amount = amount,
             currency = config.info.currency,
@@ -144,6 +167,7 @@ class ManualAmountController(
             rawWhole = whole,
             rawFraction = fraction,
             hasDecimal = hasDecimal,
+            rangeStatus = rangeStatus,
         )
     }
 
@@ -162,6 +186,21 @@ class ManualAmountController(
         val digits = (whole + paddedFraction).trimStart('0')
         val normalized = digits.ifEmpty { "0" }
         return normalized.toLongOrNull()
+    }
+
+    private fun minorToMsats(minor: Long): Long? {
+        val info = config.info
+        return when (info.currency) {
+            DisplayCurrency.Satoshi -> minor * MSATS_PER_SAT
+            DisplayCurrency.Bitcoin -> minor * MSATS_PER_SAT
+            is DisplayCurrency.Fiat -> {
+                val rate = config.exchangeRate ?: return null
+                val major = minor.toDouble() / 10.0.pow(info.fractionDigits)
+                val btc = major / rate
+                val msats = (btc * MSATS_PER_BTC).roundToLong()
+                if (msats <= 0) null else msats
+            }
+        }
     }
 
     companion object {
