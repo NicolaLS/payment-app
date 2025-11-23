@@ -30,7 +30,6 @@ class LanguageSettingsViewModelTest {
             refreshLanguage = RefreshLanguagePreferenceUseCase(repository),
             dispatcher = dispatcher,
             languageLabelProvider = { info -> "label:${info.code}" },
-            titleProvider = { "title" },
         )
 
         advanceUntilIdle()
@@ -53,7 +52,6 @@ class LanguageSettingsViewModelTest {
             refreshLanguage = RefreshLanguagePreferenceUseCase(repository),
             dispatcher = dispatcher,
             languageLabelProvider = { info -> "label:${info.code}" },
-            titleProvider = { "title" },
         )
 
         advanceUntilIdle()
@@ -80,7 +78,6 @@ class LanguageSettingsViewModelTest {
             refreshLanguage = RefreshLanguagePreferenceUseCase(repository),
             dispatcher = dispatcher,
             languageLabelProvider = { info -> "label:${info.code}" },
-            titleProvider = { "title" },
         )
 
         advanceUntilIdle()

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.search_placeholder
 import papp.composeapp.generated.resources.settings_language
+import xyz.lilsus.papp.domain.format.rememberAppLocale
 import xyz.lilsus.papp.domain.model.LanguageCatalog
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -31,6 +33,7 @@ fun LanguageSettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val localeTag = rememberAppLocale().languageTag
     val filtered = state.options.filter { option ->
         option.title.contains(state.searchQuery, ignoreCase = true)
     }
@@ -38,18 +41,20 @@ fun LanguageSettingsScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(state.title.ifEmpty { stringResource(Res.string.settings_language) }) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-            )
+            key(localeTag) {
+                CenterAlignedTopAppBar(
+                    title = { Text(stringResource(Res.string.settings_language)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                )
+            }
         },
     ) { padding ->
         Column(
@@ -129,7 +134,6 @@ private fun LanguageSettingsScreenPreview() {
             state = LanguageSettingsUiState(
                 selectedCode = "de",
                 deviceCode = "de",
-                title = stringResource(Res.string.settings_language),
                 options = listOf(
                     LanguageOption("en", LanguageCatalog.displayName("en"), "en"),
                     LanguageOption("de", LanguageCatalog.displayName("de"), "de"),

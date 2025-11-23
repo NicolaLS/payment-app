@@ -5,9 +5,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import org.jetbrains.compose.resources.getString
-import papp.composeapp.generated.resources.Res
-import papp.composeapp.generated.resources.settings_language
 import xyz.lilsus.papp.domain.model.LanguageCatalog
 import xyz.lilsus.papp.domain.model.LanguageInfo
 import xyz.lilsus.papp.domain.model.LanguagePreference
@@ -20,7 +17,6 @@ data class LanguageSettingsUiState(
     val searchQuery: String = "",
     val selectedCode: String = "",
     val deviceCode: String = "",
-    val title: String = "",
     val options: List<LanguageOption> = emptyList(),
 )
 
@@ -37,7 +33,6 @@ class LanguageSettingsViewModel internal constructor(
     private val refreshLanguage: RefreshLanguagePreferenceUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Main,
     private val languageLabelProvider: suspend (LanguageInfo) -> String = { info -> info.displayName },
-    private val titleProvider: suspend () -> String = { getString(Res.string.settings_language) },
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -60,7 +55,6 @@ class LanguageSettingsViewModel internal constructor(
                     options = options,
                     selectedCode = selectedCode,
                     deviceCode = deviceCode,
-                    title = titleProvider(),
                 )
             }
         }
