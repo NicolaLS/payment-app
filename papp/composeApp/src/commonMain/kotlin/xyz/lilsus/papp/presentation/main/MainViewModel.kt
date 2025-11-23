@@ -268,9 +268,11 @@ class MainViewModel internal constructor(
 
         pendingInvoice = parsed
         val origin = if (isManualEntry) PendingOrigin.LnurlManual else PendingOrigin.LnurlFixed
+        // Don't pass amount override for LNURL invoices - they already have the amount embedded.
+        // The amount parameter in NWC is only for zero-amount invoices.
         requestPayment(
             summary = parsed,
-            amountOverrideMsats = amountMsats,
+            amountOverrideMsats = null,
             origin = origin,
         )
     }
@@ -305,9 +307,11 @@ class MainViewModel internal constructor(
 
         when (context) {
             is ManualEntryContext.Bolt -> {
+                // Round to full satoshis - NWC wallets only accept full sat amounts
+                val roundedAmount = roundToFullSatoshis(amountMsats)
                 requestPayment(
                     summary = context.invoice,
-                    amountOverrideMsats = amountMsats,
+                    amountOverrideMsats = roundedAmount,
                     origin = PendingOrigin.ManualEntry,
                 )
             }

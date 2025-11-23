@@ -326,7 +326,8 @@ class MainViewModelTest {
 
             val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
             assertEquals(lnurlInvoice, repository.lastInvoice)
-            assertEquals(amountMsats, repository.lastAmountMsats)
+            // LNURL invoices already have amount embedded, so we shouldn't pass amount parameter
+            assertEquals(null, repository.lastAmountMsats)
             assertEquals(amountMsats / MSATS_PER_SAT, success.amountPaid.minor)
         } finally {
             viewModel.clear()
@@ -376,7 +377,8 @@ class MainViewModelTest {
 
             val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
             assertEquals(lnurlInvoice, repository.lastInvoice)
-            assertEquals(chosenMsats, repository.lastAmountMsats)
+            // LNURL invoices already have amount embedded, so we shouldn't pass amount parameter
+            assertEquals(null, repository.lastAmountMsats)
             assertEquals(chosenMsats / MSATS_PER_SAT, success.amountPaid.minor)
         } finally {
             viewModel.clear()
