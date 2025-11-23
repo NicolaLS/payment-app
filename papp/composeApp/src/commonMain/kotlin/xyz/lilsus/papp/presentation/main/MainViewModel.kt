@@ -14,6 +14,7 @@ import xyz.lilsus.papp.domain.use_cases.*
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
+import xyz.lilsus.papp.platform.HapticFeedbackManager
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToLong
@@ -30,6 +31,7 @@ class MainViewModel internal constructor(
     private val fetchLnurlPayParams: FetchLnurlPayParamsUseCase,
     private val resolveLightningAddressUseCase: ResolveLightningAddressUseCase,
     private val requestLnurlInvoice: RequestLnurlInvoiceUseCase,
+    private val haptics: HapticFeedbackManager,
     dispatcher: CoroutineDispatcher,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -118,10 +120,13 @@ class MainViewModel internal constructor(
 
         when (val parse = lightningInputParser.parse(rawInput)) {
             is LightningInputParser.ParseResult.Failure -> emitError(AppError.InvalidWalletUri(parse.reason))
-            is LightningInputParser.ParseResult.Success -> when (val target = parse.target) {
-                is LightningInputParser.Target.Bolt11Candidate -> processBoltInvoice(target.invoice)
-                is LightningInputParser.Target.Lnurl -> fetchLnurl(target.endpoint, LnurlSource.Lnurl)
-                is LightningInputParser.Target.LightningAddressTarget -> resolveLightningAddress(target.address)
+            is LightningInputParser.ParseResult.Success -> {
+                haptics.notifyScanSuccess()
+                when (val target = parse.target) {
+                    is LightningInputParser.Target.Bolt11Candidate -> processBoltInvoice(target.invoice)
+                    is LightningInputParser.Target.Lnurl -> fetchLnurl(target.endpoint, LnurlSource.Lnurl)
+                    is LightningInputParser.Target.LightningAddressTarget -> resolveLightningAddress(target.address)
+                }
             }
         }
     }
@@ -431,6 +436,7 @@ class MainViewModel internal constructor(
                         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
                         val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
                         val feeDisplay = convertMsatsToDisplay(result.data.feesPaidMsats ?: 0L, currencyState)
+                        haptics.notifyPaymentSuccess()
                         _uiState.value = MainUiState.Success(
                             amountPaid = paidDisplay,
                             feePaid = feeDisplay,

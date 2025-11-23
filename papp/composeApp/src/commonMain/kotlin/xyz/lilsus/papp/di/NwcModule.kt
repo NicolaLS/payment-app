@@ -56,6 +56,8 @@ import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationThresholdUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.platform.HapticFeedbackManager
+import xyz.lilsus.papp.platform.createHapticFeedbackManager
 import xyz.lilsus.papp.presentation.add_connection.ConnectWalletViewModel
 import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
@@ -123,6 +125,7 @@ val nwcModule = module {
 
     single { Bolt11InvoiceParser() }
     factory { LightningInputParser() }
+    single<HapticFeedbackManager> { createHapticFeedbackManager() }
 
     factory { PayInvoiceUseCase(repository = get(), dispatcher = get()) }
     factory { ObserveWalletConnectionUseCase(repository = get()) }
@@ -170,6 +173,7 @@ val nwcModule = module {
             fetchLnurlPayParams = get(),
             resolveLightningAddressUseCase = get(),
             requestLnurlInvoice = get(),
+            haptics = get(),
             dispatcher = get(),
         )
     }

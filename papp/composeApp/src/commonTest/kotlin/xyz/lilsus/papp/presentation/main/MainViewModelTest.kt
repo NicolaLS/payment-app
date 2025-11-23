@@ -444,6 +444,10 @@ class MainViewModelTest {
         val fetchLnurl = FetchLnurlPayParamsUseCase(lnurlRepository)
         val resolveLightningAddress = ResolveLightningAddressUseCase(lnurlRepository)
         val requestLnurlInvoice = RequestLnurlInvoiceUseCase(lnurlRepository)
+        val haptics = object : xyz.lilsus.papp.platform.HapticFeedbackManager {
+            override fun notifyScanSuccess() {}
+            override fun notifyPaymentSuccess() {}
+        }
         val manualAmount = ManualAmountController(
             ManualAmountConfig(
                 info = CurrencyCatalog.infoFor(currencyCode),
@@ -462,6 +466,7 @@ class MainViewModelTest {
             fetchLnurlPayParams = fetchLnurl,
             resolveLightningAddressUseCase = resolveLightningAddress,
             requestLnurlInvoice = requestLnurlInvoice,
+            haptics = haptics,
             dispatcher = dispatcher,
         )
     }
