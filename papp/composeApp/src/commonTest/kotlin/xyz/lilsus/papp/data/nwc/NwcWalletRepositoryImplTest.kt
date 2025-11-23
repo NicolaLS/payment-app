@@ -6,12 +6,14 @@ import io.github.nostr.nwc.model.NwcFailure
 import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.PayInvoiceResult
 import io.github.nostr.nwc.testing.FakeNwcClient
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
@@ -20,6 +22,8 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+
+@OptIn(ExperimentalCoroutinesApi::class)
 
 class NwcWalletRepositoryImplTest {
 
@@ -113,12 +117,14 @@ class NwcWalletRepositoryImplTest {
             },
         )
         val factory = FakeClientFactory(handle)
-        val testScope = TestScope()
+        val testScope = TestScope(UnconfinedTestDispatcher())
         val repository = NwcWalletRepositoryImpl(
             walletSettingsRepository = StubWalletSettingsRepository(connection),
             clientFactory = factory,
             scope = testScope,
         )
+        // Let init block coroutine start
+        testScope.testScheduler.advanceUntilIdle()
         return RepositoryContext(repository, factory, handle, testScope)
     }
 
