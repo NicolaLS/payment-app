@@ -32,6 +32,9 @@
     <string name="settings_payments_option_always">Immer</string>
     <string name="settings_payments_option_above">Über</string>
     <string name="settings_payments_confirm_manual_entry">Manuell eingegebene Beträge bestätigen</string>
+    <string name="settings_payments_haptics_title">Vibrationen</string>
+    <string name="settings_payments_haptics_scan">Vibrieren, wenn ein Code erkannt wird</string>
+    <string name="settings_payments_haptics_payment">Vibrieren bei erfolgreicher Zahlung</string>
     <string name="settings_currency_title">Währung</string>
     <string name="settings_language_title">Sprache</string>
     <string name="search_placeholder">Suchen…</string>

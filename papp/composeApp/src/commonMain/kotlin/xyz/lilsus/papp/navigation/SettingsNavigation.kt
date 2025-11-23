@@ -251,6 +251,8 @@ private fun PaymentsSettingsEntry(onBack: () -> Unit) {
         onModeSelected = { viewModel.selectMode(it) },
         onThresholdChanged = { threshold -> viewModel.updateThreshold(threshold) },
         onConfirmManualEntryChanged = { enabled -> viewModel.setConfirmManualEntry(enabled) },
+        onVibrateOnScanChanged = { enabled -> viewModel.setVibrateOnScan(enabled) },
+        onVibrateOnPaymentChanged = { enabled -> viewModel.setVibrateOnPayment(enabled) },
     )
 }
 

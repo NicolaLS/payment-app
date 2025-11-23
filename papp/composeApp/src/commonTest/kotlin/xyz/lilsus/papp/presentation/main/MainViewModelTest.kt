@@ -444,6 +444,7 @@ class MainViewModelTest {
         val fetchLnurl = FetchLnurlPayParamsUseCase(lnurlRepository)
         val resolveLightningAddress = ResolveLightningAddressUseCase(lnurlRepository)
         val requestLnurlInvoice = RequestLnurlInvoiceUseCase(lnurlRepository)
+        val observePaymentPreferences = ObservePaymentPreferencesUseCase(paymentPreferencesRepository)
         val haptics = object : xyz.lilsus.papp.platform.HapticFeedbackManager {
             override fun notifyScanSuccess() {}
             override fun notifyPaymentSuccess() {}
@@ -466,6 +467,7 @@ class MainViewModelTest {
             fetchLnurlPayParams = fetchLnurl,
             resolveLightningAddressUseCase = resolveLightningAddress,
             requestLnurlInvoice = requestLnurlInvoice,
+            observePaymentPreferences = observePaymentPreferences,
             haptics = haptics,
             dispatcher = dispatcher,
         )
@@ -540,6 +542,14 @@ private class FakePaymentPreferencesRepository(
 
     override suspend fun setConfirmManualEntry(enabled: Boolean) {
         state.value = state.value.copy(confirmManualEntry = enabled)
+    }
+
+    override suspend fun setVibrateOnScan(enabled: Boolean) {
+        state.value = state.value.copy(vibrateOnScan = enabled)
+    }
+
+    override suspend fun setVibrateOnPayment(enabled: Boolean) {
+        state.value = state.value.copy(vibrateOnPayment = enabled)
     }
 }
 

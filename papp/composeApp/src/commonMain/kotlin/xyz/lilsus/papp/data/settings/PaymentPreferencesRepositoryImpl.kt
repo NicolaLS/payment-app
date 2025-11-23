@@ -11,6 +11,8 @@ import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 private const val KEY_CONFIRM_MODE = "payment.confirmation.mode"
 private const val KEY_CONFIRM_THRESHOLD_SATS = "payment.confirmation.threshold.sats"
 private const val KEY_CONFIRM_MANUAL_ENTRY = "payment.confirmation.manual"
+private const val KEY_VIBRATE_SCAN = "payment.vibrate.scan"
+private const val KEY_VIBRATE_PAYMENT = "payment.vibrate.payment"
 
 class PaymentPreferencesRepositoryImpl(
     private val settings: Settings,
@@ -32,6 +34,14 @@ class PaymentPreferencesRepositoryImpl(
 
     override suspend fun setConfirmManualEntry(enabled: Boolean) {
         update { it.copy(confirmManualEntry = enabled) }
+    }
+
+    override suspend fun setVibrateOnScan(enabled: Boolean) {
+        update { it.copy(vibrateOnScan = enabled) }
+    }
+
+    override suspend fun setVibrateOnPayment(enabled: Boolean) {
+        update { it.copy(vibrateOnPayment = enabled) }
     }
 
     private fun update(transform: (PaymentPreferences) -> PaymentPreferences) {
@@ -59,10 +69,14 @@ class PaymentPreferencesRepositoryImpl(
         } else {
             false
         }
+        val vibrateScan = settings.getBoolean(KEY_VIBRATE_SCAN, true)
+        val vibratePayment = settings.getBoolean(KEY_VIBRATE_PAYMENT, true)
         return PaymentPreferences(
             confirmationMode = mode,
             thresholdSats = threshold,
             confirmManualEntry = confirmManual,
+            vibrateOnScan = vibrateScan,
+            vibrateOnPayment = vibratePayment,
         ).normalise()
     }
 
@@ -76,5 +90,7 @@ class PaymentPreferencesRepositoryImpl(
         )
         settings.putLong(KEY_CONFIRM_THRESHOLD_SATS, preferences.thresholdSats)
         settings.putBoolean(KEY_CONFIRM_MANUAL_ENTRY, preferences.confirmManualEntry)
+        settings.putBoolean(KEY_VIBRATE_SCAN, preferences.vibrateOnScan)
+        settings.putBoolean(KEY_VIBRATE_PAYMENT, preferences.vibrateOnPayment)
     }
 }

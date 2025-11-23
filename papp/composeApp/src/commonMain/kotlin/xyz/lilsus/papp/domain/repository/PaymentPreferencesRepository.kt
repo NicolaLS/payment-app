@@ -14,4 +14,8 @@ interface PaymentPreferencesRepository {
     suspend fun setConfirmationThreshold(thresholdSats: Long)
 
     suspend fun setConfirmManualEntry(enabled: Boolean)
+
+    suspend fun setVibrateOnScan(enabled: Boolean)
+
+    suspend fun setVibrateOnPayment(enabled: Boolean)
 }

@@ -11,6 +11,7 @@ import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
 import xyz.lilsus.papp.domain.model.*
 import xyz.lilsus.papp.domain.use_cases.*
+import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
@@ -31,6 +32,7 @@ class MainViewModel internal constructor(
     private val fetchLnurlPayParams: FetchLnurlPayParamsUseCase,
     private val resolveLightningAddressUseCase: ResolveLightningAddressUseCase,
     private val requestLnurlInvoice: RequestLnurlInvoiceUseCase,
+    private val observePaymentPreferences: ObservePaymentPreferencesUseCase,
     private val haptics: HapticFeedbackManager,
     dispatcher: CoroutineDispatcher,
 ) {
@@ -52,6 +54,8 @@ class MainViewModel internal constructor(
     private var exchangeRateJob: Job? = null
     private var lastPaymentResult: CompletedPayment? = null
     private var parsedInvoiceCache: Pair<String, Bolt11InvoiceSummary>? = null
+    private var vibrateOnScan: Boolean = true
+    private var vibrateOnPayment: Boolean = true
 
     init {
         scope.launch {
@@ -59,6 +63,12 @@ class MainViewModel internal constructor(
                 if (connection == null && _uiState.value is MainUiState.Success) {
                     _uiState.value = MainUiState.Active
                 }
+            }
+        }
+        scope.launch {
+            observePaymentPreferences().collectLatest { prefs ->
+                vibrateOnScan = prefs.vibrateOnScan
+                vibrateOnPayment = prefs.vibrateOnPayment
             }
         }
         scope.launch {
@@ -121,7 +131,7 @@ class MainViewModel internal constructor(
         when (val parse = lightningInputParser.parse(rawInput)) {
             is LightningInputParser.ParseResult.Failure -> emitError(AppError.InvalidWalletUri(parse.reason))
             is LightningInputParser.ParseResult.Success -> {
-                haptics.notifyScanSuccess()
+                if (vibrateOnScan) haptics.notifyScanSuccess()
                 when (val target = parse.target) {
                     is LightningInputParser.Target.Bolt11Candidate -> processBoltInvoice(target.invoice)
                     is LightningInputParser.Target.Lnurl -> fetchLnurl(target.endpoint, LnurlSource.Lnurl)
@@ -436,7 +446,7 @@ class MainViewModel internal constructor(
                         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
                         val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
                         val feeDisplay = convertMsatsToDisplay(result.data.feesPaidMsats ?: 0L, currencyState)
-                        haptics.notifyPaymentSuccess()
+                        if (vibrateOnPayment) haptics.notifyPaymentSuccess()
                         _uiState.value = MainUiState.Success(
                             amountPaid = paidDisplay,
                             feePaid = feeDisplay,

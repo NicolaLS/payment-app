@@ -54,6 +54,8 @@ import xyz.lilsus.papp.domain.use_cases.SetCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.SetLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.use_cases.SetPaymentConfirmationThresholdUseCase
+import xyz.lilsus.papp.domain.use_cases.SetVibrateOnPaymentUseCase
+import xyz.lilsus.papp.domain.use_cases.SetVibrateOnScanUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.use_cases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
@@ -141,6 +143,8 @@ val nwcModule = module {
     factory { SetPaymentConfirmationModeUseCase(repository = get()) }
     factory { SetPaymentConfirmationThresholdUseCase(repository = get()) }
     factory { SetConfirmManualEntryUseCase(repository = get()) }
+    factory { SetVibrateOnScanUseCase(repository = get()) }
+    factory { SetVibrateOnPaymentUseCase(repository = get()) }
     factory { ShouldConfirmPaymentUseCase(repository = get()) }
     factory {
         val info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
@@ -173,6 +177,7 @@ val nwcModule = module {
             fetchLnurlPayParams = get(),
             resolveLightningAddressUseCase = get(),
             requestLnurlInvoice = get(),
+            observePaymentPreferences = get(),
             haptics = get(),
             dispatcher = get(),
         )
@@ -195,6 +200,8 @@ val nwcModule = module {
             setConfirmationMode = get(),
             setConfirmationThreshold = get(),
             setConfirmManualEntryPreference = get(),
+            setVibrateOnScanUseCase = get(),
+            setVibrateOnPaymentUseCase = get(),
         )
     }
 
