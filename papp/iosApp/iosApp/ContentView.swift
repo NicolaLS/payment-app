@@ -15,8 +15,10 @@ struct ContentView: View {
     var body: some View {
         ComposeView()
             .ignoresSafeArea()
+            .onOpenURL { url in
+                DeepLinkEvents.shared.emit(uri: url.absoluteString)
+            }
     }
 }
-
 
 

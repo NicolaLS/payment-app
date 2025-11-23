@@ -2,6 +2,7 @@ package xyz.lilsus.papp
 
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,7 @@ import androidx.window.core.layout.WindowHeightSizeClass
 import androidx.window.core.layout.WindowSizeClass
 import androidx.window.core.layout.WindowWidthSizeClass
 import androidx.window.layout.WindowMetricsCalculator
+import xyz.lilsus.papp.navigation.DeepLinkEvents
 
 class MainActivity : AppCompatActivity() {
     private var orientationListenerView: View? = null
@@ -27,8 +29,14 @@ class MainActivity : AppCompatActivity() {
         setContent {
             App()
         }
+        intent?.data?.let(::handleDeepLink)
 
         addOrientationListener()
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        intent.data?.let(::handleDeepLink)
     }
 
     override fun onDestroy() {
@@ -79,6 +87,10 @@ class MainActivity : AppCompatActivity() {
         } else {
             ActivityInfo.SCREEN_ORIENTATION_FULL_USER
         }
+    }
+
+    private fun handleDeepLink(uri: Uri) {
+        DeepLinkEvents.emit(uri.toString())
     }
 
     private fun isCompactScreen(): Boolean {
