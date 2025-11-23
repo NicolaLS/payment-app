@@ -29,6 +29,9 @@ class ManualAmountController(
         min = defaultConfig.min,
         max = defaultConfig.max,
         allowDecimal = defaultConfig.info.fractionDigits > 0,
+        rawWhole = whole,
+        rawFraction = fraction,
+        hasDecimal = hasDecimal,
     )
 
     fun reset(
@@ -50,6 +53,9 @@ class ManualAmountController(
             min = config.min,
             max = config.max,
             allowDecimal = config.info.fractionDigits > 0,
+            rawWhole = whole,
+            rawFraction = fraction,
+            hasDecimal = hasDecimal,
         )
         updateState()
         return state
@@ -132,6 +138,12 @@ class ManualAmountController(
         state = state.copy(
             amount = amount,
             currency = config.info.currency,
+            min = config.min,
+            max = config.max,
+            allowDecimal = config.info.fractionDigits > 0,
+            rawWhole = whole,
+            rawFraction = fraction,
+            hasDecimal = hasDecimal,
         )
     }
 

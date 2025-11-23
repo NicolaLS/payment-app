@@ -6,8 +6,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,6 +31,9 @@ data class ManualAmountUiState(
     val min: DisplayAmount? = null,
     val max: DisplayAmount? = null,
     val allowDecimal: Boolean = true,
+    val rawWhole: String = "0",
+    val rawFraction: String = "",
+    val hasDecimal: Boolean = false,
 )
 
 sealed class ManualAmountKey {
@@ -95,27 +101,89 @@ fun ManualAmountBottomSheet(
 
 @Composable
 private fun AmountInputDisplay(state: ManualAmountUiState) {
-    val formatter = rememberAmountFormatter()
-    val amount = state.amount
-    val hasInput = amount != null
-    val displayText = amount?.let { formatter.format(it) } ?: "0"
+    val isActive = state.amount != null ||
+            state.hasDecimal ||
+            state.rawFraction.isNotEmpty() ||
+            state.rawWhole != "0"
+    val committedColor = if (isActive) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+    }
+    val ghostColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    val amountText = buildAnnotatedString {
+        append(committedNumber(state))
+        if (state.allowDecimal && state.hasDecimal && state.rawFraction.isEmpty()) {
+            withStyle(SpanStyle(color = ghostColor, fontWeight = FontWeight.Normal)) {
+                append("0")
+            }
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = amountText,
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                    color = committedColor,
+                ),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            CurrencyTag(
+                label = currencyLabel(state.currency),
+                active = isActive,
+            )
+        }
+    }
+}
+
+private fun committedNumber(state: ManualAmountUiState): String {
+    val whole = formatWhole(state.rawWhole)
+    val shouldShowDecimal = state.allowDecimal &&
+            (state.hasDecimal || state.rawFraction.isNotEmpty())
+    if (!shouldShowDecimal) return whole
+
+    return buildString {
+        append(whole)
+        append(".")
+        append(state.rawFraction)
+    }
+}
+
+private fun formatWhole(raw: String): String {
+    val normalized = raw.ifEmpty { "0" }
+    if (normalized.length <= 3) return normalized
+    val reversed = normalized.reversed().chunked(3).joinToString(",")
+    return reversed.reversed()
+}
+
+private fun currencyLabel(currency: DisplayCurrency): String = when (currency) {
+    DisplayCurrency.Bitcoin -> "BTC"
+    DisplayCurrency.Satoshi -> "sat"
+    is DisplayCurrency.Fiat -> currency.iso4217.uppercase()
+}
+
+@Composable
+private fun CurrencyTag(label: String, active: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        shape = CircleShape,
+        color = if (active) colors.primary.copy(alpha = 0.12f) else colors.surfaceVariant,
+        contentColor = if (active) colors.primary else colors.onSurfaceVariant,
+    ) {
         Text(
-            text = displayText,
-            style = MaterialTheme.typography.displaySmall.copy(
-                fontWeight = if (hasInput) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (hasInput) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                }
-            ),
-            textAlign = TextAlign.Center,
-            maxLines = 1
+            text = label,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
         )
     }
 }
