@@ -14,6 +14,9 @@ jobs:
   code-style:
     name: Code Style (ktlint)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: papp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,13 +26,16 @@ jobs:
         with:
           ktlint-version: '1.8.0'
           patterns: |
-            composeApp/src/**/*.kt
-            composeApp/src/**/*.kts
+            papp/composeApp/src/**/*.kt
+            papp/composeApp/src/**/*.kts
             !**/build/**
 
   android-lint:
     name: Android Lint
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: papp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,11 +57,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lint-results
-          path: composeApp/build/reports/lint-results-debug.html
+          path: papp/composeApp/build/reports/lint-results-debug.html
 
   build:
     name: Build & Test (Android)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: papp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: composeApp/build/outputs/apk/debug/*.apk
+          path: papp/composeApp/build/outputs/apk/debug/*.apk
           retention-days: 14
 
       - name: Run Unit Tests
@@ -87,4 +96,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: composeApp/build/reports/tests/
+          path: papp/composeApp/build/reports/tests/

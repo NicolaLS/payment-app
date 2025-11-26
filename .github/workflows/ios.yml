@@ -14,6 +14,9 @@ jobs:
   build-ios:
     name: Build iOS Framework
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: papp
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,7 +34,7 @@ jobs:
         run: ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
 
       - name: Build iOS App
-        working-directory: iosApp
+        working-directory: papp/iosApp
         run: |
           xcodebuild build \
             -scheme iosApp \
