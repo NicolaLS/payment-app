@@ -18,9 +18,7 @@ subprojects {
         android.set(true)
         outputToConsole.set(true)
         outputColorName.set("RED")
-        // Generated code from Compose resources doesn't follow ktlint rules
-        // CI uses ktlint CLI directly on src/ to avoid this issue
-        ignoreFailures.set(true)
+        ignoreFailures.set(false)
         filter {
             exclude { it.file.path.contains("/build/") }
         }

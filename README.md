@@ -14,7 +14,7 @@ Scan QR codes, pay invoices. That's it.
 
 ### From CI (Android)
 
-Download the latest debug APK from the GitHub Actions **CI** workflow (`papp/.github/workflows/ci.yml`): open the [Actions tab](https://github.com/NicolaLS/payment-app/actions), pick the most recent successful **CI** run, and download the `debug-apk` artifact.
+Download the latest debug APK from the GitHub Actions **CI** workflow (`.github/workflows/ci.yml`): open the [Actions tab](https://github.com/NicolaLS/payment-app/actions), pick the most recent successful **CI** run, and download the `debug-apk` artifact.
 
 To install:
 1. Transfer the APK to your Android phone

@@ -21,14 +21,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run ktlint
-        uses: musichin/ktlint-check@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
-          ktlint-version: '1.8.0'
-          patterns: |
-            papp/composeApp/src/**/*.kt
-            papp/composeApp/src/**/*.kts
-            !**/build/**
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run ktlint
+        run: ./gradlew ktlintCheck
 
   android-lint:
     name: Android Lint
