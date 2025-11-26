@@ -13,17 +13,9 @@ import kotlinx.coroutines.launch
 import xyz.lilsus.papp.presentation.main.MainUiState
 
 @Composable
-fun rememberHeroAnimationState(
-    squares: List<SquareSpec>,
-    arcs: List<ArcSpec>
-): HeroAnimationState {
-    return remember { HeroAnimationState(squares, arcs) }
-}
+fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): HeroAnimationState = remember { HeroAnimationState(squares, arcs) }
 
-class HeroAnimationState(
-    private val squares: List<SquareSpec>,
-    private val arcs: List<ArcSpec>
-) {
+class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs: List<ArcSpec>) {
     private val colorAnim = Animatable(Transparent)
     private val clusterScaleAnim = Animatable(1f)
     private val squareScaleAnims = List(squares.size) { Animatable(1f) }
@@ -89,7 +81,6 @@ class HeroAnimationState(
         reset(pop = true)
     }
 
-
     private suspend fun reset(pop: Boolean = false) = coroutineScope {
         squareScaleAnims.forEach { launch { it.stop() } }
 
@@ -147,7 +138,6 @@ class HeroAnimationState(
         }
     }
 
-
     private suspend fun clenchShrink() {
         clusterScaleAnim.animateTo(
             0.9f,
@@ -169,7 +159,7 @@ class HeroAnimationState(
                             1f at 2000 using EaseInOutCubic
                         },
                         repeatMode = RepeatMode.Reverse
-                    ),
+                    )
                 )
             }
         }

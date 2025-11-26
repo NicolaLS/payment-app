@@ -86,7 +86,7 @@ actual fun rememberCameraPermissionState(): CameraPermissionState {
 actual fun CameraPreviewHost(
     controller: QrScannerController,
     visible: Boolean,
-    modifier: Modifier,
+    modifier: Modifier
 ) {
     val context = LocalContext.current
     val previewView = remember {
@@ -117,7 +117,7 @@ actual fun CameraPreviewHost(
 
 private class AndroidCameraPermissionState(
     private val permissionState: MutableState<Boolean>,
-    private val launcher: ActivityResultLauncher<String>,
+    private val launcher: ActivityResultLauncher<String>
 ) : CameraPermissionState {
     override val hasPermission: Boolean
         get() = permissionState.value
@@ -131,7 +131,7 @@ private class AndroidCameraPermissionState(
 
 private class AndroidQrScannerController(
     private val context: Context,
-    private val lifecycleOwner: LifecycleOwner,
+    private val lifecycleOwner: LifecycleOwner
 ) : QrScannerController {
 
     private var cameraProvider: ProcessCameraProvider? = null
@@ -239,7 +239,7 @@ private class AndroidQrScannerController(
                                     // native sensor aspect ratio which is 4:3.
                                     ResolutionStrategy(
                                         Size(1920, 1440),
-                                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER,
+                                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER
                                     )
                                 )
                                 .build()
@@ -282,13 +282,11 @@ private class AndroidQrScannerController(
         )
     }
 
-    private fun newBarcodeScanner(): BarcodeScanner {
-        return BarcodeScanning.getClient(
-            BarcodeScannerOptions.Builder()
-                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                .build()
-        )
-    }
+    private fun newBarcodeScanner(): BarcodeScanner = BarcodeScanning.getClient(
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .build()
+    )
 }
 
 private class QrCodeAnalyzer(
@@ -296,7 +294,7 @@ private class QrCodeAnalyzer(
     private val active: AtomicBoolean,
     private val mainExecutor: Executor,
     private val analysisExecutor: Executor,
-    private val onQrCodeScanned: (String) -> Unit,
+    private val onQrCodeScanned: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
     fun pause() {
@@ -346,9 +344,7 @@ private class QrCodeAnalyzer(
     }
 }
 
-private fun isCameraPermissionGranted(context: Context): Boolean {
-    return ContextCompat.checkSelfPermission(
-        context,
-        Manifest.permission.CAMERA
-    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-}
+private fun isCameraPermissionGranted(context: Context): Boolean = ContextCompat.checkSelfPermission(
+    context,
+    Manifest.permission.CAMERA
+) == android.content.pm.PackageManager.PERMISSION_GRANTED

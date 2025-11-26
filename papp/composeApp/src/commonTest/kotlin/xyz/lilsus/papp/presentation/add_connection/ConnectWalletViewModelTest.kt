@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.presentation.add_connection
 
+import kotlin.test.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -14,7 +15,6 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.use_cases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.use_cases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.use_cases.SetWalletConnectionUseCase
-import kotlin.test.*
 
 class ConnectWalletViewModelTest {
     private val walletRepository = FakeWalletSettingsRepository()
@@ -75,7 +75,10 @@ class ConnectWalletViewModelTest {
                 val event = eventDeferred.await() as ConnectWalletEvent.Success
                 assertEquals("My Wallet", walletRepository.lastSavedAlias)
                 assertEquals(event.connection.alias, walletRepository.lastSavedAlias)
-                assertEquals(TEST_DISCOVERY.toMetadataSnapshot(), walletRepository.lastSavedMetadata)
+                assertEquals(
+                    TEST_DISCOVERY.toMetadataSnapshot(),
+                    walletRepository.lastSavedMetadata
+                )
                 assertNotNull(walletRepository.getWalletConnection())
             } finally {
                 viewModel.clear()
@@ -83,21 +86,20 @@ class ConnectWalletViewModelTest {
         }
     }
 
-    private fun createViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Unconfined): ConnectWalletViewModel {
-        return ConnectWalletViewModel(
-            discoverWallet = discoverWallet,
-            setWalletConnection = setWalletConnection,
-            getWallets = getWallets,
-            dispatcher = dispatcher,
-        )
-    }
+    private fun createViewModel(
+        dispatcher: CoroutineDispatcher = Dispatchers.Unconfined
+    ): ConnectWalletViewModel = ConnectWalletViewModel(
+        discoverWallet = discoverWallet,
+        setWalletConnection = setWalletConnection,
+        getWallets = getWallets,
+        dispatcher = dispatcher
+    )
 
     private class FakeWalletDiscoveryRepository : WalletDiscoveryRepository {
         private val stubs = mutableMapOf<String, WalletDiscovery>()
 
-        override suspend fun discover(uri: String): WalletDiscovery {
-            return stubs[uri] ?: throw AppErrorException(AppError.Unexpected("Missing stub for $uri"))
-        }
+        override suspend fun discover(uri: String): WalletDiscovery = stubs[uri]
+            ?: throw AppErrorException(AppError.Unexpected("Missing stub for $uri"))
 
         fun stub(uri: String, discovery: WalletDiscovery) {
             stubs[uri] = discovery
@@ -111,7 +113,9 @@ class ConnectWalletViewModelTest {
     private class FakeWalletSettingsRepository : WalletSettingsRepository {
         private var active: WalletConnection? = null
         private val storedWallets = mutableListOf<WalletConnection>()
-        private val walletsFlow = kotlinx.coroutines.flow.MutableStateFlow<List<WalletConnection>>(emptyList())
+        private val walletsFlow = kotlinx.coroutines.flow.MutableStateFlow<List<WalletConnection>>(
+            emptyList()
+        )
         private val activeFlow = kotlinx.coroutines.flow.MutableStateFlow<WalletConnection?>(null)
         var lastSavedAlias: String? = null
         var lastSavedMetadata: WalletMetadataSnapshot? = null
@@ -169,8 +173,8 @@ class ConnectWalletViewModelTest {
     companion object {
         private const val VALID_URI =
             "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4" +
-                    "?relay=wss://relay.example.com" +
-                    "&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c"
+                "?relay=wss://relay.example.com" +
+                "&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c"
         private val TEST_DISCOVERY = WalletDiscovery(
             uri = VALID_URI,
             walletPublicKey = "b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4",
@@ -183,17 +187,17 @@ class ConnectWalletViewModelTest {
             encryptionDefaultedToNip04 = false,
             notifications = emptySet(),
             network = "mainnet",
-            color = null,
+            color = null
         )
         private val EXISTING_WALLET = WalletConnection(
             uri =
                 "nostr+walletconnect://c889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d0" +
-                        "?relay=wss://relay.example.com" +
-                        "&secret=f1a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3d",
+                    "?relay=wss://relay.example.com" +
+                    "&secret=f1a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3d",
             walletPublicKey = "c889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d0",
             relayUrl = "wss://relay.example.com",
             lud16 = null,
-            alias = "Existing",
+            alias = "Existing"
         )
     }
 }

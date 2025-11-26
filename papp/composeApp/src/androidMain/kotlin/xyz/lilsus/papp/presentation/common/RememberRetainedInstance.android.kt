@@ -10,7 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 actual fun <T : Any> rememberRetainedInstance(
     key: String?,
     factory: () -> T,
-    onDispose: (T) -> Unit,
+    onDispose: (T) -> Unit
 ): T {
     val owner = LocalViewModelStoreOwner.current
         ?: error("rememberRetainedInstance requires a ViewModelStoreOwner")
@@ -23,16 +23,13 @@ actual fun <T : Any> rememberRetainedInstance(
                 @Suppress("UNCHECKED_CAST")
                 return RetainedHolder(factory(), onDispose) as VM
             }
-        },
+        }
     )
 
     return holder.delegate
 }
 
-private class RetainedHolder<T : Any>(
-    val delegate: T,
-    private val onDispose: (T) -> Unit,
-) : ViewModel() {
+private class RetainedHolder<T : Any>(val delegate: T, private val onDispose: (T) -> Unit) : ViewModel() {
     override fun onCleared() {
         onDispose(delegate)
         super.onCleared()

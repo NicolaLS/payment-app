@@ -13,8 +13,8 @@ import platform.UIKit.UIView
 import platform.darwin.*
 
 @Composable
-actual fun rememberQrScannerController(): QrScannerController {
-    return remember { IosQrScannerController() }
+actual fun rememberQrScannerController(): QrScannerController = remember {
+    IosQrScannerController()
 }
 
 actual class CameraPreviewSurface internal constructor(val view: UIView) {
@@ -66,7 +66,7 @@ actual fun rememberCameraPermissionState(): CameraPermissionState {
 actual fun CameraPreviewHost(
     controller: QrScannerController,
     visible: Boolean,
-    modifier: Modifier,
+    modifier: Modifier
 ) {
     val surface = remember { CameraPreviewSurface(UIView()) }
 
@@ -89,9 +89,8 @@ actual fun CameraPreviewHost(
     }
 }
 
-private fun isCameraAuthorized(): Boolean {
-    return AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) == AVAuthorizationStatusAuthorized
-}
+private fun isCameraAuthorized(): Boolean = AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
+    AVAuthorizationStatusAuthorized
 
 private class IosQrScannerController : QrScannerController {
 
@@ -189,7 +188,13 @@ private class IosQrScannerController : QrScannerController {
         dispatch_async(sessionQueue) {
             memScoped {
                 val minZoom = 1.0
-                val maxZoom = (device.activeFormat.valueForKey("videoMaxZoomFactor") as? NSNumber)?.doubleValue ?: 4.0
+                val maxZoom =
+                    (
+                        device.activeFormat.valueForKey(
+                            "videoMaxZoomFactor"
+                        ) as? NSNumber
+                        )?.doubleValue
+                        ?: 4.0
                 val target = (minZoom + (maxZoom - minZoom) * clamped).coerceIn(minZoom, maxZoom)
                 val errorPtr = alloc<ObjCObjectVar<NSError?>>()
                 if (device.lockForConfiguration(errorPtr.ptr)) {
@@ -252,8 +257,9 @@ private class IosQrScannerController : QrScannerController {
 private class MetadataDelegate(
     private val isPaused: () -> Boolean,
     private val pause: () -> Unit,
-    private val emitResult: (String) -> Unit,
-) : NSObject(), AVCaptureMetadataOutputObjectsDelegateProtocol {
+    private val emitResult: (String) -> Unit
+) : NSObject(),
+    AVCaptureMetadataOutputObjectsDelegateProtocol {
 
     override fun captureOutput(
         output: AVCaptureOutput,
@@ -261,7 +267,8 @@ private class MetadataDelegate(
         fromConnection: AVCaptureConnection
     ) {
         if (isPaused()) return
-        val code = didOutputMetadataObjects.firstOrNull() as? AVMetadataMachineReadableCodeObject ?: return
+        val code =
+            didOutputMetadataObjects.firstOrNull() as? AVMetadataMachineReadableCodeObject ?: return
         val value = code.stringValue ?: return
         pause()
         emitResult(value)

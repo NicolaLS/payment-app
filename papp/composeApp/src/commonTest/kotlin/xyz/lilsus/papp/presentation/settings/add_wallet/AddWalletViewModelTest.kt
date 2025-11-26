@@ -1,5 +1,9 @@
 package xyz.lilsus.papp.presentation.settings.add_wallet
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -7,10 +11,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 class AddWalletViewModelTest {
 
@@ -70,14 +70,14 @@ class AddWalletViewModelTest {
         }
     }
 
-    private fun createViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Unconfined): AddWalletViewModel {
-        return AddWalletViewModel(dispatcher = dispatcher)
-    }
+    private fun createViewModel(
+        dispatcher: CoroutineDispatcher = Dispatchers.Unconfined
+    ): AddWalletViewModel = AddWalletViewModel(dispatcher = dispatcher)
 
     companion object {
         private const val VALID_URI =
             "nostr+walletconnect://b889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d4" +
-                    "?relay=wss://relay.example.com" +
-                    "&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c"
+                "?relay=wss://relay.example.com" +
+                "&secret=71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c"
     }
 }

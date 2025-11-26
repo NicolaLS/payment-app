@@ -25,15 +25,15 @@ import xyz.lilsus.papp.presentation.theme.AppTheme
 fun ConfirmationBottomSheet(
     confirmAmount: DisplayAmount,
     onPay: () -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
+        skipPartiallyExpanded = true
     )
 
     ModalBottomSheet(
         sheetState = sheetState,
-        onDismissRequest = onDismiss,
+        onDismissRequest = onDismiss
     ) {
         val formatter = rememberAmountFormatter()
         Column(

@@ -11,6 +11,7 @@ import xyz.lilsus.papp.domain.model.AppError
 @Composable
 fun errorMessageFor(error: AppError): String = when (error) {
     AppError.MissingWalletConnection -> stringResource(Res.string.error_missing_wallet_connection)
+
     is AppError.PaymentRejected -> {
         val code = error.code?.takeUnless { it.isBlank() }
         val message = error.message?.takeUnless { it.isBlank() }
@@ -22,13 +23,17 @@ fun errorMessageFor(error: AppError): String = when (error) {
             )
 
             code != null -> stringResource(Res.string.error_payment_rejected_code, code)
+
             message != null -> stringResource(Res.string.error_payment_rejected_message, message)
+
             else -> stringResource(Res.string.error_payment_rejected_generic)
         }
     }
 
     AppError.NetworkUnavailable -> stringResource(Res.string.error_network_unavailable)
+
     AppError.Timeout -> stringResource(Res.string.error_timeout)
+
     is AppError.InvalidWalletUri -> stringResource(
         Res.string.error_invalid_wallet_uri
     )

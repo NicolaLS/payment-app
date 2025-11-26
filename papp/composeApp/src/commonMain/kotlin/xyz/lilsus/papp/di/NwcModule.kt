@@ -86,7 +86,7 @@ val nwcModule = module {
         WalletSettingsRepositoryImpl(
             settings = get(),
             dispatcher = get(),
-            scope = get(),
+            scope = get()
         )
     }
     single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
@@ -100,7 +100,7 @@ val nwcModule = module {
         RealNwcClientFactory(
             sessionManager = get(),
             scope = get(),
-            httpClient = get(),
+            httpClient = get()
         )
     }
 
@@ -108,20 +108,20 @@ val nwcModule = module {
         NwcWalletRepositoryImpl(
             walletSettingsRepository = get(),
             clientFactory = get(),
-            scope = get(),
+            scope = get()
         )
     }
     single<WalletDiscoveryRepository> {
         WalletDiscoveryRepositoryImpl(
             dispatcher = get(),
-            httpClient = get(),
+            httpClient = get()
         )
     }
     single {
         WalletMetadataSynchronizer(
             scope = get(),
             discoveryRepository = get(),
-            walletSettingsRepository = get(),
+            walletSettingsRepository = get()
         )
     }
 
@@ -151,7 +151,7 @@ val nwcModule = module {
         ManualAmountController(
             defaultConfig = ManualAmountConfig(
                 info = info,
-                exchangeRate = null,
+                exchangeRate = null
             )
         )
     }
@@ -179,7 +179,7 @@ val nwcModule = module {
             requestLnurlInvoice = get(),
             observePaymentPreferences = get(),
             haptics = get(),
-            dispatcher = get(),
+            dispatcher = get()
         )
     }
 
@@ -188,7 +188,7 @@ val nwcModule = module {
             observeWallets = get(),
             observeActiveWallet = get(),
             setActiveWallet = get(),
-            clearWalletConnection = get(),
+            clearWalletConnection = get()
         )
     }
 
@@ -201,14 +201,14 @@ val nwcModule = module {
             setConfirmationThreshold = get(),
             setConfirmManualEntryPreference = get(),
             setVibrateOnScanUseCase = get(),
-            setVibrateOnPaymentUseCase = get(),
+            setVibrateOnPaymentUseCase = get()
         )
     }
 
     factory {
         CurrencySettingsViewModel(
             observeCurrency = get(),
-            setCurrency = get(),
+            setCurrency = get()
         )
     }
 
@@ -217,7 +217,7 @@ val nwcModule = module {
             observeLanguage = get(),
             setLanguage = get(),
             clearOverride = get(),
-            refreshLanguage = get(),
+            refreshLanguage = get()
         )
     }
 
@@ -225,7 +225,7 @@ val nwcModule = module {
         ConnectWalletViewModel(
             discoverWallet = get(),
             setWalletConnection = get(),
-            getWallets = get(),
+            getWallets = get()
         )
     }
 }

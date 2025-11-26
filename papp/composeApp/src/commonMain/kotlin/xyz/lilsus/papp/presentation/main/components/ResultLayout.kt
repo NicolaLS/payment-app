@@ -22,16 +22,12 @@ import xyz.lilsus.papp.presentation.common.errorMessageFor
 import xyz.lilsus.papp.presentation.main.MainUiState
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
-
 @Composable
-fun ResultLayout(
-    result: MainUiState,
-    modifier: Modifier = Modifier,
-) {
+fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
     val formatter = rememberAmountFormatter()
     Column(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when (result) {
             is MainUiState.Success -> {
@@ -103,7 +99,7 @@ fun ResultLayoutPreviewSuccess() {
             modifier = Modifier.fillMaxWidth(),
             result = MainUiState.Success(
                 amountPaid = amountPaid,
-                feePaid = feePaid,
+                feePaid = feePaid
             )
         )
     }

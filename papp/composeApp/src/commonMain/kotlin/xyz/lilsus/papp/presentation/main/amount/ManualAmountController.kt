@@ -1,13 +1,13 @@
 package xyz.lilsus.papp.presentation.main.amount
 
+import kotlin.math.pow
+import kotlin.math.roundToLong
 import xyz.lilsus.papp.domain.model.CurrencyInfo
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 import xyz.lilsus.papp.presentation.main.components.RangeStatus
-import kotlin.math.pow
-import kotlin.math.roundToLong
 
 data class ManualAmountConfig(
     val info: CurrencyInfo,
@@ -15,12 +15,10 @@ data class ManualAmountConfig(
     val min: DisplayAmount? = null,
     val max: DisplayAmount? = null,
     val minMsats: Long? = null,
-    val maxMsats: Long? = null,
+    val maxMsats: Long? = null
 )
 
-class ManualAmountController(
-    private val defaultConfig: ManualAmountConfig,
-) {
+class ManualAmountController(private val defaultConfig: ManualAmountConfig) {
     private var config: ManualAmountConfig = defaultConfig
     private var whole: String = "0"
     private var fraction: String = ""
@@ -35,12 +33,12 @@ class ManualAmountController(
         rawWhole = whole,
         rawFraction = fraction,
         hasDecimal = hasDecimal,
-        rangeStatus = RangeStatus.Unknown,
+        rangeStatus = RangeStatus.Unknown
     )
 
     fun reset(
         config: ManualAmountConfig = defaultConfig,
-        clearInput: Boolean = true,
+        clearInput: Boolean = true
     ): ManualAmountUiState {
         this.config = config
         if (clearInput) {
@@ -60,7 +58,7 @@ class ManualAmountController(
             rawWhole = whole,
             rawFraction = fraction,
             hasDecimal = hasDecimal,
-            rangeStatus = RangeStatus.Unknown,
+            rangeStatus = RangeStatus.Unknown
         )
         updateState()
         return state
@@ -154,8 +152,15 @@ class ManualAmountController(
         val maxDisplay = config.max
         val rangeStatus = when {
             msats == null -> RangeStatus.Unknown
-            minMsats != null && minDisplay != null && msats < minMsats -> RangeStatus.BelowMin(minDisplay)
-            maxMsats != null && maxDisplay != null && msats > maxMsats -> RangeStatus.AboveMax(maxDisplay)
+
+            minMsats != null && minDisplay != null && msats < minMsats -> RangeStatus.BelowMin(
+                minDisplay
+            )
+
+            maxMsats != null && maxDisplay != null && msats > maxMsats -> RangeStatus.AboveMax(
+                maxDisplay
+            )
+
             else -> RangeStatus.InRange
         }
         state = state.copy(
@@ -167,7 +172,7 @@ class ManualAmountController(
             rawWhole = whole,
             rawFraction = fraction,
             hasDecimal = hasDecimal,
-            rangeStatus = rangeStatus,
+            rangeStatus = rangeStatus
         )
     }
 
@@ -192,7 +197,9 @@ class ManualAmountController(
         val info = config.info
         return when (info.currency) {
             DisplayCurrency.Satoshi -> minor * MSATS_PER_SAT
+
             DisplayCurrency.Bitcoin -> minor * MSATS_PER_SAT
+
             is DisplayCurrency.Fiat -> {
                 val rate = config.exchangeRate ?: return null
                 val major = minor.toDouble() / 10.0.pow(info.fractionDigits)

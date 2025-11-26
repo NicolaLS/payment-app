@@ -10,6 +10,6 @@ fun rememberMainViewModel(): MainViewModel {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     return rememberRetainedInstance(
         factory = { koin.get<MainViewModel>() },
-        onDispose = { it.clear() },
+        onDispose = { it.clear() }
     )
 }

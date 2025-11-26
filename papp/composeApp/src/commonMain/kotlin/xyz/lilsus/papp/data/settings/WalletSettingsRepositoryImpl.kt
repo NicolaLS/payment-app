@@ -18,7 +18,7 @@ private const val KEY_ACTIVE_PUBKEY = "wallet.active"
 class WalletSettingsRepositoryImpl(
     private val settings: Settings,
     private val dispatcher: CoroutineDispatcher = kotlinx.coroutines.Dispatchers.Default,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher),
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
 ) : WalletSettingsRepository {
 
     private val json = Json {
@@ -50,7 +50,10 @@ class WalletSettingsRepositoryImpl(
 
     override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
         updateState { current ->
-            val existing = current.wallets.filterNot { it.walletPublicKey == connection.walletPublicKey }
+            val existing = current.wallets.filterNot {
+                it.walletPublicKey ==
+                    connection.walletPublicKey
+            }
             val updatedWallets = existing + connection
             current.copy(
                 wallets = updatedWallets,
@@ -58,7 +61,7 @@ class WalletSettingsRepositoryImpl(
                     activate -> connection.walletPublicKey
                     current.activePubKey == connection.walletPublicKey -> connection.walletPublicKey
                     else -> current.activePubKey
-                },
+                }
             )
         }
     }
@@ -83,7 +86,7 @@ class WalletSettingsRepositoryImpl(
             }
             current.copy(
                 wallets = remaining,
-                activePubKey = nextActive,
+                activePubKey = nextActive
             )
         }
     }
@@ -130,7 +133,7 @@ class WalletSettingsRepositoryImpl(
         relayUrl = relayUrl,
         lud16 = lud16,
         alias = alias,
-        metadata = metadata?.toStored(),
+        metadata = metadata?.toStored()
     )
 
     private fun StoredWallet.toDomain(): WalletConnection = WalletConnection(
@@ -139,21 +142,21 @@ class WalletSettingsRepositoryImpl(
         relayUrl = relayUrl,
         lud16 = lud16,
         alias = alias,
-        metadata = metadata?.toDomain(),
+        metadata = metadata?.toDomain()
     )
 
     private data class WalletState(
         val wallets: List<WalletConnection> = emptyList(),
-        val activePubKey: String? = null,
+        val activePubKey: String? = null
     ) {
-        fun activeWallet(): WalletConnection? =
-            activePubKey?.let { key -> wallets.firstOrNull { it.walletPublicKey == key } }
-                ?: wallets.firstOrNull()
+        fun activeWallet(): WalletConnection? = activePubKey?.let { key -> wallets.firstOrNull { it.walletPublicKey == key } }
+            ?: wallets.firstOrNull()
 
         fun normalise(): WalletState {
             if (wallets.isEmpty()) return WalletState()
-            val activeKey = activePubKey?.takeIf { key -> wallets.any { it.walletPublicKey == key } }
-                ?: wallets.first().walletPublicKey
+            val activeKey =
+                activePubKey?.takeIf { key -> wallets.any { it.walletPublicKey == key } }
+                    ?: wallets.first().walletPublicKey
             return copy(activePubKey = activeKey)
         }
     }
@@ -165,7 +168,7 @@ class WalletSettingsRepositoryImpl(
         val relayUrl: String? = null,
         val lud16: String? = null,
         val alias: String? = null,
-        val metadata: StoredWalletMetadata? = null,
+        val metadata: StoredWalletMetadata? = null
     )
 
     @Serializable
@@ -176,7 +179,7 @@ class WalletSettingsRepositoryImpl(
         val encryptionDefaultedToNip04: Boolean = false,
         val notifications: Set<String> = emptySet(),
         val network: String? = null,
-        val color: String? = null,
+        val color: String? = null
     )
 
     private fun WalletMetadataSnapshot.toStored(): StoredWalletMetadata = StoredWalletMetadata(
@@ -186,7 +189,7 @@ class WalletSettingsRepositoryImpl(
         encryptionDefaultedToNip04 = encryptionDefaultedToNip04,
         notifications = notifications,
         network = network,
-        color = color,
+        color = color
     )
 
     private fun StoredWalletMetadata.toDomain(): WalletMetadataSnapshot = WalletMetadataSnapshot(
@@ -196,6 +199,6 @@ class WalletSettingsRepositoryImpl(
         encryptionDefaultedToNip04 = encryptionDefaultedToNip04,
         notifications = notifications,
         network = network,
-        color = color,
+        color = color
     )
 }

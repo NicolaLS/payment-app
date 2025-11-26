@@ -35,7 +35,7 @@ data class ManualAmountUiState(
     val rawWhole: String = "0",
     val rawFraction: String = "",
     val hasDecimal: Boolean = false,
-    val rangeStatus: RangeStatus = RangeStatus.InRange,
+    val rangeStatus: RangeStatus = RangeStatus.InRange
 )
 
 sealed interface RangeStatus {
@@ -58,12 +58,12 @@ fun ManualAmountBottomSheet(
     onKeyPress: (ManualAmountKey) -> Unit,
     onRangeClick: (DisplayAmount) -> Unit,
     onSubmit: () -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         sheetState = sheetState,
-        onDismissRequest = onDismiss,
+        onDismissRequest = onDismiss
     ) {
         Column(
             modifier = Modifier
@@ -101,8 +101,8 @@ fun ManualAmountBottomSheet(
             Button(
                 onClick = onSubmit,
                 enabled = state.amount?.minor?.let { it > 0 } == true &&
-                        state.rangeStatus == RangeStatus.InRange,
-                modifier = Modifier.fillMaxWidth(),
+                    state.rangeStatus == RangeStatus.InRange,
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = stringResource(Res.string.pay_button))
             }
@@ -115,9 +115,9 @@ fun ManualAmountBottomSheet(
 @Composable
 private fun AmountInputDisplay(state: ManualAmountUiState) {
     val isActive = state.amount != null ||
-            state.hasDecimal ||
-            state.rawFraction.isNotEmpty() ||
-            state.rawWhole != "0"
+        state.hasDecimal ||
+        state.rawFraction.isNotEmpty() ||
+        state.rawWhole != "0"
     val committedColor = if (isActive) {
         MaterialTheme.colorScheme.onSurface
     } else {
@@ -139,21 +139,21 @@ private fun AmountInputDisplay(state: ManualAmountUiState) {
     ) {
         Row(
             horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = amountText,
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
-                    color = committedColor,
+                    color = committedColor
                 ),
                 textAlign = TextAlign.Center,
-                maxLines = 1,
+                maxLines = 1
             )
             Spacer(modifier = Modifier.width(10.dp))
             CurrencyTag(
                 label = currencyLabel(state.currency),
-                active = isActive,
+                active = isActive
             )
         }
     }
@@ -162,7 +162,7 @@ private fun AmountInputDisplay(state: ManualAmountUiState) {
 private fun committedNumber(state: ManualAmountUiState): String {
     val whole = formatWhole(state.rawWhole)
     val shouldShowDecimal = state.allowDecimal &&
-            (state.hasDecimal || state.rawFraction.isNotEmpty())
+        (state.hasDecimal || state.rawFraction.isNotEmpty())
     if (!shouldShowDecimal) return whole
 
     return buildString {
@@ -190,13 +190,15 @@ private fun RangeFeedback(rangeStatus: RangeStatus) {
     val formatter = rememberAmountFormatter()
     val feedback = when (rangeStatus) {
         RangeStatus.InRange, RangeStatus.Unknown -> null
+
         is RangeStatus.BelowMin -> stringResource(
             Res.string.enter_amount_range_min,
-            formatter.format(rangeStatus.min),
+            formatter.format(rangeStatus.min)
         )
+
         is RangeStatus.AboveMax -> stringResource(
             Res.string.enter_amount_range_max,
-            formatter.format(rangeStatus.max),
+            formatter.format(rangeStatus.max)
         )
     } ?: return
 
@@ -205,7 +207,7 @@ private fun RangeFeedback(rangeStatus: RangeStatus) {
         text = feedback,
         style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.error),
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
@@ -215,12 +217,12 @@ private fun CurrencyTag(label: String, active: Boolean) {
     Surface(
         shape = CircleShape,
         color = if (active) colors.primary.copy(alpha = 0.12f) else colors.surfaceVariant,
-        contentColor = if (active) colors.primary else colors.onSurfaceVariant,
+        contentColor = if (active) colors.primary else colors.onSurfaceVariant
     ) {
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
         )
     }
 }
@@ -229,7 +231,7 @@ private fun CurrencyTag(label: String, active: Boolean) {
 private fun RangeHint(
     min: DisplayAmount?,
     max: DisplayAmount?,
-    onRangeClick: (DisplayAmount) -> Unit,
+    onRangeClick: (DisplayAmount) -> Unit
 ) {
     val formatter = rememberAmountFormatter()
     Row(
@@ -242,7 +244,7 @@ private fun RangeHint(
                     Res.string.enter_amount_range_min,
                     formatter.format(min)
                 ),
-                onClick = { onRangeClick(min) },
+                onClick = { onRangeClick(min) }
             )
         }
         if (min != null && max != null) {
@@ -254,7 +256,7 @@ private fun RangeHint(
                     Res.string.enter_amount_range_max,
                     formatter.format(max)
                 ),
-                onClick = { onRangeClick(max) },
+                onClick = { onRangeClick(max) }
             )
         }
     }
@@ -271,16 +273,13 @@ private fun RangePill(label: String, onClick: () -> Unit) {
         Text(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelMedium
         )
     }
 }
 
 @Composable
-private fun AmountKeypad(
-    onKeyPress: (ManualAmountKey) -> Unit,
-    enableDecimal: Boolean,
-) {
+private fun AmountKeypad(onKeyPress: (ManualAmountKey) -> Unit, enableDecimal: Boolean) {
     val rows = listOf(
         listOf<ManualAmountKey>(
             ManualAmountKey.Digit(1),
@@ -337,18 +336,13 @@ private fun AmountKeypad(
 }
 
 @Composable
-private fun AmountKeyButton(
-    key: ManualAmountKey,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    size: Dp,
-) {
+private fun AmountKeyButton(key: ManualAmountKey, enabled: Boolean, onClick: () -> Unit, size: Dp) {
     ElevatedButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier
             .size(size)
-            .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp),
+            .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
     ) {
         Text(
             text = when (key) {
@@ -368,7 +362,7 @@ private fun ManualAmountBottomSheetPreview() {
         ManualAmountBottomSheet(
             state = ManualAmountUiState(
                 amount = DisplayAmount(12345, DisplayCurrency.Satoshi),
-                currency = DisplayCurrency.Satoshi,
+                currency = DisplayCurrency.Satoshi
             ),
             onKeyPress = {},
             onRangeClick = {},

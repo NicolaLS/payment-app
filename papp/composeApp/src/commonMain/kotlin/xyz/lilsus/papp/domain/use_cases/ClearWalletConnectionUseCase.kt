@@ -2,9 +2,7 @@ package xyz.lilsus.papp.domain.use_cases
 
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
-class ClearWalletConnectionUseCase(
-    private val repository: WalletSettingsRepository,
-) {
+class ClearWalletConnectionUseCase(private val repository: WalletSettingsRepository) {
     suspend operator fun invoke(walletPublicKey: String? = null) {
         if (walletPublicKey != null) {
             repository.removeWallet(walletPublicKey)

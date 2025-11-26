@@ -5,20 +5,24 @@ import io.github.nostr.nwc.model.NwcFailure
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 
-internal fun NwcFailure.toAppErrorException(): AppErrorException =
-    AppErrorException(toAppError(), toCause())
+internal fun NwcFailure.toAppErrorException(): AppErrorException = AppErrorException(toAppError(), toCause())
 
 private fun NwcFailure.toAppError(): AppError = when (this) {
     NwcFailure.None -> AppError.Unexpected()
+
     is NwcFailure.Network -> AppError.NetworkUnavailable
+
     is NwcFailure.Timeout -> AppError.Timeout
+
     is NwcFailure.Wallet -> AppError.PaymentRejected(
         code = error.code.takeIf { it.isNotEmpty() },
-        message = error.message.takeIf { it.isNotEmpty() },
+        message = error.message.takeIf { it.isNotEmpty() }
     )
 
     is NwcFailure.Protocol -> AppError.Unexpected(message)
+
     is NwcFailure.EncryptionUnsupported -> AppError.Unexpected(message)
+
     is NwcFailure.Unknown -> AppError.Unexpected(message)
 }
 

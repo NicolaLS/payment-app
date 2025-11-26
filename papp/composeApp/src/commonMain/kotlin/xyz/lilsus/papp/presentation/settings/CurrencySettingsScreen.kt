@@ -25,7 +25,7 @@ fun CurrencySettingsScreen(
     onQueryChange: (String) -> Unit,
     onCurrencySelected: (String) -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
@@ -42,19 +42,19 @@ fun CurrencySettingsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
+                            contentDescription = null
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior,
+                scrollBehavior = scrollBehavior
             )
-        },
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             OutlinedTextField(
                 value = state.searchQuery,
@@ -62,13 +62,13 @@ fun CurrencySettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text(stringResource(Res.string.search_placeholder)) },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                singleLine = true,
+                singleLine = true
             )
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(filtered, key = { it.code }) { option ->
                     CurrencyRow(
@@ -83,36 +83,32 @@ fun CurrencySettingsScreen(
 }
 
 @Composable
-private fun CurrencyRow(
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
+private fun CurrencyRow(title: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         tonalElevation = if (selected) 6.dp else 2.dp,
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.medium
     ) {
         androidx.compose.foundation.layout.Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                 ),
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurface
             )
             if (selected) {
                 Icon(
                     imageVector = Icons.Filled.Check,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -135,12 +131,12 @@ private fun CurrencySettingsScreenPreview() {
                     CurrencyOption("CAD", stringResource(Res.string.settings_currency_cad)),
                     CurrencyOption("AUD", stringResource(Res.string.settings_currency_aud)),
                     CurrencyOption("CHF", stringResource(Res.string.settings_currency_chf)),
-                    CurrencyOption("JPY", stringResource(Res.string.settings_currency_jpy)),
+                    CurrencyOption("JPY", stringResource(Res.string.settings_currency_jpy))
                 )
             ),
             onQueryChange = {},
             onCurrencySelected = {},
-            onBack = {},
+            onBack = {}
         )
     }
 }

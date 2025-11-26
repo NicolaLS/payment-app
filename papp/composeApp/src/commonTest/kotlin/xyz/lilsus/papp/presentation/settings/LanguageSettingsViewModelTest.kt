@@ -1,5 +1,8 @@
 package xyz.lilsus.papp.presentation.settings
 
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,9 +15,6 @@ import xyz.lilsus.papp.domain.use_cases.ClearLanguageOverrideUseCase
 import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.RefreshLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.use_cases.SetLanguagePreferenceUseCase
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LanguageSettingsViewModelTest {
@@ -29,7 +29,7 @@ class LanguageSettingsViewModelTest {
             clearOverride = ClearLanguageOverrideUseCase(repository),
             refreshLanguage = RefreshLanguagePreferenceUseCase(repository),
             dispatcher = dispatcher,
-            languageLabelProvider = { info -> "label:${info.code}" },
+            languageLabelProvider = { info -> "label:${info.code}" }
         )
 
         advanceUntilIdle()
@@ -51,7 +51,7 @@ class LanguageSettingsViewModelTest {
             clearOverride = ClearLanguageOverrideUseCase(repository),
             refreshLanguage = RefreshLanguagePreferenceUseCase(repository),
             dispatcher = dispatcher,
-            languageLabelProvider = { info -> "label:${info.code}" },
+            languageLabelProvider = { info -> "label:${info.code}" }
         )
 
         advanceUntilIdle()
@@ -77,7 +77,7 @@ class LanguageSettingsViewModelTest {
             clearOverride = ClearLanguageOverrideUseCase(repository),
             refreshLanguage = RefreshLanguagePreferenceUseCase(repository),
             dispatcher = dispatcher,
-            languageLabelProvider = { info -> "label:${info.code}" },
+            languageLabelProvider = { info -> "label:${info.code}" }
         )
 
         advanceUntilIdle()
@@ -92,11 +92,9 @@ class LanguageSettingsViewModelTest {
     }
 }
 
-private class FakeLanguageRepository(
-    private val deviceTag: String,
-) : LanguageRepository {
+private class FakeLanguageRepository(private val deviceTag: String) : LanguageRepository {
     val state = MutableStateFlow<LanguagePreference>(
-        LanguagePreference.System(resolvedTag = deviceTag),
+        LanguagePreference.System(resolvedTag = deviceTag)
     )
 
     val setCalls = mutableListOf<String>()

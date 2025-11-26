@@ -5,7 +5,7 @@ package xyz.lilsus.papp.domain.model
  */
 enum class PaymentConfirmationMode {
     Always,
-    Above,
+    Above
 }
 
 data class PaymentPreferences(
@@ -13,7 +13,7 @@ data class PaymentPreferences(
     val thresholdSats: Long = DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val confirmManualEntry: Boolean = false,
     val vibrateOnScan: Boolean = true,
-    val vibrateOnPayment: Boolean = true,
+    val vibrateOnPayment: Boolean = true
 ) {
     fun normalise(): PaymentPreferences {
         val normalisedThreshold = thresholdSats

@@ -27,46 +27,42 @@ internal expect fun currentTimeMillis(): Long
 
 class CoinGeckoExchangeRateRepository(
     private val client: HttpClient = createBaseHttpClient(),
-    private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : ExchangeRateRepository {
 
     private val cacheMutex = Mutex()
     private val cache = mutableMapOf<String, CachedRate>()
 
-    private data class CachedRate(
-        val rate: ExchangeRate,
-        val timestampMs: Long,
-    )
+    private data class CachedRate(val rate: ExchangeRate, val timestampMs: Long)
 
-    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> =
-        withContext(dispatcher) {
-            val normalized = currencyCode.uppercase()
+    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> = withContext(dispatcher) {
+        val normalized = currencyCode.uppercase()
 
-            // Check cache first
-            cacheMutex.withLock {
-                cache[normalized]?.let { cached ->
-                    val now = currentTimeMillis()
-                    if (now - cached.timestampMs < CACHE_TTL_MS) {
-                        return@withContext Result.Success(cached.rate)
-                    }
+        // Check cache first
+        cacheMutex.withLock {
+            cache[normalized]?.let { cached ->
+                val now = currentTimeMillis()
+                if (now - cached.timestampMs < CACHE_TTL_MS) {
+                    return@withContext Result.Success(cached.rate)
                 }
             }
-
-            // Fetch from network
-            val result = fetchFromNetwork(currencyCode)
-
-            // Cache successful results
-            if (result is Result.Success) {
-                cacheMutex.withLock {
-                    cache[normalized] = CachedRate(
-                        rate = result.data,
-                        timestampMs = currentTimeMillis(),
-                    )
-                }
-            }
-
-            result
         }
+
+        // Fetch from network
+        val result = fetchFromNetwork(currencyCode)
+
+        // Cache successful results
+        if (result is Result.Success) {
+            cacheMutex.withLock {
+                cache[normalized] = CachedRate(
+                    rate = result.data,
+                    timestampMs = currentTimeMillis()
+                )
+            }
+        }
+
+        result
+    }
 
     private suspend fun fetchFromNetwork(currencyCode: String): Result<ExchangeRate> {
         val normalized = currencyCode.lowercase()
@@ -89,7 +85,7 @@ class CoinGeckoExchangeRateRepository(
             return Result.Success(
                 ExchangeRate(
                     currencyCode = currencyCode.uppercase(),
-                    pricePerBitcoin = price,
+                    pricePerBitcoin = price
                 )
             )
         } catch (cause: Throwable) {

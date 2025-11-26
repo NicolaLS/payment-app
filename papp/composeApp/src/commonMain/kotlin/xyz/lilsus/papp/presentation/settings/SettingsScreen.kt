@@ -31,29 +31,31 @@ fun SettingsScreen(
     walletSubtitle: String? = null,
     currencySubtitle: String? = null,
     languageSubtitle: String? = null,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val entries = listOf(
         SettingsEntry(
             title = stringResource(Res.string.settings_manage_wallets),
-            subtitle = walletSubtitle ?: stringResource(Res.string.settings_manage_wallets_subtitle),
-            onClick = onManageWallets,
+            subtitle = walletSubtitle ?: stringResource(
+                Res.string.settings_manage_wallets_subtitle
+            ),
+            onClick = onManageWallets
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_payments),
-            onClick = onPayments,
+            onClick = onPayments
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_currency),
             subtitle = currencySubtitle ?: stringResource(Res.string.settings_currency_subtitle),
-            onClick = onCurrency,
+            onClick = onCurrency
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_language),
             subtitle = languageSubtitle ?: stringResource(Res.string.settings_language_subtitle),
-            onClick = onLanguage,
-        ),
+            onClick = onLanguage
+        )
     )
 
     Scaffold(
@@ -65,20 +67,20 @@ fun SettingsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
+                            contentDescription = null
                         )
                     }
                 },
                 scrollBehavior = scrollBehavior
             )
-        },
+        }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(entries) { entry ->
                 SettingsListItem(entry)
@@ -91,7 +93,7 @@ fun SettingsScreen(
 private data class SettingsEntry(
     val title: String,
     val subtitle: String? = null,
-    val onClick: () -> Unit,
+    val onClick: () -> Unit
 )
 
 @Composable
@@ -100,13 +102,13 @@ private fun SettingsListItem(entry: SettingsEntry) {
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 4.dp,
-        shape = MaterialTheme.shapes.medium,
+        shape = MaterialTheme.shapes.medium
     ) {
         Box(
             modifier = Modifier
                 .clickable(onClick = entry.onClick)
                 .padding(horizontal = 20.dp, vertical = 16.dp)
-                .fillMaxWidth(),
+                .fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier.padding(end = 32.dp)
@@ -114,14 +116,14 @@ private fun SettingsListItem(entry: SettingsEntry) {
                 Text(
                     text = entry.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 entry.subtitle?.let {
                     Text(
                         text = it,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
             }
@@ -147,7 +149,7 @@ private fun SettingsScreenPreview() {
             onCurrency = {},
             onLanguage = {},
             currencySubtitle = stringResource(CurrencyCatalog.infoFor("USD").nameRes),
-            languageSubtitle = LanguageCatalog.displayName("en"),
+            languageSubtitle = LanguageCatalog.displayName("en")
         )
     }
 }

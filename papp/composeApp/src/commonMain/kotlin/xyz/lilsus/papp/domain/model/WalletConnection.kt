@@ -9,7 +9,7 @@ data class WalletConnection(
     val relayUrl: String?,
     val lud16: String?,
     val alias: String?,
-    val metadata: WalletMetadataSnapshot? = null,
+    val metadata: WalletMetadataSnapshot? = null
 )
 
 data class WalletMetadataSnapshot(
@@ -19,5 +19,5 @@ data class WalletMetadataSnapshot(
     val encryptionDefaultedToNip04: Boolean = false,
     val notifications: Set<String> = emptySet(),
     val network: String? = null,
-    val color: String? = null,
+    val color: String? = null
 )

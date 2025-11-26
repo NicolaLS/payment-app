@@ -33,5 +33,5 @@ expect fun rememberCameraPermissionState(): CameraPermissionState
 expect fun CameraPreviewHost(
     controller: QrScannerController,
     visible: Boolean,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 )

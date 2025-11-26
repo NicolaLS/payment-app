@@ -28,7 +28,7 @@ fun ManageWalletsScreen(
     onAddWallet: () -> Unit,
     onSelectWallet: (String) -> Unit,
     onRemoveWallet: (String) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
@@ -40,13 +40,13 @@ fun ManageWalletsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
+                            contentDescription = null
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior,
+                scrollBehavior = scrollBehavior
             )
-        },
+        }
     ) { padding ->
         val scrollState = rememberScrollState()
         Column(
@@ -54,25 +54,25 @@ fun ManageWalletsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Button(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = onAddWallet,
+                onClick = onAddWallet
             ) {
                 Text(text = stringResource(Res.string.settings_manage_wallets_add))
             }
             if (state.hasWallets) {
                 Column(
                     modifier = Modifier.verticalScroll(scrollState),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     state.wallets.forEach { row ->
                         WalletCard(
                             wallet = row.wallet,
                             isActive = row.isActive,
                             onRemoveWallet = { onRemoveWallet(row.wallet.pubKey) },
-                            onSetActive = { onSelectWallet(row.wallet.pubKey) },
+                            onSetActive = { onSelectWallet(row.wallet.pubKey) }
                         )
                     }
                 }
@@ -88,23 +88,23 @@ private fun WalletCard(
     wallet: WalletDisplay,
     isActive: Boolean,
     onRemoveWallet: () -> Unit,
-    onSetActive: () -> Unit,
+    onSetActive: () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         tonalElevation = if (isActive) 8.dp else 4.dp,
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.large
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     wallet.alias?.takeIf { it.isNotBlank() }?.let { alias ->
@@ -113,28 +113,28 @@ private fun WalletCard(
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = abbreviateKey(wallet.pubKey),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                            overflow = TextOverflow.Ellipsis
                         )
                     } ?: Text(
                         text = abbreviateKey(wallet.pubKey),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 if (isActive) {
                     Text(
                         text = stringResource(Res.string.settings_manage_wallets_active),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -142,28 +142,28 @@ private fun WalletCard(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             wallet.lud16?.let {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             HorizontalDivider()
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedButton(onClick = onRemoveWallet) {
                     Text(text = stringResource(Res.string.settings_manage_wallets_remove))
                 }
                 Button(
                     onClick = onSetActive,
-                    enabled = !isActive,
+                    enabled = !isActive
                 ) {
                     Text(text = stringResource(Res.string.settings_manage_wallets_set_active))
                 }
@@ -176,18 +176,18 @@ private fun WalletCard(
 private fun EmptyWalletState(onAddWallet: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
                 text = stringResource(Res.string.settings_manage_wallets_placeholder),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             )
             Button(onClick = onAddWallet) {
                 Text(text = stringResource(Res.string.settings_manage_wallets_add))
@@ -208,29 +208,27 @@ private fun ManageWalletsScreenPreview() {
                             pubKey = "npub1exampleexampleexampleexampleexample",
                             relay = "wss://relay.example.com",
                             lud16 = "user@example.com",
-                            alias = "Primary Wallet",
+                            alias = "Primary Wallet"
                         ),
-                        isActive = true,
+                        isActive = true
                     ),
                     WalletRow(
                         wallet = WalletDisplay(
                             pubKey = "npub1anotherexampleexampleexample",
                             relay = "wss://relay.example2.com",
                             lud16 = null,
-                            alias = null,
+                            alias = null
                         ),
-                        isActive = false,
-                    ),
+                        isActive = false
+                    )
                 )
             ),
             onBack = {},
             onAddWallet = {},
             onSelectWallet = {},
-            onRemoveWallet = {},
+            onRemoveWallet = {}
         )
     }
 }
 
-private fun abbreviateKey(value: String): String {
-    return if (value.length <= 16) value else value.take(8) + "…" + value.takeLast(4)
-}
+private fun abbreviateKey(value: String): String = if (value.length <= 16) value else value.take(8) + "…" + value.takeLast(4)

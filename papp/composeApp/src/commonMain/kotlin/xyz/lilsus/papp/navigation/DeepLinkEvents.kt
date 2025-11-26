@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 object DeepLinkEvents {
     private val _events = MutableSharedFlow<String>(
         replay = 1,
-        extraBufferCapacity = 1,
+        extraBufferCapacity = 1
     )
     val events: SharedFlow<String> = _events.asSharedFlow()
 

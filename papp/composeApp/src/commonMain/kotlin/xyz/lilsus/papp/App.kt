@@ -8,7 +8,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import xyz.lilsus.papp.navigation.*
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
-
 @Composable
 @Preview
 fun App() {
@@ -26,11 +25,13 @@ fun App() {
         NavHost(navController, startDestination = Pay) {
             paymentScreen(
                 onNavigateToSettings = { navController.navigateToSettings() },
-                onNavigateToConnectWallet = { pkh -> navController.navigateToConnectWallet(pubKeyHex = pkh) },
+                onNavigateToConnectWallet = { pkh ->
+                    navController.navigateToConnectWallet(pubKeyHex = pkh)
+                }
             )
             settingsScreen(
                 navController = navController,
-                onBack = { navController.navigateUp() },
+                onBack = { navController.navigateUp() }
             )
             connectWalletDialog(navController)
         }

@@ -47,6 +47,4 @@ private class AndroidHapticFeedbackManager(private val context: Context) : Hapti
     }
 }
 
-actual fun createHapticFeedbackManager(): HapticFeedbackManager {
-    return AndroidHapticFeedbackManager(PappApplication.instance)
-}
+actual fun createHapticFeedbackManager(): HapticFeedbackManager = AndroidHapticFeedbackManager(PappApplication.instance)

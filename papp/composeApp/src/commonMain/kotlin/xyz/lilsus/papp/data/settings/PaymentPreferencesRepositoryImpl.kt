@@ -14,9 +14,7 @@ private const val KEY_CONFIRM_MANUAL_ENTRY = "payment.confirmation.manual"
 private const val KEY_VIBRATE_SCAN = "payment.vibrate.scan"
 private const val KEY_VIBRATE_PAYMENT = "payment.vibrate.payment"
 
-class PaymentPreferencesRepositoryImpl(
-    private val settings: Settings,
-) : PaymentPreferencesRepository {
+class PaymentPreferencesRepositoryImpl(private val settings: Settings) : PaymentPreferencesRepository {
 
     private val state = MutableStateFlow(loadPreferences())
 
@@ -60,7 +58,10 @@ class PaymentPreferencesRepositoryImpl(
             else -> PaymentConfirmationMode.Above
         }
         val threshold = if (settings.hasKey(KEY_CONFIRM_THRESHOLD_SATS)) {
-            settings.getLong(KEY_CONFIRM_THRESHOLD_SATS, PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS)
+            settings.getLong(
+                KEY_CONFIRM_THRESHOLD_SATS,
+                PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS
+            )
         } else {
             PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS
         }
@@ -76,7 +77,7 @@ class PaymentPreferencesRepositoryImpl(
             thresholdSats = threshold,
             confirmManualEntry = confirmManual,
             vibrateOnScan = vibrateScan,
-            vibrateOnPayment = vibratePayment,
+            vibrateOnPayment = vibratePayment
         ).normalise()
     }
 
@@ -86,7 +87,7 @@ class PaymentPreferencesRepositoryImpl(
             when (preferences.confirmationMode) {
                 PaymentConfirmationMode.Always -> "always"
                 PaymentConfirmationMode.Above -> "above"
-            },
+            }
         )
         settings.putLong(KEY_CONFIRM_THRESHOLD_SATS, preferences.thresholdSats)
         settings.putBoolean(KEY_CONFIRM_MANUAL_ENTRY, preferences.confirmManualEntry)

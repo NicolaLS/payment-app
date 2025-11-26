@@ -1,5 +1,8 @@
 package xyz.lilsus.papp.presentation.main
 
+import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToLong
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
@@ -12,13 +15,10 @@ import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
 import xyz.lilsus.papp.domain.model.*
 import xyz.lilsus.papp.domain.use_cases.*
 import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.platform.HapticFeedbackManager
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
-import xyz.lilsus.papp.platform.HapticFeedbackManager
-import kotlin.math.max
-import kotlin.math.pow
-import kotlin.math.roundToLong
 
 class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
@@ -34,7 +34,7 @@ class MainViewModel internal constructor(
     private val requestLnurlInvoice: RequestLnurlInvoiceUseCase,
     private val observePaymentPreferences: ObservePaymentPreferencesUseCase,
     private val haptics: HapticFeedbackManager,
-    dispatcher: CoroutineDispatcher,
+    dispatcher: CoroutineDispatcher
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -45,7 +45,10 @@ class MainViewModel internal constructor(
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
 
     private val _currencyState = MutableStateFlow(
-        CurrencyState(info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE), exchangeRate = null)
+        CurrencyState(
+            info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE),
+            exchangeRate = null
+        )
     )
     private var pendingInvoice: Bolt11InvoiceSummary? = null
     private var manualEntryContext: ManualEntryContext? = null
@@ -89,12 +92,15 @@ class MainViewModel internal constructor(
                                 refreshManualAmountState(preserveInput = manualEntryContext != null)
                                 refreshResultState()
                             }
+
                             is Result.Error -> {
-                                _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                                _currencyState.value =
+                                    CurrencyState(info = info, exchangeRate = null)
                                 _events.tryEmit(MainEvent.ShowError(result.error))
                                 refreshManualAmountState(preserveInput = manualEntryContext != null)
                                 refreshResultState()
                             }
+
                             Result.Loading -> Unit
                         }
                     }
@@ -129,13 +135,25 @@ class MainViewModel internal constructor(
         pendingInvoice = null
 
         when (val parse = lightningInputParser.parse(rawInput)) {
-            is LightningInputParser.ParseResult.Failure -> emitError(AppError.InvalidWalletUri(parse.reason))
+            is LightningInputParser.ParseResult.Failure -> emitError(
+                AppError.InvalidWalletUri(parse.reason)
+            )
+
             is LightningInputParser.ParseResult.Success -> {
                 if (vibrateOnScan) haptics.notifyScanSuccess()
                 when (val target = parse.target) {
-                    is LightningInputParser.Target.Bolt11Candidate -> processBoltInvoice(target.invoice)
-                    is LightningInputParser.Target.Lnurl -> fetchLnurl(target.endpoint, LnurlSource.Lnurl)
-                    is LightningInputParser.Target.LightningAddressTarget -> resolveLightningAddress(target.address)
+                    is LightningInputParser.Target.Bolt11Candidate -> processBoltInvoice(
+                        target.invoice
+                    )
+
+                    is LightningInputParser.Target.Lnurl -> fetchLnurl(
+                        target.endpoint,
+                        LnurlSource.Lnurl
+                    )
+
+                    is LightningInputParser.Target.LightningAddressTarget -> resolveLightningAddress(
+                        target.address
+                    )
                 }
             }
         }
@@ -153,6 +171,7 @@ class MainViewModel internal constructor(
                 parsedInvoiceCache = invoice to result.invoice
                 result.invoice
             }
+
             is Bolt11ParseResult.Failure -> null
         }
     }
@@ -171,9 +190,9 @@ class MainViewModel internal constructor(
                 info = currencyState.info,
                 exchangeRate = currencyState.exchangeRate,
                 minMsats = null,
-                maxMsats = null,
+                maxMsats = null
             ),
-            clearInput = true,
+            clearInput = true
         )
         if (summary.amountMsats == null) {
             manualEntryContext = ManualEntryContext.Bolt(summary)
@@ -182,7 +201,7 @@ class MainViewModel internal constructor(
             requestPayment(
                 summary = summary,
                 amountOverrideMsats = null,
-                origin = PendingOrigin.Invoice,
+                origin = PendingOrigin.Invoice
             )
         }
     }
@@ -236,9 +255,9 @@ class MainViewModel internal constructor(
                 min = minDisplay,
                 max = maxDisplay,
                 minMsats = params.minSendable,
-                maxMsats = params.maxSendable,
+                maxMsats = params.maxSendable
             ),
-            clearInput = true,
+            clearInput = true
         )
         _uiState.value = MainUiState.EnterAmount(entry)
     }
@@ -249,7 +268,13 @@ class MainViewModel internal constructor(
             // Round to full satoshis - many Lightning servers only accept full sat amounts
             val roundedAmount = roundToFullSatoshis(amountMsats)
             when (val result = requestLnurlInvoice(session.params.callback, roundedAmount)) {
-                is Result.Success -> handleLnurlInvoice(session, roundedAmount, result.data, isManualEntry)
+                is Result.Success -> handleLnurlInvoice(
+                    session,
+                    roundedAmount,
+                    result.data,
+                    isManualEntry
+                )
+
                 is Result.Error -> {
                     manualEntryContext = null
                     emitError(result.error)
@@ -264,7 +289,7 @@ class MainViewModel internal constructor(
         session: LnurlSession,
         amountMsats: Long,
         invoice: String,
-        isManualEntry: Boolean,
+        isManualEntry: Boolean
     ) {
         val parsed = parseBolt11Invoice(invoice)
         if (parsed == null) {
@@ -275,7 +300,11 @@ class MainViewModel internal constructor(
 
         if (parsed.amountMsats != amountMsats) {
             manualEntryContext = null
-            emitError(AppError.InvalidWalletUri("LNURL server returned amount (${parsed.amountMsats} msat) that does not match requested amount ($amountMsats msat)"))
+            emitError(
+                AppError.InvalidWalletUri(
+                    "LNURL server returned amount (${parsed.amountMsats} msat) that does not match requested amount ($amountMsats msat)"
+                )
+            )
             return
         }
 
@@ -293,19 +322,18 @@ class MainViewModel internal constructor(
         requestPayment(
             summary = parsed,
             amountOverrideMsats = null,
-            origin = origin,
+            origin = origin
         )
     }
 
-    private fun validateLnurlMemo(memo: Bolt11Memo, params: LnurlPayParams): Boolean {
-        return when (memo) {
-            is Bolt11Memo.Text -> {
-                params.metadata.plainText?.let { it == memo.value } ?: true
-            }
-
-            is Bolt11Memo.HashOnly -> true
-            Bolt11Memo.None -> true
+    private fun validateLnurlMemo(memo: Bolt11Memo, params: LnurlPayParams): Boolean = when (memo) {
+        is Bolt11Memo.Text -> {
+            params.metadata.plainText?.let { it == memo.value } ?: true
         }
+
+        is Bolt11Memo.HashOnly -> true
+
+        Bolt11Memo.None -> true
     }
 
     private fun handleManualAmountKeyPress(key: ManualAmountKey) {
@@ -338,7 +366,7 @@ class MainViewModel internal constructor(
                 requestPayment(
                     summary = context.invoice,
                     amountOverrideMsats = roundedAmount,
-                    origin = PendingOrigin.ManualEntry,
+                    origin = PendingOrigin.ManualEntry
                 )
             }
 
@@ -347,7 +375,7 @@ class MainViewModel internal constructor(
                 if (amountMsats < params.minSendable || amountMsats > params.maxSendable) {
                     _events.tryEmit(
                         MainEvent.ShowError(
-                            AppError.InvalidWalletUri("Amount is outside the allowed range"),
+                            AppError.InvalidWalletUri("Amount is outside the allowed range")
                         )
                     )
                     return
@@ -393,32 +421,34 @@ class MainViewModel internal constructor(
         pendingPayment = null
         startPayment(
             summary = pending.summary,
-            amountOverrideMsats = pending.overrideAmountMsats,
+            amountOverrideMsats = pending.overrideAmountMsats
         )
     }
 
     private fun requestPayment(
         summary: Bolt11InvoiceSummary,
         amountOverrideMsats: Long?,
-        origin: PendingOrigin,
+        origin: PendingOrigin
     ) {
         scope.launch {
             val amountMsats = amountOverrideMsats ?: summary.amountMsats
-            val isManualEntry = origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
+            val isManualEntry =
+                origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
             val currencyState = _currencyState.value
-            val requiresConfirmation = amountMsats != null && shouldConfirmPayment(amountMsats, isManualEntry)
+            val requiresConfirmation =
+                amountMsats != null && shouldConfirmPayment(amountMsats, isManualEntry)
             if (requiresConfirmation) {
                 val display = convertMsatsToDisplay(amountMsats!!, currencyState)
                 pendingPayment = PendingPayment(
                     summary = summary,
                     overrideAmountMsats = amountOverrideMsats,
-                    origin = origin,
+                    origin = origin
                 )
                 _uiState.value = MainUiState.Confirm(display)
             } else {
                 startPayment(
                     summary = summary,
-                    amountOverrideMsats = amountOverrideMsats,
+                    amountOverrideMsats = amountOverrideMsats
                 )
             }
         }
@@ -429,31 +459,30 @@ class MainViewModel internal constructor(
         _events.tryEmit(MainEvent.ShowError(error))
     }
 
-    private fun startPayment(
-        summary: Bolt11InvoiceSummary,
-        amountOverrideMsats: Long?,
-    ) {
+    private fun startPayment(summary: Bolt11InvoiceSummary, amountOverrideMsats: Long?) {
         activePaymentJob?.cancel()
         val job = scope.launch {
             payInvoice(
                 invoice = summary.paymentRequest,
-                amountMsats = amountOverrideMsats,
+                amountMsats = amountOverrideMsats
             ).collect { result ->
                 when (result) {
                     Result.Loading -> _uiState.value = MainUiState.Loading
+
                     is Result.Success -> {
                         val currencyState = _currencyState.value
                         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
                         val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
-                        val feeDisplay = convertMsatsToDisplay(result.data.feesPaidMsats ?: 0L, currencyState)
+                        val feeDisplay =
+                            convertMsatsToDisplay(result.data.feesPaidMsats ?: 0L, currencyState)
                         if (vibrateOnPayment) haptics.notifyPaymentSuccess()
                         _uiState.value = MainUiState.Success(
                             amountPaid = paidDisplay,
-                            feePaid = feeDisplay,
+                            feePaid = feeDisplay
                         )
                         lastPaymentResult = CompletedPayment(
                             amountMsats = paidMsats,
-                            feeMsats = result.data.feesPaidMsats ?: 0L,
+                            feeMsats = result.data.feesPaidMsats ?: 0L
                         )
                         pendingInvoice = null
                         manualEntryContext = null
@@ -461,9 +490,9 @@ class MainViewModel internal constructor(
                         manualAmount.reset(
                             ManualAmountConfig(
                                 info = currencyState.info,
-                                exchangeRate = currencyState.exchangeRate,
+                                exchangeRate = currencyState.exchangeRate
                             ),
-                            clearInput = true,
+                            clearInput = true
                         )
                     }
 
@@ -499,13 +528,13 @@ class MainViewModel internal constructor(
                     min = convertMsatsToDisplay(params.minSendable, currencyState),
                     max = convertMsatsToDisplay(params.maxSendable, currencyState),
                     minMsats = params.minSendable,
-                    maxMsats = params.maxSendable,
+                    maxMsats = params.maxSendable
                 )
             }
 
             else -> ManualAmountConfig(
                 info = currencyState.info,
-                exchangeRate = currencyState.exchangeRate,
+                exchangeRate = currencyState.exchangeRate
             )
         }
         val entry = manualAmount.reset(config, clearInput = !preserveInput)
@@ -524,7 +553,10 @@ class MainViewModel internal constructor(
             when (val result = getExchangeRate(info.code)) {
                 is Result.Success -> {
                     _currencyState.value =
-                        CurrencyState(info = info, exchangeRate = max(result.data.pricePerBitcoin, 0.0))
+                        CurrencyState(
+                            info = info,
+                            exchangeRate = max(result.data.pricePerBitcoin, 0.0)
+                        )
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
                     refreshResultState()
                 }
@@ -546,13 +578,14 @@ class MainViewModel internal constructor(
                 val payment = lastPaymentResult ?: return
                 _uiState.value = MainUiState.Success(
                     amountPaid = convertMsatsToDisplay(payment.amountMsats, currencyState),
-                    feePaid = convertMsatsToDisplay(payment.feeMsats, currencyState),
+                    feePaid = convertMsatsToDisplay(payment.feeMsats, currencyState)
                 )
             }
 
             is MainUiState.Confirm -> {
                 val pending = pendingPayment ?: return
-                val amountMsats = pending.overrideAmountMsats ?: pending.summary.amountMsats ?: return
+                val amountMsats =
+                    pending.overrideAmountMsats ?: pending.summary.amountMsats ?: return
                 val display = convertMsatsToDisplay(amountMsats, currencyState)
                 _uiState.value = MainUiState.Confirm(display)
             }
@@ -571,15 +604,15 @@ class MainViewModel internal constructor(
      * Many Lightning servers only accept full satoshi amounts.
      * Examples: 1 msat -> 1000 msat, 1500 msat -> 2000 msat, 968504 msat -> 969000 msat
      */
-    private fun roundToFullSatoshis(msats: Long): Long {
-        return ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
-    }
+    private fun roundToFullSatoshis(msats: Long): Long = ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
 
     private fun convertMsatsToDisplay(msats: Long, state: CurrencyState): DisplayAmount {
         val info = state.info
         return when (val currency = info.currency) {
             DisplayCurrency.Satoshi -> DisplayAmount(msats / MSATS_PER_SAT, currency)
+
             DisplayCurrency.Bitcoin -> DisplayAmount(msats / MSATS_PER_SAT, currency)
+
             is DisplayCurrency.Fiat -> {
                 val rate = state.exchangeRate
                 if (rate == null) {
@@ -607,34 +640,25 @@ private const val MSATS_PER_BTC = 100_000_000_000L
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
     val overrideAmountMsats: Long?,
-    val origin: PendingOrigin,
+    val origin: PendingOrigin
 )
 
-private data class CompletedPayment(
-    val amountMsats: Long,
-    val feeMsats: Long,
-)
+private data class CompletedPayment(val amountMsats: Long, val feeMsats: Long)
 
 private enum class PendingOrigin {
     Invoice,
     ManualEntry,
     LnurlFixed,
-    LnurlManual,
+    LnurlManual
 }
 
-private data class CurrencyState(
-    val info: CurrencyInfo,
-    val exchangeRate: Double?,
-)
+private data class CurrencyState(val info: CurrencyInfo, val exchangeRate: Double?)
 
-private data class LnurlSession(
-    val params: LnurlPayParams,
-    val source: LnurlSource,
-)
+private data class LnurlSession(val params: LnurlPayParams, val source: LnurlSource)
 
 private enum class LnurlSource {
     Lnurl,
-    LightningAddress,
+    LightningAddress
 }
 
 private sealed class ManualEntryContext {

@@ -15,10 +15,7 @@ sealed class AppError {
     /**
      * The wallet rejected the payment request.
      */
-    data class PaymentRejected(
-        val code: String? = null,
-        val message: String? = null,
-    ) : AppError()
+    data class PaymentRejected(val code: String? = null, val message: String? = null) : AppError()
 
     /**
      * Networking is currently unavailable or the wallet could not be reached.
@@ -44,7 +41,4 @@ sealed class AppError {
 /**
  * Exception type used for propagating [AppError] across coroutine boundaries.
  */
-class AppErrorException(
-    val error: AppError,
-    cause: Throwable? = null,
-) : Exception(error.toString(), cause)
+class AppErrorException(val error: AppError, cause: Throwable? = null) : Exception(error.toString(), cause)

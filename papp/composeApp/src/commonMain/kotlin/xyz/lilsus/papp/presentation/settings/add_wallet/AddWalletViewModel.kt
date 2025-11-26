@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.*
 import xyz.lilsus.papp.domain.model.AppError
 
 class AddWalletViewModel internal constructor(
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -58,8 +58,7 @@ class AddWalletViewModel internal constructor(
         }
     }
 
-    private fun isValid(uri: String): Boolean =
-        uri.isNotEmpty() && runCatching { NwcUri.parse(uri) }.isSuccess
+    private fun isValid(uri: String): Boolean = uri.isNotEmpty() && runCatching { NwcUri.parse(uri) }.isSuccess
 
     fun clear() {
         scope.cancel()
@@ -69,7 +68,7 @@ class AddWalletViewModel internal constructor(
 data class AddWalletUiState(
     val uri: String = "",
     val error: AppError? = null,
-    val isUriValid: Boolean = false,
+    val isUriValid: Boolean = false
 ) {
     val canContinue: Boolean
         get() = isUriValid

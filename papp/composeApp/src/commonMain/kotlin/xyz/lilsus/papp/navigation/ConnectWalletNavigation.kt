@@ -13,7 +13,7 @@ internal data class ConnectWallet(
     val pubKeyHex: String? = null,
     val relay: String? = null,
     val secretHex: String? = null,
-    val lud16: String? = null,
+    val lud16: String? = null
 )
 
 fun NavGraphBuilder.connectWalletDialog(navController: NavController) {
@@ -31,7 +31,7 @@ fun NavController.navigateToConnectWallet(
     pubKeyHex: String? = null,
     relay: String? = null,
     secretHex: String? = null,
-    lud16: String? = null,
+    lud16: String? = null
 ) {
     // TODO: Handle nwc uri deep link:
     // https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-navigation-deep-links.html

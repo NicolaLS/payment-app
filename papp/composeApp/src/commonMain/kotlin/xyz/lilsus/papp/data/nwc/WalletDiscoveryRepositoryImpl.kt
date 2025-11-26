@@ -17,7 +17,7 @@ private const val DEFAULT_TIMEOUT_MILLIS = DEFAULT_REQUEST_TIMEOUT_MS
 
 class WalletDiscoveryRepositoryImpl(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val httpClient: HttpClient,
+    private val httpClient: HttpClient
 ) : WalletDiscoveryRepository {
 
     override suspend fun discover(uri: String): WalletDiscovery = withContext(dispatcher) {
@@ -34,7 +34,7 @@ class WalletDiscoveryRepositoryImpl(
             uri = parsed,
             scope = scope,
             httpClient = httpClient,
-            requestTimeoutMillis = DEFAULT_TIMEOUT_MILLIS,
+            requestTimeoutMillis = DEFAULT_TIMEOUT_MILLIS
         )
 
         try {
@@ -60,6 +60,6 @@ class WalletDiscoveryRepositoryImpl(
         encryptionDefaultedToNip04 = metadata.encryptionDefaultedToNip04,
         notifications = notifications.map { it.wireName }.toSet(),
         network = network.takeUnless { it == Network.UNKNOWN }?.name?.lowercase(),
-        color = color,
+        color = color
     )
 }

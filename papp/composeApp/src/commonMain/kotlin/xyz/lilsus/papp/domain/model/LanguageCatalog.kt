@@ -1,28 +1,24 @@
 package xyz.lilsus.papp.domain.model
 
-data class LanguageInfo(
-    val code: String,
-    val tag: String,
-    val displayName: String,
-)
+data class LanguageInfo(val code: String, val tag: String, val displayName: String)
 
 object LanguageCatalog {
     private val entries = listOf(
         LanguageInfo(
             code = "en",
             tag = "en",
-            displayName = "English",
+            displayName = "English"
         ),
         LanguageInfo(
             code = "de",
             tag = "de",
-            displayName = "Deutsch",
+            displayName = "Deutsch"
         ),
         LanguageInfo(
             code = "es",
             tag = "es",
-            displayName = "Español",
-        ),
+            displayName = "Español"
+        )
     )
 
     private val byCode = entries.associateBy { it.code.lowercase() }

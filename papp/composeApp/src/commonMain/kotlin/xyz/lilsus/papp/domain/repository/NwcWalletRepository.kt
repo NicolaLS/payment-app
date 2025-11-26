@@ -17,6 +17,6 @@ interface NwcWalletRepository {
          * Optional amount overrides in millisatoshis for amount-less invoices.
          * When null the wallet must infer the amount from the invoice itself.
          */
-        amountMsats: Long? = null,
+        amountMsats: Long? = null
     ): PaidInvoice
 }

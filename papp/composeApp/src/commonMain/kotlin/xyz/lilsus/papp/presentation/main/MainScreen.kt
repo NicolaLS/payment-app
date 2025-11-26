@@ -76,11 +76,11 @@ fun MainScreen(
                 )
                 .fillMaxSize()
                 .padding(paddingValues),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Hero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
-                uiState = uiState,
+                uiState = uiState
             )
             Crossfade(targetState = uiState) { state ->
                 when (state) {
@@ -112,7 +112,7 @@ fun MainScreen(
         ConfirmationBottomSheet(
             confirmAmount = uiState.amount,
             onPay = onConfirmPaymentSubmit,
-            onDismiss = onConfirmPaymentDismiss,
+            onDismiss = onConfirmPaymentDismiss
         )
     }
 }
@@ -132,12 +132,12 @@ fun MainScreenPreviewSuccess() {
             onNavigateConnectWallet = {},
             uiState = MainUiState.Success(
                 amountPaid = DisplayAmount(12345, DisplayCurrency.Satoshi),
-                feePaid = DisplayAmount(69, DisplayCurrency.Satoshi),
+                feePaid = DisplayAmount(69, DisplayCurrency.Satoshi)
             ),
             onRequestScannerStart = {},
             onScannerResume = {},
             onScannerPause = {},
-            isCameraPermissionGranted = true,
+            isCameraPermissionGranted = true
         )
     }
 }
@@ -161,7 +161,7 @@ fun MainScreenPreviewEnterAmount() {
             onRequestScannerStart = {},
             onScannerResume = {},
             onScannerPause = {},
-            isCameraPermissionGranted = true,
+            isCameraPermissionGranted = true
         )
     }
 }
@@ -174,12 +174,12 @@ fun MainScreenPreviewConfirm() {
             onNavigateSettings = {},
             onNavigateConnectWallet = {},
             uiState = MainUiState.Confirm(
-                amount = DisplayAmount(500_000, DisplayCurrency.Satoshi),
+                amount = DisplayAmount(500_000, DisplayCurrency.Satoshi)
             ),
             onRequestScannerStart = {},
             onScannerResume = {},
             onScannerPause = {},
-            isCameraPermissionGranted = true,
+            isCameraPermissionGranted = true
         )
     }
 }

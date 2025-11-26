@@ -6,8 +6,10 @@ import io.github.nostr.nwc.model.NwcFailure
 import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.PayInvoiceResult
 import io.github.nostr.nwc.testing.FakeNwcClient
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +21,8 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 @OptIn(ExperimentalCoroutinesApi::class)
-
 class NwcWalletRepositoryImplTest {
 
     @Test
@@ -33,7 +31,7 @@ class NwcWalletRepositoryImplTest {
         fakeClient.defaultPayInvoiceResult = NwcResult.Success(
             PayInvoiceResult(
                 preimage = "preimage",
-                feesPaid = null,
+                feesPaid = null
             )
         )
         val context = createRepository(fakeClient)
@@ -104,8 +102,8 @@ class NwcWalletRepositoryImplTest {
             walletPublicKey = SAMPLE_PUBKEY,
             relayUrl = "wss://relay.example",
             lud16 = null,
-            alias = null,
-        ),
+            alias = null
+        )
     ): RepositoryContext {
         val session = NwcSession.create(uri = connection.uri)
         val handle = NwcClientHandle(
@@ -114,23 +112,21 @@ class NwcWalletRepositoryImplTest {
             client = client,
             release = {
                 session.close()
-            },
+            }
         )
         val factory = FakeClientFactory(handle)
         val testScope = TestScope(UnconfinedTestDispatcher())
         val repository = NwcWalletRepositoryImpl(
             walletSettingsRepository = StubWalletSettingsRepository(connection),
             clientFactory = factory,
-            scope = testScope,
+            scope = testScope
         )
         // Let init block coroutine start
         testScope.testScheduler.advanceUntilIdle()
         return RepositoryContext(repository, factory, handle, testScope)
     }
 
-    private class FakeClientFactory(
-        private val handle: NwcClientHandle,
-    ) : NwcClientFactory {
+    private class FakeClientFactory(private val handle: NwcClientHandle) : NwcClientFactory {
         override suspend fun create(connection: WalletConnection): NwcClientHandle {
             require(connection.uri == handle.uri) {
                 "Test expects URI ${handle.uri} but got ${connection.uri}"
@@ -139,9 +135,7 @@ class NwcWalletRepositoryImplTest {
         }
     }
 
-    private class StubWalletSettingsRepository(
-        private val connection: WalletConnection?,
-    ) : WalletSettingsRepository {
+    private class StubWalletSettingsRepository(private val connection: WalletConnection?) : WalletSettingsRepository {
         private val _wallets = MutableStateFlow(connection?.let { listOf(it) } ?: emptyList())
         private val _walletConnection = MutableStateFlow(connection)
 
@@ -150,32 +144,25 @@ class NwcWalletRepositoryImplTest {
 
         override suspend fun getWalletConnection(): WalletConnection? = connection
 
-        override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
-            throw UnsupportedOperationException()
-        }
+        override suspend fun saveWalletConnection(
+            connection: WalletConnection,
+            activate: Boolean
+        ): Unit = throw UnsupportedOperationException()
 
-        override suspend fun setActiveWallet(walletPublicKey: String) {
-            throw UnsupportedOperationException()
-        }
+        override suspend fun setActiveWallet(walletPublicKey: String): Unit = throw UnsupportedOperationException()
 
-        override suspend fun removeWallet(walletPublicKey: String) {
-            throw UnsupportedOperationException()
-        }
+        override suspend fun removeWallet(walletPublicKey: String): Unit = throw UnsupportedOperationException()
 
-        override suspend fun getWallets(): List<WalletConnection> {
-            throw UnsupportedOperationException()
-        }
+        override suspend fun getWallets(): List<WalletConnection> = throw UnsupportedOperationException()
 
-        override suspend fun clearWalletConnection() {
-            throw UnsupportedOperationException()
-        }
+        override suspend fun clearWalletConnection(): Unit = throw UnsupportedOperationException()
     }
 
     private data class RepositoryContext(
         val repository: NwcWalletRepositoryImpl,
         val factory: FakeClientFactory,
         val handle: NwcClientHandle,
-        val testScope: TestScope,
+        val testScope: TestScope
     ) {
         suspend fun close() {
             testScope.cancel("Test completed")

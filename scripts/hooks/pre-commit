@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook that runs ktlint on staged Kotlin files.
+# Aborts commit if formatting issues are found.
+#
+# Install: cd papp && ./gradlew installGitHooks
+# Or manually: cp scripts/hooks/pre-commit .git/hooks/ && chmod +x .git/hooks/pre-commit
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Get staged Kotlin files (only in src directories, excluding build/)
+# Handles both root-level and subdirectory git structures
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.kts?$' | grep -v '/build/' | grep -E '/src/' || true)
+
+if [ -z "$STAGED_FILES" ]; then
+    # No Kotlin files staged, skip check
+    exit 0
+fi
+
+echo -e "${YELLOW}Running ktlint on $(echo "$STAGED_FILES" | wc -l | tr -d ' ') staged file(s)...${NC}"
+
+# Find the directory containing gradlew (handles monorepo structures)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+
+# Look for gradlew in common locations
+if [ -f "$GIT_ROOT/gradlew" ]; then
+    GRADLE_DIR="$GIT_ROOT"
+elif [ -f "$GIT_ROOT/papp/gradlew" ]; then
+    GRADLE_DIR="$GIT_ROOT/papp"
+else
+    echo -e "${YELLOW}Warning: gradlew not found, skipping ktlint check${NC}"
+    exit 0
+fi
+
+# Run ktlint check via Gradle (--rerun-tasks to avoid stale cached results)
+OUTPUT=$(cd "$GRADLE_DIR" && ./gradlew --rerun-tasks ktlintCheck 2>&1 || true)
+
+# Check for violations in staged files only
+# Convert relative paths to match against absolute paths in ktlint output
+VIOLATIONS=""
+while IFS= read -r FILE; do
+    # Get just the filename for a more reliable match
+    BASENAME=$(basename "$FILE")
+    FILE_VIOLATIONS=$(echo "$OUTPUT" | grep "$BASENAME" | grep -v "/build/" || true)
+    if [ -n "$FILE_VIOLATIONS" ]; then
+        VIOLATIONS="${VIOLATIONS}${FILE_VIOLATIONS}"$'\n'
+    fi
+done <<< "$STAGED_FILES"
+
+if [ -n "$VIOLATIONS" ] && [ "$VIOLATIONS" != $'\n' ]; then
+    echo -e "${RED}"
+    echo "========================================"
+    echo "  ktlint found formatting issues!"
+    echo "========================================"
+    echo -e "${NC}"
+    echo "$VIOLATIONS"
+    echo ""
+    echo -e "${YELLOW}To fix automatically, run:${NC}"
+    echo "  cd ${GRADLE_DIR#$GIT_ROOT/} && ./gradlew ktlintFormat"
+    echo ""
+    echo -e "${YELLOW}Then stage the fixed files:${NC}"
+    echo "  git add -u"
+    echo ""
+    echo -e "${YELLOW}Or to skip this check (not recommended):${NC}"
+    echo "  git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+echo -e "${GREEN}ktlint check passed!${NC}"
+exit 0

@@ -22,7 +22,7 @@ actual fun rememberAppLocale(): AppLocale {
             queue = NSOperationQueue.mainQueue(),
             usingBlock = {
                 localeState.value = currentAppLocale()
-            },
+            }
         )
         onDispose {
             NSNotificationCenter.defaultCenter.removeObserver(observer)

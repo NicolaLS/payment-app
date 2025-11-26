@@ -4,20 +4,20 @@ import io.github.nostr.nwc.NwcClient
 import io.github.nostr.nwc.NwcClientContract
 import io.github.nostr.nwc.NwcSession
 import io.github.nostr.nwc.NwcSessionManager
-import io.ktor.client.HttpClient
-import kotlinx.coroutines.CoroutineScope
-import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
 import io.github.nostr.nwc.model.EncryptionScheme
 import io.github.nostr.nwc.model.NwcCapability
 import io.github.nostr.nwc.model.NwcNotificationType
 import io.github.nostr.nwc.model.WalletMetadata
+import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineScope
+import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
 
 data class NwcClientHandle(
     val uri: String,
     val session: NwcSession,
     val client: NwcClientContract,
-    val release: suspend () -> Unit,
+    val release: suspend () -> Unit
 )
 
 fun interface NwcClientFactory {
@@ -28,7 +28,7 @@ class RealNwcClientFactory(
     private val sessionManager: NwcSessionManager,
     private val scope: CoroutineScope,
     private val httpClient: HttpClient,
-    private val handshakeTimeoutMillis: Long = DEFAULT_NWC_HANDSHAKE_TIMEOUT_MILLIS,
+    private val handshakeTimeoutMillis: Long = DEFAULT_NWC_HANDSHAKE_TIMEOUT_MILLIS
 ) : NwcClientFactory {
     override suspend fun create(connection: WalletConnection): NwcClientHandle {
         val uri = connection.uri
@@ -42,7 +42,7 @@ class RealNwcClientFactory(
             ownsHttpClient = false,
             requestTimeoutMillis = handshakeTimeoutMillis,
             cachedMetadata = connection.metadata?.toNwcMetadata(),
-            cachedEncryption = connection.metadata?.toPreferredEncryption(),
+            cachedEncryption = connection.metadata?.toPreferredEncryption()
         )
         return NwcClientHandle(
             uri = uri,
@@ -51,7 +51,7 @@ class RealNwcClientFactory(
             release = {
                 runCatching { client.close() }
                 sessionManager.release(session)
-            },
+            }
         )
     }
 }
@@ -63,7 +63,7 @@ private fun WalletMetadataSnapshot.toNwcMetadata(): WalletMetadata = WalletMetad
     capabilities = NwcCapability.parseAll(methods),
     encryptionSchemes = encryptionSchemes.mapNotNull { EncryptionScheme.fromWire(it) }.toSet(),
     notificationTypes = NwcNotificationType.parseAll(notifications),
-    encryptionDefaultedToNip04 = encryptionDefaultedToNip04,
+    encryptionDefaultedToNip04 = encryptionDefaultedToNip04
 )
 
 private fun WalletMetadataSnapshot.toPreferredEncryption(): EncryptionScheme? {
@@ -72,7 +72,9 @@ private fun WalletMetadataSnapshot.toPreferredEncryption(): EncryptionScheme? {
     if (encryptionSchemes.any { it.equals("nip44_v2", ignoreCase = true) }) {
         return EncryptionScheme.Nip44V2
     }
-    if (encryptionDefaultedToNip04 || encryptionSchemes.any { it.equals("nip04", ignoreCase = true) }) {
+    if (encryptionDefaultedToNip04 ||
+        encryptionSchemes.any { it.equals("nip04", ignoreCase = true) }
+    ) {
         return EncryptionScheme.Nip04
     }
     return null

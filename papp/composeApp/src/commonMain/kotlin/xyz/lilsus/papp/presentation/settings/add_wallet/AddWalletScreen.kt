@@ -22,7 +22,7 @@ fun AddWalletScreen(
     onSubmit: () -> Unit,
     controller: QrScannerController,
     isCameraPermissionGranted: Boolean,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
@@ -34,25 +34,25 @@ fun AddWalletScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
+                            contentDescription = null
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior,
+                scrollBehavior = scrollBehavior
             )
-        },
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
                 text = stringResource(Res.string.add_wallet_description),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             OutlinedTextField(
                 value = state.uri,
@@ -60,26 +60,28 @@ fun AddWalletScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text(text = stringResource(Res.string.add_wallet_uri_label)) },
-                placeholder = { Text(text = stringResource(Res.string.add_wallet_uri_placeholder)) },
+                placeholder = {
+                    Text(text = stringResource(Res.string.add_wallet_uri_placeholder))
+                }
             )
             if (state.error != null) {
                 Text(
                     text = errorMessageFor(state.error),
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
             CameraCard(
                 controller = controller,
-                hasPermission = isCameraPermissionGranted,
+                hasPermission = isCameraPermissionGranted
             )
             Spacer(modifier = Modifier.weight(1f, fill = true))
 
             Button(
                 onClick = onSubmit,
                 enabled = state.canContinue,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = stringResource(Res.string.add_wallet_continue))
             }
@@ -88,36 +90,33 @@ fun AddWalletScreen(
 }
 
 @Composable
-private fun CameraCard(
-    controller: QrScannerController,
-    hasPermission: Boolean,
-) {
+private fun CameraCard(controller: QrScannerController, hasPermission: Boolean) {
     Surface(
         tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = stringResource(Res.string.add_wallet_scan_instruction),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             CameraPreviewHost(
                 controller = controller,
                 visible = hasPermission,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1.3f),
+                    .aspectRatio(1.3f)
             )
             if (!hasPermission) {
                 Text(
                     text = stringResource(Res.string.add_wallet_scan_permission),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
         }

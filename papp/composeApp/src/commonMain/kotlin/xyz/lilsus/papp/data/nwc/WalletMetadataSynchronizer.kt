@@ -9,7 +9,7 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 class WalletMetadataSynchronizer(
     private val scope: CoroutineScope,
     private val discoveryRepository: WalletDiscoveryRepository,
-    private val walletSettingsRepository: WalletSettingsRepository,
+    private val walletSettingsRepository: WalletSettingsRepository
 ) {
     fun start() {
         scope.launch {
@@ -28,7 +28,7 @@ class WalletMetadataSynchronizer(
 
             walletSettingsRepository.saveWalletConnection(
                 connection = active.copy(metadata = snapshot),
-                activate = true,
+                activate = true
             )
         }
     }

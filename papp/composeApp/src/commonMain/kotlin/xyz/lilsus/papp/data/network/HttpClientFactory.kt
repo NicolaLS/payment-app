@@ -5,8 +5,8 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.serialization.json.Json
 
 fun createBaseHttpClient(): HttpClient = platformHttpClient().config {
     install(ContentNegotiation) {

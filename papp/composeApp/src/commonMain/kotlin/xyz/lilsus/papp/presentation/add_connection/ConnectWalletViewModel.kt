@@ -11,7 +11,7 @@ class ConnectWalletViewModel internal constructor(
     private val discoverWallet: DiscoverWalletUseCase,
     private val setWalletConnection: SetWalletConnectionUseCase,
     private val getWallets: GetWalletsUseCase,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -47,7 +47,13 @@ class ConnectWalletViewModel internal constructor(
                             aliasInput = alias,
                             isDiscoveryLoading = false,
                             error = null,
-                            setActive = if (current.discovery == null) defaultSetActive || current.setActive else current.setActive,
+                            setActive = if (current.discovery ==
+                                null
+                            ) {
+                                defaultSetActive || current.setActive
+                            } else {
+                                current.setActive
+                            }
                         )
                     }
                 }
@@ -59,7 +65,7 @@ class ConnectWalletViewModel internal constructor(
                             uri = trimmed,
                             discovery = null,
                             isDiscoveryLoading = false,
-                            error = error,
+                            error = error
                         )
                     }
                 }
@@ -93,7 +99,7 @@ class ConnectWalletViewModel internal constructor(
                     uri = state.uri,
                     alias = state.aliasInput,
                     activate = state.setActive,
-                    metadata = state.discovery?.toMetadataSnapshot(),
+                    metadata = state.discovery?.toMetadataSnapshot()
                 )
             }.onSuccess { connection ->
                 _events.emit(ConnectWalletEvent.Success(connection))
@@ -125,7 +131,7 @@ data class ConnectWalletUiState(
     val aliasInput: String = "",
     val setActive: Boolean = true,
     val isSaving: Boolean = false,
-    val error: AppError? = null,
+    val error: AppError? = null
 )
 
 sealed interface ConnectWalletEvent {

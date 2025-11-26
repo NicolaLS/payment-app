@@ -50,7 +50,7 @@ private class IosAmountFormatter(private val locale: AppLocale) : AmountFormatte
         val fractionDigits = fractionDigitsNumber.intValue
         val decimalMinor = NSDecimalNumber(string = minor.toString())
         val major = decimalMinor.decimalNumberByMultiplyingByPowerOf10((-fractionDigits).toShort())
-        return formatter.stringFromNumber(major) ?: "${minor} $code"
+        return formatter.stringFromNumber(major) ?: "$minor $code"
     }
 
     private fun formatBitcoin(minor: Long): String {

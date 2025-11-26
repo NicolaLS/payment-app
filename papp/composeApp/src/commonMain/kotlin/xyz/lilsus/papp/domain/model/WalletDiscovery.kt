@@ -15,7 +15,7 @@ data class WalletDiscovery(
     val encryptionDefaultedToNip04: Boolean,
     val notifications: Set<String>,
     val network: String?,
-    val color: String?,
+    val color: String?
 )
 
 val WalletDiscovery.supportsPayInvoice: Boolean
@@ -37,5 +37,5 @@ fun WalletDiscovery.toMetadataSnapshot(): WalletMetadataSnapshot = WalletMetadat
     encryptionDefaultedToNip04 = encryptionDefaultedToNip04,
     notifications = notifications,
     network = network,
-    color = color,
+    color = color
 )

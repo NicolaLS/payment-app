@@ -13,18 +13,15 @@ import xyz.lilsus.papp.domain.use_cases.SetCurrencyPreferenceUseCase
 data class CurrencySettingsUiState(
     val selectedCode: String = CurrencyCatalog.DEFAULT_CODE,
     val searchQuery: String = "",
-    val options: List<CurrencyOption> = emptyList(),
+    val options: List<CurrencyOption> = emptyList()
 )
 
-data class CurrencyOption(
-    val code: String,
-    val label: String,
-)
+data class CurrencyOption(val code: String, val label: String)
 
 class CurrencySettingsViewModel internal constructor(
     private val observeCurrency: ObserveCurrencyPreferenceUseCase,
     private val setCurrency: SetCurrencyPreferenceUseCase,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)

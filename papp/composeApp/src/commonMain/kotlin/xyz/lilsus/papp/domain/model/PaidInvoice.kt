@@ -6,7 +6,4 @@ package xyz.lilsus.papp.domain.model
  * @param preimage Payment preimage returned by the NWC wallet.
  * @param feesPaidMsats Optional fees paid in millisatoshis.
  */
-data class PaidInvoice(
-    val preimage: String,
-    val feesPaidMsats: Long?,
-)
+data class PaidInvoice(val preimage: String, val feesPaidMsats: Long?)

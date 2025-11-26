@@ -1,20 +1,20 @@
 package xyz.lilsus.papp.presentation.main.amount
 
-import xyz.lilsus.papp.domain.model.CurrencyCatalog
-import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
-import xyz.lilsus.papp.presentation.main.components.RangeStatus
 import kotlin.test.Test
-import kotlin.test.assertFalse
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
+import xyz.lilsus.papp.presentation.main.components.RangeStatus
 
 class ManualAmountControllerTest {
 
     private val usdConfig = ManualAmountConfig(
         info = CurrencyCatalog.infoFor("USD"),
-        exchangeRate = 60_000.0,
+        exchangeRate = 60_000.0
     )
 
     @Test
@@ -50,7 +50,7 @@ class ManualAmountControllerTest {
                 min = usdDisplay(100), // $1.00
                 max = usdDisplay(500), // $5.00
                 minMsats = 1_500_000L,
-                maxMsats = 9_000_000L,
+                maxMsats = 9_000_000L
             )
         )
 
@@ -83,6 +83,6 @@ class ManualAmountControllerTest {
 
     private fun usdDisplay(minor: Long) = xyz.lilsus.papp.domain.model.DisplayAmount(
         minor = minor,
-        currency = usdConfig.info.currency,
+        currency = usdConfig.info.currency
     )
 }

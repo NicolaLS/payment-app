@@ -1,14 +1,13 @@
 package xyz.lilsus.papp.domain.format
 
-import xyz.lilsus.papp.domain.model.DisplayAmount
-import xyz.lilsus.papp.domain.model.DisplayCurrency
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
+import xyz.lilsus.papp.domain.model.DisplayAmount
+import xyz.lilsus.papp.domain.model.DisplayCurrency
 
-actual fun createAmountFormatter(locale: AppLocale): AmountFormatter =
-    AndroidAmountFormatter(locale)
+actual fun createAmountFormatter(locale: AppLocale): AmountFormatter = AndroidAmountFormatter(locale)
 
 private class AndroidAmountFormatter(private val locale: AppLocale) : AmountFormatter {
 

@@ -8,7 +8,7 @@ import androidx.compose.runtime.remember
 actual fun <T : Any> rememberRetainedInstance(
     key: String?,
     factory: () -> T,
-    onDispose: (T) -> Unit,
+    onDispose: (T) -> Unit
 ): T {
     val instance = if (key != null) {
         remember(key) { factory() }

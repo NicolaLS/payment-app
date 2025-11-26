@@ -34,6 +34,5 @@ fun BottomLayout(
                 style = MaterialTheme.typography.labelMedium
             )
         }
-
     }
 }

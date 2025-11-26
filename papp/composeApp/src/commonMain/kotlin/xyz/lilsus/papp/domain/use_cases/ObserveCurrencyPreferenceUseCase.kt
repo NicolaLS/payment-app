@@ -6,9 +6,7 @@ import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 
-class ObserveCurrencyPreferenceUseCase(
-    private val repository: CurrencyPreferencesRepository,
-) {
+class ObserveCurrencyPreferenceUseCase(private val repository: CurrencyPreferencesRepository) {
     operator fun invoke(): Flow<DisplayCurrency> = repository.currencyCode.map { code ->
         CurrencyCatalog.infoFor(code).currency
     }

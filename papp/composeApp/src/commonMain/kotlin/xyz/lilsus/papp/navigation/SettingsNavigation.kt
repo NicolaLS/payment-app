@@ -52,10 +52,7 @@ internal object SettingsManageWallets
 @Serializable
 internal object SettingsAddWallet
 
-fun NavGraphBuilder.settingsScreen(
-    navController: NavController,
-    onBack: () -> Unit = {},
-) {
+fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> Unit = {}) {
     navigation<SettingsSubNav>(startDestination = Settings) {
         composable<Settings> {
             SettingsOverviewEntry(navController = navController, onBack = onBack)
@@ -107,7 +104,7 @@ private fun WalletSettingsEntry(navController: NavController) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<WalletSettingsViewModel>() },
-        onDispose = { it.clear() },
+        onDispose = { it.clear() }
     )
 
     LaunchedEffect(viewModel) {
@@ -126,7 +123,7 @@ private fun WalletSettingsEntry(navController: NavController) {
         onBack = { navController.popBackStack() },
         onAddWallet = { navController.navigateToSettingsAddWallet() },
         onSelectWallet = { viewModel.selectWallet(it) },
-        onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) },
+        onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) }
     )
 }
 
@@ -135,7 +132,7 @@ private fun AddWalletEntry(navController: NavController) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<AddWalletViewModel>() },
-        onDispose = { it.clear() },
+        onDispose = { it.clear() }
     )
     val clipboard = LocalClipboardManager.current
     val state by viewModel.uiState.collectAsState()
@@ -194,7 +191,7 @@ private fun AddWalletEntry(navController: NavController) {
             onUriChange = viewModel::updateUri,
             onSubmit = viewModel::submit,
             controller = scannerController,
-            isCameraPermissionGranted = cameraPermission.hasPermission,
+            isCameraPermissionGranted = cameraPermission.hasPermission
         )
     }
 }
@@ -204,7 +201,7 @@ private fun CurrencySettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<CurrencySettingsViewModel>() },
-        onDispose = { it.clear() },
+        onDispose = { it.clear() }
     )
 
     val state by viewModel.uiState.collectAsState()
@@ -213,7 +210,7 @@ private fun CurrencySettingsEntry(onBack: () -> Unit) {
         state = state,
         onQueryChange = { viewModel.updateSearch(it) },
         onCurrencySelected = { viewModel.selectCurrency(it) },
-        onBack = onBack,
+        onBack = onBack
     )
 }
 
@@ -222,7 +219,7 @@ private fun LanguageSettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<LanguageSettingsViewModel>() },
-        onDispose = { it.clear() },
+        onDispose = { it.clear() }
     )
 
     val state by viewModel.uiState.collectAsState()
@@ -231,7 +228,7 @@ private fun LanguageSettingsEntry(onBack: () -> Unit) {
         state = state,
         onQueryChange = { viewModel.updateSearch(it) },
         onOptionSelected = { viewModel.selectOption(it) },
-        onBack = onBack,
+        onBack = onBack
     )
 }
 
@@ -240,7 +237,7 @@ private fun PaymentsSettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<PaymentsSettingsViewModel>() },
-        onDispose = { it.clear() },
+        onDispose = { it.clear() }
     )
 
     val state by viewModel.uiState.collectAsState()
@@ -252,7 +249,7 @@ private fun PaymentsSettingsEntry(onBack: () -> Unit) {
         onThresholdChanged = { threshold -> viewModel.updateThreshold(threshold) },
         onConfirmManualEntryChanged = { enabled -> viewModel.setConfirmManualEntry(enabled) },
         onVibrateOnScanChanged = { enabled -> viewModel.setVibrateOnScan(enabled) },
-        onVibrateOnPaymentChanged = { enabled -> viewModel.setVibrateOnPayment(enabled) },
+        onVibrateOnPaymentChanged = { enabled -> viewModel.setVibrateOnPayment(enabled) }
     )
 }
 
@@ -264,10 +261,12 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
     val observeLanguagePreference = remember { koin.get<ObserveLanguagePreferenceUseCase>() }
     val wallet by observeWalletConnection().collectAsState(initial = null)
     val subtitle = wallet?.let { formatWalletSubtitle(it) }
-    val currency by observeCurrencyPreference().collectAsState(initial = CurrencyCatalog.infoFor("SAT").currency)
+    val currency by observeCurrencyPreference().collectAsState(
+        initial = CurrencyCatalog.infoFor("SAT").currency
+    )
     val currencyLabel = stringResource(CurrencyCatalog.infoFor(currency).nameRes)
     val languagePreference by observeLanguagePreference().collectAsState(
-        initial = LanguagePreference.System(LanguageCatalog.fallback.tag),
+        initial = LanguagePreference.System(LanguageCatalog.fallback.tag)
     )
     val languageLabel = formatLanguageSubtitle(languagePreference)
 
@@ -279,17 +278,21 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         onLanguage = { navController.navigateToSettingsLanguage() },
         walletSubtitle = subtitle,
         currencySubtitle = currencyLabel,
-        languageSubtitle = languageLabel,
+        languageSubtitle = languageLabel
     )
 }
 
 private fun formatWalletSubtitle(connection: WalletConnection): String {
     connection.alias?.takeIf { it.isNotBlank() }?.let { return it }
     val key = connection.walletPublicKey
-    return if (key.length <= 12) key else buildString {
-        append(key.take(6))
-        append("…")
-        append(key.takeLast(4))
+    return if (key.length <= 12) {
+        key
+    } else {
+        buildString {
+            append(key.take(6))
+            append("…")
+            append(key.takeLast(4))
+        }
     }
 }
 
@@ -297,7 +300,11 @@ private fun formatWalletSubtitle(connection: WalletConnection): String {
 private fun formatLanguageSubtitle(preference: LanguagePreference): String {
     val resolvedName = resolveLanguageName(preference.resolvedTag)
     return when (preference) {
-        is LanguagePreference.System -> stringResource(Res.string.settings_language_system_default, resolvedName)
+        is LanguagePreference.System -> stringResource(
+            Res.string.settings_language_system_default,
+            resolvedName
+        )
+
         is LanguagePreference.Override -> resolveLanguageName(preference.overrideTag)
     }
 }

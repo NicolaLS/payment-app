@@ -19,33 +19,40 @@ import xyz.lilsus.papp.domain.repository.LnurlRepository
 class LnurlRepositoryImpl(
     private val client: HttpClient = createBaseHttpClient(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val json: Json = Json { ignoreUnknownKeys = true },
+    private val json: Json = Json { ignoreUnknownKeys = true }
 ) : LnurlRepository {
 
-    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> =
-        withContext(dispatcher) {
-            val url = endpoint.trim()
-            if (url.isEmpty()) {
-                return@withContext Result.Error(AppError.InvalidWalletUri("LNURL is blank"))
-            }
-            val parsedUrl = runCatching { Url(url) }.getOrNull()
-                ?: return@withContext Result.Error(AppError.InvalidWalletUri("LNURL is not a valid URL"))
-            try {
-                val response = client.get(url)
-                val body = response.body<String>()
-                parsePayParams(body, parsedUrl.host)
-            } catch (cause: Throwable) {
-                when (cause) {
-                    is io.ktor.utils.io.errors.IOException -> Result.Error(AppError.NetworkUnavailable, cause)
-                    else -> Result.Error(AppError.Unexpected(cause.message), cause)
-                }
+    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> = withContext(dispatcher) {
+        val url = endpoint.trim()
+        if (url.isEmpty()) {
+            return@withContext Result.Error(AppError.InvalidWalletUri("LNURL is blank"))
+        }
+        val parsedUrl = runCatching { Url(url) }.getOrNull()
+            ?: return@withContext Result.Error(
+                AppError.InvalidWalletUri("LNURL is not a valid URL")
+            )
+        try {
+            val response = client.get(url)
+            val body = response.body<String>()
+            parsePayParams(body, parsedUrl.host)
+        } catch (cause: Throwable) {
+            when (cause) {
+                is io.ktor.utils.io.errors.IOException -> Result.Error(
+                    AppError.NetworkUnavailable,
+                    cause
+                )
+
+                else -> Result.Error(AppError.Unexpected(cause.message), cause)
             }
         }
+    }
 
     override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> {
         val isOnion = address.domain.endsWith(".onion", ignoreCase = true)
         if (isOnion) {
-            return Result.Error(AppError.InvalidWalletUri("Lightning addresses require HTTPS endpoints"))
+            return Result.Error(
+                AppError.InvalidWalletUri("Lightning addresses require HTTPS endpoints")
+            )
         }
         val endpoint = buildAddressUrl(address)
         return fetchPayParams(endpoint)
@@ -54,7 +61,7 @@ class LnurlRepositoryImpl(
     override suspend fun requestInvoice(
         callback: String,
         amountMsats: Long,
-        comment: String?,
+        comment: String?
     ): Result<String> = withContext(dispatcher) {
         if (amountMsats <= 0) {
             return@withContext Result.Error(AppError.InvalidWalletUri("Amount must be positive"))
@@ -70,7 +77,11 @@ class LnurlRepositoryImpl(
             parseInvoice(body)
         } catch (cause: Throwable) {
             when (cause) {
-                is io.ktor.utils.io.errors.IOException -> Result.Error(AppError.NetworkUnavailable, cause)
+                is io.ktor.utils.io.errors.IOException -> Result.Error(
+                    AppError.NetworkUnavailable,
+                    cause
+                )
+
                 else -> Result.Error(AppError.Unexpected(cause.message), cause)
             }
         }
@@ -79,7 +90,9 @@ class LnurlRepositoryImpl(
     private fun parsePayParams(raw: String, domain: String): Result<LnurlPayParams> {
         val element = runCatching { json.parseToJsonElement(raw) }.getOrNull()
             ?: return Result.Error(AppError.InvalidWalletUri("LNURL pay response is not JSON"))
-        if (element is JsonObject && element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true) {
+        if (element is JsonObject &&
+            element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true
+        ) {
             val reason = element["reason"]?.jsonPrimitive?.contentOrNull
             return Result.Error(AppError.InvalidWalletUri(reason))
         }
@@ -115,7 +128,7 @@ class LnurlRepositoryImpl(
                 metadataRaw = metadataRaw,
                 metadata = metadata,
                 commentAllowed = commentAllowed,
-                domain = domain,
+                domain = domain
             )
         )
     }
@@ -155,28 +168,30 @@ class LnurlRepositoryImpl(
             imageJpeg = imageJpeg,
             identifier = identifier,
             email = email,
-            tag = tag,
+            tag = tag
         )
     }
 
     private fun parseInvoice(raw: String): Result<String> {
         val element = runCatching { json.parseToJsonElement(raw) }.getOrNull()
             ?: return Result.Error(AppError.InvalidWalletUri("LNURL invoice response is not JSON"))
-        if (element is JsonObject && element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true) {
+        if (element is JsonObject &&
+            element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true
+        ) {
             val reason = element["reason"]?.jsonPrimitive?.contentOrNull
             return Result.Error(AppError.InvalidWalletUri(reason))
         }
         if (element !is JsonObject) {
-            return Result.Error(AppError.InvalidWalletUri("LNURL invoice response must be an object"))
+            return Result.Error(
+                AppError.InvalidWalletUri("LNURL invoice response must be an object")
+            )
         }
         val invoice = element["pr"]?.jsonPrimitive?.contentOrNull
             ?: return Result.Error(AppError.InvalidWalletUri("LNURL invoice is missing"))
         return Result.Success(invoice)
     }
 
-    private fun JsonPrimitive.contentEquals(value: String): Boolean {
-        return contentOrNull?.equals(value, ignoreCase = true) == true
-    }
+    private fun JsonPrimitive.contentEquals(value: String): Boolean = contentOrNull?.equals(value, ignoreCase = true) == true
 
     private fun JsonPrimitive.longOrBigInt(): Long? {
         longOrNull?.let { return it }
@@ -203,17 +218,15 @@ class LnurlRepositoryImpl(
         return builder.toString()
     }
 
-    private fun buildAddressUrl(address: LightningAddress): String {
-        return buildString {
-            append("https://")
-            append(address.domain)
-            append("/.well-known/lnurlp/")
-            append(address.username)
-            address.tag?.let { tag ->
-                if (tag.isNotEmpty()) {
-                    append('+')
-                    append(tag)
-                }
+    private fun buildAddressUrl(address: LightningAddress): String = buildString {
+        append("https://")
+        append(address.domain)
+        append("/.well-known/lnurlp/")
+        append(address.username)
+        address.tag?.let { tag ->
+            if (tag.isNotEmpty()) {
+                append('+')
+                append(tag)
             }
         }
     }

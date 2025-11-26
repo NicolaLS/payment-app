@@ -19,7 +19,7 @@ private class IosLanguageRepository : LanguageRepository {
     private val observer = NSNotificationCenter.defaultCenter.addObserverForName(
         name = NSCurrentLocaleDidChangeNotification,
         `object` = null,
-        queue = null,
+        queue = null
     ) { _ ->
         _preference.value = currentPreference()
     }
@@ -46,7 +46,10 @@ private class IosLanguageRepository : LanguageRepository {
     }
 
     private fun notifyLocaleChanged() {
-        NSNotificationCenter.defaultCenter.postNotificationName(NSCurrentLocaleDidChangeNotification, null)
+        NSNotificationCenter.defaultCenter.postNotificationName(
+            NSCurrentLocaleDidChangeNotification,
+            null
+        )
         _preference.value = currentPreference()
     }
 
@@ -59,7 +62,7 @@ private class IosLanguageRepository : LanguageRepository {
             LanguagePreference.Override(
                 overrideTag = overrideTag,
                 resolvedTag = resolvedTag.replace('_', '-'),
-                deviceTag = deviceTag,
+                deviceTag = deviceTag
             )
         } else {
             LanguagePreference.System(resolvedTag = deviceTag)

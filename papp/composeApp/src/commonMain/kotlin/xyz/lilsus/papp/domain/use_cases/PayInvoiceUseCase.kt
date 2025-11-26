@@ -18,22 +18,19 @@ import xyz.lilsus.papp.domain.repository.NwcWalletRepository
  */
 class PayInvoiceUseCase(
     private val repository: NwcWalletRepository,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     /**
      * Attempts to pay the provided [invoice] and exposes the operation state as a [Flow].
      *
      * @param amountMsats Optional override for invoices that omit an amount.
      */
-    operator fun invoke(
-        invoice: String,
-        amountMsats: Long? = null,
-    ): Flow<Result<PaidInvoice>> = flow {
+    operator fun invoke(invoice: String, amountMsats: Long? = null): Flow<Result<PaidInvoice>> = flow {
         emit(Result.Loading)
         val payment = withContext(dispatcher) {
             repository.payInvoice(
                 invoice = invoice,
-                amountMsats = amountMsats,
+                amountMsats = amountMsats
             )
         }
         emit(Result.success(payment))

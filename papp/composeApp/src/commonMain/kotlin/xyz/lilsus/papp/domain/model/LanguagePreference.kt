@@ -11,6 +11,6 @@ sealed interface LanguagePreference {
     data class Override(
         val overrideTag: String,
         override val resolvedTag: String,
-        override val deviceTag: String,
+        override val deviceTag: String
     ) : LanguagePreference
 }

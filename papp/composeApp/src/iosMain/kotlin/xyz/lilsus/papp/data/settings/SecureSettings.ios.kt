@@ -7,6 +7,4 @@ import com.russhwolf.settings.Settings
 private const val SERVICE_NAME = "xyz.lilsus.papp.wallet"
 
 @OptIn(ExperimentalSettingsImplementation::class)
-actual fun createSecureSettings(): Settings {
-    return KeychainSettings(service = SERVICE_NAME)
-}
+actual fun createSecureSettings(): Settings = KeychainSettings(service = SERVICE_NAME)

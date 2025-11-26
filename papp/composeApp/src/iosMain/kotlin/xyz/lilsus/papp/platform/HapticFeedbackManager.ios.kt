@@ -15,7 +15,8 @@ private class IosHapticFeedbackManager : HapticFeedbackManager {
     }
 
     override fun notifyPaymentSuccess() {
-        val generator = UIImpactFeedbackGenerator(style = UIImpactFeedbackStyle.UIImpactFeedbackStyleHeavy)
+        val generator =
+            UIImpactFeedbackGenerator(style = UIImpactFeedbackStyle.UIImpactFeedbackStyleHeavy)
         generator.prepare()
         generator.impactOccurred()
 

@@ -42,7 +42,13 @@ class LightningInputParser {
                 }
             }
 
-            val beforeQuery = if (queryIndex == -1) withoutScheme else withoutScheme.substring(0, queryIndex)
+            val beforeQuery = if (queryIndex ==
+                -1
+            ) {
+                withoutScheme
+            } else {
+                withoutScheme.substring(0, queryIndex)
+            }
             if (looksLikeLnurl(beforeQuery)) {
                 return parseInternal(beforeQuery, allowBitcoinScheme = false)
             }
@@ -66,11 +72,24 @@ class LightningInputParser {
 
         val lnurlEndpoint = when {
             looksLikeLnurl(current) -> decodeBech32Lnurl(current)
-            current.startsWith("lnurlp://", ignoreCase = true) -> convertSchemeToHttps(current, "lnurlp")
-            current.startsWith("lnurlw://", ignoreCase = true) -> convertSchemeToHttps(current, "lnurlw")
-            current.startsWith("lnurl://", ignoreCase = true) -> convertSchemeToHttps(current, "lnurl")
+
+            current.startsWith(
+                "lnurlp://",
+                ignoreCase = true
+            ) -> convertSchemeToHttps(current, "lnurlp")
+
+            current.startsWith(
+                "lnurlw://",
+                ignoreCase = true
+            ) -> convertSchemeToHttps(current, "lnurlw")
+
+            current.startsWith(
+                "lnurl://",
+                ignoreCase = true
+            ) -> convertSchemeToHttps(current, "lnurl")
+
             current.startsWith("https://", ignoreCase = true) ||
-                    current.startsWith("http://", ignoreCase = true) -> current
+                current.startsWith("http://", ignoreCase = true) -> current
 
             else -> null
         }
@@ -133,14 +152,15 @@ class LightningInputParser {
         if (parts.size != 2) return false
         val (userPart, domainPart) = parts
         if (userPart.isEmpty() || domainPart.isEmpty()) return false
-        val usernameValid = userPart.all { it.isLowerCaseLetterOrDigit() || it in setOf('-', '_', '.', '+') }
+        val usernameValid = userPart.all {
+            it.isLowerCaseLetterOrDigit() ||
+                it in setOf('-', '_', '.', '+')
+        }
         val domainValid = domainPart.all { it.isLowerCaseLetterOrDigit() || it == '-' || it == '.' }
         return usernameValid && domainValid && domainPart.contains('.')
     }
 
-    private fun Char.isLowerCaseLetterOrDigit(): Boolean {
-        return this in 'a'..'z' || this in '0'..'9'
-    }
+    private fun Char.isLowerCaseLetterOrDigit(): Boolean = this in 'a'..'z' || this in '0'..'9'
 
     private fun toLightningAddress(raw: String): LightningAddress? {
         val parts = raw.lowercase().split('@')

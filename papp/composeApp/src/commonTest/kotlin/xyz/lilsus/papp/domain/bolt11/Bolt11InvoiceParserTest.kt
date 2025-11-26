@@ -94,25 +94,23 @@ class Bolt11InvoiceParserTest {
         assertEquals(250_000_000L, invoice.amountMsats)
     }
 
-    private fun Bolt11ParseResult.expectSuccess(): Bolt11InvoiceSummary {
-        return when (this) {
-            is Bolt11ParseResult.Success -> this.invoice
-            is Bolt11ParseResult.Failure -> fail("Expected success but got failure: $reason")
-        }
+    private fun Bolt11ParseResult.expectSuccess(): Bolt11InvoiceSummary = when (this) {
+        is Bolt11ParseResult.Success -> this.invoice
+        is Bolt11ParseResult.Failure -> fail("Expected success but got failure: $reason")
     }
 
-    private fun encode(value: String): String =
-        buildString(value.length * 2) {
-            value.forEach { ch ->
-                when (ch) {
-                    ' ' -> append('+')
-                    else -> {
-                        append('%')
-                        append(ch.code.toString(16).padStart(2, '0'))
-                    }
+    private fun encode(value: String): String = buildString(value.length * 2) {
+        value.forEach { ch ->
+            when (ch) {
+                ' ' -> append('+')
+
+                else -> {
+                    append('%')
+                    append(ch.code.toString(16).padStart(2, '0'))
                 }
             }
         }
+    }
 
     companion object {
         private const val SAMPLE_WITH_AMOUNT_AND_MEMO =

@@ -6,5 +6,5 @@ import androidx.compose.runtime.Composable
 expect fun <T : Any> rememberRetainedInstance(
     key: String? = null,
     factory: () -> T,
-    onDispose: (T) -> Unit = {},
+    onDispose: (T) -> Unit = {}
 ): T

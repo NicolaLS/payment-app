@@ -60,7 +60,7 @@ fun PaymentsSettingsScreen(
     onConfirmManualEntryChanged: (Boolean) -> Unit,
     onVibrateOnScanChanged: (Boolean) -> Unit,
     onVibrateOnPaymentChanged: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollState = rememberScrollState()
@@ -84,13 +84,13 @@ fun PaymentsSettingsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null,
+                            contentDescription = null
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior,
+                scrollBehavior = scrollBehavior
             )
-        },
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -105,32 +105,34 @@ fun PaymentsSettingsScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                tonalElevation = 6.dp,
+                tonalElevation = 6.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
                         text = stringResource(Res.string.settings_payments_confirm_label),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = thresholdText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     PaymentModeChips(selected = state.confirmationMode, onSelected = onModeSelected)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = stringResource(Res.string.settings_payments_confirm_manual_entry),
+                            text = stringResource(
+                                Res.string.settings_payments_confirm_manual_entry
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier
@@ -139,14 +141,14 @@ fun PaymentsSettingsScreen(
                         )
                         Switch(
                             checked = state.confirmManualEntry,
-                            onCheckedChange = onConfirmManualEntryChanged,
+                            onCheckedChange = onConfirmManualEntryChanged
                         )
                     }
                     if (state.confirmationMode == PaymentConfirmationMode.Above) {
                         Slider(
                             value = state.thresholdSats.toFloat(),
                             onValueChange = { onThresholdChanged(it.toLong()) },
-                            valueRange = state.minThreshold.toFloat()..state.maxThreshold.toFloat(),
+                            valueRange = state.minThreshold.toFloat()..state.maxThreshold.toFloat()
                         )
                     } else {
                         // keep layout height consistent
@@ -160,23 +162,23 @@ fun PaymentsSettingsScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                tonalElevation = 6.dp,
+                tonalElevation = 6.dp
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
                         text = stringResource(Res.string.settings_payments_haptics_title),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = stringResource(Res.string.settings_payments_haptics_scan),
@@ -188,13 +190,13 @@ fun PaymentsSettingsScreen(
                         )
                         Switch(
                             checked = state.vibrateOnScan,
-                            onCheckedChange = onVibrateOnScanChanged,
+                            onCheckedChange = onVibrateOnScanChanged
                         )
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = stringResource(Res.string.settings_payments_haptics_payment),
@@ -206,7 +208,7 @@ fun PaymentsSettingsScreen(
                         )
                         Switch(
                             checked = state.vibrateOnPayment,
-                            onCheckedChange = onVibrateOnPaymentChanged,
+                            onCheckedChange = onVibrateOnPaymentChanged
                         )
                     }
                 }
@@ -218,20 +220,20 @@ fun PaymentsSettingsScreen(
 @Composable
 private fun PaymentModeChips(
     selected: PaymentConfirmationMode,
-    onSelected: (PaymentConfirmationMode) -> Unit,
+    onSelected: (PaymentConfirmationMode) -> Unit
 ) {
     val options = listOf(
         PaymentConfirmationMode.Always to Res.string.settings_payments_option_always,
-        PaymentConfirmationMode.Above to Res.string.settings_payments_option_above,
+        PaymentConfirmationMode.Above to Res.string.settings_payments_option_above
     )
     Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         options.forEach { (mode, labelRes) ->
             FilterChip(
                 selected = selected == mode,
                 onClick = { onSelected(mode) },
-                label = { Text(stringResource(labelRes)) },
+                label = { Text(stringResource(labelRes)) }
             )
         }
     }
@@ -247,14 +249,14 @@ private fun PaymentsSettingsScreenPreview() {
                 thresholdSats = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
                 confirmManualEntry = true,
                 vibrateOnScan = true,
-                vibrateOnPayment = true,
+                vibrateOnPayment = true
             ),
             onBack = {},
             onModeSelected = {},
             onThresholdChanged = {},
             onConfirmManualEntryChanged = {},
             onVibrateOnScanChanged = {},
-            onVibrateOnPaymentChanged = {},
+            onVibrateOnPaymentChanged = {}
         )
     }
 }

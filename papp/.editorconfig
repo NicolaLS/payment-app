@@ -1,0 +1,24 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+ktlint_code_style = android_studio
+
+# Allow @Composable functions to use PascalCase (standard Compose convention)
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Allow wildcard imports for iOS platform APIs (standard KMP iOS interop)
+ij_kotlin_packages_to_use_import_on_demand = platform.**
+
+# Compose resources generate classes like `drawable`, `string` etc. (lowercase)
+ktlint_standard_class-naming = disabled
+
+# Line length - disabled as 100 chars is too restrictive for modern codebases
+ktlint_standard_max-line-length = disabled

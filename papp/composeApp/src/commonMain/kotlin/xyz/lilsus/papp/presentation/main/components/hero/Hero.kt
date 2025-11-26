@@ -33,16 +33,15 @@ private val arcs = listOf(
 )
 
 @Composable
-fun Hero(
-    modifier: Modifier = Modifier,
-    uiState: MainUiState,
-) {
+fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
     val color = when (uiState) {
         MainUiState.Active -> MaterialTheme.colorScheme.onSurfaceVariant
+
         is MainUiState.Detected, is MainUiState.Confirm, is MainUiState.EnterAmount,
         MainUiState.Loading -> MaterialTheme.colorScheme.primary
 
         is MainUiState.Success -> Color(0xFF4CAF50)
+
         is MainUiState.Error -> MaterialTheme.colorScheme.error
     }
 
@@ -99,7 +98,7 @@ fun Hero(
                                 color = animationState.color,
                                 size = size,
                                 cornerRadius = cornerRadius,
-                                topLeft = Offset(px, py),
+                                topLeft = Offset(px, py)
                             )
                         }
                     }

@@ -13,7 +13,7 @@ class WalletSettingsViewModel internal constructor(
     private val observeActiveWallet: ObserveWalletConnectionUseCase,
     private val setActiveWallet: SetActiveWalletUseCase,
     private val clearWalletConnection: ClearWalletConnectionUseCase,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
@@ -27,10 +27,15 @@ class WalletSettingsViewModel internal constructor(
         scope.launch {
             combine(
                 observeWallets(),
-                observeActiveWallet(),
+                observeActiveWallet()
             ) { wallets, active ->
                 WalletSettingsUiState(
-                    wallets = wallets.map { it.toDisplay(isActive = it.walletPublicKey == active?.walletPublicKey) }
+                    wallets = wallets.map {
+                        it.toDisplay(
+                            isActive =
+                                it.walletPublicKey == active?.walletPublicKey
+                        )
+                    }
                 )
             }.collect { state ->
                 _uiState.value = state
@@ -56,35 +61,28 @@ class WalletSettingsViewModel internal constructor(
         scope.cancel()
     }
 
-    private fun WalletConnection.toDisplay(isActive: Boolean): WalletRow {
-        return WalletRow(
-            wallet = WalletDisplay(
-                pubKey = walletPublicKey,
-                relay = relayUrl,
-                lud16 = lud16,
-                alias = alias,
-            ),
-            isActive = isActive,
-        )
-    }
+    private fun WalletConnection.toDisplay(isActive: Boolean): WalletRow = WalletRow(
+        wallet = WalletDisplay(
+            pubKey = walletPublicKey,
+            relay = relayUrl,
+            lud16 = lud16,
+            alias = alias
+        ),
+        isActive = isActive
+    )
 }
 
-data class WalletSettingsUiState(
-    val wallets: List<WalletRow> = emptyList(),
-) {
+data class WalletSettingsUiState(val wallets: List<WalletRow> = emptyList()) {
     val hasWallets: Boolean get() = wallets.isNotEmpty()
 }
 
-data class WalletRow(
-    val wallet: WalletDisplay,
-    val isActive: Boolean,
-)
+data class WalletRow(val wallet: WalletDisplay, val isActive: Boolean)
 
 data class WalletDisplay(
     val pubKey: String,
     val relay: String?,
     val lud16: String?,
-    val alias: String?,
+    val alias: String?
 )
 
 sealed interface WalletSettingsEvent {

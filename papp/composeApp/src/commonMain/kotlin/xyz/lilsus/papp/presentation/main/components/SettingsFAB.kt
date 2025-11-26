@@ -19,6 +19,5 @@ fun SettingsFAB(onNavigateSettings: () -> Unit) {
         elevation = FloatingActionButtonDefaults.elevation(0.dp)
     ) {
         Icon(Icons.Filled.Settings, "Settings")
-
     }
 }

@@ -19,14 +19,11 @@ import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConnectWalletDialog(
-    initialUri: String? = null,
-    onDismiss: () -> Unit,
-) {
+fun ConnectWalletDialog(initialUri: String? = null, onDismiss: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<ConnectWalletViewModel>() },
-        onDispose = { it.clear() },
+        onDispose = { it.clear() }
     )
 
     LaunchedEffect(initialUri) {
@@ -56,13 +53,13 @@ fun ConnectWalletDialog(
                 state = state,
                 onAliasChange = viewModel::updateAlias,
                 onSetActiveChange = viewModel::updateSetActive,
-                onRetryDiscovery = viewModel::retryDiscovery,
+                onRetryDiscovery = viewModel::retryDiscovery
             )
         },
         confirmButton = {
             TextButton(
                 onClick = { viewModel.confirm() },
-                enabled = state.discovery != null && !state.isSaving && !state.isDiscoveryLoading,
+                enabled = state.discovery != null && !state.isSaving && !state.isDiscoveryLoading
             ) {
                 if (state.isSaving) {
                     CircularProgressIndicator(
@@ -88,14 +85,14 @@ private fun ConnectWalletDialogContent(
     state: ConnectWalletUiState,
     onAliasChange: (String) -> Unit,
     onSetActiveChange: (Boolean) -> Unit,
-    onRetryDiscovery: () -> Unit,
+    onRetryDiscovery: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(scrollState),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(text = stringResource(Res.string.connect_wallet_description))
         state.discovery?.let { discovery ->
@@ -104,10 +101,11 @@ private fun ConnectWalletDialogContent(
 
         when {
             state.isDiscoveryLoading -> DiscoveryLoading()
+
             state.discovery != null -> DiscoveryDetails(
                 state = state,
                 onAliasChange = onAliasChange,
-                onSetActiveChange = onSetActiveChange,
+                onSetActiveChange = onSetActiveChange
             )
 
             else -> Unit
@@ -117,7 +115,7 @@ private fun ConnectWalletDialogContent(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = errorMessageFor(error),
-                    color = MaterialTheme.colorScheme.error,
+                    color = MaterialTheme.colorScheme.error
                 )
                 if (!state.isDiscoveryLoading && state.discovery == null) {
                     TextButton(onClick = onRetryDiscovery) {
@@ -134,7 +132,7 @@ private fun DiscoveryLoading() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
         Text(text = stringResource(Res.string.connect_wallet_loading))
@@ -145,7 +143,7 @@ private fun DiscoveryLoading() {
 private fun DiscoveryDetails(
     state: ConnectWalletUiState,
     onAliasChange: (String) -> Unit,
-    onSetActiveChange: (Boolean) -> Unit,
+    onSetActiveChange: (Boolean) -> Unit
 ) {
     val discovery = state.discovery ?: return
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -154,17 +152,17 @@ private fun DiscoveryDetails(
             onValueChange = onAliasChange,
             label = { Text(stringResource(Res.string.connect_wallet_alias_label)) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !state.isSaving,
+            enabled = !state.isSaving
         )
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Checkbox(
                 checked = state.setActive,
                 onCheckedChange = { onSetActiveChange(it) },
-                enabled = !state.isSaving,
+                enabled = !state.isSaving
             )
             Text(text = stringResource(Res.string.connect_wallet_set_active))
         }
@@ -173,12 +171,12 @@ private fun DiscoveryDetails(
 
         CapabilitySection(
             title = stringResource(Res.string.connect_wallet_details_methods),
-            values = discovery.methods,
+            values = discovery.methods
         )
 
         CapabilitySection(
             title = stringResource(Res.string.connect_wallet_details_encryption),
-            values = discovery.encryptionSchemes,
+            values = discovery.encryptionSchemes
         )
 
         discovery.activeEncryption?.let { scheme ->
@@ -188,7 +186,7 @@ private fun DiscoveryDetails(
                     formatEncryptionScheme(scheme)
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -200,26 +198,26 @@ private fun WalletSummary(discovery: WalletDiscovery) {
         Text(
             text = stringResource(Res.string.connect_wallet_details_pubkey),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = ellipsize(discovery.walletPublicKey),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium
         )
         discovery.relayUrl?.let { relay ->
             Spacer(Modifier.size(4.dp))
             Text(
                 text = stringResource(Res.string.connect_wallet_details_relay),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = relay,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
         discovery.lud16?.let { address ->
@@ -227,33 +225,30 @@ private fun WalletSummary(discovery: WalletDiscovery) {
             Text(
                 text = stringResource(Res.string.connect_wallet_details_lud16),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = address,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
 }
 
 @Composable
-private fun CapabilitySection(
-    title: String,
-    values: Set<String>,
-) {
+private fun CapabilitySection(title: String, values: Set<String>) {
     if (values.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = values.sorted().joinToString(separator = ", "),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium
         )
     }
 }
@@ -279,31 +274,29 @@ private fun WarningSection(discovery: WalletDiscovery) {
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
         shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = stringResource(Res.string.connect_wallet_warning_heading),
                 color = MaterialTheme.colorScheme.onErrorContainer,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelMedium
             )
             warnings.forEach { warning ->
                 Text(
                     text = warning,
                     color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
     }
 }
 
-private fun ellipsize(value: String): String {
-    return if (value.length <= 24) value else value.take(12) + "…" + value.takeLast(6)
-}
+private fun ellipsize(value: String): String = if (value.length <= 24) value else value.take(12) + "…" + value.takeLast(6)
 
 private fun formatEncryptionScheme(value: String): String = when (value.lowercase()) {
     "nip44_v2" -> "NIP-44 v2"

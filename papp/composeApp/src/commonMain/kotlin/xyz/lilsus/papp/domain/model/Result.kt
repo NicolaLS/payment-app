@@ -17,14 +17,10 @@ sealed class Result<out T> {
     /**
      * Emitted when an operation fails with the given [error].
      */
-    data class Error(
-        val error: AppError,
-        val cause: Throwable? = null,
-    ) : Result<Nothing>()
+    data class Error(val error: AppError, val cause: Throwable? = null) : Result<Nothing>()
 
     companion object {
         fun <T> success(data: T): Result<T> = Success(data)
-        fun error(error: AppError, cause: Throwable? = null): Result<Nothing> =
-            Error(error, cause)
+        fun error(error: AppError, cause: Throwable? = null): Result<Nothing> = Error(error, cause)
     }
 }

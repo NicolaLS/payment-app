@@ -36,8 +36,8 @@ open class Bolt11InvoiceParser {
             Bolt11InvoiceSummary(
                 paymentRequest = canonicalInvoice,
                 amountMsats = amount,
-                memo = memo,
-            ),
+                memo = memo
+            )
         )
     }
 
@@ -86,9 +86,13 @@ open class Bolt11InvoiceParser {
 
         val amountMsats = when (multiplier) {
             null -> parsedDigits.safeMultiply(MSATS_PER_BTC)
+
             'm' -> parsedDigits.safeMultiply(MSATS_PER_MILLI_BITCOIN)
+
             'u' -> parsedDigits.safeMultiply(MSATS_PER_MICRO_BITCOIN)
+
             'n' -> parsedDigits.safeMultiply(MSATS_PER_NANO_BITCOIN)
+
             'p' -> {
                 if (parsedDigits % 10 != 0L) {
                     return AmountResult.Failure("Pico bitcoin amounts must be divisible by 10")
@@ -207,6 +211,7 @@ open class Bolt11InvoiceParser {
         val lower = trimmed.lowercase()
         return when {
             lower.startsWith("lightning:") -> trimmed.substringAfter(':')
+
             lower.startsWith("bitcoin:") -> {
                 val afterPrefix = trimmed.substring(8)
                 val queryStart = afterPrefix.indexOf('?')
@@ -289,7 +294,7 @@ open class Bolt11InvoiceParser {
 data class Bolt11InvoiceSummary(
     val paymentRequest: String,
     val amountMsats: Long?,
-    val memo: Bolt11Memo,
+    val memo: Bolt11Memo
 )
 
 sealed class Bolt11Memo {

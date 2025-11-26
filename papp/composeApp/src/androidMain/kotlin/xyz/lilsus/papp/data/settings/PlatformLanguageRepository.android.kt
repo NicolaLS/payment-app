@@ -3,13 +3,13 @@ package xyz.lilsus.papp.data.settings
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import xyz.lilsus.papp.PappApplication
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.repository.LanguageRepository
-import java.util.Locale
 
 private class AndroidLanguageRepository : LanguageRepository {
 
@@ -19,7 +19,8 @@ private class AndroidLanguageRepository : LanguageRepository {
 
     override suspend fun setLanguage(tag: String) {
         val current = state.value
-        if (current is LanguagePreference.Override && current.overrideTag.equals(
+        if (current is LanguagePreference.Override &&
+            current.overrideTag.equals(
                 tag,
                 ignoreCase = true
             )
@@ -54,7 +55,7 @@ private class AndroidLanguageRepository : LanguageRepository {
             LanguagePreference.Override(
                 overrideTag = overrideTag.ifEmpty { resolvedTag },
                 resolvedTag = resolvedTag,
-                deviceTag = deviceTag,
+                deviceTag = deviceTag
             )
         }
     }

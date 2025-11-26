@@ -28,7 +28,7 @@ class NwcWalletRepositoryImpl(
     private val walletSettingsRepository: WalletSettingsRepository,
     private val clientFactory: NwcClientFactory,
     private val scope: CoroutineScope,
-    private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS,
+    private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS
 ) : NwcWalletRepository {
 
     private val clientMutex = Mutex()
@@ -56,10 +56,7 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    override suspend fun payInvoice(
-        invoice: String,
-        amountMsats: Long?,
-    ): PaidInvoice {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
@@ -73,9 +70,9 @@ class NwcWalletRepositoryImpl(
             handle.client.payInvoice(
                 params = PayInvoiceParams(
                     invoice = invoice,
-                    amount = amountMsats?.let(BitcoinAmount::fromMsats),
+                    amount = amountMsats?.let(BitcoinAmount::fromMsats)
                 ),
-                timeoutMillis = payTimeoutMillis,
+                timeoutMillis = payTimeoutMillis
             )
         } catch (cancellation: CancellationException) {
             throw cancellation
@@ -84,7 +81,7 @@ class NwcWalletRepositoryImpl(
         return when (result) {
             is NwcResult.Success -> PaidInvoice(
                 preimage = result.value.preimage,
-                feesPaidMsats = result.value.feesPaid?.msats,
+                feesPaidMsats = result.value.feesPaid?.msats
             )
 
             is NwcResult.Failure -> throw result.failure.toAppErrorException()

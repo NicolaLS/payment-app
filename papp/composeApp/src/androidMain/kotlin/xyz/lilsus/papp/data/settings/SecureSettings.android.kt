@@ -6,12 +6,12 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
-import xyz.lilsus.papp.PappApplication
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import xyz.lilsus.papp.PappApplication
 
 private const val KEY_ALIAS = "wallet_secure_key"
 private const val TRANSFORMATION = "AES/GCM/NoPadding"
@@ -26,16 +26,12 @@ actual fun createSecureSettings(): Settings {
     return EncryptedSettings(delegate)
 }
 
-private class EncryptedSettings(
-    private val delegate: Settings
-) : Settings by delegate {
+private class EncryptedSettings(private val delegate: Settings) : Settings by delegate {
     override fun putString(key: String, value: String) {
         delegate.putString(key, encrypt(value))
     }
 
-    override fun getString(key: String, defaultValue: String): String {
-        return getStringOrNull(key) ?: defaultValue
-    }
+    override fun getString(key: String, defaultValue: String): String = getStringOrNull(key) ?: defaultValue
 
     override fun getStringOrNull(key: String): String? {
         val encrypted = delegate.getStringOrNull(key) ?: return null

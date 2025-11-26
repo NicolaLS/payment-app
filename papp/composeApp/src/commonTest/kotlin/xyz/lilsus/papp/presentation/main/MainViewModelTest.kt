@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.presentation.main
 
+import kotlin.test.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -21,8 +22,6 @@ import xyz.lilsus.papp.domain.use_cases.*
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
-import kotlin.test.*
-import kotlin.time.Duration.Companion.seconds
 
 class MainViewModelTest {
     private lateinit var walletSettingsRepository: FakeWalletSettingsRepository
@@ -47,7 +46,7 @@ class MainViewModelTest {
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
                     amountMsats = null,
-                    memo = Bolt11Memo.None,
+                    memo = Bolt11Memo.None
                 )
             )
         )
@@ -70,7 +69,7 @@ class MainViewModelTest {
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
                     amountMsats = null,
-                    memo = Bolt11Memo.None,
+                    memo = Bolt11Memo.None
                 )
             )
         )
@@ -100,7 +99,7 @@ class MainViewModelTest {
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
                     amountMsats = null,
-                    memo = Bolt11Memo.None,
+                    memo = Bolt11Memo.None
                 )
             )
         )
@@ -116,7 +115,9 @@ class MainViewModelTest {
 
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            val success = viewModel.uiState.first {
+                it is MainUiState.Success
+            } as MainUiState.Success
             assertEquals(MANUAL_PAYMENT_REQUEST, repository.lastInvoice)
             assertEquals(123_000L, repository.lastAmountMsats)
             assertEquals(123L, success.amountPaid.minor)
@@ -132,7 +133,7 @@ class MainViewModelTest {
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
                     amountMsats = null,
-                    memo = Bolt11Memo.None,
+                    memo = Bolt11Memo.None
                 )
             )
         )
@@ -143,8 +144,8 @@ class MainViewModelTest {
             repository = repository,
             currencyCode = "USD",
             exchangeRateResult = Result.Success(
-                ExchangeRate(currencyCode = "USD", pricePerBitcoin = exchangeRate),
-            ),
+                ExchangeRate(currencyCode = "USD", pricePerBitcoin = exchangeRate)
+            )
         )
         try {
             viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
@@ -158,13 +159,15 @@ class MainViewModelTest {
 
             viewModel.uiState.first {
                 it is MainUiState.EnterAmount &&
-                        it.entry.amount?.minor == 3_000L &&
-                        it.entry.currency == DisplayCurrency.Fiat("USD")
+                    it.entry.amount?.minor == 3_000L &&
+                    it.entry.currency == DisplayCurrency.Fiat("USD")
             }
 
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            val success = viewModel.uiState.first {
+                it is MainUiState.Success
+            } as MainUiState.Success
             assertEquals(50_000_000L, repository.lastAmountMsats)
             assertEquals(DisplayCurrency.Fiat("USD"), success.amountPaid.currency)
             assertEquals(3_000L, success.amountPaid.minor)
@@ -180,7 +183,7 @@ class MainViewModelTest {
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
                     amountMsats = null,
-                    memo = Bolt11Memo.None,
+                    memo = Bolt11Memo.None
                 )
             )
         )
@@ -191,8 +194,8 @@ class MainViewModelTest {
             preferences = PaymentPreferences(
                 confirmationMode = PaymentConfirmationMode.Above,
                 thresholdSats = 50,
-                confirmManualEntry = true,
-            ),
+                confirmManualEntry = true
+            )
         )
         try {
             viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
@@ -204,7 +207,9 @@ class MainViewModelTest {
 
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val confirm = viewModel.uiState.first { it is MainUiState.Confirm } as MainUiState.Confirm
+            val confirm = viewModel.uiState.first {
+                it is MainUiState.Confirm
+            } as MainUiState.Confirm
             assertEquals(100L, confirm.amount.minor)
             assertNull(repository.lastInvoice)
 
@@ -225,7 +230,7 @@ class MainViewModelTest {
                 AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = AMOUNT_PAYMENT_REQUEST,
                     amountMsats = 250_000L,
-                    memo = Bolt11Memo.None,
+                    memo = Bolt11Memo.None
                 )
             )
         )
@@ -233,12 +238,14 @@ class MainViewModelTest {
         val viewModel = createViewModel(
             parser = parser,
             repository = repository,
-            preferences = PaymentPreferences(confirmationMode = PaymentConfirmationMode.Always),
+            preferences = PaymentPreferences(confirmationMode = PaymentConfirmationMode.Always)
         )
         try {
             viewModel.dispatch(MainIntent.InvoiceDetected(AMOUNT_INVOICE_INPUT))
 
-            val confirm = viewModel.uiState.first { it is MainUiState.Confirm } as MainUiState.Confirm
+            val confirm = viewModel.uiState.first {
+                it is MainUiState.Confirm
+            } as MainUiState.Confirm
             assertEquals(250L, confirm.amount.minor)
             assertNull(repository.lastInvoice)
 
@@ -260,7 +267,7 @@ class MainViewModelTest {
                     AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
                         paymentRequest = AMOUNT_PAYMENT_REQUEST,
                         amountMsats = 10_000L,
-                        memo = Bolt11Memo.None,
+                        memo = Bolt11Memo.None
                     )
                 )
             )
@@ -274,14 +281,14 @@ class MainViewModelTest {
 
                 assertEquals(
                     listOf(AMOUNT_PAYMENT_REQUEST to null),
-                    repository.invoices,
+                    repository.invoices
                 )
 
                 repository.complete()
                 viewModel.uiState.first { it is MainUiState.Success }
                 assertEquals(
                     listOf(AMOUNT_PAYMENT_REQUEST to null),
-                    repository.invoices,
+                    repository.invoices
                 )
             } finally {
                 repository.completeIfNeeded()
@@ -301,7 +308,7 @@ class MainViewModelTest {
             metadataRaw = LNURL_METADATA_RAW,
             metadata = LNURL_METADATA,
             commentAllowed = null,
-            domain = "example.com",
+            domain = "example.com"
         )
         val lnurlRepository = FakeLnurlRepository().apply {
             stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
@@ -312,7 +319,7 @@ class MainViewModelTest {
                 lnurlInvoice to Bolt11InvoiceSummary(
                     paymentRequest = lnurlInvoice,
                     amountMsats = amountMsats,
-                    memo = Bolt11Memo.Text("Payment"),
+                    memo = Bolt11Memo.Text("Payment")
                 )
             )
         )
@@ -320,12 +327,14 @@ class MainViewModelTest {
         val viewModel = createViewModel(
             parser = parser,
             repository = repository,
-            lnurlRepository = lnurlRepository,
+            lnurlRepository = lnurlRepository
         )
         try {
             viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
 
-            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            val success = viewModel.uiState.first {
+                it is MainUiState.Success
+            } as MainUiState.Success
             assertEquals(lnurlInvoice, repository.lastInvoice)
             // LNURL invoices already have amount embedded, so we shouldn't pass amount parameter
             assertEquals(null, repository.lastAmountMsats)
@@ -348,7 +357,7 @@ class MainViewModelTest {
             metadataRaw = LNURL_METADATA_RAW,
             metadata = LNURL_METADATA,
             commentAllowed = null,
-            domain = "example.com",
+            domain = "example.com"
         )
         val lnurlRepository = FakeLnurlRepository().apply {
             stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
@@ -359,7 +368,7 @@ class MainViewModelTest {
                 lnurlInvoice to Bolt11InvoiceSummary(
                     paymentRequest = lnurlInvoice,
                     amountMsats = chosenMsats,
-                    memo = Bolt11Memo.Text("Payment"),
+                    memo = Bolt11Memo.Text("Payment")
                 )
             )
         )
@@ -367,7 +376,7 @@ class MainViewModelTest {
         val viewModel = createViewModel(
             parser = parser,
             repository = repository,
-            lnurlRepository = lnurlRepository,
+            lnurlRepository = lnurlRepository
         )
         try {
             viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
@@ -376,7 +385,9 @@ class MainViewModelTest {
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(2)))
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            val success = viewModel.uiState.first {
+                it is MainUiState.Success
+            } as MainUiState.Success
             assertEquals(lnurlInvoice, repository.lastInvoice)
             // LNURL invoices already have amount embedded, so we shouldn't pass amount parameter
             assertEquals(null, repository.lastAmountMsats)
@@ -397,7 +408,7 @@ class MainViewModelTest {
             metadataRaw = LNURL_METADATA_RAW,
             metadata = LNURL_METADATA,
             commentAllowed = null,
-            domain = "example.com",
+            domain = "example.com"
         )
         val lnurlRepository = FakeLnurlRepository().apply {
             stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
@@ -409,9 +420,9 @@ class MainViewModelTest {
             repository = repository,
             currencyCode = "USD",
             exchangeRateResult = Result.Success(
-                ExchangeRate(currencyCode = "USD", pricePerBitcoin = 60_000.0),
+                ExchangeRate(currencyCode = "USD", pricePerBitcoin = 60_000.0)
             ),
-            lnurlRepository = lnurlRepository,
+            lnurlRepository = lnurlRepository
         )
         try {
             viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
@@ -432,19 +443,21 @@ class MainViewModelTest {
         preferences: PaymentPreferences = PaymentPreferences(),
         currencyCode: String = CurrencyCatalog.DEFAULT_CODE,
         exchangeRateResult: Result<ExchangeRate>? = null,
-        lnurlRepository: FakeLnurlRepository = FakeLnurlRepository(),
+        lnurlRepository: FakeLnurlRepository = FakeLnurlRepository()
     ): MainViewModel {
         val payInvoice = PayInvoiceUseCase(repository, dispatcher = dispatcher)
         val paymentPreferencesRepository = FakePaymentPreferencesRepository(preferences)
         val shouldConfirm = ShouldConfirmPaymentUseCase(paymentPreferencesRepository)
         val currencyPreferencesRepository = FakeCurrencyPreferencesRepository(currencyCode)
-        val observeCurrencyPreference = ObserveCurrencyPreferenceUseCase(currencyPreferencesRepository)
+        val observeCurrencyPreference =
+            ObserveCurrencyPreferenceUseCase(currencyPreferencesRepository)
         val exchangeRateRepository = FakeExchangeRateRepository(exchangeRateResult)
         val getExchangeRate = GetExchangeRateUseCase(exchangeRateRepository)
         val fetchLnurl = FetchLnurlPayParamsUseCase(lnurlRepository)
         val resolveLightningAddress = ResolveLightningAddressUseCase(lnurlRepository)
         val requestLnurlInvoice = RequestLnurlInvoiceUseCase(lnurlRepository)
-        val observePaymentPreferences = ObservePaymentPreferencesUseCase(paymentPreferencesRepository)
+        val observePaymentPreferences =
+            ObservePaymentPreferencesUseCase(paymentPreferencesRepository)
         val haptics = object : xyz.lilsus.papp.platform.HapticFeedbackManager {
             override fun notifyScanSuccess() {}
             override fun notifyPaymentSuccess() {}
@@ -452,7 +465,7 @@ class MainViewModelTest {
         val manualAmount = ManualAmountController(
             ManualAmountConfig(
                 info = CurrencyCatalog.infoFor(currencyCode),
-                exchangeRate = null,
+                exchangeRate = null
             )
         )
         return MainViewModel(
@@ -469,7 +482,7 @@ class MainViewModelTest {
             requestLnurlInvoice = requestLnurlInvoice,
             observePaymentPreferences = observePaymentPreferences,
             haptics = haptics,
-            dispatcher = dispatcher,
+            dispatcher = dispatcher
         )
     }
 }
@@ -480,7 +493,7 @@ private const val AMOUNT_INVOICE_INPUT = "amount-invoice"
 private const val AMOUNT_PAYMENT_REQUEST = "lnbc1amount"
 
 private class RecordingNwcWalletRepository(
-    private val result: PaidInvoice = PaidInvoice(preimage = "preimage", feesPaidMsats = 5_000L),
+    private val result: PaidInvoice = PaidInvoice(preimage = "preimage", feesPaidMsats = 5_000L)
 ) : NwcWalletRepository {
     var lastInvoice: String? = null
         private set
@@ -504,29 +517,27 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
         return completion.await()
     }
 
-    fun complete(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
+    fun complete(
+        result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)
+    ) {
         completeIfNeeded(result)
     }
 
-    fun completeIfNeeded(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
+    fun completeIfNeeded(
+        result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)
+    ) {
         if (!completion.isCompleted) {
             completion.complete(result)
         }
     }
 }
 
-private class FakeBolt11InvoiceParser(
-    private val summaries: Map<String, Bolt11InvoiceSummary>,
-) : Bolt11InvoiceParser() {
-    override fun parse(invoice: String): Bolt11ParseResult {
-        return summaries[invoice]?.let { Bolt11ParseResult.Success(it) }
-            ?: Bolt11ParseResult.Failure("Invoice not stubbed: $invoice")
-    }
+private class FakeBolt11InvoiceParser(private val summaries: Map<String, Bolt11InvoiceSummary>) : Bolt11InvoiceParser() {
+    override fun parse(invoice: String): Bolt11ParseResult = summaries[invoice]?.let { Bolt11ParseResult.Success(it) }
+        ?: Bolt11ParseResult.Failure("Invoice not stubbed: $invoice")
 }
 
-private class FakePaymentPreferencesRepository(
-    initial: PaymentPreferences,
-) : PaymentPreferencesRepository {
+private class FakePaymentPreferencesRepository(initial: PaymentPreferences) : PaymentPreferencesRepository {
     private val state = MutableStateFlow(initial)
     override val preferences: Flow<PaymentPreferences> = state
 
@@ -553,9 +564,7 @@ private class FakePaymentPreferencesRepository(
     }
 }
 
-private class FakeCurrencyPreferencesRepository(
-    initialCode: String,
-) : CurrencyPreferencesRepository {
+private class FakeCurrencyPreferencesRepository(initialCode: String) : CurrencyPreferencesRepository {
     private val initial = CurrencyCatalog.infoFor(initialCode).code
     private val state = MutableStateFlow(initial)
     override val currencyCode: Flow<String> = state
@@ -570,7 +579,7 @@ private class FakeCurrencyPreferencesRepository(
 private class FakeLnurlRepository(
     private val endpointResponses: MutableMap<String, Result<LnurlPayParams>> = mutableMapOf(),
     private val addressResponses: MutableMap<String, Result<LnurlPayParams>> = mutableMapOf(),
-    private val invoiceResponses: MutableMap<String, Result<String>> = mutableMapOf(),
+    private val invoiceResponses: MutableMap<String, Result<String>> = mutableMapOf()
 ) : LnurlRepository {
 
     fun stubEndpoint(endpoint: String, result: Result<LnurlPayParams>) {
@@ -585,29 +594,25 @@ private class FakeLnurlRepository(
         invoiceResponses["$callback:$amountMsats"] = result
     }
 
-    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> {
-        return endpointResponses[endpoint]
-            ?: Result.Error(AppError.InvalidWalletUri("LNURL not stubbed: $endpoint"))
-    }
+    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> = endpointResponses[endpoint]
+        ?: Result.Error(AppError.InvalidWalletUri("LNURL not stubbed: $endpoint"))
 
-    override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> {
-        return addressResponses[address.full]
-            ?: Result.Error(AppError.InvalidWalletUri("Lightning address not stubbed: ${address.full}"))
-    }
+    override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> = addressResponses[address.full]
+        ?: Result.Error(
+            AppError.InvalidWalletUri("Lightning address not stubbed: ${address.full}")
+        )
 
-    override suspend fun requestInvoice(callback: String, amountMsats: Long, comment: String?): Result<String> {
-        return invoiceResponses["$callback:$amountMsats"]
-            ?: invoiceResponses[callback]
-            ?: Result.Error(AppError.InvalidWalletUri("Invoice not stubbed"))
-    }
+    override suspend fun requestInvoice(
+        callback: String,
+        amountMsats: Long,
+        comment: String?
+    ): Result<String> = invoiceResponses["$callback:$amountMsats"]
+        ?: invoiceResponses[callback]
+        ?: Result.Error(AppError.InvalidWalletUri("Invoice not stubbed"))
 }
 
-private class FakeExchangeRateRepository(
-    private val result: Result<ExchangeRate>?,
-) : ExchangeRateRepository {
-    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> {
-        return result ?: Result.Error(AppError.Unexpected("Missing stub for $currencyCode"))
-    }
+private class FakeExchangeRateRepository(private val result: Result<ExchangeRate>?) : ExchangeRateRepository {
+    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> = result ?: Result.Error(AppError.Unexpected("Missing stub for $currencyCode"))
 }
 
 private class FakeWalletSettingsRepository : WalletSettingsRepository {
@@ -657,6 +662,6 @@ private val LNURL_METADATA = LnurlPayMetadata(
     imageJpeg = null,
     identifier = null,
     email = null,
-    tag = null,
+    tag = null
 )
 private const val MSATS_PER_SAT = 1_000L

@@ -17,14 +17,10 @@ data class LanguageSettingsUiState(
     val searchQuery: String = "",
     val selectedCode: String = "",
     val deviceCode: String = "",
-    val options: List<LanguageOption> = emptyList(),
+    val options: List<LanguageOption> = emptyList()
 )
 
-data class LanguageOption(
-    val id: String,
-    val title: String,
-    val tag: String?,
-)
+data class LanguageOption(val id: String, val title: String, val tag: String?)
 
 class LanguageSettingsViewModel internal constructor(
     private val observeLanguage: ObserveLanguagePreferenceUseCase,
@@ -32,7 +28,9 @@ class LanguageSettingsViewModel internal constructor(
     private val clearOverride: ClearLanguageOverrideUseCase,
     private val refreshLanguage: RefreshLanguagePreferenceUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Main,
-    private val languageLabelProvider: suspend (LanguageInfo) -> String = { info -> info.displayName },
+    private val languageLabelProvider: suspend (
+        LanguageInfo
+    ) -> String = { info -> info.displayName }
 ) {
 
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -54,7 +52,7 @@ class LanguageSettingsViewModel internal constructor(
                 _uiState.value = _uiState.value.copy(
                     options = options,
                     selectedCode = selectedCode,
-                    deviceCode = deviceCode,
+                    deviceCode = deviceCode
                 )
             }
         }
@@ -65,7 +63,7 @@ class LanguageSettingsViewModel internal constructor(
         LanguageOption(
             id = info.code,
             title = label,
-            tag = info.tag,
+            tag = info.tag
         )
     }
 

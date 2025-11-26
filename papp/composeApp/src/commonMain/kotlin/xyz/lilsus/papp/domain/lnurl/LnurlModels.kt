@@ -3,11 +3,7 @@ package xyz.lilsus.papp.domain.lnurl
 /**
  * Represents a user-facing lightning address (LUD-16) in the form `name@domain`.
  */
-data class LightningAddress(
-    val username: String,
-    val domain: String,
-    val tag: String? = null,
-) {
+data class LightningAddress(val username: String, val domain: String, val tag: String? = null) {
     val full: String
         get() = buildString {
             append(username)
@@ -27,7 +23,7 @@ data class LnurlPayMetadata(
     val imageJpeg: String?,
     val identifier: String?,
     val email: String?,
-    val tag: String?,
+    val tag: String?
 )
 
 /**
@@ -40,5 +36,5 @@ data class LnurlPayParams(
     val metadataRaw: String,
     val metadata: LnurlPayMetadata,
     val commentAllowed: Int?,
-    val domain: String,
+    val domain: String
 )
