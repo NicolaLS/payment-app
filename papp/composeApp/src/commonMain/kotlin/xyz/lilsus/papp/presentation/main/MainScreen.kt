@@ -2,7 +2,11 @@ package xyz.lilsus.papp.presentation.main
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,7 +24,13 @@ import papp.composeapp.generated.resources.app_name_long
 import papp.composeapp.generated.resources.point_camera_message_subtitle
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
-import xyz.lilsus.papp.presentation.main.components.*
+import xyz.lilsus.papp.presentation.main.components.BottomLayout
+import xyz.lilsus.papp.presentation.main.components.ConfirmationBottomSheet
+import xyz.lilsus.papp.presentation.main.components.ManualAmountBottomSheet
+import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
+import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
+import xyz.lilsus.papp.presentation.main.components.ResultLayout
+import xyz.lilsus.papp.presentation.main.components.SettingsFAB
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
 import xyz.lilsus.papp.presentation.theme.AppTheme
 

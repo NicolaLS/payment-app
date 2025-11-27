@@ -15,10 +15,10 @@ ktlint_code_style = android_studio
 ktlint_function_naming_ignore_when_annotated_with = Composable
 
 # Allow wildcard imports for iOS platform APIs (standard KMP iOS interop)
-ij_kotlin_packages_to_use_import_on_demand = platform.**
+ij_kotlin_packages_to_use_import_on_demand = platform.**, kotlinx.cinterop.**
 
-# Compose resources generate classes like `drawable`, `string` etc. (lowercase)
-ktlint_standard_class-naming = disabled
+[**/commonTest/**/*.kt]
+max_line_length = 140
 
-# Line length - disabled as 100 chars is too restrictive for modern codebases
-ktlint_standard_max-line-length = disabled
+[**/build/**/*.kt]
+ktlint = disabled

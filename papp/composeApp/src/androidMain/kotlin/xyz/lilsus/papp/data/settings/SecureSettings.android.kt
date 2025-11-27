@@ -31,7 +31,8 @@ private class EncryptedSettings(private val delegate: Settings) : Settings by de
         delegate.putString(key, encrypt(value))
     }
 
-    override fun getString(key: String, defaultValue: String): String = getStringOrNull(key) ?: defaultValue
+    override fun getString(key: String, defaultValue: String): String =
+        getStringOrNull(key) ?: defaultValue
 
     override fun getStringOrNull(key: String): String? {
         val encrypted = delegate.getStringOrNull(key) ?: return null

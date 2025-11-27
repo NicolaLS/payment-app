@@ -5,7 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.dialog
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
-import xyz.lilsus.papp.presentation.add_connection.ConnectWalletDialog
+import xyz.lilsus.papp.presentation.addconnection.ConnectWalletDialog
 
 @Serializable
 internal data class ConnectWallet(

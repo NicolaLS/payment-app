@@ -5,7 +5,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import xyz.lilsus.papp.navigation.*
+import xyz.lilsus.papp.navigation.DeepLinkEvents
+import xyz.lilsus.papp.navigation.Pay
+import xyz.lilsus.papp.navigation.connectWalletDialog
+import xyz.lilsus.papp.navigation.navigateToConnectWallet
+import xyz.lilsus.papp.navigation.navigateToSettings
+import xyz.lilsus.papp.navigation.paymentScreen
+import xyz.lilsus.papp.navigation.settingsScreen
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @Composable

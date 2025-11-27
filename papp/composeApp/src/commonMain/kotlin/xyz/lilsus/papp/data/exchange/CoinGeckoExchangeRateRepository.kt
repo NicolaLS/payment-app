@@ -35,34 +35,35 @@ class CoinGeckoExchangeRateRepository(
 
     private data class CachedRate(val rate: ExchangeRate, val timestampMs: Long)
 
-    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> = withContext(dispatcher) {
-        val normalized = currencyCode.uppercase()
+    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> =
+        withContext(dispatcher) {
+            val normalized = currencyCode.uppercase()
 
-        // Check cache first
-        cacheMutex.withLock {
-            cache[normalized]?.let { cached ->
-                val now = currentTimeMillis()
-                if (now - cached.timestampMs < CACHE_TTL_MS) {
-                    return@withContext Result.Success(cached.rate)
+            // Check cache first
+            cacheMutex.withLock {
+                cache[normalized]?.let { cached ->
+                    val now = currentTimeMillis()
+                    if (now - cached.timestampMs < CACHE_TTL_MS) {
+                        return@withContext Result.Success(cached.rate)
+                    }
                 }
             }
-        }
 
-        // Fetch from network
-        val result = fetchFromNetwork(currencyCode)
+            // Fetch from network
+            val result = fetchFromNetwork(currencyCode)
 
-        // Cache successful results
-        if (result is Result.Success) {
-            cacheMutex.withLock {
-                cache[normalized] = CachedRate(
-                    rate = result.data,
-                    timestampMs = currentTimeMillis()
-                )
+            // Cache successful results
+            if (result is Result.Success) {
+                cacheMutex.withLock {
+                    cache[normalized] = CachedRate(
+                        rate = result.data,
+                        timestampMs = currentTimeMillis()
+                    )
+                }
             }
-        }
 
-        result
-    }
+            result
+        }
 
     private suspend fun fetchFromNetwork(currencyCode: String): Result<ExchangeRate> {
         val normalized = currencyCode.lowercase()

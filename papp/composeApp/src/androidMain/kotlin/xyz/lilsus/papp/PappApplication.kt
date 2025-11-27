@@ -12,10 +12,11 @@ class PappApplication :
     Application(),
     CameraXConfig.Provider {
 
-    override fun getCameraXConfig(): CameraXConfig = CameraXConfig.Builder.fromConfig(Camera2Config.defaultConfig())
-        // Reduce startup latency for the cameras the application uses.
-        .setAvailableCamerasLimiter(CameraSelector.DEFAULT_BACK_CAMERA)
-        .build()
+    override fun getCameraXConfig(): CameraXConfig =
+        CameraXConfig.Builder.fromConfig(Camera2Config.defaultConfig())
+            // Reduce startup latency for the cameras the application uses.
+            .setAvailableCamerasLimiter(CameraSelector.DEFAULT_BACK_CAMERA)
+            .build()
 
     override fun onCreate() {
         super.onCreate()

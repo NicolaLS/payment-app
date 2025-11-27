@@ -1,11 +1,28 @@
 package xyz.lilsus.papp.presentation.settings
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,7 +31,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import papp.composeapp.generated.resources.*
+import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.settings_manage_wallets_active
+import papp.composeapp.generated.resources.settings_manage_wallets_add
+import papp.composeapp.generated.resources.settings_manage_wallets_placeholder
+import papp.composeapp.generated.resources.settings_manage_wallets_remove
+import papp.composeapp.generated.resources.settings_manage_wallets_set_active
+import papp.composeapp.generated.resources.settings_manage_wallets_title
 import xyz.lilsus.papp.presentation.settings.wallet.WalletDisplay
 import xyz.lilsus.papp.presentation.settings.wallet.WalletRow
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsUiState
@@ -231,4 +254,10 @@ private fun ManageWalletsScreenPreview() {
     }
 }
 
-private fun abbreviateKey(value: String): String = if (value.length <= 16) value else value.take(8) + "…" + value.takeLast(4)
+private fun abbreviateKey(value: String): String = if (value.length <=
+    16
+) {
+    value
+} else {
+    value.take(8) + "…" + value.takeLast(4)
+}

@@ -11,10 +11,10 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.repository.LanguageRepository
-import xyz.lilsus.papp.domain.use_cases.ClearLanguageOverrideUseCase
-import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
-import xyz.lilsus.papp.domain.use_cases.RefreshLanguagePreferenceUseCase
-import xyz.lilsus.papp.domain.use_cases.SetLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ClearLanguageOverrideUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.RefreshLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.SetLanguagePreferenceUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LanguageSettingsViewModelTest {

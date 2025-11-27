@@ -7,7 +7,8 @@ import java.util.Locale
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 
-actual fun createAmountFormatter(locale: AppLocale): AmountFormatter = AndroidAmountFormatter(locale)
+actual fun createAmountFormatter(locale: AppLocale): AmountFormatter =
+    AndroidAmountFormatter(locale)
 
 private class AndroidAmountFormatter(private val locale: AppLocale) : AmountFormatter {
 

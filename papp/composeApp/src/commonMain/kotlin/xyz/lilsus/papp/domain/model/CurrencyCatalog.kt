@@ -1,7 +1,16 @@
 package xyz.lilsus.papp.domain.model
 
 import org.jetbrains.compose.resources.StringResource
-import papp.composeapp.generated.resources.*
+import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.settings_currency_aud
+import papp.composeapp.generated.resources.settings_currency_bitcoin
+import papp.composeapp.generated.resources.settings_currency_cad
+import papp.composeapp.generated.resources.settings_currency_chf
+import papp.composeapp.generated.resources.settings_currency_eur
+import papp.composeapp.generated.resources.settings_currency_gbp
+import papp.composeapp.generated.resources.settings_currency_jpy
+import papp.composeapp.generated.resources.settings_currency_satoshi
+import papp.composeapp.generated.resources.settings_currency_usd
 
 data class CurrencyInfo(
     val code: String,

@@ -1,17 +1,22 @@
 package xyz.lilsus.papp.presentation.settings
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.model.LanguageCatalog
 import xyz.lilsus.papp.domain.model.LanguageInfo
 import xyz.lilsus.papp.domain.model.LanguagePreference
-import xyz.lilsus.papp.domain.use_cases.ClearLanguageOverrideUseCase
-import xyz.lilsus.papp.domain.use_cases.ObserveLanguagePreferenceUseCase
-import xyz.lilsus.papp.domain.use_cases.RefreshLanguagePreferenceUseCase
-import xyz.lilsus.papp.domain.use_cases.SetLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ClearLanguageOverrideUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.RefreshLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.SetLanguagePreferenceUseCase
 
 data class LanguageSettingsUiState(
     val searchQuery: String = "",
@@ -58,14 +63,15 @@ class LanguageSettingsViewModel internal constructor(
         }
     }
 
-    private suspend fun loadLanguageOptions(): List<LanguageOption> = LanguageCatalog.supported.map { info ->
-        val label = languageLabelProvider(info)
-        LanguageOption(
-            id = info.code,
-            title = label,
-            tag = info.tag
-        )
-    }
+    private suspend fun loadLanguageOptions(): List<LanguageOption> =
+        LanguageCatalog.supported.map { info ->
+            val label = languageLabelProvider(info)
+            LanguageOption(
+                id = info.code,
+                title = label,
+                tag = info.tag
+            )
+        }
 
     private fun normaliseCode(tag: String): String {
         LanguageCatalog.infoForTag(tag)?.let { return it.code }

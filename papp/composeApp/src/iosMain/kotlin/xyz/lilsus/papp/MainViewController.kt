@@ -5,6 +5,7 @@ import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatformTools
 import xyz.lilsus.papp.di.nwcModule
 
+@Suppress("ktlint:standard:function-naming")
 fun MainViewController() = ComposeUIViewController {
     ensureKoin()
     App()

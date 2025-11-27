@@ -29,7 +29,8 @@ actual fun <T : Any> rememberRetainedInstance(
     return holder.delegate
 }
 
-private class RetainedHolder<T : Any>(val delegate: T, private val onDispose: (T) -> Unit) : ViewModel() {
+private class RetainedHolder<T : Any>(val delegate: T, private val onDispose: (T) -> Unit) :
+    ViewModel() {
     override fun onCleared() {
         onDispose(delegate)
         super.onCleared()

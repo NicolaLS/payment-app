@@ -1,11 +1,16 @@
 package xyz.lilsus.papp.data.nwc
 
-import io.github.nostr.nwc.*
+import io.github.nostr.nwc.NwcEncryptionException
+import io.github.nostr.nwc.NwcException
+import io.github.nostr.nwc.NwcProtocolException
+import io.github.nostr.nwc.NwcRequestException
+import io.github.nostr.nwc.NwcTimeoutException
 import io.github.nostr.nwc.model.NwcFailure
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 
-internal fun NwcFailure.toAppErrorException(): AppErrorException = AppErrorException(toAppError(), toCause())
+internal fun NwcFailure.toAppErrorException(): AppErrorException =
+    AppErrorException(toAppError(), toCause())
 
 private fun NwcFailure.toAppError(): AppError = when (this) {
     NwcFailure.None -> AppError.Unexpected()

@@ -2,7 +2,12 @@ package xyz.lilsus.papp.presentation.main.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -13,7 +18,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import papp.composeapp.generated.resources.*
+import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.result_error_title
+import papp.composeapp.generated.resources.result_paid_fee
+import papp.composeapp.generated.resources.result_paid_title
+import papp.composeapp.generated.resources.tap_continue
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.DisplayAmount

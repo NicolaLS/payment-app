@@ -4,7 +4,11 @@ import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -149,8 +153,9 @@ class WalletSettingsRepositoryImpl(
         val wallets: List<WalletConnection> = emptyList(),
         val activePubKey: String? = null
     ) {
-        fun activeWallet(): WalletConnection? = activePubKey?.let { key -> wallets.firstOrNull { it.walletPublicKey == key } }
-            ?: wallets.firstOrNull()
+        fun activeWallet(): WalletConnection? =
+            activePubKey?.let { key -> wallets.firstOrNull { it.walletPublicKey == key } }
+                ?: wallets.firstOrNull()
 
         fun normalise(): WalletState {
             if (wallets.isEmpty()) return WalletState()

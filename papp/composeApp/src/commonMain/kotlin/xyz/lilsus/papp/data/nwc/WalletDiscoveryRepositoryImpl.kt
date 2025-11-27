@@ -6,8 +6,13 @@ import io.github.nostr.nwc.NwcUri
 import io.github.nostr.nwc.model.Network
 import io.github.nostr.nwc.model.NwcResult
 import io.github.nostr.nwc.model.NwcWalletDescriptor
-import io.ktor.client.*
-import kotlinx.coroutines.*
+import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.withContext
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletDiscovery

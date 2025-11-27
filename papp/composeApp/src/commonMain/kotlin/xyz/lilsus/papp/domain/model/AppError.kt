@@ -41,4 +41,5 @@ sealed class AppError {
 /**
  * Exception type used for propagating [AppError] across coroutine boundaries.
  */
-class AppErrorException(val error: AppError, cause: Throwable? = null) : Exception(error.toString(), cause)
+class AppErrorException(val error: AppError, cause: Throwable? = null) :
+    Exception(error.toString(), cause)

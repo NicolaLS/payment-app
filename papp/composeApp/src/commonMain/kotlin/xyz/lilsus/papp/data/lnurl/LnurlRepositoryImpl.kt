@@ -1,13 +1,22 @@
 package xyz.lilsus.papp.data.lnurl
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.http.Url
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import xyz.lilsus.papp.data.network.createBaseHttpClient
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.lnurl.LnurlPayMetadata
@@ -22,30 +31,31 @@ class LnurlRepositoryImpl(
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) : LnurlRepository {
 
-    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> = withContext(dispatcher) {
-        val url = endpoint.trim()
-        if (url.isEmpty()) {
-            return@withContext Result.Error(AppError.InvalidWalletUri("LNURL is blank"))
-        }
-        val parsedUrl = runCatching { Url(url) }.getOrNull()
-            ?: return@withContext Result.Error(
-                AppError.InvalidWalletUri("LNURL is not a valid URL")
-            )
-        try {
-            val response = client.get(url)
-            val body = response.body<String>()
-            parsePayParams(body, parsedUrl.host)
-        } catch (cause: Throwable) {
-            when (cause) {
-                is io.ktor.utils.io.errors.IOException -> Result.Error(
-                    AppError.NetworkUnavailable,
-                    cause
+    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> =
+        withContext(dispatcher) {
+            val url = endpoint.trim()
+            if (url.isEmpty()) {
+                return@withContext Result.Error(AppError.InvalidWalletUri("LNURL is blank"))
+            }
+            val parsedUrl = runCatching { Url(url) }.getOrNull()
+                ?: return@withContext Result.Error(
+                    AppError.InvalidWalletUri("LNURL is not a valid URL")
                 )
+            try {
+                val response = client.get(url)
+                val body = response.body<String>()
+                parsePayParams(body, parsedUrl.host)
+            } catch (cause: Throwable) {
+                when (cause) {
+                    is io.ktor.utils.io.errors.IOException -> Result.Error(
+                        AppError.NetworkUnavailable,
+                        cause
+                    )
 
-                else -> Result.Error(AppError.Unexpected(cause.message), cause)
+                    else -> Result.Error(AppError.Unexpected(cause.message), cause)
+                }
             }
         }
-    }
 
     override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> {
         val isOnion = address.domain.endsWith(".onion", ignoreCase = true)
@@ -191,7 +201,8 @@ class LnurlRepositoryImpl(
         return Result.Success(invoice)
     }
 
-    private fun JsonPrimitive.contentEquals(value: String): Boolean = contentOrNull?.equals(value, ignoreCase = true) == true
+    private fun JsonPrimitive.contentEquals(value: String): Boolean =
+        contentOrNull?.equals(value, ignoreCase = true) == true
 
     private fun JsonPrimitive.longOrBigInt(): Long? {
         longOrNull?.let { return it }

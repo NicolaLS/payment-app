@@ -1,6 +1,11 @@
 package xyz.lilsus.papp.presentation.main
 
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -15,10 +20,30 @@ import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LnurlPayMetadata
 import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
-import xyz.lilsus.papp.domain.model.*
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.PaidInvoice
+import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
+import xyz.lilsus.papp.domain.model.PaymentPreferences
+import xyz.lilsus.papp.domain.model.Result
+import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
-import xyz.lilsus.papp.domain.repository.*
-import xyz.lilsus.papp.domain.use_cases.*
+import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
+import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
+import xyz.lilsus.papp.domain.repository.LnurlRepository
+import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
+import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
+import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
+import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
@@ -492,9 +517,8 @@ private const val MANUAL_PAYMENT_REQUEST = "lnbc1manual"
 private const val AMOUNT_INVOICE_INPUT = "amount-invoice"
 private const val AMOUNT_PAYMENT_REQUEST = "lnbc1amount"
 
-private class RecordingNwcWalletRepository(
-    private val result: PaidInvoice = PaidInvoice(preimage = "preimage", feesPaidMsats = 5_000L)
-) : NwcWalletRepository {
+private class RecordingNwcWalletRepository(private val result: PaidInvoice = PaidInvoice(preimage = "preimage", feesPaidMsats = 5_000L)) :
+    NwcWalletRepository {
     var lastInvoice: String? = null
         private set
     var lastAmountMsats: Long? = null
@@ -517,15 +541,11 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
         return completion.await()
     }
 
-    fun complete(
-        result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)
-    ) {
+    fun complete(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
         completeIfNeeded(result)
     }
 
-    fun completeIfNeeded(
-        result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)
-    ) {
+    fun completeIfNeeded(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
         if (!completion.isCompleted) {
             completion.complete(result)
         }
@@ -602,17 +622,15 @@ private class FakeLnurlRepository(
             AppError.InvalidWalletUri("Lightning address not stubbed: ${address.full}")
         )
 
-    override suspend fun requestInvoice(
-        callback: String,
-        amountMsats: Long,
-        comment: String?
-    ): Result<String> = invoiceResponses["$callback:$amountMsats"]
-        ?: invoiceResponses[callback]
-        ?: Result.Error(AppError.InvalidWalletUri("Invoice not stubbed"))
+    override suspend fun requestInvoice(callback: String, amountMsats: Long, comment: String?): Result<String> =
+        invoiceResponses["$callback:$amountMsats"]
+            ?: invoiceResponses[callback]
+            ?: Result.Error(AppError.InvalidWalletUri("Invoice not stubbed"))
 }
 
 private class FakeExchangeRateRepository(private val result: Result<ExchangeRate>?) : ExchangeRateRepository {
-    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> = result ?: Result.Error(AppError.Unexpected("Missing stub for $currencyCode"))
+    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> =
+        result ?: Result.Error(AppError.Unexpected("Missing stub for $currencyCode"))
 }
 
 private class FakeWalletSettingsRepository : WalletSettingsRepository {

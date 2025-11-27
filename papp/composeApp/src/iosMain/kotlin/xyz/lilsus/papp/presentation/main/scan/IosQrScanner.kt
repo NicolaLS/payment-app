@@ -2,14 +2,25 @@
 
 package xyz.lilsus.papp.presentation.main.scan
 
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.interop.UIKitView
-import kotlinx.cinterop.*
+import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.ObjCObjectVar
+import kotlinx.cinterop.alloc
+import kotlinx.cinterop.memScoped
+import kotlinx.cinterop.ptr
+import kotlinx.cinterop.value
 import platform.AVFoundation.*
 import platform.Foundation.*
-import platform.UIKit.UIApplicationDidBecomeActiveNotification
-import platform.UIKit.UIView
+import platform.UIKit.*
 import platform.darwin.*
 
 @Composable
@@ -89,8 +100,9 @@ actual fun CameraPreviewHost(
     }
 }
 
-private fun isCameraAuthorized(): Boolean = AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
-    AVAuthorizationStatusAuthorized
+private fun isCameraAuthorized(): Boolean =
+    AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
+        AVAuthorizationStatusAuthorized
 
 private class IosQrScannerController : QrScannerController {
 

@@ -344,7 +344,8 @@ private class QrCodeAnalyzer(
     }
 }
 
-private fun isCameraPermissionGranted(context: Context): Boolean = ContextCompat.checkSelfPermission(
-    context,
-    Manifest.permission.CAMERA
-) == android.content.pm.PackageManager.PERMISSION_GRANTED
+private fun isCameraPermissionGranted(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.CAMERA
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED

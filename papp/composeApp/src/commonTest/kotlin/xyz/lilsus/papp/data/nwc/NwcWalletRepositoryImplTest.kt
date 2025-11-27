@@ -144,10 +144,8 @@ class NwcWalletRepositoryImplTest {
 
         override suspend fun getWalletConnection(): WalletConnection? = connection
 
-        override suspend fun saveWalletConnection(
-            connection: WalletConnection,
-            activate: Boolean
-        ): Unit = throw UnsupportedOperationException()
+        override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean): Unit =
+            throw UnsupportedOperationException()
 
         override suspend fun setActiveWallet(walletPublicKey: String): Unit = throw UnsupportedOperationException()
 

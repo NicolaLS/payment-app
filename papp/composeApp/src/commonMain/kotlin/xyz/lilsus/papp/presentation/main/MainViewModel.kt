@@ -3,8 +3,19 @@ package xyz.lilsus.papp.presentation.main
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToLong
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
@@ -12,9 +23,21 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11ParseResult
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
-import xyz.lilsus.papp.domain.model.*
-import xyz.lilsus.papp.domain.use_cases.*
-import xyz.lilsus.papp.domain.use_cases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.model.CurrencyInfo
+import xyz.lilsus.papp.domain.model.DisplayAmount
+import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.Result
+import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
+import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
+import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
@@ -44,7 +67,7 @@ class MainViewModel internal constructor(
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
 
-    private val _currencyState = MutableStateFlow(
+    private val currencyState = MutableStateFlow(
         CurrencyState(
             info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE),
             exchangeRate = null
@@ -80,12 +103,12 @@ class MainViewModel internal constructor(
 
                 if (info.currency is DisplayCurrency.Fiat) {
                     // Fetch rate first, then update state once with complete data
-                    _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    currencyState.value = CurrencyState(info = info, exchangeRate = null)
                     exchangeRateJob?.cancel()
                     exchangeRateJob = launch {
                         when (val result = getExchangeRate(info.code)) {
                             is Result.Success -> {
-                                _currencyState.value = CurrencyState(
+                                currencyState.value = CurrencyState(
                                     info = info,
                                     exchangeRate = max(result.data.pricePerBitcoin, 0.0)
                                 )
@@ -94,7 +117,7 @@ class MainViewModel internal constructor(
                             }
 
                             is Result.Error -> {
-                                _currencyState.value =
+                                currencyState.value =
                                     CurrencyState(info = info, exchangeRate = null)
                                 _events.tryEmit(MainEvent.ShowError(result.error))
                                 refreshManualAmountState(preserveInput = manualEntryContext != null)
@@ -106,7 +129,7 @@ class MainViewModel internal constructor(
                     }
                 } else {
                     // Non-fiat: update immediately
-                    _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    currencyState.value = CurrencyState(info = info, exchangeRate = null)
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
                     refreshResultState()
                 }
@@ -151,9 +174,10 @@ class MainViewModel internal constructor(
                         LnurlSource.Lnurl
                     )
 
-                    is LightningInputParser.Target.LightningAddressTarget -> resolveLightningAddress(
-                        target.address
-                    )
+                    is LightningInputParser.Target.LightningAddressTarget ->
+                        resolveLightningAddress(
+                            target.address
+                        )
                 }
             }
         }
@@ -184,11 +208,10 @@ class MainViewModel internal constructor(
         }
 
         pendingInvoice = summary
-        val currencyState = _currencyState.value
         val entryState = manualAmount.reset(
             ManualAmountConfig(
-                info = currencyState.info,
-                exchangeRate = currencyState.exchangeRate,
+                info = currencyState.value.info,
+                exchangeRate = currencyState.value.exchangeRate,
                 minMsats = null,
                 maxMsats = null
             ),
@@ -234,7 +257,7 @@ class MainViewModel internal constructor(
             return
         }
         val session = LnurlSession(params = params, source = source)
-        val currencyState = _currencyState.value
+        val currencyState = currencyState.value
 
         if (needsExchangeRate()) {
             ensureExchangeRateIfNeeded(currencyState.info)
@@ -354,7 +377,7 @@ class MainViewModel internal constructor(
         val amountMsats = manualAmount.enteredAmountMsats()
         if (amountMsats == null || amountMsats <= 0) {
             if (needsExchangeRate()) {
-                ensureExchangeRateIfNeeded(_currencyState.value.info)
+                ensureExchangeRateIfNeeded(currencyState.value.info)
             }
             return
         }
@@ -434,11 +457,10 @@ class MainViewModel internal constructor(
             val amountMsats = amountOverrideMsats ?: summary.amountMsats
             val isManualEntry =
                 origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
-            val currencyState = _currencyState.value
             val requiresConfirmation =
                 amountMsats != null && shouldConfirmPayment(amountMsats, isManualEntry)
             if (requiresConfirmation) {
-                val display = convertMsatsToDisplay(amountMsats!!, currencyState)
+                val display = convertMsatsToDisplay(amountMsats, currencyState.value)
                 pendingPayment = PendingPayment(
                     summary = summary,
                     overrideAmountMsats = amountOverrideMsats,
@@ -470,7 +492,7 @@ class MainViewModel internal constructor(
                     Result.Loading -> _uiState.value = MainUiState.Loading
 
                     is Result.Success -> {
-                        val currencyState = _currencyState.value
+                        val currencyState = currencyState.value
                         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
                         val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
                         val feeDisplay =
@@ -518,7 +540,7 @@ class MainViewModel internal constructor(
     }
 
     private fun refreshManualAmountState(preserveInput: Boolean = false) {
-        val currencyState = _currencyState.value
+        val currencyState = currencyState.value
         val config = when (val context = manualEntryContext) {
             is ManualEntryContext.Lnurl -> {
                 val params = context.session.params
@@ -545,14 +567,14 @@ class MainViewModel internal constructor(
 
     private fun ensureExchangeRateIfNeeded(info: CurrencyInfo) {
         if (info.currency !is DisplayCurrency.Fiat) {
-            _currencyState.value = _currencyState.value.copy(exchangeRate = null, info = info)
+            currencyState.value = currencyState.value.copy(exchangeRate = null, info = info)
             return
         }
         exchangeRateJob?.cancel()
         exchangeRateJob = scope.launch {
             when (val result = getExchangeRate(info.code)) {
                 is Result.Success -> {
-                    _currencyState.value =
+                    currencyState.value =
                         CurrencyState(
                             info = info,
                             exchangeRate = max(result.data.pricePerBitcoin, 0.0)
@@ -562,7 +584,7 @@ class MainViewModel internal constructor(
                 }
 
                 is Result.Error -> {
-                    _currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    currencyState.value = CurrencyState(info = info, exchangeRate = null)
                     _events.tryEmit(MainEvent.ShowError(result.error))
                 }
 
@@ -572,7 +594,7 @@ class MainViewModel internal constructor(
     }
 
     private fun refreshResultState() {
-        val currencyState = _currencyState.value
+        val currencyState = currencyState.value
         when (val state = _uiState.value) {
             is MainUiState.Success -> {
                 val payment = lastPaymentResult ?: return
@@ -595,8 +617,8 @@ class MainViewModel internal constructor(
     }
 
     private fun needsExchangeRate(): Boolean {
-        val info = _currencyState.value.info
-        return info.currency is DisplayCurrency.Fiat && _currencyState.value.exchangeRate == null
+        val info = currencyState.value.info
+        return info.currency is DisplayCurrency.Fiat && currencyState.value.exchangeRate == null
     }
 
     /**
@@ -604,7 +626,8 @@ class MainViewModel internal constructor(
      * Many Lightning servers only accept full satoshi amounts.
      * Examples: 1 msat -> 1000 msat, 1500 msat -> 2000 msat, 968504 msat -> 969000 msat
      */
-    private fun roundToFullSatoshis(msats: Long): Long = ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
+    private fun roundToFullSatoshis(msats: Long): Long =
+        ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
 
     private fun convertMsatsToDisplay(msats: Long, state: CurrencyState): DisplayAmount {
         val info = state.info

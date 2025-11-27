@@ -14,7 +14,8 @@ private const val KEY_CONFIRM_MANUAL_ENTRY = "payment.confirmation.manual"
 private const val KEY_VIBRATE_SCAN = "payment.vibrate.scan"
 private const val KEY_VIBRATE_PAYMENT = "payment.vibrate.payment"
 
-class PaymentPreferencesRepositoryImpl(private val settings: Settings) : PaymentPreferencesRepository {
+class PaymentPreferencesRepositoryImpl(private val settings: Settings) :
+    PaymentPreferencesRepository {
 
     private val state = MutableStateFlow(loadPreferences())
 

@@ -1,14 +1,19 @@
 package xyz.lilsus.papp.presentation.settings
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
-import xyz.lilsus.papp.domain.use_cases.ObserveCurrencyPreferenceUseCase
-import xyz.lilsus.papp.domain.use_cases.SetCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.SetCurrencyPreferenceUseCase
 
 data class CurrencySettingsUiState(
     val selectedCode: String = CurrencyCatalog.DEFAULT_CODE,
@@ -41,11 +46,12 @@ class CurrencySettingsViewModel internal constructor(
         }
     }
 
-    private suspend fun loadOptions(): List<CurrencyOption> = CurrencyCatalog.supportedCodes.map { code ->
-        val info = CurrencyCatalog.infoFor(code)
-        val label = getString(info.nameRes)
-        CurrencyOption(code = info.code, label = label)
-    }
+    private suspend fun loadOptions(): List<CurrencyOption> =
+        CurrencyCatalog.supportedCodes.map { code ->
+            val info = CurrencyCatalog.infoFor(code)
+            val label = getString(info.nameRes)
+            CurrencyOption(code = info.code, label = label)
+        }
 
     fun updateSearch(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query)

@@ -9,7 +9,8 @@ import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 
 private const val KEY_DISPLAY_CURRENCY = "display.currency.code"
 
-class CurrencyPreferencesRepositoryImpl(private val settings: Settings) : CurrencyPreferencesRepository {
+class CurrencyPreferencesRepositoryImpl(private val settings: Settings) :
+    CurrencyPreferencesRepository {
 
     private val state = MutableStateFlow(loadCurrencyCode())
 

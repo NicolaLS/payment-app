@@ -2,7 +2,17 @@ package xyz.lilsus.papp.presentation.common
 
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.stringResource
-import papp.composeapp.generated.resources.*
+import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.error_invalid_wallet_uri
+import papp.composeapp.generated.resources.error_missing_wallet_connection
+import papp.composeapp.generated.resources.error_network_unavailable
+import papp.composeapp.generated.resources.error_payment_rejected_code
+import papp.composeapp.generated.resources.error_payment_rejected_full
+import papp.composeapp.generated.resources.error_payment_rejected_generic
+import papp.composeapp.generated.resources.error_payment_rejected_message
+import papp.composeapp.generated.resources.error_timeout
+import papp.composeapp.generated.resources.error_unexpected_generic
+import papp.composeapp.generated.resources.error_unexpected_with_details
 import xyz.lilsus.papp.domain.model.AppError
 
 /**

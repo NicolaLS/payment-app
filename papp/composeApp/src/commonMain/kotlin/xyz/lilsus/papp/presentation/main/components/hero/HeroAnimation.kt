@@ -1,7 +1,14 @@
 package xyz.lilsus.papp.presentation.main.components.hero
 
 import androidx.compose.animation.Animatable
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOutCubic
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
@@ -13,7 +20,8 @@ import kotlinx.coroutines.launch
 import xyz.lilsus.papp.presentation.main.MainUiState
 
 @Composable
-fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): HeroAnimationState = remember { HeroAnimationState(squares, arcs) }
+fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): HeroAnimationState =
+    remember { HeroAnimationState(squares, arcs) }
 
 class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs: List<ArcSpec>) {
     private val colorAnim = Animatable(Transparent)
@@ -46,8 +54,13 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
 
             when (uiState) {
                 MainUiState.Active -> animateToActive()
-                is MainUiState.Detected, is MainUiState.Confirm, is MainUiState.EnterAmount -> animateToCompressed()
+
+                is MainUiState.Detected,
+                is MainUiState.Confirm,
+                is MainUiState.EnterAmount -> animateToCompressed()
+
                 MainUiState.Loading -> animateToLoading()
+
                 is MainUiState.Success, is MainUiState.Error -> animateToResult()
             }
         }
