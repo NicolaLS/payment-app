@@ -91,7 +91,7 @@ class CoinGeckoExchangeRateRepository(
             )
         } catch (cause: Throwable) {
             val error = when (cause) {
-                is io.ktor.utils.io.errors.IOException -> AppError.NetworkUnavailable
+                is kotlinx.io.IOException -> AppError.NetworkUnavailable
                 else -> AppError.Unexpected(cause.message)
             }
             return Result.Error(error, cause)

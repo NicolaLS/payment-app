@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package xyz.lilsus.papp.presentation.settings.addwallet
 
 import kotlin.test.Test

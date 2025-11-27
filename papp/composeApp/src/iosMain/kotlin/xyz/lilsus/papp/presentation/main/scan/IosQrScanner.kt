@@ -10,7 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.interop.UIKitView
+import androidx.compose.ui.viewinterop.UIKitInteropProperties
+import androidx.compose.ui.viewinterop.UIKitView
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCObjectVar
@@ -94,8 +95,9 @@ actual fun CameraPreviewHost(
 
     if (visible) {
         UIKitView(
+            factory = { surface.view },
             modifier = modifier,
-            factory = { surface.view }
+            properties = UIKitInteropProperties()
         )
     }
 }

@@ -47,7 +47,7 @@ class LnurlRepositoryImpl(
                 parsePayParams(body, parsedUrl.host)
             } catch (cause: Throwable) {
                 when (cause) {
-                    is io.ktor.utils.io.errors.IOException -> Result.Error(
+                    is kotlinx.io.IOException -> Result.Error(
                         AppError.NetworkUnavailable,
                         cause
                     )
@@ -87,7 +87,7 @@ class LnurlRepositoryImpl(
             parseInvoice(body)
         } catch (cause: Throwable) {
             when (cause) {
-                is io.ktor.utils.io.errors.IOException -> Result.Error(
+                is kotlinx.io.IOException -> Result.Error(
                     AppError.NetworkUnavailable,
                     cause
                 )

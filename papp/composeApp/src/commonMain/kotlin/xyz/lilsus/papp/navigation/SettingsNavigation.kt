@@ -11,7 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -28,6 +28,7 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.platform.readPlainText
 import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
 import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
@@ -151,7 +152,8 @@ private fun AddWalletEntry(navController: NavController) {
         factory = { koin.get<AddWalletViewModel>() },
         onDispose = { it.clear() }
     )
-    val clipboard = LocalClipboardManager.current
+
+    val clipboard = LocalClipboard.current
     val state by viewModel.uiState.collectAsState()
     val scannerController = rememberQrScannerController()
     val cameraPermission = rememberCameraPermissionState()
@@ -174,7 +176,8 @@ private fun AddWalletEntry(navController: NavController) {
     }
 
     LaunchedEffect(Unit) {
-        viewModel.prefillUriIfValid(clipboard.getText()?.text)
+        val text = clipboard.getClipEntry()?.readPlainText()
+        viewModel.prefillUriIfValid(text)
     }
 
     LaunchedEffect(cameraPermission.hasPermission) {
