@@ -111,6 +111,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")
             )
+
+            ndk {
+                debugSymbolLevel = "full"
+            }
         }
     }
     buildFeatures {
