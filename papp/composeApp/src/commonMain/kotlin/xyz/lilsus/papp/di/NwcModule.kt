@@ -97,11 +97,7 @@ val nwcModule = module {
     single { createNwcHttpClient() }
     single { NwcSessionManager.create(scope = get(), httpClient = get()) }
     single<NwcClientFactory> {
-        RealNwcClientFactory(
-            sessionManager = get(),
-            scope = get(),
-            httpClient = get()
-        )
+        RealNwcClientFactory(sessionManager = get())
     }
 
     single<NwcWalletRepository> {

@@ -8,8 +8,6 @@ import io.github.nostr.nwc.model.EncryptionScheme
 import io.github.nostr.nwc.model.NwcCapability
 import io.github.nostr.nwc.model.NwcNotificationType
 import io.github.nostr.nwc.model.WalletMetadata
-import io.ktor.client.HttpClient
-import kotlinx.coroutines.CoroutineScope
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
 
@@ -26,20 +24,13 @@ fun interface NwcClientFactory {
 
 class RealNwcClientFactory(
     private val sessionManager: NwcSessionManager,
-    private val scope: CoroutineScope,
-    private val httpClient: HttpClient,
     private val handshakeTimeoutMillis: Long = DEFAULT_NWC_HANDSHAKE_TIMEOUT_MILLIS
 ) : NwcClientFactory {
     override suspend fun create(connection: WalletConnection): NwcClientHandle {
         val uri = connection.uri
         val session = sessionManager.acquire(uri = uri, autoOpen = false)
-        val client = NwcClient.create(
-            credentials = session.credentials,
-            scope = scope,
+        val client = NwcClient.createWithSession(
             session = session,
-            ownsSession = false,
-            httpClient = httpClient,
-            ownsHttpClient = false,
             requestTimeoutMillis = handshakeTimeoutMillis,
             cachedMetadata = connection.metadata?.toNwcMetadata(),
             cachedEncryption = connection.metadata?.toPreferredEncryption()
