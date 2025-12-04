@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,12 +28,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.settings_currency
 import papp.composeapp.generated.resources.settings_currency_subtitle
+import papp.composeapp.generated.resources.settings_donate_subtitle
+import papp.composeapp.generated.resources.settings_donate_tier_large
+import papp.composeapp.generated.resources.settings_donate_tier_medium
+import papp.composeapp.generated.resources.settings_donate_tier_small
+import papp.composeapp.generated.resources.settings_donate_title
 import papp.composeapp.generated.resources.settings_language
 import papp.composeapp.generated.resources.settings_language_subtitle
 import papp.composeapp.generated.resources.settings_manage_wallets
@@ -50,6 +58,7 @@ fun SettingsScreen(
     onPayments: () -> Unit,
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
+    onDonate: (Long) -> Unit,
     walletSubtitle: String? = null,
     currencySubtitle: String? = null,
     languageSubtitle: String? = null,
@@ -107,6 +116,13 @@ fun SettingsScreen(
             items(entries) { entry ->
                 SettingsListItem(entry)
             }
+            item {
+                DonationCard(
+                    onDonate1k = { onDonate(1_000) },
+                    onDonate5k = { onDonate(5_000) },
+                    onDonate10k = { onDonate(10_000) }
+                )
+            }
         }
     }
 }
@@ -160,6 +176,49 @@ private fun SettingsListItem(entry: SettingsEntry) {
     }
 }
 
+@Composable
+private fun DonationCard(onDonate1k: () -> Unit, onDonate5k: () -> Unit, onDonate10k: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 2.dp,
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.settings_donate_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(Res.string.settings_donate_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(onClick = onDonate1k) {
+                    Text(text = stringResource(Res.string.settings_donate_tier_small))
+                }
+                Button(onClick = onDonate5k) {
+                    Text(text = stringResource(Res.string.settings_donate_tier_medium))
+                }
+                Button(onClick = onDonate10k) {
+                    Text(text = stringResource(Res.string.settings_donate_tier_large))
+                }
+            }
+        }
+    }
+}
+
 @Preview
 @Composable
 private fun SettingsScreenPreview() {
@@ -170,6 +229,7 @@ private fun SettingsScreenPreview() {
             onPayments = {},
             onCurrency = {},
             onLanguage = {},
+            onDonate = {},
             currencySubtitle = stringResource(CurrencyCatalog.infoFor("USD").nameRes),
             languageSubtitle = LanguageCatalog.displayName("en")
         )

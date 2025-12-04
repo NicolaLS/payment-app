@@ -28,6 +28,10 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.navigation.DonationNavigation.donationAddress
+import xyz.lilsus.papp.navigation.DonationNavigation.emit
+import xyz.lilsus.papp.navigation.DonationRequest
+import xyz.lilsus.papp.navigation.Pay
 import xyz.lilsus.papp.platform.readPlainText
 import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
@@ -296,6 +300,13 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         onPayments = { navController.navigateToSettingsPayments() },
         onCurrency = { navController.navigateToSettingsCurrency() },
         onLanguage = { navController.navigateToSettingsLanguage() },
+        onDonate = { amount ->
+            emit(DonationRequest(amountSats = amount, address = donationAddress))
+            navController.navigate(route = Pay) {
+                popUpTo(Pay) { inclusive = false }
+                launchSingleTop = true
+            }
+        },
         walletSubtitle = subtitle,
         currencySubtitle = currencyLabel,
         languageSubtitle = languageLabel

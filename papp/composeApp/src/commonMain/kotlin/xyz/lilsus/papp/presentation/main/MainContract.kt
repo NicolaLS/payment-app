@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.presentation.main
 
+import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
@@ -26,4 +27,5 @@ sealed interface MainIntent {
     data object ManualAmountDismiss : MainIntent
     data object ConfirmPaymentSubmit : MainIntent
     data object ConfirmPaymentDismiss : MainIntent
+    data class StartDonation(val amountSats: Long, val address: LightningAddress) : MainIntent
 }

@@ -152,6 +152,7 @@ class MainViewModel internal constructor(
             is MainIntent.ManualAmountPreset -> handleManualAmountPreset(intent.amount)
             MainIntent.ConfirmPaymentDismiss -> handleConfirmPaymentDismiss()
             MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
+            is MainIntent.StartDonation -> handleDonation(intent.amountSats, intent.address)
         }
     }
 
@@ -184,6 +185,34 @@ class MainViewModel internal constructor(
                             target.address
                         )
                 }
+            }
+        }
+    }
+
+    private fun handleDonation(amountSats: Long, address: LightningAddress) {
+        if (amountSats <= 0) return
+        if (activePaymentJob?.isActive == true) return
+        scope.launch {
+            pendingInvoice = null
+            pendingPayment = null
+            manualEntryContext = null
+            val amountMsats = amountSats * MSATS_PER_SAT
+            _uiState.value = MainUiState.Loading
+            when (val result = resolveLightningAddressUseCase(address)) {
+                is Result.Success -> {
+                    val satInfo = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
+                    handleLnurlParams(
+                        params = result.data,
+                        source = LnurlSource.LightningAddress,
+                        forceManualEntry = true,
+                        prefillMsats = amountMsats,
+                        inputCurrencyOverride = satInfo
+                    )
+                }
+
+                is Result.Error -> emitError(result.error)
+
+                Result.Loading -> Unit
             }
         }
     }
@@ -256,37 +285,55 @@ class MainViewModel internal constructor(
         }
     }
 
-    private fun handleLnurlParams(params: LnurlPayParams, source: LnurlSource) {
+    private fun handleLnurlParams(
+        params: LnurlPayParams,
+        source: LnurlSource,
+        forceManualEntry: Boolean = false,
+        prefillMsats: Long? = null,
+        inputCurrencyOverride: CurrencyInfo? = null
+    ) {
         if (params.minSendable <= 0 || params.maxSendable < params.minSendable) {
             emitError(AppError.InvalidWalletUri("LNURL amount range is invalid"))
             return
         }
         val session = LnurlSession(params = params, source = source)
         val currencyState = currencyState.value
+        val inputInfo = inputCurrencyOverride ?: currencyState.info
+        val manualState = CurrencyState(
+            info = inputInfo,
+            exchangeRate = currencyState.exchangeRate.takeIf {
+                inputInfo.code.equals(currencyState.info.code, ignoreCase = true)
+            }
+        )
 
-        if (needsExchangeRate()) {
-            ensureExchangeRateIfNeeded(currencyState.info)
+        if (needsExchangeRate(inputInfo) &&
+            inputInfo.code.equals(currencyState.info.code, ignoreCase = true)
+        ) {
+            ensureExchangeRateIfNeeded(inputInfo)
         }
 
-        if (params.minSendable == params.maxSendable) {
+        val shouldForceManualEntry = forceManualEntry || params.minSendable != params.maxSendable
+        if (!shouldForceManualEntry) {
             payLnurlInvoice(session, params.minSendable, isManualEntry = false)
             return
         }
 
-        manualEntryContext = ManualEntryContext.Lnurl(session)
-        val minDisplay = convertMsatsToDisplay(params.minSendable, currencyState)
-        val maxDisplay = convertMsatsToDisplay(params.maxSendable, currencyState)
-        val entry = manualAmount.reset(
-            ManualAmountConfig(
-                info = currencyState.info,
-                exchangeRate = currencyState.exchangeRate,
-                min = minDisplay,
-                max = maxDisplay,
-                minMsats = params.minSendable,
-                maxMsats = params.maxSendable
-            ),
-            clearInput = true
+        manualEntryContext = ManualEntryContext.Lnurl(session, inputInfo)
+        val minDisplay = convertMsatsToDisplay(params.minSendable, manualState)
+        val maxDisplay = convertMsatsToDisplay(params.maxSendable, manualState)
+        val clampedPrefill = prefillMsats?.coerceIn(params.minSendable, params.maxSendable)
+        val config = ManualAmountConfig(
+            info = manualState.info,
+            exchangeRate = manualState.exchangeRate,
+            min = minDisplay,
+            max = maxDisplay,
+            minMsats = params.minSendable,
+            maxMsats = params.maxSendable
         )
+        val baseEntry = manualAmount.reset(config, clearInput = true)
+        val entry = clampedPrefill?.let {
+            manualAmount.presetAmount(convertMsatsToDisplay(it, manualState))
+        } ?: baseEntry
         _uiState.value = MainUiState.EnterAmount(entry)
     }
 
@@ -552,22 +599,37 @@ class MainViewModel internal constructor(
 
     private fun refreshManualAmountState(preserveInput: Boolean = false) {
         val currencyState = currencyState.value
+        val manualInfo = when (val context = manualEntryContext) {
+            is ManualEntryContext.Lnurl -> context.inputInfo
+            else -> currencyState.info
+        }
+        val manualExchangeRate = if (
+            manualInfo.code.equals(currencyState.info.code, ignoreCase = true)
+        ) {
+            currencyState.exchangeRate
+        } else {
+            null
+        }
+        val manualCurrencyState = CurrencyState(
+            info = manualInfo,
+            exchangeRate = manualExchangeRate
+        )
         val config = when (val context = manualEntryContext) {
             is ManualEntryContext.Lnurl -> {
                 val params = context.session.params
                 ManualAmountConfig(
-                    info = currencyState.info,
-                    exchangeRate = currencyState.exchangeRate,
-                    min = convertMsatsToDisplay(params.minSendable, currencyState),
-                    max = convertMsatsToDisplay(params.maxSendable, currencyState),
+                    info = manualCurrencyState.info,
+                    exchangeRate = manualCurrencyState.exchangeRate,
+                    min = convertMsatsToDisplay(params.minSendable, manualCurrencyState),
+                    max = convertMsatsToDisplay(params.maxSendable, manualCurrencyState),
                     minMsats = params.minSendable,
                     maxMsats = params.maxSendable
                 )
             }
 
             else -> ManualAmountConfig(
-                info = currencyState.info,
-                exchangeRate = currencyState.exchangeRate
+                info = manualCurrencyState.info,
+                exchangeRate = manualCurrencyState.exchangeRate
             )
         }
         val entry = manualAmount.reset(config, clearInput = !preserveInput)
@@ -649,10 +711,11 @@ class MainViewModel internal constructor(
         return (currentTimeMillis() - last) >= EXCHANGE_RATE_MAX_AGE_MS
     }
 
-    private fun needsExchangeRate(): Boolean {
-        val info = currencyState.value.info
+    private fun needsExchangeRate(info: CurrencyInfo = currencyState.value.info): Boolean {
         if (info.currency !is DisplayCurrency.Fiat) return false
-        return currencyState.value.exchangeRate == null || isExchangeRateStale()
+        val current = currencyState.value
+        if (!current.info.code.equals(info.code, ignoreCase = true)) return true
+        return current.exchangeRate == null || isExchangeRateStale()
     }
 
     /**
@@ -721,5 +784,6 @@ private enum class LnurlSource {
 
 private sealed class ManualEntryContext {
     data class Bolt(val invoice: Bolt11InvoiceSummary) : ManualEntryContext()
-    data class Lnurl(val session: LnurlSession) : ManualEntryContext()
+    data class Lnurl(val session: LnurlSession, val inputInfo: CurrencyInfo) :
+        ManualEntryContext()
 }

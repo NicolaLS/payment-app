@@ -58,6 +58,11 @@
     <string name="settings_manage_wallets_remove">Eliminar billetera</string>
     <string name="settings_manage_wallets_set_active">Establecer como activa</string>
     <string name="settings_manage_wallets_active">Billetera activa</string>
+    <string name="settings_donate_title">¿Te gusta Payment App?</string>
+    <string name="settings_donate_subtitle">Ayúdanos a crecer y mejorar apoyando nuestro desarrollo.</string>
+    <string name="settings_donate_tier_small">1k 🎁</string>
+    <string name="settings_donate_tier_medium">5k 🚀</string>
+    <string name="settings_donate_tier_large">10k ✨</string>
     <string name="add_wallet_title">Conectar billetera</string>
     <string name="add_wallet_continue">Continuar</string>
     <string name="add_wallet_description">Copia un URI de NWC y regresa aquí, o escanea el código QR.</string>

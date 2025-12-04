@@ -22,6 +22,8 @@ import androidx.navigation.compose.composable
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
+import xyz.lilsus.papp.navigation.DonationNavigation.consume
+import xyz.lilsus.papp.navigation.DonationNavigation.events
 import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
 import xyz.lilsus.papp.presentation.main.MainScreen
@@ -87,6 +89,18 @@ private fun MainScreenEntry(
             when (event) {
                 is MainEvent.ShowError -> Unit // TODO: hook up snackbar/toast presentation.
             }
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        events.collectLatest { request ->
+            viewModel.dispatch(
+                MainIntent.StartDonation(
+                    amountSats = request.amountSats,
+                    address = request.address
+                )
+            )
+            consume()
         }
     }
 

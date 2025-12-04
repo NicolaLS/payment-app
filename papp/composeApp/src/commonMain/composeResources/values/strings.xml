@@ -57,6 +57,11 @@
     <string name="settings_manage_wallets_remove">Remove Wallet</string>
     <string name="settings_manage_wallets_set_active">Set Active</string>
     <string name="settings_manage_wallets_active">Active Wallet</string>
+    <string name="settings_donate_title">Enjoying Payment App?</string>
+    <string name="settings_donate_subtitle">Help us grow and improve by supporting our development.</string>
+    <string name="settings_donate_tier_small">1k 🎁</string>
+    <string name="settings_donate_tier_medium">5k 🚀</string>
+    <string name="settings_donate_tier_large">10k ✨</string>
     <string name="add_wallet_title">Connect Wallet</string>
     <string name="add_wallet_continue">Continue</string>
     <string name="add_wallet_description">Copy a NWC URI and come back here, or scan the QR code.</string>
