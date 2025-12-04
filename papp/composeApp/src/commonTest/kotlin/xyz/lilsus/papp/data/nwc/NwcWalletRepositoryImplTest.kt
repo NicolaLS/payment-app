@@ -28,10 +28,12 @@ class NwcWalletRepositoryImplTest {
     @Test
     fun payInvoiceReturnsPaidInvoiceOnSuccess() = runTest {
         val fakeClient = FakeNwcClient()
-        fakeClient.defaultPayInvoiceResult = NwcResult.Success(
-            PayInvoiceResult(
-                preimage = "preimage",
-                feesPaid = null
+        fakeClient.payInvoice.enqueue(
+            NwcResult.Success(
+                PayInvoiceResult(
+                    preimage = "preimage",
+                    feesPaid = null
+                )
             )
         )
         val context = createRepository(fakeClient)
@@ -47,8 +49,10 @@ class NwcWalletRepositoryImplTest {
     @Test
     fun payInvoiceMapsWalletFailuresToPaymentRejected() = runTest {
         val fakeClient = FakeNwcClient()
-        fakeClient.defaultPayInvoiceResult = NwcResult.Failure(
-            NwcFailure.Wallet(NwcError(code = "401", message = "rejected"))
+        fakeClient.payInvoice.enqueue(
+            NwcResult.Failure(
+                NwcFailure.Wallet(NwcError(code = "401", message = "rejected"))
+            )
         )
         val context = createRepository(fakeClient)
 
@@ -64,8 +68,10 @@ class NwcWalletRepositoryImplTest {
     @Test
     fun payInvoiceMapsNetworkFailuresToNetworkUnavailable() = runTest {
         val fakeClient = FakeNwcClient()
-        fakeClient.defaultPayInvoiceResult = NwcResult.Failure(
-            NwcFailure.Network(message = "offline")
+        fakeClient.payInvoice.enqueue(
+            NwcResult.Failure(
+                NwcFailure.Network(message = "offline")
+            )
         )
         val context = createRepository(fakeClient)
 
@@ -81,8 +87,10 @@ class NwcWalletRepositoryImplTest {
     @Test
     fun payInvoiceMapsTimeoutFailuresToTimeoutError() = runTest {
         val fakeClient = FakeNwcClient()
-        fakeClient.defaultPayInvoiceResult = NwcResult.Failure(
-            NwcFailure.Timeout(message = "slow wallet")
+        fakeClient.payInvoice.enqueue(
+            NwcResult.Failure(
+                NwcFailure.Timeout(message = "slow wallet")
+            )
         )
         val context = createRepository(fakeClient)
 
