@@ -79,13 +79,13 @@ fun ManageWalletsScreen(
                 .padding(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = onAddWallet
-            ) {
-                Text(text = stringResource(Res.string.settings_manage_wallets_add))
-            }
             if (state.hasWallets) {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onAddWallet
+                ) {
+                    Text(text = stringResource(Res.string.settings_manage_wallets_add))
+                }
                 Column(
                     modifier = Modifier.verticalScroll(scrollState),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
