@@ -76,6 +76,11 @@ class NwcWalletRepositoryImpl(
             )
         } catch (cancellation: CancellationException) {
             throw cancellation
+        } catch (error: Throwable) {
+            // If the underlying channel was torn down while we were backgrounded, discard
+            // the cached handle so the next attempt performs a clean handshake.
+            invalidateHandle(handle)
+            throw error
         }
 
         return when (result) {
@@ -84,7 +89,10 @@ class NwcWalletRepositoryImpl(
                 feesPaidMsats = result.value.feesPaid?.msats
             )
 
-            is NwcResult.Failure -> throw result.failure.toAppErrorException()
+            is NwcResult.Failure -> {
+                invalidateHandle(handle)
+                throw result.failure.toAppErrorException()
+            }
         }
     }
 
@@ -127,6 +135,14 @@ class NwcWalletRepositoryImpl(
                 }
             }
             throw error
+        }
+    }
+
+    private suspend fun invalidateHandle(handle: NwcClientHandle) {
+        clientMutex.withLock {
+            if (cachedHandle === handle) {
+                closeCachedHandleLocked()
+            }
         }
     }
 

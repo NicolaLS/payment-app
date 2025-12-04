@@ -25,6 +25,8 @@ fun App() {
             if (isNwc) {
                 navController.navigateToConnectWallet(uri = normalized)
             }
+            // Avoid re-navigating on process recreation by clearing the replay cache
+            DeepLinkEvents.consume()
         }
     }
     AppTheme {

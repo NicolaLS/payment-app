@@ -18,4 +18,11 @@ object DeepLinkEvents {
         if (uri.isNullOrBlank()) return
         _events.tryEmit(uri)
     }
+
+    /**
+     * Clears the replay cache so stale deep links are not re-delivered after process recreation.
+     */
+    fun consume() {
+        _events.resetReplayCache()
+    }
 }

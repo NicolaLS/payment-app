@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import xyz.lilsus.papp.data.exchange.currentTimeMillis
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
@@ -82,6 +83,7 @@ class MainViewModel internal constructor(
     private var parsedInvoiceCache: Pair<String, Bolt11InvoiceSummary>? = null
     private var vibrateOnScan: Boolean = true
     private var vibrateOnPayment: Boolean = true
+    private var lastExchangeRateRefreshMs: Long? = null
 
     init {
         scope.launch {
@@ -112,6 +114,7 @@ class MainViewModel internal constructor(
                                     info = info,
                                     exchangeRate = max(result.data.pricePerBitcoin, 0.0)
                                 )
+                                markExchangeRateFresh()
                                 refreshManualAmountState(preserveInput = manualEntryContext != null)
                                 refreshResultState()
                             }
@@ -119,6 +122,7 @@ class MainViewModel internal constructor(
                             is Result.Error -> {
                                 currencyState.value =
                                     CurrencyState(info = info, exchangeRate = null)
+                                lastExchangeRateRefreshMs = null
                                 _events.tryEmit(MainEvent.ShowError(result.error))
                                 refreshManualAmountState(preserveInput = manualEntryContext != null)
                                 refreshResultState()
@@ -130,6 +134,7 @@ class MainViewModel internal constructor(
                 } else {
                     // Non-fiat: update immediately
                     currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    lastExchangeRateRefreshMs = null
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
                     refreshResultState()
                 }
@@ -381,6 +386,9 @@ class MainViewModel internal constructor(
             }
             return
         }
+        if (needsExchangeRate()) {
+            ensureExchangeRateIfNeeded(currencyState.value.info)
+        }
 
         when (context) {
             is ManualEntryContext.Bolt -> {
@@ -454,6 +462,9 @@ class MainViewModel internal constructor(
         origin: PendingOrigin
     ) {
         scope.launch {
+            if (needsExchangeRate()) {
+                ensureExchangeRateIfNeeded(currencyState.value.info)
+            }
             val amountMsats = amountOverrideMsats ?: summary.amountMsats
             val isManualEntry =
                 origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
@@ -568,6 +579,17 @@ class MainViewModel internal constructor(
     private fun ensureExchangeRateIfNeeded(info: CurrencyInfo) {
         if (info.currency !is DisplayCurrency.Fiat) {
             currencyState.value = currencyState.value.copy(exchangeRate = null, info = info)
+            lastExchangeRateRefreshMs = null
+            return
+        }
+        val current = currencyState.value
+        if (current.info.code.equals(info.code, ignoreCase = true) &&
+            current.exchangeRate != null &&
+            !isExchangeRateStale()
+        ) {
+            if (current.info != info) {
+                currencyState.value = current.copy(info = info)
+            }
             return
         }
         exchangeRateJob?.cancel()
@@ -579,12 +601,14 @@ class MainViewModel internal constructor(
                             info = info,
                             exchangeRate = max(result.data.pricePerBitcoin, 0.0)
                         )
+                    markExchangeRateFresh()
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
                     refreshResultState()
                 }
 
                 is Result.Error -> {
                     currencyState.value = CurrencyState(info = info, exchangeRate = null)
+                    lastExchangeRateRefreshMs = null
                     _events.tryEmit(MainEvent.ShowError(result.error))
                 }
 
@@ -616,9 +640,19 @@ class MainViewModel internal constructor(
         }
     }
 
+    private fun markExchangeRateFresh() {
+        lastExchangeRateRefreshMs = currentTimeMillis()
+    }
+
+    private fun isExchangeRateStale(): Boolean {
+        val last = lastExchangeRateRefreshMs ?: return true
+        return (currentTimeMillis() - last) >= EXCHANGE_RATE_MAX_AGE_MS
+    }
+
     private fun needsExchangeRate(): Boolean {
         val info = currencyState.value.info
-        return info.currency is DisplayCurrency.Fiat && currencyState.value.exchangeRate == null
+        if (info.currency !is DisplayCurrency.Fiat) return false
+        return currencyState.value.exchangeRate == null || isExchangeRateStale()
     }
 
     /**
@@ -659,6 +693,7 @@ class MainViewModel internal constructor(
 
 private const val MSATS_PER_SAT = 1_000L
 private const val MSATS_PER_BTC = 100_000_000_000L
+private const val EXCHANGE_RATE_MAX_AGE_MS = 60_000L
 
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
