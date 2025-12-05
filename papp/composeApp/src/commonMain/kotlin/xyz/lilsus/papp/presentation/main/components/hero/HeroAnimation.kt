@@ -61,9 +61,7 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
 
                 MainUiState.Loading -> animateToLoading()
 
-                is MainUiState.Success, is MainUiState.Error, is MainUiState.Pending -> {
-                    animateToResult()
-                }
+                is MainUiState.Success, is MainUiState.Error -> animateToResult()
             }
         }
     }

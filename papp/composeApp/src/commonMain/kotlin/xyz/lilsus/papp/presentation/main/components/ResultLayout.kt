@@ -19,10 +19,6 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
-import papp.composeapp.generated.resources.pending_result_body
-import papp.composeapp.generated.resources.pending_result_timeout_body
-import papp.composeapp.generated.resources.pending_result_timeout_title
-import papp.composeapp.generated.resources.pending_result_title
 import papp.composeapp.generated.resources.result_error_title
 import papp.composeapp.generated.resources.result_paid_fee
 import papp.composeapp.generated.resources.result_paid_title
@@ -33,7 +29,6 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 import xyz.lilsus.papp.presentation.main.MainUiState
-import xyz.lilsus.papp.presentation.main.PendingStatus
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @Composable
@@ -90,38 +85,6 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-
-            is MainUiState.Pending -> {
-                val title = if (result.status == PendingStatus.TimedOut) {
-                    stringResource(Res.string.pending_result_timeout_title)
-                } else {
-                    stringResource(Res.string.pending_result_title)
-                }
-                val body = if (result.status == PendingStatus.TimedOut) {
-                    stringResource(Res.string.pending_result_timeout_body)
-                } else {
-                    stringResource(Res.string.pending_result_body)
-                }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = formatter.format(result.info.amount),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = body,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(0.9f),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
             }
 
             else -> {}

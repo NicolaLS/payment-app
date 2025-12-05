@@ -30,16 +30,14 @@ class RealNwcWalletFactory(
     private val scope: CoroutineScope,
     private val requestTimeoutMillis: Long = DEFAULT_NWC_REQUEST_TIMEOUT_MILLIS
 ) : NwcWalletFactory {
-    override fun create(connection: WalletConnection): NwcWalletContract {
-        return NwcWallet.create(
-            uri = connection.uri,
-            sessionManager = sessionManager,
-            scope = scope,
-            requestTimeoutMillis = requestTimeoutMillis,
-            cachedMetadata = connection.metadata?.toNwcMetadata(),
-            cachedEncryption = connection.metadata?.toPreferredEncryption()
-        )
-    }
+    override fun create(connection: WalletConnection): NwcWalletContract = NwcWallet.create(
+        uri = connection.uri,
+        sessionManager = sessionManager,
+        scope = scope,
+        requestTimeoutMillis = requestTimeoutMillis,
+        cachedMetadata = connection.metadata?.toNwcMetadata(),
+        cachedEncryption = connection.metadata?.toPreferredEncryption()
+    )
 }
 
 internal const val DEFAULT_NWC_REQUEST_TIMEOUT_MILLIS = 8_000L

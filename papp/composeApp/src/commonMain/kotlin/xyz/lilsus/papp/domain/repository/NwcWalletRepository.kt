@@ -28,8 +28,5 @@ interface NwcWalletRepository {
      * Callers are responsible for invoking [PayInvoiceRequest.cancel] to release resources
      * when they no longer need updates.
      */
-    fun startPayInvoiceRequest(
-        invoice: String,
-        amountMsats: Long? = null
-    ): PayInvoiceRequest
+    fun startPayInvoiceRequest(invoice: String, amountMsats: Long? = null): PayInvoiceRequest
 }

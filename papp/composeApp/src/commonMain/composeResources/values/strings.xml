@@ -65,14 +65,10 @@
     <string name="settings_footer_version">Version %1$s</string>
     <string name="settings_footer_privacy">Privacy Policy</string>
     <string name="settings_footer_repo">Source code</string>
-    <string name="pending_result_title">Waiting for wallet</string>
-    <string name="pending_result_body">We didn't get a response yet. The wallet may still process the payment—check the pending list below.</string>
-    <string name="pending_result_timeout_title">No response from wallet</string>
-    <string name="pending_result_timeout_body">The wallet did not respond in time. If it replies later, we'll update the pending list.</string>
-    <string name="pending_status_waiting">Pending</string>
-    <string name="pending_status_success">Success</string>
-    <string name="pending_status_failure">Failed</string>
-    <string name="pending_status_timeout">No response</string>
+    <!-- Pending payment chips (tap to view result) -->
+    <string name="pending_chip_waiting">Pending: %1$s %2$s</string>
+    <string name="pending_chip_success">Success: %1$s %2$s</string>
+    <string name="pending_chip_failure">Failed %1$s</string>
     <string name="add_wallet_title">Connect Wallet</string>
     <string name="add_wallet_continue">Continue</string>
     <string name="add_wallet_description">Copy a NWC URI and come back here, or scan the QR code.</string>

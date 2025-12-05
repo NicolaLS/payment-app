@@ -6,9 +6,7 @@ import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 /**
  * Use case responsible for paying a Lightning invoice via the connected NWC wallet.
  */
-class PayInvoiceUseCase(
-    private val repository: NwcWalletRepository
-) {
+class PayInvoiceUseCase(private val repository: NwcWalletRepository) {
     /**
      * Starts a pay request for the provided [invoice] and returns a handle that can be observed
      * for completion. This returns immediately with a request in Loading state; the actual

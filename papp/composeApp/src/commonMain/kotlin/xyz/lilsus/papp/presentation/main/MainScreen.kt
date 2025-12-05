@@ -41,6 +41,7 @@ fun MainScreen(
     onNavigateConnectWallet: (String) -> Unit,
     uiState: MainUiState,
     pendingPayments: List<PendingPaymentItem>,
+    highlightedPendingId: String? = null,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountPreset: (DisplayAmount) -> Unit = {},
     onManualAmountSubmit: () -> Unit = {},
@@ -48,8 +49,7 @@ fun MainScreen(
     onConfirmPaymentSubmit: () -> Unit = {},
     onConfirmPaymentDismiss: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
-    onPendingNoticeDismiss: (String) -> Unit = {},
-    onPendingItemClick: (String) -> Unit = {},
+    onPendingTap: (String) -> Unit = {},
     onRequestScannerStart: () -> Unit,
     onScannerResume: () -> Unit,
     onScannerPause: () -> Unit,
@@ -78,18 +78,7 @@ fun MainScreen(
         }
     }
 
-    val isDismissable = uiState is MainUiState.Success ||
-        uiState is MainUiState.Error ||
-        uiState is MainUiState.Pending
-    val dismissAction = when (uiState) {
-        is MainUiState.Pending -> if (uiState.isNotice) {
-            { onPendingNoticeDismiss(uiState.info.id) }
-        } else {
-            onResultDismiss
-        }
-
-        else -> onResultDismiss
-    }
+    val isDismissable = uiState is MainUiState.Success || uiState is MainUiState.Error
 
     Scaffold(
         modifier = modifier,
@@ -99,7 +88,7 @@ fun MainScreen(
             modifier = Modifier
                 .tapToDismiss(
                     enabled = isDismissable,
-                    onDismiss = dismissAction
+                    onDismiss = onResultDismiss
                 )
                 .fillMaxSize()
                 .padding(paddingValues),
@@ -116,16 +105,12 @@ fun MainScreen(
                         result = state
                     )
 
-                    is MainUiState.Pending -> ResultLayout(
-                        modifier = Modifier.fillMaxSize(),
-                        result = state
-                    )
-
                     else -> BottomLayout(
                         title = stringResource(Res.string.app_name_long),
                         subtitle = stringResource(Res.string.point_camera_message_subtitle),
                         pendingPayments = pendingPayments,
-                        onPendingClick = onPendingItemClick
+                        highlightedPendingId = highlightedPendingId,
+                        onPendingTap = onPendingTap
                     )
                 }
             }

@@ -144,55 +144,35 @@ class NwcWalletRepositoryImplTest {
         override val walletMetadata: StateFlow<WalletMetadata?> = MutableStateFlow(null)
         override val notifications: SharedFlow<WalletNotification> = MutableSharedFlow()
 
-        override fun payInvoice(params: PayInvoiceParams): NwcRequest<PayInvoiceResult> {
-            return createFakeRequest(nextPayInvoiceResult)
-        }
+        override fun payInvoice(params: PayInvoiceParams): NwcRequest<PayInvoiceResult> = createFakeRequest(nextPayInvoiceResult)
 
-        override fun payKeysend(params: KeysendParams): NwcRequest<KeysendResult> {
+        override fun payKeysend(params: KeysendParams): NwcRequest<KeysendResult> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
-        override fun getBalance(): NwcRequest<BalanceResult> {
-            throw UnsupportedOperationException("Not implemented in test")
-        }
+        override fun getBalance(): NwcRequest<BalanceResult> = throw UnsupportedOperationException("Not implemented in test")
 
-        override fun getInfo(): NwcRequest<GetInfoResult> {
-            throw UnsupportedOperationException("Not implemented in test")
-        }
+        override fun getInfo(): NwcRequest<GetInfoResult> = throw UnsupportedOperationException("Not implemented in test")
 
-        override fun makeInvoice(params: MakeInvoiceParams): NwcRequest<Transaction> {
+        override fun makeInvoice(params: MakeInvoiceParams): NwcRequest<Transaction> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
-        override fun lookupInvoice(params: LookupInvoiceParams): NwcRequest<Transaction> {
+        override fun lookupInvoice(params: LookupInvoiceParams): NwcRequest<Transaction> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
-        override fun listTransactions(params: ListTransactionsParams): NwcRequest<List<Transaction>> {
+        override fun listTransactions(params: ListTransactionsParams): NwcRequest<List<Transaction>> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
-        override suspend fun payInvoiceAndWait(
-            params: PayInvoiceParams,
-            timeout: Duration
-        ): NwcResult<PayInvoiceResult> {
+        override suspend fun payInvoiceAndWait(params: PayInvoiceParams, timeout: Duration): NwcResult<PayInvoiceResult> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
-        override suspend fun getBalanceAndWait(timeout: Duration): NwcResult<BalanceResult> {
+        override suspend fun getBalanceAndWait(timeout: Duration): NwcResult<BalanceResult> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
-        override suspend fun getInfoAndWait(timeout: Duration): NwcResult<GetInfoResult> {
+        override suspend fun getInfoAndWait(timeout: Duration): NwcResult<GetInfoResult> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
-        override suspend fun makeInvoiceAndWait(
-            params: MakeInvoiceParams,
-            timeout: Duration
-        ): NwcResult<Transaction> {
+        override suspend fun makeInvoiceAndWait(params: MakeInvoiceParams, timeout: Duration): NwcResult<Transaction> =
             throw UnsupportedOperationException("Not implemented in test")
-        }
 
         override suspend fun close() {
             // No-op
@@ -233,11 +213,7 @@ class NwcWalletRepositoryImplTest {
         override suspend fun clearWalletConnection(): Unit = throw UnsupportedOperationException()
     }
 
-    private data class RepositoryContext(
-        val repository: NwcWalletRepositoryImpl,
-        val wallet: FakeNwcWallet,
-        val testScope: TestScope
-    ) {
+    private data class RepositoryContext(val repository: NwcWalletRepositoryImpl, val wallet: FakeNwcWallet, val testScope: TestScope) {
         suspend fun close() {
             testScope.cancel("Test completed")
             wallet.close()

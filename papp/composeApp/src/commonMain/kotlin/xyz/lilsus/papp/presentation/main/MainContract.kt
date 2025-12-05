@@ -28,6 +28,7 @@ sealed interface MainIntent {
     data object ConfirmPaymentSubmit : MainIntent
     data object ConfirmPaymentDismiss : MainIntent
     data class StartDonation(val amountSats: Long, val address: LightningAddress) : MainIntent
-    data class DismissPendingNotice(val id: String) : MainIntent
-    data class SelectPendingItem(val id: String) : MainIntent
+
+    /** Tap a pending payment chip - shows result if ready, does nothing if still waiting */
+    data class TapPending(val id: String) : MainIntent
 }

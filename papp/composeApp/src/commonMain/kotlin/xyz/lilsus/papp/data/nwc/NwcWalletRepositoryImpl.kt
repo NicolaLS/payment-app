@@ -77,10 +77,7 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    override fun startPayInvoiceRequest(
-        invoice: String,
-        amountMsats: Long?
-    ): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
@@ -89,15 +86,19 @@ class NwcWalletRepositoryImpl(
         // Create app-level request that wraps the NwcWallet request
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(PayInvoiceRequestState.Loading)
 
+        // Hold reference to underlying NWC request for proper cancellation
+        var nwcRequest: io.github.nostr.nwc.NwcRequest<*>? = null
+
         val job = scope.launch {
             try {
                 val wallet = ensureWallet()
                     ?: run {
-                        stateFlow.value = PayInvoiceRequestState.Failure(AppError.MissingWalletConnection)
+                        stateFlow.value =
+                            PayInvoiceRequestState.Failure(AppError.MissingWalletConnection)
                         return@launch
                     }
 
-                val nwcRequest = wallet.payInvoice(
+                nwcRequest = wallet.payInvoice(
                     PayInvoiceParams(
                         invoice = invoice,
                         amount = amountMsats?.let(BitcoinAmount::fromMsats)
@@ -105,7 +106,7 @@ class NwcWalletRepositoryImpl(
                 )
 
                 // Forward NWC request state to app state
-                nwcRequest.state.collect { nwcState ->
+                nwcRequest!!.state.collect { nwcState ->
                     stateFlow.value = when (nwcState) {
                         NwcRequestState.Loading -> PayInvoiceRequestState.Loading
 
@@ -135,6 +136,7 @@ class NwcWalletRepositoryImpl(
         return object : PayInvoiceRequest {
             override val state = stateFlow
             override fun cancel() {
+                nwcRequest?.cancel()
                 job.cancel()
             }
         }

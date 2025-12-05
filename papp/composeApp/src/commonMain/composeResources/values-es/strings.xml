@@ -66,14 +66,10 @@
     <string name="settings_footer_version">Versión %1$s</string>
     <string name="settings_footer_privacy">Política de privacidad</string>
     <string name="settings_footer_repo">Código fuente</string>
-    <string name="pending_result_title">Esperando a la billetera</string>
-    <string name="pending_result_body">Aún no tenemos respuesta. La billetera podría procesar el pago más tarde; revisa la lista de pendientes abajo.</string>
-    <string name="pending_result_timeout_title">Sin respuesta de la billetera</string>
-    <string name="pending_result_timeout_body">La billetera no respondió a tiempo. Si responde después, actualizaremos la lista pendiente.</string>
-    <string name="pending_status_waiting">Pendiente</string>
-    <string name="pending_status_success">Éxito</string>
-    <string name="pending_status_failure">Falló</string>
-    <string name="pending_status_timeout">Sin respuesta</string>
+    <!-- Pending payment chips (tap to view result) -->
+    <string name="pending_chip_waiting">Pendiente: %1$s %2$s</string>
+    <string name="pending_chip_success">Éxito: %1$s %2$s</string>
+    <string name="pending_chip_failure">Fallido %1$s</string>
     <string name="add_wallet_title">Conectar billetera</string>
     <string name="add_wallet_continue">Continuar</string>
     <string name="add_wallet_description">Copia un URI de NWC y regresa aquí, o escanea el código QR.</string>

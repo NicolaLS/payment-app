@@ -44,7 +44,6 @@ import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
-import xyz.lilsus.papp.presentation.main.PendingPaymentInfo
 import xyz.lilsus.papp.presentation.main.PendingPaymentItem
 import xyz.lilsus.papp.presentation.main.PendingStatus
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
@@ -79,6 +78,8 @@ class MainViewModel internal constructor(
     val pendingPayments: StateFlow<List<PendingPaymentItem>> = _pendingPayments.asStateFlow()
 
     private val pendingRequests = LinkedHashMap<String, PendingRequest>()
+
+    /** Tracks which pending item is currently showing its result screen */
     private var pendingSelectionId: String? = null
 
     private val currencyState = MutableStateFlow(
@@ -96,12 +97,16 @@ class MainViewModel internal constructor(
     private var vibrateOnScan: Boolean = true
     private var vibrateOnPayment: Boolean = true
     private var lastExchangeRateRefreshMs: Long? = null
-    private var activePendingNoticeId: String? = null
     private val pendingCollectionJobs = mutableMapOf<String, Job>()
+    private var currentWalletUri: String? = null
+
+    private val _highlightedPendingId = MutableStateFlow<String?>(null)
+    val highlightedPendingId: StateFlow<String?> = _highlightedPendingId.asStateFlow()
 
     init {
         scope.launch {
             observeWalletConnection().collectLatest { connection ->
+                currentWalletUri = connection?.uri
                 if (connection == null && _uiState.value is MainUiState.Success) {
                     _uiState.value = MainUiState.Active
                 }
@@ -170,8 +175,7 @@ class MainViewModel internal constructor(
             MainIntent.ConfirmPaymentDismiss -> handleConfirmPaymentDismiss()
             MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
             is MainIntent.StartDonation -> handleDonation(intent.amountSats, intent.address)
-            is MainIntent.DismissPendingNotice -> handlePendingNoticeDismiss(intent.id)
-            is MainIntent.SelectPendingItem -> handlePendingItemSelected(intent.id)
+            is MainIntent.TapPending -> handlePendingTap(intent.id)
         }
     }
 
@@ -187,24 +191,52 @@ class MainViewModel internal constructor(
             )
 
             is LightningInputParser.ParseResult.Success -> {
-                if (vibrateOnScan) haptics.notifyScanSuccess()
                 when (val target = parse.target) {
-                    is LightningInputParser.Target.Bolt11Candidate -> processBoltInvoice(
-                        target.invoice
-                    )
+                    is LightningInputParser.Target.Bolt11Candidate -> {
+                        // Check if already pending for current wallet
+                        val existingPendingId = findPendingForCurrentWallet(target.invoice)
+                        if (existingPendingId != null) {
+                            // Highlight the existing chip to give user feedback
+                            highlightPendingChip(existingPendingId)
+                            return
+                        }
+                        if (vibrateOnScan) haptics.notifyScanSuccess()
+                        processBoltInvoice(target.invoice)
+                    }
 
-                    is LightningInputParser.Target.Lnurl -> fetchLnurl(
-                        target.endpoint,
-                        LnurlSource.Lnurl
-                    )
+                    is LightningInputParser.Target.Lnurl -> {
+                        if (vibrateOnScan) haptics.notifyScanSuccess()
+                        fetchLnurl(target.endpoint, LnurlSource.Lnurl)
+                    }
 
-                    is LightningInputParser.Target.LightningAddressTarget ->
-                        resolveLightningAddress(
-                            target.address
-                        )
+                    is LightningInputParser.Target.LightningAddressTarget -> {
+                        if (vibrateOnScan) haptics.notifyScanSuccess()
+                        resolveLightningAddress(target.address)
+                    }
                 }
             }
         }
+    }
+
+    private fun highlightPendingChip(id: String) {
+        scope.launch {
+            _highlightedPendingId.value = id
+            kotlinx.coroutines.delay(300)
+            _highlightedPendingId.value = null
+        }
+    }
+
+    /**
+     * Checks if invoice is already pending for the current wallet.
+     * Returns the pending ID if found (for highlighting), null otherwise.
+     */
+    private fun findPendingForCurrentWallet(invoice: String): String? {
+        val summary = parseBolt11Invoice(invoice) ?: return null
+        return pendingRequests.values
+            .firstOrNull {
+                it.summary.paymentRequest == summary.paymentRequest &&
+                    it.walletUri == currentWalletUri
+            }?.id
     }
 
     private fun handleDonation(amountSats: Long, address: LightningAddress) {
@@ -258,23 +290,15 @@ class MainViewModel internal constructor(
             return
         }
 
+        // If this invoice is already pending for the current wallet, just ensure chip is visible
         pendingRequests.values
-            .firstOrNull { it.summary.paymentRequest == summary.paymentRequest }
+            .firstOrNull {
+                it.summary.paymentRequest == summary.paymentRequest &&
+                    it.walletUri == currentWalletUri
+            }
             ?.let { existing ->
-                val currencyState = currencyState.value
                 existing.visible = true
-                existing.noticeShown = false
-                activePendingNoticeId = null
                 refreshPendingDisplays()
-                pendingSelectionId = existing.id
-                _uiState.value = MainUiState.Pending(
-                    info = PendingPaymentInfo(
-                        id = existing.id,
-                        amount = convertMsatsToDisplay(existing.amountMsats, currencyState)
-                    ),
-                    status = existing.status,
-                    isNotice = false
-                )
                 return
             }
 
@@ -541,59 +565,34 @@ class MainViewModel internal constructor(
         )
     }
 
-    private fun handlePendingNoticeDismiss(id: String) {
-        val record = pendingRequests[id] ?: return
-        record.visible = true
-        record.noticeShown = false
-        activePendingNoticeId = null
-        if (pendingSelectionId == id) {
-            pendingSelectionId = null
-        }
-        refreshPendingDisplays()
-        _uiState.value = MainUiState.Active
-    }
-
-    private fun handlePendingItemSelected(id: String) {
+    /**
+     * Handle tap on a pending payment chip.
+     * - If still waiting/timed out: do nothing
+     * - If success/failure: show result screen, remove chip on dismiss
+     */
+    private fun handlePendingTap(id: String) {
         val record = pendingRequests[id] ?: return
         val currencyState = currencyState.value
-        pendingSelectionId = id
+
         when (record.status) {
+            PendingStatus.Waiting -> {
+                // Still pending - do nothing on tap
+            }
+
             PendingStatus.Success -> {
                 val paid = record.paidMsats ?: record.amountMsats
                 val fee = record.feeMsats ?: 0L
-                val paidDisplay = convertMsatsToDisplay(paid, currencyState)
-                val feeDisplay = convertMsatsToDisplay(fee, currencyState)
+                pendingSelectionId = id
                 _uiState.value = MainUiState.Success(
-                    amountPaid = paidDisplay,
-                    feePaid = feeDisplay
+                    amountPaid = convertMsatsToDisplay(paid, currencyState),
+                    feePaid = convertMsatsToDisplay(fee, currencyState)
                 )
-                lastPaymentResult = CompletedPayment(amountMsats = paid, feeMsats = fee)
             }
 
             PendingStatus.Failure -> {
-                val error = record.error ?: AppError.Timeout
+                val error = record.error ?: AppError.Unexpected(null)
+                pendingSelectionId = id
                 _uiState.value = MainUiState.Error(error)
-                _events.tryEmit(MainEvent.ShowError(error))
-            }
-
-            PendingStatus.TimedOut -> {
-                _uiState.value = MainUiState.Pending(
-                    info = PendingPaymentInfo(
-                        id = id,
-                        amount = convertMsatsToDisplay(record.amountMsats, currencyState)
-                    ),
-                    status = PendingStatus.TimedOut
-                )
-            }
-
-            PendingStatus.Waiting -> {
-                _uiState.value = MainUiState.Pending(
-                    info = PendingPaymentInfo(
-                        id = id,
-                        amount = convertMsatsToDisplay(record.amountMsats, currencyState)
-                    ),
-                    status = PendingStatus.Waiting
-                )
             }
         }
     }
@@ -672,7 +671,9 @@ class MainViewModel internal constructor(
                 request.state.collect { state ->
                     when (state) {
                         PayInvoiceRequestState.Loading -> {
-                            if (_uiState.value !is MainUiState.Pending) {
+                            // Only show Loading if not already returned to Active (pending chip visible)
+                            val record = pendingRequests[pendingId]
+                            if (record?.visible != true) {
                                 _uiState.value = MainUiState.Loading
                             }
                         }
@@ -720,10 +721,10 @@ class MainViewModel internal constructor(
         amountOverrideMsats: Long?,
         result: PaidInvoice
     ) {
+        val record = pendingRequests[pendingId]
         val currencyState = currencyState.value
         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
         val feeMsats = result.feesPaidMsats ?: 0L
-        val record = pendingRequests[pendingId]
         pendingInvoice = null
         manualEntryContext = null
         pendingPayment = null
@@ -734,30 +735,24 @@ class MainViewModel internal constructor(
             ),
             clearInput = true
         )
-        if (record?.noticeShown == true || record?.visible == true) {
+
+        // Remove any other pending requests for the same invoice (from other wallets)
+        // since the invoice can only be paid once
+        removeOtherPendingForSameInvoice(pendingId, summary.paymentRequest)
+
+        if (record?.visible == true) {
+            // Chip was already showing - update it in place, stay on Active
+            if (vibrateOnPayment) haptics.notifyPaymentSuccess()
             updatePendingStatus(
                 id = pendingId,
                 status = PendingStatus.Success,
                 paidMsats = paidMsats,
                 feeMsats = feeMsats
             )
-            val current = _uiState.value
-            val isCurrentPending =
-                current is MainUiState.Pending && current.info.id == pendingId
-            if (pendingSelectionId == pendingId || isCurrentPending) {
-                val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
-                val feeDisplay = convertMsatsToDisplay(feeMsats, currencyState)
-                _uiState.value = MainUiState.Success(
-                    amountPaid = paidDisplay,
-                    feePaid = feeDisplay
-                )
-                lastPaymentResult = CompletedPayment(
-                    amountMsats = paidMsats,
-                    feeMsats = feeMsats
-                )
-            }
             return
         }
+
+        // Fast response - show success screen
         if (vibrateOnPayment) haptics.notifyPaymentSuccess()
         val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
         val feeDisplay = convertMsatsToDisplay(feeMsats, currencyState)
@@ -778,8 +773,8 @@ class MainViewModel internal constructor(
         amountOverrideMsats: Long?,
         error: AppError
     ) {
-        val currencyState = currencyState.value
         val record = pendingRequests[pendingId]
+        val currencyState = currencyState.value
         pendingInvoice = null
         pendingPayment = null
         manualEntryContext = null
@@ -790,51 +785,30 @@ class MainViewModel internal constructor(
             ),
             clearInput = true
         )
-        if (record?.noticeShown == true || record?.visible == true) {
-            val status =
-                if (error == AppError.Timeout) PendingStatus.TimedOut else PendingStatus.Failure
+
+        if (record?.visible == true) {
+            // Chip was already showing - update it in place, stay on Active
             updatePendingStatus(
                 id = pendingId,
-                status = status,
+                status = PendingStatus.Failure,
                 error = error
             )
-            val current = _uiState.value
-            val isCurrentPending =
-                current is MainUiState.Pending && current.info.id == pendingId
-            if (pendingSelectionId == pendingId || isCurrentPending) {
-                if (status == PendingStatus.TimedOut) {
-                    _uiState.value = MainUiState.Pending(
-                        info = PendingPaymentInfo(
-                            id = pendingId,
-                            amount = convertMsatsToDisplay(record.amountMsats, currencyState)
-                        ),
-                        status = PendingStatus.TimedOut
-                    )
-                } else {
-                    _uiState.value = MainUiState.Error(error)
-                    _events.tryEmit(MainEvent.ShowError(error))
-                }
-            }
             return
         }
+
+        // Fast failure - show error screen
         _uiState.value = MainUiState.Error(error)
         _events.tryEmit(MainEvent.ShowError(error))
         removePendingRecord(pendingId)
     }
 
     private fun handleDismissResult() {
-        pendingSelectionId?.let {
-            val status = pendingRequests[it]?.status
-            if (status == PendingStatus.Waiting) {
-                // Keep the item; just exit the sheet.
-                pendingSelectionId = null
-            } else {
-                removePendingRecord(it)
-                pendingSelectionId = null
-            }
-        } ?: run {
-            lastPaymentResult = null
+        // If viewing a pending item's result, remove it from the list
+        pendingSelectionId?.let { id ->
+            removePendingRecord(id)
+            pendingSelectionId = null
         }
+        lastPaymentResult = null
         _uiState.value = MainUiState.Active
     }
 
@@ -891,38 +865,18 @@ class MainViewModel internal constructor(
             summary = summary,
             amountMsats = amountMsats,
             origin = origin,
-            createdAtMs = currentTimeMillis()
+            createdAtMs = currentTimeMillis(),
+            walletUri = currentWalletUri
         )
         pendingRequests[id] = record
-        record.noticeJob = scope.launch {
+
+        // After delay, if still waiting, show chip and return to Active screen
+        record.visibilityJob = scope.launch {
             kotlinx.coroutines.delay(PENDING_NOTICE_DELAY_MS)
             if (record.status == PendingStatus.Waiting) {
-                record.noticeShown = true
-                activePendingNoticeId = id
-                if (pendingSelectionId == null) {
-                    pendingSelectionId = id
-                }
-                _uiState.value = MainUiState.Pending(
-                    info = PendingPaymentInfo(
-                        id = id,
-                        amount = convertMsatsToDisplay(
-                            amountMsats.coerceAtLeast(0L),
-                            currencyState.value
-                        )
-                    ),
-                    status = PendingStatus.Waiting,
-                    isNotice = true
-                )
-            }
-        }
-        record.finalTimeoutJob = scope.launch {
-            kotlinx.coroutines.delay(PENDING_FINAL_TIMEOUT_MS)
-            if (record.status == PendingStatus.Waiting) {
-                updatePendingStatus(
-                    id = id,
-                    status = PendingStatus.TimedOut,
-                    error = AppError.Timeout
-                )
+                record.visible = true
+                refreshPendingDisplays()
+                _uiState.value = MainUiState.Active
             }
         }
         return id
@@ -940,12 +894,8 @@ class MainViewModel internal constructor(
         record.error = error ?: record.error
         paidMsats?.let { record.paidMsats = it }
         feeMsats?.let { record.feeMsats = it }
-        if (record.noticeShown && !record.visible) {
-            record.visible = true
-        }
         if (status != PendingStatus.Waiting) {
-            record.noticeJob?.cancel()
-            record.finalTimeoutJob?.cancel()
+            record.visibilityJob?.cancel()
         }
         refreshPendingDisplays()
     }
@@ -958,20 +908,38 @@ class MainViewModel internal constructor(
                 PendingPaymentItem(
                     id = record.id,
                     amount = convertMsatsToDisplay(record.amountMsats, currencyState),
-                    status = record.status
+                    status = record.status,
+                    createdAtMs = record.createdAtMs,
+                    fee = record.feeMsats?.let { convertMsatsToDisplay(it, currencyState) },
+                    errorMessage = record.error?.let { errorMessageFor(it) }
                 )
             }
+    }
+
+    private fun errorMessageFor(error: AppError): String = when (error) {
+        is AppError.PaymentRejected -> error.message ?: error.code ?: "Rejected"
+        AppError.NetworkUnavailable -> "Network error"
+        AppError.Timeout -> "Timed out"
+        is AppError.Unexpected -> error.message ?: "Error"
+        else -> "Error"
     }
 
     private fun removePendingRecord(id: String) {
         val record = pendingRequests.remove(id) ?: return
         cancelRequestForPending(id, record)
-        record.noticeJob?.cancel()
-        record.finalTimeoutJob?.cancel()
-        if (activePendingNoticeId == id) {
-            activePendingNoticeId = null
-        }
+        record.visibilityJob?.cancel()
         refreshPendingDisplays()
+    }
+
+    /**
+     * Removes any other pending requests for the same invoice (from other wallets).
+     * Called when one wallet successfully pays - the invoice can only be paid once.
+     */
+    private fun removeOtherPendingForSameInvoice(excludeId: String, paymentRequest: String) {
+        val toRemove = pendingRequests.values
+            .filter { it.id != excludeId && it.summary.paymentRequest == paymentRequest }
+            .map { it.id }
+        toRemove.forEach { removePendingRecord(it) }
     }
 
     private fun cancelRequestForPending(id: String, record: PendingRequest? = pendingRequests[id]) {
@@ -1112,7 +1080,6 @@ private const val MSATS_PER_SAT = 1_000L
 private const val MSATS_PER_BTC = 100_000_000_000L
 private const val EXCHANGE_RATE_MAX_AGE_MS = 60_000L
 private const val PENDING_NOTICE_DELAY_MS = 3_000L
-private const val PENDING_FINAL_TIMEOUT_MS = 30_000L
 
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
@@ -1150,13 +1117,15 @@ private data class PendingRequest(
     val amountMsats: Long,
     val origin: PendingOrigin,
     val createdAtMs: Long,
+    /** Wallet URI that initiated this payment */
+    val walletUri: String?,
     var status: PendingStatus = PendingStatus.Waiting,
     var error: AppError? = null,
     var paidMsats: Long? = null,
     var feeMsats: Long? = null,
+    /** Whether the chip should be shown in the UI */
     var visible: Boolean = false,
-    var noticeShown: Boolean = false,
     var request: PayInvoiceRequest? = null,
-    var noticeJob: Job? = null,
-    var finalTimeoutJob: Job? = null
+    /** Job that makes chip visible after delay */
+    var visibilityJob: Job? = null
 )
