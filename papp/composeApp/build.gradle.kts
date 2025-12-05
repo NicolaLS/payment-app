@@ -86,7 +86,7 @@ android {
         applicationId = "xyz.lilsus.papp"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
+        versionCode = 4
         versionName = "1.0"
         ndk {
             //noinspection ChromeOsAbiSupport
