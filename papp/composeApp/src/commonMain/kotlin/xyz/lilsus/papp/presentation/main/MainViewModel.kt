@@ -1079,7 +1079,7 @@ class MainViewModel internal constructor(
 private const val MSATS_PER_SAT = 1_000L
 private const val MSATS_PER_BTC = 100_000_000_000L
 private const val EXCHANGE_RATE_MAX_AGE_MS = 60_000L
-private const val PENDING_NOTICE_DELAY_MS = 3_000L
+private const val PENDING_NOTICE_DELAY_MS = 5_000L
 
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
