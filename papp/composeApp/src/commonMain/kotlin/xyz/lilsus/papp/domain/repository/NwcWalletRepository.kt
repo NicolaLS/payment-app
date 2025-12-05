@@ -23,10 +23,12 @@ interface NwcWalletRepository {
 
     /**
      * Starts paying the provided BOLT11 [invoice] and returns a request handle that can be
-     * observed for success/failure. Callers are responsible for invoking [PayInvoiceRequest.cancel]
-     * to release resources when they no longer need updates.
+     * observed for success/failure. This method returns immediately with a request in Loading
+     * state; client initialization and the actual payment happen in the background.
+     * Callers are responsible for invoking [PayInvoiceRequest.cancel] to release resources
+     * when they no longer need updates.
      */
-    suspend fun startPayInvoiceRequest(
+    fun startPayInvoiceRequest(
         invoice: String,
         amountMsats: Long? = null
     ): PayInvoiceRequest

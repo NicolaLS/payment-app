@@ -89,7 +89,6 @@ class MainViewModel internal constructor(
     )
     private var pendingInvoice: Bolt11InvoiceSummary? = null
     private var manualEntryContext: ManualEntryContext? = null
-    private var activePaymentJob: Job? = null
     private var pendingPayment: PendingPayment? = null
     private var exchangeRateJob: Job? = null
     private var lastPaymentResult: CompletedPayment? = null
@@ -98,7 +97,7 @@ class MainViewModel internal constructor(
     private var vibrateOnPayment: Boolean = true
     private var lastExchangeRateRefreshMs: Long? = null
     private var activePendingNoticeId: String? = null
-    private var activePayRequest: PayInvoiceRequest? = null
+    private val pendingCollectionJobs = mutableMapOf<String, Job>()
 
     init {
         scope.launch {
@@ -177,7 +176,6 @@ class MainViewModel internal constructor(
     }
 
     private fun handleInvoiceDetected(rawInput: String) {
-        if (activePaymentJob?.isActive == true) return
         if (_uiState.value !is MainUiState.Active) return
 
         manualEntryContext = null
@@ -211,7 +209,6 @@ class MainViewModel internal constructor(
 
     private fun handleDonation(amountSats: Long, address: LightningAddress) {
         if (amountSats <= 0) return
-        if (activePaymentJob?.isActive == true) return
         scope.launch {
             pendingInvoice = null
             pendingPayment = null
@@ -260,6 +257,26 @@ class MainViewModel internal constructor(
             emitError(AppError.InvalidWalletUri("Failed to parse BOLT11 invoice"))
             return
         }
+
+        pendingRequests.values
+            .firstOrNull { it.summary.paymentRequest == summary.paymentRequest }
+            ?.let { existing ->
+                val currencyState = currencyState.value
+                existing.visible = true
+                existing.noticeShown = false
+                activePendingNoticeId = null
+                refreshPendingDisplays()
+                pendingSelectionId = existing.id
+                _uiState.value = MainUiState.Pending(
+                    info = PendingPaymentInfo(
+                        id = existing.id,
+                        amount = convertMsatsToDisplay(existing.amountMsats, currencyState)
+                    ),
+                    status = existing.status,
+                    isNotice = false
+                )
+                return
+            }
 
         pendingInvoice = summary
         val entryState = manualAmount.reset(
@@ -529,6 +546,9 @@ class MainViewModel internal constructor(
         record.visible = true
         record.noticeShown = false
         activePendingNoticeId = null
+        if (pendingSelectionId == id) {
+            pendingSelectionId = null
+        }
         refreshPendingDisplays()
         _uiState.value = MainUiState.Active
     }
@@ -621,9 +641,7 @@ class MainViewModel internal constructor(
         origin: PendingOrigin
     ) {
         val pendingId = registerPending(summary, amountOverrideMsats, origin)
-        activePaymentJob?.cancel()
-        activePayRequest?.cancel()
-        activePayRequest = null
+        cancelCollectionJob(pendingId)
         val job = scope.launch {
             val request = try {
                 payInvoice(
@@ -649,47 +667,51 @@ class MainViewModel internal constructor(
                 cancelRequestForPending(pendingId)
                 return@launch
             }
-            activePayRequest = request
             pendingRequests[pendingId]?.request = request
-            request.state.collect { state ->
-                when (state) {
-                    PayInvoiceRequestState.Loading -> {
-                        if (_uiState.value !is MainUiState.Pending) {
-                            _uiState.value = MainUiState.Loading
+            try {
+                request.state.collect { state ->
+                    when (state) {
+                        PayInvoiceRequestState.Loading -> {
+                            if (_uiState.value !is MainUiState.Pending) {
+                                _uiState.value = MainUiState.Loading
+                            }
+                        }
+
+                        is PayInvoiceRequestState.Success -> {
+                            handlePaymentSuccess(
+                                pendingId = pendingId,
+                                summary = summary,
+                                amountOverrideMsats = amountOverrideMsats,
+                                result = state.invoice
+                            )
+                            cancelRequestForPending(pendingId)
+                            this@launch.cancel()
+                        }
+
+                        is PayInvoiceRequestState.Failure -> {
+                            handlePaymentFailure(
+                                pendingId = pendingId,
+                                summary = summary,
+                                amountOverrideMsats = amountOverrideMsats,
+                                error = state.error
+                            )
+                            cancelRequestForPending(pendingId)
+                            this@launch.cancel()
                         }
                     }
-
-                    is PayInvoiceRequestState.Success -> {
-                        handlePaymentSuccess(
-                            pendingId = pendingId,
-                            summary = summary,
-                            amountOverrideMsats = amountOverrideMsats,
-                            result = state.invoice
-                        )
-                        cancelRequestForPending(pendingId)
-                        this.cancel()
-                    }
-
-                    is PayInvoiceRequestState.Failure -> {
-                        handlePaymentFailure(
-                            pendingId = pendingId,
-                            summary = summary,
-                            amountOverrideMsats = amountOverrideMsats,
-                            error = state.error
-                        )
-                        cancelRequestForPending(pendingId)
-                        this.cancel()
-                    }
+                }
+            } finally {
+                if (pendingRequests[pendingId]?.request === request) {
+                    pendingRequests[pendingId]?.request = null
                 }
             }
         }
         job.invokeOnCompletion {
-            if (activePaymentJob === job) {
-                activePaymentJob = null
-                activePayRequest = null
+            if (pendingCollectionJobs[pendingId] === job) {
+                pendingCollectionJobs.remove(pendingId)
             }
         }
-        activePaymentJob = job
+        pendingCollectionJobs[pendingId] = job
     }
 
     private fun handlePaymentSuccess(
@@ -720,11 +742,18 @@ class MainViewModel internal constructor(
                 feeMsats = feeMsats
             )
             val current = _uiState.value
-            if (current is MainUiState.Pending && current.info.id == pendingId) {
-                _uiState.value = MainUiState.Pending(
-                    info = current.info,
-                    status = PendingStatus.Success,
-                    isNotice = current.isNotice
+            val isCurrentPending =
+                current is MainUiState.Pending && current.info.id == pendingId
+            if (pendingSelectionId == pendingId || isCurrentPending) {
+                val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
+                val feeDisplay = convertMsatsToDisplay(feeMsats, currencyState)
+                _uiState.value = MainUiState.Success(
+                    amountPaid = paidDisplay,
+                    feePaid = feeDisplay
+                )
+                lastPaymentResult = CompletedPayment(
+                    amountMsats = paidMsats,
+                    feeMsats = feeMsats
                 )
             }
             return
@@ -770,12 +799,21 @@ class MainViewModel internal constructor(
                 error = error
             )
             val current = _uiState.value
-            if (current is MainUiState.Pending && current.info.id == pendingId) {
-                _uiState.value = MainUiState.Pending(
-                    info = current.info,
-                    status = status,
-                    isNotice = current.isNotice
-                )
+            val isCurrentPending =
+                current is MainUiState.Pending && current.info.id == pendingId
+            if (pendingSelectionId == pendingId || isCurrentPending) {
+                if (status == PendingStatus.TimedOut) {
+                    _uiState.value = MainUiState.Pending(
+                        info = PendingPaymentInfo(
+                            id = pendingId,
+                            amount = convertMsatsToDisplay(record.amountMsats, currencyState)
+                        ),
+                        status = PendingStatus.TimedOut
+                    )
+                } else {
+                    _uiState.value = MainUiState.Error(error)
+                    _events.tryEmit(MainEvent.ShowError(error))
+                }
             }
             return
         }
@@ -786,8 +824,14 @@ class MainViewModel internal constructor(
 
     private fun handleDismissResult() {
         pendingSelectionId?.let {
-            removePendingRecord(it)
-            pendingSelectionId = null
+            val status = pendingRequests[it]?.status
+            if (status == PendingStatus.Waiting) {
+                // Keep the item; just exit the sheet.
+                pendingSelectionId = null
+            } else {
+                removePendingRecord(it)
+                pendingSelectionId = null
+            }
         } ?: run {
             lastPaymentResult = null
         }
@@ -855,6 +899,9 @@ class MainViewModel internal constructor(
             if (record.status == PendingStatus.Waiting) {
                 record.noticeShown = true
                 activePendingNoticeId = id
+                if (pendingSelectionId == null) {
+                    pendingSelectionId = id
+                }
                 _uiState.value = MainUiState.Pending(
                     info = PendingPaymentInfo(
                         id = id,
@@ -918,7 +965,7 @@ class MainViewModel internal constructor(
 
     private fun removePendingRecord(id: String) {
         val record = pendingRequests.remove(id) ?: return
-        cancelRequest(record)
+        cancelRequestForPending(id, record)
         record.noticeJob?.cancel()
         record.finalTimeoutJob?.cancel()
         if (activePendingNoticeId == id) {
@@ -927,17 +974,18 @@ class MainViewModel internal constructor(
         refreshPendingDisplays()
     }
 
-    private fun cancelRequestForPending(id: String) {
-        pendingRequests[id]?.let { cancelRequest(it) }
+    private fun cancelRequestForPending(id: String, record: PendingRequest? = pendingRequests[id]) {
+        cancelCollectionJob(id)
+        record?.let { cancelRequest(it) }
     }
 
     private fun cancelRequest(record: PendingRequest) {
-        val request = record.request
-        request?.cancel()
-        if (activePayRequest === request) {
-            activePayRequest = null
-        }
+        record.request?.cancel()
         record.request = null
+    }
+
+    private fun cancelCollectionJob(id: String) {
+        pendingCollectionJobs.remove(id)?.cancel()
     }
 
     private fun ensureExchangeRateIfNeeded(info: CurrencyInfo) {
@@ -1052,8 +1100,10 @@ class MainViewModel internal constructor(
     }
 
     fun clear() {
-        activePayRequest?.cancel()
-        activePayRequest = null
+        pendingCollectionJobs.values.forEach { it.cancel() }
+        pendingCollectionJobs.clear()
+        pendingRequests.values.forEach { it.request?.cancel() }
+        pendingRequests.clear()
         scope.cancel()
     }
 }
@@ -1061,7 +1111,7 @@ class MainViewModel internal constructor(
 private const val MSATS_PER_SAT = 1_000L
 private const val MSATS_PER_BTC = 100_000_000_000L
 private const val EXCHANGE_RATE_MAX_AGE_MS = 60_000L
-private const val PENDING_NOTICE_DELAY_MS = 6_000L
+private const val PENDING_NOTICE_DELAY_MS = 3_000L
 private const val PENDING_FINAL_TIMEOUT_MS = 30_000L
 
 private data class PendingPayment(

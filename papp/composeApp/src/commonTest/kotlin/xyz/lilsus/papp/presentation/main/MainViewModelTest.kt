@@ -473,7 +473,7 @@ class MainViewModelTest {
         exchangeRateResult: Result<ExchangeRate>? = null,
         lnurlRepository: FakeLnurlRepository = FakeLnurlRepository()
     ): MainViewModel {
-        val payInvoice = PayInvoiceUseCase(repository, dispatcher = dispatcher)
+        val payInvoice = PayInvoiceUseCase(repository)
         val paymentPreferencesRepository = FakePaymentPreferencesRepository(preferences)
         val shouldConfirm = ShouldConfirmPaymentUseCase(paymentPreferencesRepository)
         val currencyPreferencesRepository = FakeCurrencyPreferencesRepository(currencyCode)
@@ -536,7 +536,7 @@ private class RecordingNwcWalletRepository(private val result: PaidInvoice = Pai
         return state.invoice
     }
 
-    override suspend fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         lastInvoice = invoice
         lastAmountMsats = amountMsats
         return ImmediatePayInvoiceRequest(result)
@@ -555,7 +555,7 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
         return state.invoice
     }
 
-    override suspend fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         recorded += invoice to amountMsats
         return DeferredPayInvoiceRequest(completion)
     }

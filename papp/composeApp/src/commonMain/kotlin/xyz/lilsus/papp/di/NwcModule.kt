@@ -12,9 +12,9 @@ import org.koin.dsl.module
 import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
 import xyz.lilsus.papp.data.network.createNwcHttpClient
-import xyz.lilsus.papp.data.nwc.NwcClientFactory
+import xyz.lilsus.papp.data.nwc.NwcWalletFactory
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
-import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
+import xyz.lilsus.papp.data.nwc.RealNwcWalletFactory
 import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
 import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
@@ -96,14 +96,17 @@ val nwcModule = module {
     single<LnurlRepository> { LnurlRepositoryImpl() }
     single { createNwcHttpClient() }
     single { NwcSessionManager.create(scope = get(), httpClient = get()) }
-    single<NwcClientFactory> {
-        RealNwcClientFactory(sessionManager = get())
+    single<NwcWalletFactory> {
+        RealNwcWalletFactory(
+            sessionManager = get(),
+            scope = get()
+        )
     }
 
     single<NwcWalletRepository> {
         NwcWalletRepositoryImpl(
             walletSettingsRepository = get(),
-            clientFactory = get(),
+            walletFactory = get(),
             scope = get()
         )
     }
@@ -125,7 +128,7 @@ val nwcModule = module {
     factory { LightningInputParser() }
     single<HapticFeedbackManager> { createHapticFeedbackManager() }
 
-    factory { PayInvoiceUseCase(repository = get(), dispatcher = get()) }
+    factory { PayInvoiceUseCase(repository = get()) }
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }

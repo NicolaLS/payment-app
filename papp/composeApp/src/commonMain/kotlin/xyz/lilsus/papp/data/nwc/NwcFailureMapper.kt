@@ -12,7 +12,7 @@ import xyz.lilsus.papp.domain.model.AppErrorException
 internal fun NwcFailure.toAppErrorException(): AppErrorException =
     AppErrorException(toAppError(), toCause())
 
-private fun NwcFailure.toAppError(): AppError = when (this) {
+internal fun NwcFailure.toAppError(): AppError = when (this) {
     NwcFailure.None -> AppError.Unexpected()
 
     is NwcFailure.Network -> AppError.NetworkUnavailable

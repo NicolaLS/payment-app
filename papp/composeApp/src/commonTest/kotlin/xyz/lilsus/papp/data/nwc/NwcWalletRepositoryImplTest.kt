@@ -1,18 +1,34 @@
 package xyz.lilsus.papp.data.nwc
 
-import io.github.nostr.nwc.NwcSession
+import io.github.nostr.nwc.NwcRequest
+import io.github.nostr.nwc.NwcWalletContract
+import io.github.nostr.nwc.model.BalanceResult
+import io.github.nostr.nwc.model.GetInfoResult
+import io.github.nostr.nwc.model.KeysendParams
+import io.github.nostr.nwc.model.KeysendResult
+import io.github.nostr.nwc.model.ListTransactionsParams
+import io.github.nostr.nwc.model.LookupInvoiceParams
+import io.github.nostr.nwc.model.MakeInvoiceParams
 import io.github.nostr.nwc.model.NwcError
 import io.github.nostr.nwc.model.NwcFailure
+import io.github.nostr.nwc.model.NwcRequestState
 import io.github.nostr.nwc.model.NwcResult
+import io.github.nostr.nwc.model.PayInvoiceParams
 import io.github.nostr.nwc.model.PayInvoiceResult
-import io.github.nostr.nwc.testing.FakeNwcClient
+import io.github.nostr.nwc.model.Transaction
+import io.github.nostr.nwc.model.WalletMetadata
+import io.github.nostr.nwc.model.WalletNotification
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -27,16 +43,14 @@ class NwcWalletRepositoryImplTest {
 
     @Test
     fun payInvoiceReturnsPaidInvoiceOnSuccess() = runTest {
-        val fakeClient = FakeNwcClient()
-        fakeClient.payInvoice.enqueue(
-            NwcResult.Success(
-                PayInvoiceResult(
-                    preimage = "preimage",
-                    feesPaid = null
-                )
+        val fakeWallet = FakeNwcWallet()
+        fakeWallet.nextPayInvoiceResult = NwcRequestState.Success(
+            PayInvoiceResult(
+                preimage = "preimage",
+                feesPaid = null
             )
         )
-        val context = createRepository(fakeClient)
+        val context = createRepository(fakeWallet)
 
         val paid = context.repository.payInvoice(invoice = SAMPLE_INVOICE, amountMsats = null)
 
@@ -48,13 +62,11 @@ class NwcWalletRepositoryImplTest {
 
     @Test
     fun payInvoiceMapsWalletFailuresToPaymentRejected() = runTest {
-        val fakeClient = FakeNwcClient()
-        fakeClient.payInvoice.enqueue(
-            NwcResult.Failure(
-                NwcFailure.Wallet(NwcError(code = "401", message = "rejected"))
-            )
+        val fakeWallet = FakeNwcWallet()
+        fakeWallet.nextPayInvoiceResult = NwcRequestState.Failure(
+            NwcFailure.Wallet(NwcError(code = "401", message = "rejected"))
         )
-        val context = createRepository(fakeClient)
+        val context = createRepository(fakeWallet)
 
         val error = assertFailsWith<AppErrorException> {
             context.repository.payInvoice(SAMPLE_INVOICE, null)
@@ -67,13 +79,11 @@ class NwcWalletRepositoryImplTest {
 
     @Test
     fun payInvoiceMapsNetworkFailuresToNetworkUnavailable() = runTest {
-        val fakeClient = FakeNwcClient()
-        fakeClient.payInvoice.enqueue(
-            NwcResult.Failure(
-                NwcFailure.Network(message = "offline")
-            )
+        val fakeWallet = FakeNwcWallet()
+        fakeWallet.nextPayInvoiceResult = NwcRequestState.Failure(
+            NwcFailure.Network(message = "offline")
         )
-        val context = createRepository(fakeClient)
+        val context = createRepository(fakeWallet)
 
         val error = assertFailsWith<AppErrorException> {
             context.repository.payInvoice(SAMPLE_INVOICE, null)
@@ -86,13 +96,11 @@ class NwcWalletRepositoryImplTest {
 
     @Test
     fun payInvoiceMapsTimeoutFailuresToTimeoutError() = runTest {
-        val fakeClient = FakeNwcClient()
-        fakeClient.payInvoice.enqueue(
-            NwcResult.Failure(
-                NwcFailure.Timeout(message = "slow wallet")
-            )
+        val fakeWallet = FakeNwcWallet()
+        fakeWallet.nextPayInvoiceResult = NwcRequestState.Failure(
+            NwcFailure.Timeout(message = "slow wallet")
         )
-        val context = createRepository(fakeClient)
+        val context = createRepository(fakeWallet)
 
         val error = assertFailsWith<AppErrorException> {
             context.repository.payInvoice(SAMPLE_INVOICE, null)
@@ -104,7 +112,7 @@ class NwcWalletRepositoryImplTest {
     }
 
     private fun createRepository(
-        client: FakeNwcClient,
+        wallet: FakeNwcWallet,
         connection: WalletConnection = WalletConnection(
             uri = SAMPLE_URI,
             walletPublicKey = SAMPLE_PUBKEY,
@@ -113,34 +121,95 @@ class NwcWalletRepositoryImplTest {
             alias = null
         )
     ): RepositoryContext {
-        val session = NwcSession.create(uri = connection.uri)
-        val handle = NwcClientHandle(
-            uri = connection.uri,
-            session = session,
-            client = client,
-            release = {
-                session.close()
-            }
-        )
-        val factory = FakeClientFactory(handle)
+        val factory = FakeNwcWalletFactory(wallet)
         val testScope = TestScope(UnconfinedTestDispatcher())
         val repository = NwcWalletRepositoryImpl(
             walletSettingsRepository = StubWalletSettingsRepository(connection),
-            clientFactory = factory,
+            walletFactory = factory,
             scope = testScope
         )
         // Let init block coroutine start
         testScope.testScheduler.advanceUntilIdle()
-        return RepositoryContext(repository, factory, handle, testScope)
+        return RepositoryContext(repository, wallet, testScope)
     }
 
-    private class FakeClientFactory(private val handle: NwcClientHandle) : NwcClientFactory {
-        override suspend fun create(connection: WalletConnection): NwcClientHandle {
-            require(connection.uri == handle.uri) {
-                "Test expects URI ${handle.uri} but got ${connection.uri}"
-            }
-            return handle
+    /**
+     * Fake [NwcWalletContract] for testing that allows configuring responses.
+     */
+    private class FakeNwcWallet : NwcWalletContract {
+        override val uri: String = SAMPLE_URI
+
+        var nextPayInvoiceResult: NwcRequestState<PayInvoiceResult> = NwcRequestState.Loading
+
+        override val walletMetadata: StateFlow<WalletMetadata?> = MutableStateFlow(null)
+        override val notifications: SharedFlow<WalletNotification> = MutableSharedFlow()
+
+        override fun payInvoice(params: PayInvoiceParams): NwcRequest<PayInvoiceResult> {
+            return createFakeRequest(nextPayInvoiceResult)
         }
+
+        override fun payKeysend(params: KeysendParams): NwcRequest<KeysendResult> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override fun getBalance(): NwcRequest<BalanceResult> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override fun getInfo(): NwcRequest<GetInfoResult> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override fun makeInvoice(params: MakeInvoiceParams): NwcRequest<Transaction> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override fun lookupInvoice(params: LookupInvoiceParams): NwcRequest<Transaction> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override fun listTransactions(params: ListTransactionsParams): NwcRequest<List<Transaction>> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override suspend fun payInvoiceAndWait(
+            params: PayInvoiceParams,
+            timeout: Duration
+        ): NwcResult<PayInvoiceResult> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override suspend fun getBalanceAndWait(timeout: Duration): NwcResult<BalanceResult> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override suspend fun getInfoAndWait(timeout: Duration): NwcResult<GetInfoResult> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override suspend fun makeInvoiceAndWait(
+            params: MakeInvoiceParams,
+            timeout: Duration
+        ): NwcResult<Transaction> {
+            throw UnsupportedOperationException("Not implemented in test")
+        }
+
+        override suspend fun close() {
+            // No-op
+        }
+
+        private fun <T> createFakeRequest(result: NwcRequestState<T>): NwcRequest<T> {
+            val stateFlow = MutableStateFlow(result)
+            return NwcRequest.createForTest(
+                state = stateFlow,
+                requestId = "test-request",
+                job = Job()
+            )
+        }
+    }
+
+    private class FakeNwcWalletFactory(private val wallet: FakeNwcWallet) : NwcWalletFactory {
+        override fun create(connection: WalletConnection): NwcWalletContract = wallet
     }
 
     private class StubWalletSettingsRepository(private val connection: WalletConnection?) : WalletSettingsRepository {
@@ -166,13 +235,12 @@ class NwcWalletRepositoryImplTest {
 
     private data class RepositoryContext(
         val repository: NwcWalletRepositoryImpl,
-        val factory: FakeClientFactory,
-        val handle: NwcClientHandle,
+        val wallet: FakeNwcWallet,
         val testScope: TestScope
     ) {
         suspend fun close() {
             testScope.cancel("Test completed")
-            handle.release()
+            wallet.close()
         }
     }
 
