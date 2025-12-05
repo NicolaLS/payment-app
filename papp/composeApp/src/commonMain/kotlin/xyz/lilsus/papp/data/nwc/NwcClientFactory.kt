@@ -48,7 +48,10 @@ class RealNwcClientFactory(
 }
 
 internal const val DEFAULT_NWC_HANDSHAKE_TIMEOUT_MILLIS = 8_000L
-internal const val DEFAULT_NWC_PAY_TIMEOUT_MILLIS = 10_000L
+
+// Keep the pay window generous so late wallet replies still reach the app while the UI
+// handles early "pending" states. We surface a pending notice after ~1s on the UI layer.
+internal const val DEFAULT_NWC_PAY_TIMEOUT_MILLIS = 45_000L
 
 private fun WalletMetadataSnapshot.toNwcMetadata(): WalletMetadata = WalletMetadata(
     capabilities = NwcCapability.parseAll(methods),

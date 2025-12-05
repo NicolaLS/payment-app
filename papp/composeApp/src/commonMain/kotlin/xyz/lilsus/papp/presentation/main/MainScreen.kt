@@ -24,6 +24,7 @@ import papp.composeapp.generated.resources.app_name_long
 import papp.composeapp.generated.resources.point_camera_message_subtitle
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.presentation.main.PendingPaymentItem
 import xyz.lilsus.papp.presentation.main.components.BottomLayout
 import xyz.lilsus.papp.presentation.main.components.ConfirmationBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ManualAmountBottomSheet
@@ -39,6 +40,7 @@ fun MainScreen(
     onNavigateSettings: () -> Unit,
     onNavigateConnectWallet: (String) -> Unit,
     uiState: MainUiState,
+    pendingPayments: List<PendingPaymentItem>,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountPreset: (DisplayAmount) -> Unit = {},
     onManualAmountSubmit: () -> Unit = {},
@@ -46,6 +48,8 @@ fun MainScreen(
     onConfirmPaymentSubmit: () -> Unit = {},
     onConfirmPaymentDismiss: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
+    onPendingNoticeDismiss: (String) -> Unit = {},
+    onPendingItemClick: (String) -> Unit = {},
     onRequestScannerStart: () -> Unit,
     onScannerResume: () -> Unit,
     onScannerPause: () -> Unit,
@@ -74,6 +78,19 @@ fun MainScreen(
         }
     }
 
+    val isDismissable = uiState is MainUiState.Success ||
+        uiState is MainUiState.Error ||
+        uiState is MainUiState.Pending
+    val dismissAction = when (uiState) {
+        is MainUiState.Pending -> if (uiState.isNotice) {
+            { onPendingNoticeDismiss(uiState.info.id) }
+        } else {
+            onResultDismiss
+        }
+
+        else -> onResultDismiss
+    }
+
     Scaffold(
         modifier = modifier,
         floatingActionButton = { SettingsFAB(onNavigateSettings) }
@@ -81,8 +98,8 @@ fun MainScreen(
         Column(
             modifier = Modifier
                 .tapToDismiss(
-                    enabled = uiState is MainUiState.Success || uiState is MainUiState.Error,
-                    onDismiss = onResultDismiss
+                    enabled = isDismissable,
+                    onDismiss = dismissAction
                 )
                 .fillMaxSize()
                 .padding(paddingValues),
@@ -99,9 +116,16 @@ fun MainScreen(
                         result = state
                     )
 
+                    is MainUiState.Pending -> ResultLayout(
+                        modifier = Modifier.fillMaxSize(),
+                        result = state
+                    )
+
                     else -> BottomLayout(
                         title = stringResource(Res.string.app_name_long),
-                        subtitle = stringResource(Res.string.point_camera_message_subtitle)
+                        subtitle = stringResource(Res.string.point_camera_message_subtitle),
+                        pendingPayments = pendingPayments,
+                        onPendingClick = onPendingItemClick
                     )
                 }
             }
@@ -144,6 +168,7 @@ fun MainScreenPreviewSuccess() {
                 amountPaid = DisplayAmount(12345, DisplayCurrency.Satoshi),
                 feePaid = DisplayAmount(69, DisplayCurrency.Satoshi)
             ),
+            pendingPayments = emptyList(),
             onRequestScannerStart = {},
             onScannerResume = {},
             onScannerPause = {},
@@ -168,6 +193,7 @@ fun MainScreenPreviewEnterAmount() {
                     allowDecimal = false
                 )
             ),
+            pendingPayments = emptyList(),
             onRequestScannerStart = {},
             onScannerResume = {},
             onScannerPause = {},
@@ -186,6 +212,7 @@ fun MainScreenPreviewConfirm() {
             uiState = MainUiState.Confirm(
                 amount = DisplayAmount(500_000, DisplayCurrency.Satoshi)
             ),
+            pendingPayments = emptyList(),
             onRequestScannerStart = {},
             onScannerResume = {},
             onScannerPause = {},

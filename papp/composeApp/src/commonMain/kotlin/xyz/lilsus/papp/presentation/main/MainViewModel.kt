@@ -25,10 +25,14 @@ import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.CurrencyInfo
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.PaidInvoice
+import xyz.lilsus.papp.domain.model.PayInvoiceRequest
+import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
@@ -40,6 +44,9 @@ import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
+import xyz.lilsus.papp.presentation.main.PendingPaymentInfo
+import xyz.lilsus.papp.presentation.main.PendingPaymentItem
+import xyz.lilsus.papp.presentation.main.PendingStatus
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
@@ -68,6 +75,12 @@ class MainViewModel internal constructor(
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
 
+    private val _pendingPayments = MutableStateFlow<List<PendingPaymentItem>>(emptyList())
+    val pendingPayments: StateFlow<List<PendingPaymentItem>> = _pendingPayments.asStateFlow()
+
+    private val pendingRequests = LinkedHashMap<String, PendingRequest>()
+    private var pendingSelectionId: String? = null
+
     private val currencyState = MutableStateFlow(
         CurrencyState(
             info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE),
@@ -84,6 +97,8 @@ class MainViewModel internal constructor(
     private var vibrateOnScan: Boolean = true
     private var vibrateOnPayment: Boolean = true
     private var lastExchangeRateRefreshMs: Long? = null
+    private var activePendingNoticeId: String? = null
+    private var activePayRequest: PayInvoiceRequest? = null
 
     init {
         scope.launch {
@@ -117,6 +132,7 @@ class MainViewModel internal constructor(
                                 markExchangeRateFresh()
                                 refreshManualAmountState(preserveInput = manualEntryContext != null)
                                 refreshResultState()
+                                refreshPendingDisplays()
                             }
 
                             is Result.Error -> {
@@ -126,6 +142,7 @@ class MainViewModel internal constructor(
                                 _events.tryEmit(MainEvent.ShowError(result.error))
                                 refreshManualAmountState(preserveInput = manualEntryContext != null)
                                 refreshResultState()
+                                refreshPendingDisplays()
                             }
 
                             Result.Loading -> Unit
@@ -137,6 +154,7 @@ class MainViewModel internal constructor(
                     lastExchangeRateRefreshMs = null
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
                     refreshResultState()
+                    refreshPendingDisplays()
                 }
             }
         }
@@ -153,6 +171,8 @@ class MainViewModel internal constructor(
             MainIntent.ConfirmPaymentDismiss -> handleConfirmPaymentDismiss()
             MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
             is MainIntent.StartDonation -> handleDonation(intent.amountSats, intent.address)
+            is MainIntent.DismissPendingNotice -> handlePendingNoticeDismiss(intent.id)
+            is MainIntent.SelectPendingItem -> handlePendingItemSelected(intent.id)
         }
     }
 
@@ -499,8 +519,63 @@ class MainViewModel internal constructor(
         pendingPayment = null
         startPayment(
             summary = pending.summary,
-            amountOverrideMsats = pending.overrideAmountMsats
+            amountOverrideMsats = pending.overrideAmountMsats,
+            origin = pending.origin
         )
+    }
+
+    private fun handlePendingNoticeDismiss(id: String) {
+        val record = pendingRequests[id] ?: return
+        record.visible = true
+        record.noticeShown = false
+        activePendingNoticeId = null
+        refreshPendingDisplays()
+        _uiState.value = MainUiState.Active
+    }
+
+    private fun handlePendingItemSelected(id: String) {
+        val record = pendingRequests[id] ?: return
+        val currencyState = currencyState.value
+        pendingSelectionId = id
+        when (record.status) {
+            PendingStatus.Success -> {
+                val paid = record.paidMsats ?: record.amountMsats
+                val fee = record.feeMsats ?: 0L
+                val paidDisplay = convertMsatsToDisplay(paid, currencyState)
+                val feeDisplay = convertMsatsToDisplay(fee, currencyState)
+                _uiState.value = MainUiState.Success(
+                    amountPaid = paidDisplay,
+                    feePaid = feeDisplay
+                )
+                lastPaymentResult = CompletedPayment(amountMsats = paid, feeMsats = fee)
+            }
+
+            PendingStatus.Failure -> {
+                val error = record.error ?: AppError.Timeout
+                _uiState.value = MainUiState.Error(error)
+                _events.tryEmit(MainEvent.ShowError(error))
+            }
+
+            PendingStatus.TimedOut -> {
+                _uiState.value = MainUiState.Pending(
+                    info = PendingPaymentInfo(
+                        id = id,
+                        amount = convertMsatsToDisplay(record.amountMsats, currencyState)
+                    ),
+                    status = PendingStatus.TimedOut
+                )
+            }
+
+            PendingStatus.Waiting -> {
+                _uiState.value = MainUiState.Pending(
+                    info = PendingPaymentInfo(
+                        id = id,
+                        amount = convertMsatsToDisplay(record.amountMsats, currencyState)
+                    ),
+                    status = PendingStatus.Waiting
+                )
+            }
+        }
     }
 
     private fun requestPayment(
@@ -528,7 +603,8 @@ class MainViewModel internal constructor(
             } else {
                 startPayment(
                     summary = summary,
-                    amountOverrideMsats = amountOverrideMsats
+                    amountOverrideMsats = amountOverrideMsats,
+                    origin = origin
                 )
             }
         }
@@ -539,47 +615,70 @@ class MainViewModel internal constructor(
         _events.tryEmit(MainEvent.ShowError(error))
     }
 
-    private fun startPayment(summary: Bolt11InvoiceSummary, amountOverrideMsats: Long?) {
+    private fun startPayment(
+        summary: Bolt11InvoiceSummary,
+        amountOverrideMsats: Long?,
+        origin: PendingOrigin
+    ) {
+        val pendingId = registerPending(summary, amountOverrideMsats, origin)
         activePaymentJob?.cancel()
+        activePayRequest?.cancel()
+        activePayRequest = null
         val job = scope.launch {
-            payInvoice(
-                invoice = summary.paymentRequest,
-                amountMsats = amountOverrideMsats
-            ).collect { result ->
-                when (result) {
-                    Result.Loading -> _uiState.value = MainUiState.Loading
-
-                    is Result.Success -> {
-                        val currencyState = currencyState.value
-                        val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
-                        val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
-                        val feeDisplay =
-                            convertMsatsToDisplay(result.data.feesPaidMsats ?: 0L, currencyState)
-                        if (vibrateOnPayment) haptics.notifyPaymentSuccess()
-                        _uiState.value = MainUiState.Success(
-                            amountPaid = paidDisplay,
-                            feePaid = feeDisplay
-                        )
-                        lastPaymentResult = CompletedPayment(
-                            amountMsats = paidMsats,
-                            feeMsats = result.data.feesPaidMsats ?: 0L
-                        )
-                        pendingInvoice = null
-                        manualEntryContext = null
-                        pendingPayment = null
-                        manualAmount.reset(
-                            ManualAmountConfig(
-                                info = currencyState.info,
-                                exchangeRate = currencyState.exchangeRate
-                            ),
-                            clearInput = true
-                        )
+            val request = try {
+                payInvoice(
+                    invoice = summary.paymentRequest,
+                    amountMsats = amountOverrideMsats
+                )
+            } catch (error: AppErrorException) {
+                handlePaymentFailure(
+                    pendingId = pendingId,
+                    summary = summary,
+                    amountOverrideMsats = amountOverrideMsats,
+                    error = error.error
+                )
+                cancelRequestForPending(pendingId)
+                return@launch
+            } catch (error: Throwable) {
+                handlePaymentFailure(
+                    pendingId = pendingId,
+                    summary = summary,
+                    amountOverrideMsats = amountOverrideMsats,
+                    error = AppError.Unexpected(error.message)
+                )
+                cancelRequestForPending(pendingId)
+                return@launch
+            }
+            activePayRequest = request
+            pendingRequests[pendingId]?.request = request
+            request.state.collect { state ->
+                when (state) {
+                    PayInvoiceRequestState.Loading -> {
+                        if (_uiState.value !is MainUiState.Pending) {
+                            _uiState.value = MainUiState.Loading
+                        }
                     }
 
-                    is Result.Error -> {
-                        pendingInvoice = null
-                        _uiState.value = MainUiState.Error(result.error)
-                        _events.tryEmit(MainEvent.ShowError(result.error))
+                    is PayInvoiceRequestState.Success -> {
+                        handlePaymentSuccess(
+                            pendingId = pendingId,
+                            summary = summary,
+                            amountOverrideMsats = amountOverrideMsats,
+                            result = state.invoice
+                        )
+                        cancelRequestForPending(pendingId)
+                        this.cancel()
+                    }
+
+                    is PayInvoiceRequestState.Failure -> {
+                        handlePaymentFailure(
+                            pendingId = pendingId,
+                            summary = summary,
+                            amountOverrideMsats = amountOverrideMsats,
+                            error = state.error
+                        )
+                        cancelRequestForPending(pendingId)
+                        this.cancel()
                     }
                 }
             }
@@ -587,14 +686,112 @@ class MainViewModel internal constructor(
         job.invokeOnCompletion {
             if (activePaymentJob === job) {
                 activePaymentJob = null
+                activePayRequest = null
             }
         }
         activePaymentJob = job
     }
 
+    private fun handlePaymentSuccess(
+        pendingId: String,
+        summary: Bolt11InvoiceSummary,
+        amountOverrideMsats: Long?,
+        result: PaidInvoice
+    ) {
+        val currencyState = currencyState.value
+        val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
+        val feeMsats = result.feesPaidMsats ?: 0L
+        val record = pendingRequests[pendingId]
+        pendingInvoice = null
+        manualEntryContext = null
+        pendingPayment = null
+        manualAmount.reset(
+            ManualAmountConfig(
+                info = currencyState.info,
+                exchangeRate = currencyState.exchangeRate
+            ),
+            clearInput = true
+        )
+        if (record?.noticeShown == true || record?.visible == true) {
+            updatePendingStatus(
+                id = pendingId,
+                status = PendingStatus.Success,
+                paidMsats = paidMsats,
+                feeMsats = feeMsats
+            )
+            val current = _uiState.value
+            if (current is MainUiState.Pending && current.info.id == pendingId) {
+                _uiState.value = MainUiState.Pending(
+                    info = current.info,
+                    status = PendingStatus.Success,
+                    isNotice = current.isNotice
+                )
+            }
+            return
+        }
+        if (vibrateOnPayment) haptics.notifyPaymentSuccess()
+        val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
+        val feeDisplay = convertMsatsToDisplay(feeMsats, currencyState)
+        _uiState.value = MainUiState.Success(
+            amountPaid = paidDisplay,
+            feePaid = feeDisplay
+        )
+        lastPaymentResult = CompletedPayment(
+            amountMsats = paidMsats,
+            feeMsats = feeMsats
+        )
+        removePendingRecord(pendingId)
+    }
+
+    private fun handlePaymentFailure(
+        pendingId: String,
+        summary: Bolt11InvoiceSummary,
+        amountOverrideMsats: Long?,
+        error: AppError
+    ) {
+        val currencyState = currencyState.value
+        val record = pendingRequests[pendingId]
+        pendingInvoice = null
+        pendingPayment = null
+        manualEntryContext = null
+        manualAmount.reset(
+            ManualAmountConfig(
+                info = currencyState.info,
+                exchangeRate = currencyState.exchangeRate
+            ),
+            clearInput = true
+        )
+        if (record?.noticeShown == true || record?.visible == true) {
+            val status =
+                if (error == AppError.Timeout) PendingStatus.TimedOut else PendingStatus.Failure
+            updatePendingStatus(
+                id = pendingId,
+                status = status,
+                error = error
+            )
+            val current = _uiState.value
+            if (current is MainUiState.Pending && current.info.id == pendingId) {
+                _uiState.value = MainUiState.Pending(
+                    info = current.info,
+                    status = status,
+                    isNotice = current.isNotice
+                )
+            }
+            return
+        }
+        _uiState.value = MainUiState.Error(error)
+        _events.tryEmit(MainEvent.ShowError(error))
+        removePendingRecord(pendingId)
+    }
+
     private fun handleDismissResult() {
+        pendingSelectionId?.let {
+            removePendingRecord(it)
+            pendingSelectionId = null
+        } ?: run {
+            lastPaymentResult = null
+        }
         _uiState.value = MainUiState.Active
-        lastPaymentResult = null
     }
 
     private fun refreshManualAmountState(preserveInput: Boolean = false) {
@@ -636,6 +833,111 @@ class MainViewModel internal constructor(
         if (_uiState.value is MainUiState.EnterAmount) {
             _uiState.value = MainUiState.EnterAmount(entry = entry)
         }
+    }
+
+    private fun registerPending(
+        summary: Bolt11InvoiceSummary,
+        amountOverrideMsats: Long?,
+        origin: PendingOrigin
+    ): String {
+        val amountMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
+        val id = "pending-${currentTimeMillis()}-${pendingRequests.size}"
+        val record = PendingRequest(
+            id = id,
+            summary = summary,
+            amountMsats = amountMsats,
+            origin = origin,
+            createdAtMs = currentTimeMillis()
+        )
+        pendingRequests[id] = record
+        record.noticeJob = scope.launch {
+            kotlinx.coroutines.delay(PENDING_NOTICE_DELAY_MS)
+            if (record.status == PendingStatus.Waiting) {
+                record.noticeShown = true
+                activePendingNoticeId = id
+                _uiState.value = MainUiState.Pending(
+                    info = PendingPaymentInfo(
+                        id = id,
+                        amount = convertMsatsToDisplay(
+                            amountMsats.coerceAtLeast(0L),
+                            currencyState.value
+                        )
+                    ),
+                    status = PendingStatus.Waiting,
+                    isNotice = true
+                )
+            }
+        }
+        record.finalTimeoutJob = scope.launch {
+            kotlinx.coroutines.delay(PENDING_FINAL_TIMEOUT_MS)
+            if (record.status == PendingStatus.Waiting) {
+                updatePendingStatus(
+                    id = id,
+                    status = PendingStatus.TimedOut,
+                    error = AppError.Timeout
+                )
+            }
+        }
+        return id
+    }
+
+    private fun updatePendingStatus(
+        id: String,
+        status: PendingStatus,
+        error: AppError? = null,
+        paidMsats: Long? = null,
+        feeMsats: Long? = null
+    ) {
+        val record = pendingRequests[id] ?: return
+        record.status = status
+        record.error = error ?: record.error
+        paidMsats?.let { record.paidMsats = it }
+        feeMsats?.let { record.feeMsats = it }
+        if (record.noticeShown && !record.visible) {
+            record.visible = true
+        }
+        if (status != PendingStatus.Waiting) {
+            record.noticeJob?.cancel()
+            record.finalTimeoutJob?.cancel()
+        }
+        refreshPendingDisplays()
+    }
+
+    private fun refreshPendingDisplays() {
+        val currencyState = currencyState.value
+        _pendingPayments.value = pendingRequests.values
+            .filter { it.visible }
+            .map { record ->
+                PendingPaymentItem(
+                    id = record.id,
+                    amount = convertMsatsToDisplay(record.amountMsats, currencyState),
+                    status = record.status
+                )
+            }
+    }
+
+    private fun removePendingRecord(id: String) {
+        val record = pendingRequests.remove(id) ?: return
+        cancelRequest(record)
+        record.noticeJob?.cancel()
+        record.finalTimeoutJob?.cancel()
+        if (activePendingNoticeId == id) {
+            activePendingNoticeId = null
+        }
+        refreshPendingDisplays()
+    }
+
+    private fun cancelRequestForPending(id: String) {
+        pendingRequests[id]?.let { cancelRequest(it) }
+    }
+
+    private fun cancelRequest(record: PendingRequest) {
+        val request = record.request
+        request?.cancel()
+        if (activePayRequest === request) {
+            activePayRequest = null
+        }
+        record.request = null
     }
 
     private fun ensureExchangeRateIfNeeded(info: CurrencyInfo) {
@@ -750,6 +1052,8 @@ class MainViewModel internal constructor(
     }
 
     fun clear() {
+        activePayRequest?.cancel()
+        activePayRequest = null
         scope.cancel()
     }
 }
@@ -757,6 +1061,8 @@ class MainViewModel internal constructor(
 private const val MSATS_PER_SAT = 1_000L
 private const val MSATS_PER_BTC = 100_000_000_000L
 private const val EXCHANGE_RATE_MAX_AGE_MS = 60_000L
+private const val PENDING_NOTICE_DELAY_MS = 6_000L
+private const val PENDING_FINAL_TIMEOUT_MS = 30_000L
 
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
@@ -787,3 +1093,20 @@ private sealed class ManualEntryContext {
     data class Lnurl(val session: LnurlSession, val inputInfo: CurrencyInfo) :
         ManualEntryContext()
 }
+
+private data class PendingRequest(
+    val id: String,
+    val summary: Bolt11InvoiceSummary,
+    val amountMsats: Long,
+    val origin: PendingOrigin,
+    val createdAtMs: Long,
+    var status: PendingStatus = PendingStatus.Waiting,
+    var error: AppError? = null,
+    var paidMsats: Long? = null,
+    var feeMsats: Long? = null,
+    var visible: Boolean = false,
+    var noticeShown: Boolean = false,
+    var request: PayInvoiceRequest? = null,
+    var noticeJob: Job? = null,
+    var finalTimeoutJob: Job? = null
+)

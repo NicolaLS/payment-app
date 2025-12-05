@@ -8,12 +8,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.PaidInvoice
+import xyz.lilsus.papp.domain.model.PayInvoiceRequest
+import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
@@ -57,6 +61,27 @@ class NwcWalletRepositoryImpl(
     }
 
     override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        val request = startPayInvoiceRequest(invoice = invoice, amountMsats = amountMsats)
+        try {
+            val state = withTimeoutOrNull(payTimeoutMillis) {
+                request.state.first {
+                    it is PayInvoiceRequestState.Success || it is PayInvoiceRequestState.Failure
+                }
+            }
+            return when (state) {
+                is PayInvoiceRequestState.Success -> state.invoice
+                is PayInvoiceRequestState.Failure -> throw AppErrorException(state.error)
+                null, PayInvoiceRequestState.Loading -> throw AppErrorException(AppError.Timeout)
+            }
+        } finally {
+            request.cancel()
+        }
+    }
+
+    override suspend fun startPayInvoiceRequest(
+        invoice: String,
+        amountMsats: Long?
+    ): PayInvoiceRequest {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
@@ -66,34 +91,25 @@ class NwcWalletRepositoryImpl(
             ?: throw AppErrorException(AppError.MissingWalletConnection)
 
         val handle = ensureClient(connection)
-        val result = try {
-            handle.client.payInvoice(
+        val request = try {
+            handle.client.payInvoiceRequest(
                 params = PayInvoiceParams(
                     invoice = invoice,
                     amount = amountMsats?.let(BitcoinAmount::fromMsats)
-                ),
-                timeoutMillis = payTimeoutMillis
+                )
             )
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: Throwable) {
-            // If the underlying channel was torn down while we were backgrounded, discard
-            // the cached handle so the next attempt performs a clean handshake.
             invalidateHandle(handle)
             throw error
         }
 
-        return when (result) {
-            is NwcResult.Success -> PaidInvoice(
-                preimage = result.value.preimage,
-                feesPaidMsats = result.value.feesPaid?.msats
-            )
-
-            is NwcResult.Failure -> {
-                invalidateHandle(handle)
-                throw result.failure.toAppErrorException()
-            }
-        }
+        return NwcPayInvoiceRequest(
+            request = request,
+            scope = scope,
+            invalidateHandle = { invalidateHandle(handle) }
+        )
     }
 
     private suspend fun ensureClient(connection: WalletConnection): NwcClientHandle {

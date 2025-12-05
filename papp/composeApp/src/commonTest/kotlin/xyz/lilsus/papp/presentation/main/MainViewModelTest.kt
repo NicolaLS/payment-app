@@ -10,6 +10,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
@@ -24,6 +25,8 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaidInvoice
+import xyz.lilsus.papp.domain.model.PayInvoiceRequest
+import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.domain.model.Result
@@ -527,7 +530,16 @@ private class RecordingNwcWalletRepository(private val result: PaidInvoice = Pai
     override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
         lastInvoice = invoice
         lastAmountMsats = amountMsats
-        return result
+        val request = startPayInvoiceRequest(invoice, amountMsats)
+        val state = request.state.first { it is PayInvoiceRequestState.Success } as
+            PayInvoiceRequestState.Success
+        return state.invoice
+    }
+
+    override suspend fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+        lastInvoice = invoice
+        lastAmountMsats = amountMsats
+        return ImmediatePayInvoiceRequest(result)
     }
 }
 
@@ -537,8 +549,15 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
     val invoices: List<Pair<String, Long?>> get() = recorded.toList()
 
     override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        val request = startPayInvoiceRequest(invoice, amountMsats)
+        val state = request.state.first { it is PayInvoiceRequestState.Success } as
+            PayInvoiceRequestState.Success
+        return state.invoice
+    }
+
+    override suspend fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         recorded += invoice to amountMsats
-        return completion.await()
+        return DeferredPayInvoiceRequest(completion)
     }
 
     fun complete(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
@@ -550,6 +569,30 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
             completion.complete(result)
         }
     }
+}
+
+private class ImmediatePayInvoiceRequest(invoice: PaidInvoice) : PayInvoiceRequest {
+    private val mutable = MutableStateFlow<PayInvoiceRequestState>(
+        PayInvoiceRequestState.Success(invoice)
+    )
+    override val state: StateFlow<PayInvoiceRequestState> = mutable
+    override fun cancel() {}
+}
+
+private class DeferredPayInvoiceRequest(private val completion: CompletableDeferred<PaidInvoice>) : PayInvoiceRequest {
+    private val mutable =
+        MutableStateFlow<PayInvoiceRequestState>(PayInvoiceRequestState.Loading)
+    override val state: StateFlow<PayInvoiceRequestState> = mutable
+
+    init {
+        completion.invokeOnCompletion { throwable ->
+            if (throwable == null && completion.isCompleted) {
+                mutable.value = PayInvoiceRequestState.Success(completion.getCompleted())
+            }
+        }
+    }
+
+    override fun cancel() {}
 }
 
 private class FakeBolt11InvoiceParser(private val summaries: Map<String, Bolt11InvoiceSummary>) : Bolt11InvoiceParser() {

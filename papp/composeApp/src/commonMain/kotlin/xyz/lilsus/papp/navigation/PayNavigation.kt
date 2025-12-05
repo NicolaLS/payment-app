@@ -130,6 +130,7 @@ private fun MainScreenEntry(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    val pendingPayments by viewModel.pendingPayments.collectAsState()
     LaunchedEffect(uiState) {
         if (uiState != MainUiState.Active) {
             hidePreview()
@@ -179,6 +180,7 @@ private fun MainScreenEntry(
             onNavigateSettings = onNavigateToSettings,
             onNavigateConnectWallet = onNavigateToConnectWallet,
             uiState = uiState,
+            pendingPayments = pendingPayments,
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))
             },
@@ -190,6 +192,12 @@ private fun MainScreenEntry(
             onConfirmPaymentSubmit = { viewModel.dispatch(MainIntent.ConfirmPaymentSubmit) },
             onConfirmPaymentDismiss = { viewModel.dispatch(MainIntent.ConfirmPaymentDismiss) },
             onResultDismiss = { viewModel.dispatch(MainIntent.DismissResult) },
+            onPendingNoticeDismiss = { id ->
+                viewModel.dispatch(MainIntent.DismissPendingNotice(id))
+            },
+            onPendingItemClick = { id ->
+                viewModel.dispatch(MainIntent.SelectPendingItem(id))
+            },
             onRequestScannerStart = {
                 if (!cameraPermission.hasPermission) {
                     if (!hasRequestedPermission) {

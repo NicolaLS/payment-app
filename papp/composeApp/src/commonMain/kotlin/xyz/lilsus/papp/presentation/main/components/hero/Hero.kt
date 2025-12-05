@@ -43,6 +43,8 @@ fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
         is MainUiState.Success -> Color(0xFF4CAF50)
 
         is MainUiState.Error -> MaterialTheme.colorScheme.error
+
+        is MainUiState.Pending -> MaterialTheme.colorScheme.primary
     }
 
     val animationState = rememberHeroAnimationState(squares, arcs)
