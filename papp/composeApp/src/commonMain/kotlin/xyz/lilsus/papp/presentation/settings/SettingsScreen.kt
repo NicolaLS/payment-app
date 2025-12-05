@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -40,12 +41,16 @@ import papp.composeapp.generated.resources.settings_donate_tier_large
 import papp.composeapp.generated.resources.settings_donate_tier_medium
 import papp.composeapp.generated.resources.settings_donate_tier_small
 import papp.composeapp.generated.resources.settings_donate_title
+import papp.composeapp.generated.resources.settings_footer_privacy
+import papp.composeapp.generated.resources.settings_footer_repo
+import papp.composeapp.generated.resources.settings_footer_version
 import papp.composeapp.generated.resources.settings_language
 import papp.composeapp.generated.resources.settings_language_subtitle
 import papp.composeapp.generated.resources.settings_manage_wallets
 import papp.composeapp.generated.resources.settings_manage_wallets_subtitle
 import papp.composeapp.generated.resources.settings_payments
 import papp.composeapp.generated.resources.settings_title
+import xyz.lilsus.papp.appVersionName
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.LanguageCatalog
 import xyz.lilsus.papp.presentation.theme.AppTheme
@@ -122,6 +127,9 @@ fun SettingsScreen(
                     onDonate5k = { onDonate(5_000) },
                     onDonate10k = { onDonate(10_000) }
                 )
+            }
+            item {
+                SettingsFooter()
             }
         }
     }
@@ -219,6 +227,43 @@ private fun DonationCard(onDonate1k: () -> Unit, onDonate5k: () -> Unit, onDonat
     }
 }
 
+@Composable
+private fun SettingsFooter() {
+    val uriHandler = LocalUriHandler.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = stringResource(Res.string.settings_footer_version, appVersionName),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = stringResource(Res.string.settings_footer_privacy),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable {
+                    uriHandler.openUri(PRIVACY_POLICY_URL)
+                }
+            )
+            Text(
+                text = stringResource(Res.string.settings_footer_repo),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable {
+                    uriHandler.openUri(REPO_URL)
+                }
+            )
+        }
+    }
+}
+
 @Preview
 @Composable
 private fun SettingsScreenPreview() {
@@ -235,3 +280,7 @@ private fun SettingsScreenPreview() {
         )
     }
 }
+
+private const val PRIVACY_POLICY_URL =
+    "https://github.com/NicolaLS/payment-app/blob/main/privacy-policy.md"
+private const val REPO_URL = "https://github.com/NicolaLS/payment-app"

@@ -63,6 +63,9 @@
     <string name="settings_donate_tier_small">1k 🎁</string>
     <string name="settings_donate_tier_medium">5k 🚀</string>
     <string name="settings_donate_tier_large">10k ✨</string>
+    <string name="settings_footer_version">Versión %1$s</string>
+    <string name="settings_footer_privacy">Política de privacidad</string>
+    <string name="settings_footer_repo">Código fuente</string>
     <string name="add_wallet_title">Conectar billetera</string>
     <string name="add_wallet_continue">Continuar</string>
     <string name="add_wallet_description">Copia un URI de NWC y regresa aquí, o escanea el código QR.</string>
