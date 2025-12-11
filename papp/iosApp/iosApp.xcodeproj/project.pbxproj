@@ -152,7 +152,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n\n# >>> JDK from SDKMAN >>>\nif [ \"$CI_XCODE_CLOUD\" != \"TRUE\" ]; then\n  if [ -z \"$JAVA_HOME\" ]; then\n    export JAVA_HOME=\"$HOME/.sdkman/candidates/java/current\"\n    export PATH=\"$JAVA_HOME/bin:$PATH\"\n  fi\nfi\n# <<< JDK from SDKMAN <<<\n \n./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n\n# ---- Java setup ----\n\nif [ \"${CI_XCODE_CLOUD:-}\" = \"TRUE\" ]; then\n  echo \"Xcode Cloud: using Homebrew OpenJDK 17\"\n  # This path is printed by brew's caveats for openjdk@17 on Cloud\n  export JAVA_HOME=\"/usr/local/opt/openjdk@17\"\n  export PATH=\"$JAVA_HOME/bin:$PATH\"\nelse\n  echo \"Local build: using SDKMAN JDK (if available)\"\n  if [ -z \"${JAVA_HOME:-}\" ] && [ -d \"$HOME/.sdkman/candidates/java/current\" ]; then\n    export JAVA_HOME=\"$HOME/.sdkman/candidates/java/current\"\n    export PATH=\"$JAVA_HOME/bin:$PATH\"\n  fi\nfi\n\necho \"JAVA_HOME=${JAVA_HOME:-<not set>}\"\njava -version || echo \"⚠️ java -version failed; Gradle will likely fail too\"\n \n./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
