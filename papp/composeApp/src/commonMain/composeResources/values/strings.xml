@@ -2,7 +2,7 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="tap_continue">Tap to continue…</string>
-    <string name="app_name_long" translatable="false">Payment App</string>
+    <string name="app_name_long" translatable="false">Lasr</string>
     <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
     <string name="confirm_payment_title">Confirm Payment</string>
     <string name="pay_button">Pay</string>
@@ -57,7 +57,7 @@
     <string name="settings_manage_wallets_remove">Remove Wallet</string>
     <string name="settings_manage_wallets_set_active">Set Active</string>
     <string name="settings_manage_wallets_active">Active Wallet</string>
-    <string name="settings_donate_title">Enjoying Payment App?</string>
+    <string name="settings_donate_title">Enjoying Lasr?</string>
     <string name="settings_donate_subtitle">Help us grow and improve by supporting our development.</string>
     <string name="settings_donate_tier_small">1k 🎁</string>
     <string name="settings_donate_tier_medium">5k 🚀</string>
