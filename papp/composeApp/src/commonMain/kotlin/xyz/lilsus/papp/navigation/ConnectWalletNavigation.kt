@@ -33,8 +33,6 @@ fun NavController.navigateToConnectWallet(
     secretHex: String? = null,
     lud16: String? = null
 ) {
-    // TODO: Handle nwc uri deep link:
-    // https://www.jetbrains.com/help/kotlin-multiplatform-dev/compose-navigation-deep-links.html
     navigate(
         route = ConnectWallet(
             uri = uri,

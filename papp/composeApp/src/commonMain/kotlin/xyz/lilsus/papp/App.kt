@@ -21,6 +21,8 @@ import xyz.lilsus.papp.navigation.paymentScreen
 import xyz.lilsus.papp.navigation.settingsScreen
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
+private const val NWC_SCHEME = "nostr+walletconnect"
+
 @Composable
 @Preview
 fun App() {
@@ -35,12 +37,18 @@ fun App() {
     LaunchedEffect(navController) {
         DeepLinkEvents.events.collect { uri ->
             val normalized = uri.trim()
-            val isNwc = normalized.startsWith("nostr+walletconnect://", ignoreCase = true)
-            if (isNwc) {
-                navController.navigateToConnectWallet(uri = normalized)
+            val scheme = normalized.substringBefore(":")
+            if (!scheme.equals(NWC_SCHEME, ignoreCase = true)) return@collect
+
+            val normalizedUri = if (normalized.startsWith("$NWC_SCHEME://", ignoreCase = true)) {
+                normalized
+            } else {
+                val afterScheme = normalized
+                    .substringAfter(":", missingDelimiterValue = "")
+                    .trimStart('/')
+                "$NWC_SCHEME://$afterScheme"
             }
-            // Avoid re-navigating on process recreation by clearing the replay cache
-            DeepLinkEvents.consume()
+            navController.navigateToConnectWallet(uri = normalizedUri)
         }
     }
     AppTheme(themePreference = themePreference) {

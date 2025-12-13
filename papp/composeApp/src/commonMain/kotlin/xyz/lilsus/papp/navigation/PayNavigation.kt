@@ -22,7 +22,6 @@ import androidx.navigation.compose.composable
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
-import xyz.lilsus.papp.navigation.DonationNavigation.consume
 import xyz.lilsus.papp.navigation.DonationNavigation.events
 import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
@@ -100,7 +99,6 @@ private fun MainScreenEntry(
                     address = request.address
                 )
             )
-            consume()
         }
     }
 

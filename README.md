@@ -10,6 +10,13 @@ Scan QR codes, pay invoices. That's it.
 - LNURL-pay
 - Lightning Addresses (LUD16)
 
+## NWC Deep Links
+
+Wallet connections can be added via `nostr+walletconnect://…` links.
+
+- Android scheme registration: `papp/composeApp/src/androidMain/AndroidManifest.xml`
+- iOS scheme registration: `papp/iosApp/iosApp/Info.plist` (`CFBundleURLTypes`)
+
 ## Download
 
 ### From CI (Android)
