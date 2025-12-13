@@ -1,8 +1,12 @@
 package xyz.lilsus.papp.presentation.common
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlin.reflect.KClass
 
 @Composable
 actual fun <T : Any> rememberRetainedInstance(
@@ -10,15 +14,30 @@ actual fun <T : Any> rememberRetainedInstance(
     factory: () -> T,
     onDispose: (T) -> Unit
 ): T {
-    val instance = if (key != null) {
-        remember(key) { factory() }
-    } else {
-        remember { factory() }
-    }
+    val owner = LocalViewModelStoreOwner.current
+        ?: error("rememberRetainedInstance requires a ViewModelStoreOwner")
 
-    DisposableEffect(key1 = instance) {
-        onDispose { onDispose(instance) }
-    }
+    val holder = viewModel<RetainedHolder<T>>(
+        viewModelStoreOwner = owner,
+        key = key,
+        factory = object : ViewModelProvider.Factory {
+            override fun <VM : ViewModel> create(
+                modelClass: KClass<VM>,
+                extras: CreationExtras
+            ): VM {
+                @Suppress("UNCHECKED_CAST")
+                return RetainedHolder(factory(), onDispose) as VM
+            }
+        }
+    )
 
-    return instance
+    return holder.delegate
+}
+
+private class RetainedHolder<T : Any>(val delegate: T, private val onDispose: (T) -> Unit) :
+    ViewModel() {
+    override fun onCleared() {
+        onDispose(delegate)
+        super.onCleared()
+    }
 }
