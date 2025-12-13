@@ -36,7 +36,7 @@ See below.
 ### Prerequisites
 
 **Android:**
-- JDK 17 or higher ([Temurin](https://adoptium.net/) recommended)
+- JDK 21 or higher ([Temurin](https://adoptium.net/) recommended)
 - Android SDK with platform 36 (install via Android Studio or `sdkmanager`)
 - `ANDROID_HOME` environment variable set to your SDK path
 

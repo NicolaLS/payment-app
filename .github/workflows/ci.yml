@@ -1,10 +1,26 @@
 name: CI
 
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '21'
+
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+      - "assets/**"
+      - "test.apks"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "LICENSE"
+      - "assets/**"
+      - "test.apks"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,11 +37,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v3.5.0
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -43,11 +62,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v3.5.0
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -72,11 +94,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v3.5.0
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
