@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +42,7 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
                 Text(
                     text = stringResource(Res.string.result_paid_title),
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.tertiary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
@@ -69,12 +68,13 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.error
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                val shape = MaterialTheme.shapes.large
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(shape)
                         .border(
                             BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
-                            RoundedCornerShape(16.dp)
+                            shape
                         )
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                         .fillMaxWidth(0.9f)

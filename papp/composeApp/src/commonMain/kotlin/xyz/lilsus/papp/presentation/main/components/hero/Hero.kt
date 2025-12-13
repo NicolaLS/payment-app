@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
@@ -40,7 +39,7 @@ fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
         is MainUiState.Detected, is MainUiState.Confirm, is MainUiState.EnterAmount,
         MainUiState.Loading -> MaterialTheme.colorScheme.primary
 
-        is MainUiState.Success -> Color(0xFF4CAF50)
+        is MainUiState.Success -> MaterialTheme.colorScheme.tertiary
 
         is MainUiState.Error -> MaterialTheme.colorScheme.error
     }

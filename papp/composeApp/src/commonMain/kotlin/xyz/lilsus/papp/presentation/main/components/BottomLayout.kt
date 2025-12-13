@@ -105,8 +105,8 @@ private fun PendingChip(
 
     val (containerColor, contentColor, icon) = when (item.status) {
         PendingStatus.Success -> Triple(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.onPrimaryContainer,
+            MaterialTheme.colorScheme.tertiaryContainer,
+            MaterialTheme.colorScheme.onTertiaryContainer,
             Icons.Default.Check
         )
 
