@@ -92,6 +92,7 @@ class MainViewModel internal constructor(
     private var manualEntryContext: ManualEntryContext? = null
     private var pendingPayment: PendingPayment? = null
     private var exchangeRateJob: Job? = null
+    private var exchangeRateRequestId: Int = 0
     private var lastPaymentResult: CompletedPayment? = null
     private var parsedInvoiceCache: Pair<String, Bolt11InvoiceSummary>? = null
     private var vibrateOnScan: Boolean = true
@@ -121,14 +122,18 @@ class MainViewModel internal constructor(
         scope.launch {
             observeCurrencyPreference().collectLatest { currency ->
                 val info = CurrencyCatalog.infoFor(currency)
+                invalidateExchangeRateJob()
 
                 if (info.currency is DisplayCurrency.Fiat) {
                     // Fetch rate first, then update state once with complete data
                     currencyState.value = CurrencyState(info = info, exchangeRate = null)
-                    exchangeRateJob?.cancel()
+                    val requestId = exchangeRateRequestId
                     exchangeRateJob = launch {
                         when (val result = getExchangeRate(info.code)) {
                             is Result.Success -> {
+                                if (!shouldApplyExchangeRateResult(requestId)) {
+                                    return@launch
+                                }
                                 currencyState.value = CurrencyState(
                                     info = info,
                                     exchangeRate = max(result.data.pricePerBitcoin, 0.0)
@@ -140,6 +145,9 @@ class MainViewModel internal constructor(
                             }
 
                             is Result.Error -> {
+                                if (!shouldApplyExchangeRateResult(requestId)) {
+                                    return@launch
+                                }
                                 currencyState.value =
                                     CurrencyState(info = info, exchangeRate = null)
                                 lastExchangeRateRefreshMs = null
@@ -583,6 +591,7 @@ class MainViewModel internal constructor(
                 val paid = record.paidMsats ?: record.amountMsats
                 val fee = record.feeMsats ?: 0L
                 pendingSelectionId = id
+                lastPaymentResult = CompletedPayment(amountMsats = paid, feeMsats = fee)
                 _uiState.value = MainUiState.Success(
                     amountPaid = convertMsatsToDisplay(paid, currencyState),
                     feePaid = convertMsatsToDisplay(fee, currencyState)
@@ -958,8 +967,12 @@ class MainViewModel internal constructor(
 
     private fun ensureExchangeRateIfNeeded(info: CurrencyInfo) {
         if (info.currency !is DisplayCurrency.Fiat) {
+            invalidateExchangeRateJob()
             currencyState.value = currencyState.value.copy(exchangeRate = null, info = info)
             lastExchangeRateRefreshMs = null
+            refreshManualAmountState(preserveInput = manualEntryContext != null)
+            refreshResultState()
+            refreshPendingDisplays()
             return
         }
         val current = currencyState.value
@@ -969,13 +982,18 @@ class MainViewModel internal constructor(
         ) {
             if (current.info != info) {
                 currencyState.value = current.copy(info = info)
+                refreshManualAmountState(preserveInput = manualEntryContext != null)
+                refreshResultState()
+                refreshPendingDisplays()
             }
             return
         }
-        exchangeRateJob?.cancel()
+        invalidateExchangeRateJob()
+        val requestId = exchangeRateRequestId
         exchangeRateJob = scope.launch {
             when (val result = getExchangeRate(info.code)) {
                 is Result.Success -> {
+                    if (!shouldApplyExchangeRateResult(requestId)) return@launch
                     currencyState.value =
                         CurrencyState(
                             info = info,
@@ -984,18 +1002,32 @@ class MainViewModel internal constructor(
                     markExchangeRateFresh()
                     refreshManualAmountState(preserveInput = manualEntryContext != null)
                     refreshResultState()
+                    refreshPendingDisplays()
                 }
 
                 is Result.Error -> {
+                    if (!shouldApplyExchangeRateResult(requestId)) return@launch
                     currencyState.value = CurrencyState(info = info, exchangeRate = null)
                     lastExchangeRateRefreshMs = null
                     _events.tryEmit(MainEvent.ShowError(result.error))
+                    refreshManualAmountState(preserveInput = manualEntryContext != null)
+                    refreshResultState()
+                    refreshPendingDisplays()
                 }
 
                 Result.Loading -> Unit
             }
         }
     }
+
+    private fun invalidateExchangeRateJob() {
+        exchangeRateJob?.cancel()
+        exchangeRateJob = null
+        exchangeRateRequestId += 1
+    }
+
+    private fun shouldApplyExchangeRateResult(requestId: Int): Boolean =
+        requestId == exchangeRateRequestId
 
     private fun refreshResultState() {
         val currencyState = currencyState.value

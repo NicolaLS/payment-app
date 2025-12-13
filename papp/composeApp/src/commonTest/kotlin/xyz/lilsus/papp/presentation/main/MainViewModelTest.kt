@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package xyz.lilsus.papp.presentation.main
 
 import kotlin.test.AfterTest
@@ -7,12 +9,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
@@ -326,6 +333,61 @@ class MainViewModelTest {
     }
 
     @Test
+    fun showsPendingResultInUpdatedCurrency_afterCurrencyChangeWhilePending() = runTest {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = BlockingNwcWalletRepository()
+        val currencyPreferencesRepository = FakeCurrencyPreferencesRepository("USD")
+        val exchangeRateDeferred = CompletableDeferred<Result<ExchangeRate>>()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            currencyCode = "USD",
+            currencyPreferencesRepository = currencyPreferencesRepository,
+            exchangeRateRepository = DeferredExchangeRateRepository(exchangeRateDeferred),
+            dispatcherOverride = UnconfinedTestDispatcher(testScheduler)
+        )
+        try {
+            runCurrent()
+            viewModel.dispatch(MainIntent.InvoiceDetected(AMOUNT_INVOICE_INPUT))
+            viewModel.uiState.first { it is MainUiState.Loading }
+
+            advanceTimeBy(5_000L)
+            runCurrent()
+            val pendingId = viewModel.pendingPayments.first { it.isNotEmpty() }.first().id
+
+            currencyPreferencesRepository.setCurrencyCode("SAT")
+            runCurrent()
+
+            repository.complete()
+            viewModel.pendingPayments.first { list ->
+                list.any { it.id == pendingId && it.status == PendingStatus.Success }
+            }
+
+            exchangeRateDeferred.complete(
+                Result.Success(
+                    ExchangeRate(currencyCode = "USD", pricePerBitcoin = 60_000.0)
+                )
+            )
+            runCurrent()
+
+            viewModel.dispatch(MainIntent.TapPending(pendingId))
+            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            assertEquals(DisplayCurrency.Satoshi, success.amountPaid.currency)
+        } finally {
+            repository.completeIfNeeded()
+            viewModel.clear()
+        }
+    }
+
+    @Test
     fun lnurlFixedAmountPaysInvoice() = runBlocking {
         val amountMsats = 50_000L
         val lnurlInvoice = "lnbc1lnurlfixed"
@@ -471,15 +533,16 @@ class MainViewModelTest {
         preferences: PaymentPreferences = PaymentPreferences(),
         currencyCode: String = CurrencyCatalog.DEFAULT_CODE,
         exchangeRateResult: Result<ExchangeRate>? = null,
-        lnurlRepository: FakeLnurlRepository = FakeLnurlRepository()
+        lnurlRepository: FakeLnurlRepository = FakeLnurlRepository(),
+        currencyPreferencesRepository: CurrencyPreferencesRepository = FakeCurrencyPreferencesRepository(currencyCode),
+        exchangeRateRepository: ExchangeRateRepository = FakeExchangeRateRepository(exchangeRateResult),
+        dispatcherOverride: CoroutineDispatcher = dispatcher
     ): MainViewModel {
         val payInvoice = PayInvoiceUseCase(repository)
         val paymentPreferencesRepository = FakePaymentPreferencesRepository(preferences)
         val shouldConfirm = ShouldConfirmPaymentUseCase(paymentPreferencesRepository)
-        val currencyPreferencesRepository = FakeCurrencyPreferencesRepository(currencyCode)
         val observeCurrencyPreference =
             ObserveCurrencyPreferenceUseCase(currencyPreferencesRepository)
-        val exchangeRateRepository = FakeExchangeRateRepository(exchangeRateResult)
         val getExchangeRate = GetExchangeRateUseCase(exchangeRateRepository)
         val fetchLnurl = FetchLnurlPayParamsUseCase(lnurlRepository)
         val resolveLightningAddress = ResolveLightningAddressUseCase(lnurlRepository)
@@ -510,7 +573,7 @@ class MainViewModelTest {
             requestLnurlInvoice = requestLnurlInvoice,
             observePaymentPreferences = observePaymentPreferences,
             haptics = haptics,
-            dispatcher = dispatcher
+            dispatcher = dispatcherOverride
         )
     }
 }
@@ -674,6 +737,11 @@ private class FakeLnurlRepository(
 private class FakeExchangeRateRepository(private val result: Result<ExchangeRate>?) : ExchangeRateRepository {
     override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> =
         result ?: Result.Error(AppError.Unexpected("Missing stub for $currencyCode"))
+}
+
+private class DeferredExchangeRateRepository(private val completion: CompletableDeferred<Result<ExchangeRate>>) :
+    ExchangeRateRepository {
+    override suspend fun getExchangeRate(currencyCode: String): Result<ExchangeRate> = completion.await()
 }
 
 private class FakeWalletSettingsRepository : WalletSettingsRepository {
