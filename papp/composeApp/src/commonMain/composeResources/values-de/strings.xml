@@ -26,6 +26,11 @@
     <string name="settings_language">Sprache</string>
     <string name="settings_language_subtitle">Englisch</string>
     <string name="settings_language_system_default">Systemsprache verwenden (%1$s)</string>
+    <string name="settings_theme">Design</string>
+    <string name="settings_theme_subtitle">Systemstandard</string>
+    <string name="settings_theme_system_default">Systemeinstellung verwenden (%1$s)</string>
+    <string name="settings_theme_light">Hell</string>
+    <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_payments_title">Zahlungen</string>
     <string name="settings_payments_confirm_label">Zahlung bestätigen</string>
     <string name="settings_payments_confirm_threshold">Über %1$s SAT</string>

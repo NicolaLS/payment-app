@@ -19,6 +19,7 @@ import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
 import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
+import xyz.lilsus.papp.data.settings.ThemePreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.data.settings.createLanguageRepository
 import xyz.lilsus.papp.data.settings.createSecureSettings
@@ -31,6 +32,7 @@ import xyz.lilsus.papp.domain.repository.LanguageRepository
 import xyz.lilsus.papp.domain.repository.LnurlRepository
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
+import xyz.lilsus.papp.domain.repository.ThemePreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.usecases.ClearLanguageOverrideUseCase
@@ -42,6 +44,7 @@ import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
@@ -54,6 +57,7 @@ import xyz.lilsus.papp.domain.usecases.SetCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationThresholdUseCase
+import xyz.lilsus.papp.domain.usecases.SetThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
 import xyz.lilsus.papp.domain.usecases.SetWalletConnectionUseCase
@@ -67,6 +71,7 @@ import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.ThemeSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
@@ -91,6 +96,7 @@ val nwcModule = module {
     }
     single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
     single<CurrencyPreferencesRepository> { CurrencyPreferencesRepositoryImpl(get()) }
+    single<ThemePreferencesRepository> { ThemePreferencesRepositoryImpl(get()) }
     single<LanguageRepository> { createLanguageRepository() }
     single<ExchangeRateRepository> { CoinGeckoExchangeRateRepository() }
     single<LnurlRepository> { LnurlRepositoryImpl() }
@@ -133,6 +139,7 @@ val nwcModule = module {
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
     factory { ObserveLanguagePreferenceUseCase(repository = get()) }
+    factory { ObserveThemePreferenceUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
     factory { GetWalletsUseCase(repository = get()) }
     factory { DiscoverWalletUseCase(repository = get()) }
@@ -156,6 +163,7 @@ val nwcModule = module {
     }
     factory { SetCurrencyPreferenceUseCase(repository = get()) }
     factory { SetLanguagePreferenceUseCase(repository = get()) }
+    factory { SetThemePreferenceUseCase(repository = get()) }
     factory { ClearLanguageOverrideUseCase(repository = get()) }
     factory { RefreshLanguagePreferenceUseCase(repository = get()) }
     factory { GetExchangeRateUseCase(repository = get()) }
@@ -217,6 +225,13 @@ val nwcModule = module {
             setLanguage = get(),
             clearOverride = get(),
             refreshLanguage = get()
+        )
+    }
+
+    factory {
+        ThemeSettingsViewModel(
+            observeTheme = get(),
+            setTheme = get()
         )
     }
 

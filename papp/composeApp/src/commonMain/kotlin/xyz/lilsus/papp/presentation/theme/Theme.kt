@@ -6,6 +6,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import xyz.lilsus.papp.domain.model.ThemePreference
 
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -84,7 +85,15 @@ private val darkScheme = darkColorScheme(
 )
 
 @Composable
-fun AppTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun AppTheme(
+    themePreference: ThemePreference = ThemePreference.System,
+    content: @Composable () -> Unit
+) {
+    val darkTheme = when (themePreference) {
+        ThemePreference.System -> isSystemInDarkTheme()
+        ThemePreference.Light -> false
+        ThemePreference.Dark -> true
+    }
     val colorScheme = if (darkTheme) darkScheme else lightScheme
     MaterialTheme(
         colorScheme = colorScheme,

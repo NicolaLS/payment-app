@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.navigation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -21,12 +22,17 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.settings_language_system_default
+import papp.composeapp.generated.resources.settings_theme_dark
+import papp.composeapp.generated.resources.settings_theme_light
+import papp.composeapp.generated.resources.settings_theme_system_default
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.LanguageCatalog
 import xyz.lilsus.papp.domain.model.LanguagePreference
+import xyz.lilsus.papp.domain.model.ThemePreference
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.navigation.DonationNavigation.donationAddress
 import xyz.lilsus.papp.navigation.DonationNavigation.emit
@@ -44,6 +50,8 @@ import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.SettingsScreen
+import xyz.lilsus.papp.presentation.settings.ThemeSettingsScreen
+import xyz.lilsus.papp.presentation.settings.ThemeSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletEvent
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletScreen
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
@@ -66,6 +74,9 @@ internal object SettingsCurrency
 internal object SettingsLanguage
 
 @Serializable
+internal object SettingsTheme
+
+@Serializable
 internal object SettingsManageWallets
 
 @Serializable
@@ -84,6 +95,9 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
         }
         composable<SettingsLanguage> {
             LanguageSettingsEntry(onBack = { navController.popBackStack() })
+        }
+        composable<SettingsTheme> {
+            ThemeSettingsEntry(onBack = { navController.popBackStack() })
         }
         composable<SettingsManageWallets> {
             WalletSettingsEntry(navController = navController)
@@ -114,6 +128,12 @@ fun NavController.navigateToSettingsCurrency() {
 
 fun NavController.navigateToSettingsLanguage() {
     navigate(route = SettingsLanguage) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsTheme() {
+    navigate(route = SettingsTheme) {
         launchSingleTop = true
     }
 }
@@ -269,6 +289,23 @@ private fun LanguageSettingsEntry(onBack: () -> Unit) {
 }
 
 @Composable
+private fun ThemeSettingsEntry(onBack: () -> Unit) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<ThemeSettingsViewModel>() },
+        onDispose = { it.clear() }
+    )
+
+    val state by viewModel.uiState.collectAsState()
+
+    ThemeSettingsScreen(
+        state = state,
+        onThemeSelected = { viewModel.selectTheme(it) },
+        onBack = onBack
+    )
+}
+
+@Composable
 private fun PaymentsSettingsEntry(onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
@@ -295,6 +332,7 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
     val observeWalletConnection = remember { koin.get<ObserveWalletConnectionUseCase>() }
     val observeCurrencyPreference = remember { koin.get<ObserveCurrencyPreferenceUseCase>() }
     val observeLanguagePreference = remember { koin.get<ObserveLanguagePreferenceUseCase>() }
+    val observeThemePreference = remember { koin.get<ObserveThemePreferenceUseCase>() }
     val wallet by observeWalletConnection().collectAsState(initial = null)
     val subtitle = wallet?.let { formatWalletSubtitle(it) }
     val currency by observeCurrencyPreference().collectAsState(
@@ -305,6 +343,8 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         initial = LanguagePreference.System(LanguageCatalog.fallback.tag)
     )
     val languageLabel = formatLanguageSubtitle(languagePreference)
+    val themePreference by observeThemePreference().collectAsState(initial = ThemePreference.System)
+    val themeLabel = formatThemeSubtitle(themePreference)
 
     SettingsScreen(
         onBack = onBack,
@@ -312,6 +352,7 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         onPayments = { navController.navigateToSettingsPayments() },
         onCurrency = { navController.navigateToSettingsCurrency() },
         onLanguage = { navController.navigateToSettingsLanguage() },
+        onTheme = { navController.navigateToSettingsTheme() },
         onDonate = { amount ->
             emit(DonationRequest(amountSats = amount, address = donationAddress))
             navController.navigate(route = Pay) {
@@ -321,7 +362,8 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         },
         walletSubtitle = subtitle,
         currencySubtitle = currencyLabel,
-        languageSubtitle = languageLabel
+        languageSubtitle = languageLabel,
+        themeSubtitle = themeLabel
     )
 }
 
@@ -362,4 +404,22 @@ private fun resolveLanguageName(tag: String): String {
         return info.displayName
     }
     return tag
+}
+
+@Composable
+private fun formatThemeSubtitle(preference: ThemePreference): String = when (preference) {
+    ThemePreference.System -> stringResource(
+        Res.string.settings_theme_system_default,
+        stringResource(
+            if (isSystemInDarkTheme()) {
+                Res.string.settings_theme_dark
+            } else {
+                Res.string.settings_theme_light
+            }
+        )
+    )
+
+    ThemePreference.Light -> stringResource(Res.string.settings_theme_light)
+
+    ThemePreference.Dark -> stringResource(Res.string.settings_theme_dark)
 }

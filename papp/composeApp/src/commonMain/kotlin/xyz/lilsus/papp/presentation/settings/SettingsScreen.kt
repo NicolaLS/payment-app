@@ -49,6 +49,8 @@ import papp.composeapp.generated.resources.settings_language_subtitle
 import papp.composeapp.generated.resources.settings_manage_wallets
 import papp.composeapp.generated.resources.settings_manage_wallets_subtitle
 import papp.composeapp.generated.resources.settings_payments
+import papp.composeapp.generated.resources.settings_theme
+import papp.composeapp.generated.resources.settings_theme_subtitle
 import papp.composeapp.generated.resources.settings_title
 import xyz.lilsus.papp.appVersionName
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
@@ -63,10 +65,12 @@ fun SettingsScreen(
     onPayments: () -> Unit,
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
+    onTheme: () -> Unit,
     onDonate: (Long) -> Unit,
     walletSubtitle: String? = null,
     currencySubtitle: String? = null,
     languageSubtitle: String? = null,
+    themeSubtitle: String? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -91,6 +95,11 @@ fun SettingsScreen(
             title = stringResource(Res.string.settings_language),
             subtitle = languageSubtitle ?: stringResource(Res.string.settings_language_subtitle),
             onClick = onLanguage
+        ),
+        SettingsEntry(
+            title = stringResource(Res.string.settings_theme),
+            subtitle = themeSubtitle ?: stringResource(Res.string.settings_theme_subtitle),
+            onClick = onTheme
         )
     )
 
@@ -274,9 +283,11 @@ private fun SettingsScreenPreview() {
             onPayments = {},
             onCurrency = {},
             onLanguage = {},
+            onTheme = {},
             onDonate = {},
             currencySubtitle = stringResource(CurrencyCatalog.infoFor("USD").nameRes),
-            languageSubtitle = LanguageCatalog.displayName("en")
+            languageSubtitle = LanguageCatalog.displayName("en"),
+            themeSubtitle = stringResource(Res.string.settings_theme_subtitle)
         )
     }
 }
