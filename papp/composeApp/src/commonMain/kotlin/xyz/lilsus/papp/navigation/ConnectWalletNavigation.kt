@@ -43,7 +43,9 @@ fun NavController.navigateToConnectWallet(
             secretHex = secretHex,
             lud16 = lud16
         )
-    )
+    ) {
+        launchSingleTop = true
+    }
 }
 
 private fun ConnectWallet.toUriOrNull(): String? {

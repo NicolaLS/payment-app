@@ -95,27 +95,39 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
 }
 
 fun NavController.navigateToSettings() {
-    navigate(route = Settings)
+    navigate(route = Settings) {
+        launchSingleTop = true
+    }
 }
 
 fun NavController.navigateToSettingsPayments() {
-    navigate(route = SettingsPayments)
+    navigate(route = SettingsPayments) {
+        launchSingleTop = true
+    }
 }
 
 fun NavController.navigateToSettingsCurrency() {
-    navigate(route = SettingsCurrency)
+    navigate(route = SettingsCurrency) {
+        launchSingleTop = true
+    }
 }
 
 fun NavController.navigateToSettingsLanguage() {
-    navigate(route = SettingsLanguage)
+    navigate(route = SettingsLanguage) {
+        launchSingleTop = true
+    }
 }
 
 fun NavController.navigateToSettingsManageWallets() {
-    navigate(route = SettingsManageWallets)
+    navigate(route = SettingsManageWallets) {
+        launchSingleTop = true
+    }
 }
 
 fun NavController.navigateToSettingsAddWallet() {
-    navigate(route = SettingsAddWallet)
+    navigate(route = SettingsAddWallet) {
+        launchSingleTop = true
+    }
 }
 
 @Composable
