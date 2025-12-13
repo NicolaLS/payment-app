@@ -24,13 +24,12 @@ fi
 echo -e "${YELLOW}Running ktlint on $(echo "$STAGED_FILES" | wc -l | tr -d ' ') staged file(s)...${NC}"
 
 # Find the directory containing gradlew (handles monorepo structures)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 
 # Look for gradlew in common locations
-if [ -f "$GIT_ROOT/gradlew" ]; then
+if [ -f "$GIT_ROOT/gradlew" ] && { [ -f "$GIT_ROOT/settings.gradle.kts" ] || [ -f "$GIT_ROOT/settings.gradle" ]; }; then
     GRADLE_DIR="$GIT_ROOT"
-elif [ -f "$GIT_ROOT/papp/gradlew" ]; then
+elif [ -f "$GIT_ROOT/papp/gradlew" ] && { [ -f "$GIT_ROOT/papp/settings.gradle.kts" ] || [ -f "$GIT_ROOT/papp/settings.gradle" ]; }; then
     GRADLE_DIR="$GIT_ROOT/papp"
 else
     echo -e "${YELLOW}Warning: gradlew not found, skipping ktlint check${NC}"
@@ -38,15 +37,25 @@ else
 fi
 
 # Run ktlint check via Gradle (--rerun-tasks to avoid stale cached results)
-OUTPUT=$(cd "$GRADLE_DIR" && ./gradlew --rerun-tasks ktlintCheck 2>&1 || true)
+OUTPUT=$(cd "$GRADLE_DIR" && ./gradlew --console=plain --rerun-tasks ktlintCheck 2>&1 || true)
 
 # Check for violations in staged files only
 # Convert relative paths to match against absolute paths in ktlint output
 VIOLATIONS=""
 while IFS= read -r FILE; do
-    # Get just the filename for a more reliable match
+    # Match on a path relative to the Gradle project (more specific), then fall back to basename.
+    GRADLE_REL="${GRADLE_DIR#$GIT_ROOT/}"
+    REL_FILE="$FILE"
+    if [ "$GRADLE_DIR" != "$GIT_ROOT" ] && [ "$GRADLE_REL" != "$GRADLE_DIR" ] && [[ "$FILE" == "$GRADLE_REL/"* ]]; then
+        REL_FILE="${FILE#"$GRADLE_REL/"}"
+    fi
+
     BASENAME=$(basename "$FILE")
-    FILE_VIOLATIONS=$(echo "$OUTPUT" | grep "$BASENAME" | grep -v "/build/" || true)
+
+    FILE_VIOLATIONS=$(echo "$OUTPUT" | grep -F -- "$REL_FILE" | grep -v "/build/" || true)
+    if [ -z "$FILE_VIOLATIONS" ]; then
+        FILE_VIOLATIONS=$(echo "$OUTPUT" | grep -F -- "$BASENAME" | grep -v "/build/" || true)
+    fi
     if [ -n "$FILE_VIOLATIONS" ]; then
         VIOLATIONS="${VIOLATIONS}${FILE_VIOLATIONS}"$'\n'
     fi
@@ -55,16 +64,18 @@ done <<< "$STAGED_FILES"
 if [ -n "$VIOLATIONS" ] && [ "$VIOLATIONS" != $'\n' ]; then
     echo -e "${RED}"
     echo "========================================"
-    echo "  ktlint found formatting issues!"
+    echo "  ktlintCheck failed!"
     echo "========================================"
     echo -e "${NC}"
     echo "$VIOLATIONS"
     echo ""
-    echo -e "${YELLOW}To fix automatically, run:${NC}"
-    echo "  cd ${GRADLE_DIR#$GIT_ROOT/} && ./gradlew ktlintFormat"
+    echo -e "${YELLOW}To try auto-fixing, run:${NC}"
+    echo "  cd ${GRADLE_DIR#$GIT_ROOT/} && ./gradlew --rerun-tasks ktlintFormat"
     echo ""
     echo -e "${YELLOW}Then stage the fixed files:${NC}"
     echo "  git add -u"
+    echo ""
+    echo -e "${YELLOW}If it still fails, fix the remaining issues manually (some rules cannot be auto-corrected).${NC}"
     echo ""
     echo -e "${YELLOW}Or to skip this check (not recommended):${NC}"
     echo "  git commit --no-verify"
