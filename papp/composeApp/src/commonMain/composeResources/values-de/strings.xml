@@ -114,5 +114,6 @@
     </string>
     <string name="result_paid_title">Bezahlt</string>
     <string name="result_paid_fee">Gebühr: %1$s</string>
+    <string name="result_paid_fee_blink_hint">Blink könnte diese Gebühr teilweise erstatten.</string>
     <string name="result_error_title">Fehler</string>
 </resources>

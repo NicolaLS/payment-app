@@ -28,6 +28,11 @@ sealed class AppError {
     data object Timeout : AppError()
 
     /**
+     * Authentication failed (e.g., invalid or revoked API key).
+     */
+    data class AuthenticationFailure(val message: String? = null) : AppError()
+
+    /**
      * Provided wallet URI is invalid or malformed.
      */
     data class InvalidWalletUri(val reason: String? = null) : AppError()

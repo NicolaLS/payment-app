@@ -1,12 +1,13 @@
 package xyz.lilsus.papp.domain.usecases
 
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
-import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.PaymentProvider
 
 /**
- * Use case responsible for paying a Lightning invoice via the connected NWC wallet.
+ * Use case responsible for paying a Lightning invoice via the connected wallet.
+ * Routes to the appropriate payment provider (NWC or Blink) based on the active wallet.
  */
-class PayInvoiceUseCase(private val repository: NwcWalletRepository) {
+class PayInvoiceUseCase(private val paymentProvider: PaymentProvider) {
     /**
      * Starts a pay request for the provided [invoice] and returns a handle that can be observed
      * for completion. This returns immediately with a request in Loading state; the actual
@@ -14,7 +15,7 @@ class PayInvoiceUseCase(private val repository: NwcWalletRepository) {
      * need updates.
      */
     operator fun invoke(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
-        repository.startPayInvoiceRequest(
+        paymentProvider.startPayInvoiceRequest(
             invoice = invoice,
             amountMsats = amountMsats
         )

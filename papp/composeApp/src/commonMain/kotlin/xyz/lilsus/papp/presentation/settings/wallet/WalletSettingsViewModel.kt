@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
@@ -77,7 +78,8 @@ class WalletSettingsViewModel internal constructor(
             pubKey = walletPublicKey,
             relay = relayUrl,
             lud16 = lud16,
-            alias = alias
+            alias = alias,
+            type = type
         ),
         isActive = isActive
     )
@@ -93,7 +95,8 @@ data class WalletDisplay(
     val pubKey: String,
     val relay: String?,
     val lud16: String?,
-    val alias: String?
+    val alias: String?,
+    val type: WalletType = WalletType.NWC
 )
 
 sealed interface WalletSettingsEvent {

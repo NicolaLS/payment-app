@@ -42,6 +42,7 @@ import xyz.lilsus.papp.platform.readPlainText
 import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
 import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
+import xyz.lilsus.papp.presentation.settings.ChooseWalletTypeScreen
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsScreen
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
@@ -52,6 +53,9 @@ import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.SettingsScreen
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsScreen
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletEvent
+import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletScreen
+import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletViewModel
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletEvent
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletScreen
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
@@ -82,6 +86,12 @@ internal object SettingsManageWallets
 @Serializable
 internal object SettingsAddWallet
 
+@Serializable
+internal object SettingsChooseWalletType
+
+@Serializable
+internal object SettingsAddBlinkWallet
+
 fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> Unit = {}) {
     navigation<SettingsSubNav>(startDestination = Settings) {
         composable<Settings> {
@@ -104,6 +114,12 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
         }
         composable<SettingsAddWallet> {
             AddWalletEntry(navController = navController)
+        }
+        composable<SettingsChooseWalletType> {
+            ChooseWalletTypeEntry(navController = navController)
+        }
+        composable<SettingsAddBlinkWallet> {
+            AddBlinkWalletEntry(navController = navController)
         }
     }
 }
@@ -150,6 +166,18 @@ fun NavController.navigateToSettingsAddWallet() {
     }
 }
 
+fun NavController.navigateToSettingsChooseWalletType() {
+    navigate(route = SettingsChooseWalletType) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsAddBlinkWallet() {
+    navigate(route = SettingsAddBlinkWallet) {
+        launchSingleTop = true
+    }
+}
+
 @Composable
 private fun WalletSettingsEntry(navController: NavController) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
@@ -175,7 +203,7 @@ private fun WalletSettingsEntry(navController: NavController) {
     ManageWalletsScreen(
         state = uiState,
         onBack = { navController.popBackStack() },
-        onAddWallet = { navController.navigateToSettingsAddWallet() },
+        onAddWallet = { navController.navigateToSettingsChooseWalletType() },
         onSelectWallet = { viewModel.selectWallet(it) },
         onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) }
     )
@@ -422,4 +450,52 @@ private fun formatThemeSubtitle(preference: ThemePreference): String = when (pre
     ThemePreference.Light -> stringResource(Res.string.settings_theme_light)
 
     ThemePreference.Dark -> stringResource(Res.string.settings_theme_dark)
+}
+
+@Composable
+private fun ChooseWalletTypeEntry(navController: NavController) {
+    ChooseWalletTypeScreen(
+        onBack = { navController.popBackStack() },
+        onNwcSelected = {
+            navController.popBackStack()
+            navController.navigateToSettingsAddWallet()
+        },
+        onBlinkSelected = {
+            navController.popBackStack()
+            navController.navigateToSettingsAddBlinkWallet()
+        }
+    )
+}
+
+@Composable
+private fun AddBlinkWalletEntry(navController: NavController) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<AddBlinkWalletViewModel>() },
+        onDispose = { it.clear() }
+    )
+
+    val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is AddBlinkWalletEvent.Success -> {
+                    navController.popBackStack(SettingsManageWallets, inclusive = false)
+                }
+
+                AddBlinkWalletEvent.Cancelled -> {
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
+
+    AddBlinkWalletScreen(
+        state = state,
+        onBack = { navController.popBackStack() },
+        onAliasChange = viewModel::updateAlias,
+        onApiKeyChange = viewModel::updateApiKey,
+        onSubmit = viewModel::submit
+    )
 }

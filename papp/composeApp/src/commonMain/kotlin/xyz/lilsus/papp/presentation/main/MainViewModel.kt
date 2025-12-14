@@ -34,6 +34,7 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.Result
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
@@ -100,6 +101,7 @@ class MainViewModel internal constructor(
     private var lastExchangeRateRefreshMs: Long? = null
     private val pendingCollectionJobs = mutableMapOf<String, Job>()
     private var currentWalletUri: String? = null
+    private var currentWalletType: WalletType? = null
 
     private val _highlightedPendingId = MutableStateFlow<String?>(null)
     val highlightedPendingId: StateFlow<String?> = _highlightedPendingId.asStateFlow()
@@ -108,6 +110,7 @@ class MainViewModel internal constructor(
         scope.launch {
             observeWalletConnection().collectLatest { connection ->
                 currentWalletUri = connection?.uri
+                currentWalletType = connection?.type
                 if (connection == null && _uiState.value is MainUiState.Success) {
                     _uiState.value = MainUiState.Active
                 }
@@ -590,11 +593,17 @@ class MainViewModel internal constructor(
             PendingStatus.Success -> {
                 val paid = record.paidMsats ?: record.amountMsats
                 val fee = record.feeMsats ?: 0L
+                val showBlinkFeeHint = record.walletType == WalletType.BLINK
                 pendingSelectionId = id
-                lastPaymentResult = CompletedPayment(amountMsats = paid, feeMsats = fee)
+                lastPaymentResult = CompletedPayment(
+                    amountMsats = paid,
+                    feeMsats = fee,
+                    showBlinkFeeHint = showBlinkFeeHint
+                )
                 _uiState.value = MainUiState.Success(
                     amountPaid = convertMsatsToDisplay(paid, currencyState),
-                    feePaid = convertMsatsToDisplay(fee, currencyState)
+                    feePaid = convertMsatsToDisplay(fee, currencyState),
+                    showBlinkFeeHint = showBlinkFeeHint
                 )
             }
 
@@ -765,13 +774,16 @@ class MainViewModel internal constructor(
         if (vibrateOnPayment) haptics.notifyPaymentSuccess()
         val paidDisplay = convertMsatsToDisplay(paidMsats, currencyState)
         val feeDisplay = convertMsatsToDisplay(feeMsats, currencyState)
+        val showBlinkFeeHint = record?.walletType == WalletType.BLINK
         _uiState.value = MainUiState.Success(
             amountPaid = paidDisplay,
-            feePaid = feeDisplay
+            feePaid = feeDisplay,
+            showBlinkFeeHint = showBlinkFeeHint
         )
         lastPaymentResult = CompletedPayment(
             amountMsats = paidMsats,
-            feeMsats = feeMsats
+            feeMsats = feeMsats,
+            showBlinkFeeHint = showBlinkFeeHint
         )
         removePendingRecord(pendingId)
     }
@@ -875,7 +887,8 @@ class MainViewModel internal constructor(
             amountMsats = amountMsats,
             origin = origin,
             createdAtMs = currentTimeMillis(),
-            walletUri = currentWalletUri
+            walletUri = currentWalletUri,
+            walletType = currentWalletType
         )
         pendingRequests[id] = record
 
@@ -1036,7 +1049,8 @@ class MainViewModel internal constructor(
                 val payment = lastPaymentResult ?: return
                 _uiState.value = MainUiState.Success(
                     amountPaid = convertMsatsToDisplay(payment.amountMsats, currencyState),
-                    feePaid = convertMsatsToDisplay(payment.feeMsats, currencyState)
+                    feePaid = convertMsatsToDisplay(payment.feeMsats, currencyState),
+                    showBlinkFeeHint = payment.showBlinkFeeHint
                 )
             }
 
@@ -1119,7 +1133,11 @@ private data class PendingPayment(
     val origin: PendingOrigin
 )
 
-private data class CompletedPayment(val amountMsats: Long, val feeMsats: Long)
+private data class CompletedPayment(
+    val amountMsats: Long,
+    val feeMsats: Long,
+    val showBlinkFeeHint: Boolean
+)
 
 private enum class PendingOrigin {
     Invoice,
@@ -1151,6 +1169,8 @@ private data class PendingRequest(
     val createdAtMs: Long,
     /** Wallet URI that initiated this payment */
     val walletUri: String?,
+    /** Wallet type that initiated this payment */
+    val walletType: WalletType?,
     var status: PendingStatus = PendingStatus.Waiting,
     var error: AppError? = null,
     var paidMsats: Long? = null,

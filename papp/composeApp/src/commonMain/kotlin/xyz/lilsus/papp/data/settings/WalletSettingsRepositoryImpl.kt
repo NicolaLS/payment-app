@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
 private const val KEY_WALLETS = "wallet.list"
@@ -137,7 +138,8 @@ class WalletSettingsRepositoryImpl(
         relayUrl = relayUrl,
         lud16 = lud16,
         alias = alias,
-        metadata = metadata?.toStored()
+        metadata = metadata?.toStored(),
+        type = type.name
     )
 
     private fun StoredWallet.toDomain(): WalletConnection = WalletConnection(
@@ -146,7 +148,8 @@ class WalletSettingsRepositoryImpl(
         relayUrl = relayUrl,
         lud16 = lud16,
         alias = alias,
-        metadata = metadata?.toDomain()
+        metadata = metadata?.toDomain(),
+        type = type?.let { runCatching { WalletType.valueOf(it) }.getOrNull() } ?: WalletType.NWC
     )
 
     private data class WalletState(
@@ -168,12 +171,14 @@ class WalletSettingsRepositoryImpl(
 
     @Serializable
     private data class StoredWallet(
-        val uri: String,
+        val uri: String = "",
         val walletPublicKey: String,
         val relayUrl: String? = null,
         val lud16: String? = null,
         val alias: String? = null,
-        val metadata: StoredWalletMetadata? = null
+        val metadata: StoredWalletMetadata? = null,
+        // null defaults to NWC for backward compatibility
+        val type: String? = null
     )
 
     @Serializable

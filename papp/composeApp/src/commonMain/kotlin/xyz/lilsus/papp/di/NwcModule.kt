@@ -9,6 +9,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
+import xyz.lilsus.papp.data.blink.BlinkApiClient
+import xyz.lilsus.papp.data.blink.BlinkCredentialStore
+import xyz.lilsus.papp.data.blink.BlinkPaymentRepository
 import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
 import xyz.lilsus.papp.data.network.createNwcHttpClient
@@ -32,9 +35,11 @@ import xyz.lilsus.papp.domain.repository.LanguageRepository
 import xyz.lilsus.papp.domain.repository.LnurlRepository
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
+import xyz.lilsus.papp.domain.repository.PaymentProvider
 import xyz.lilsus.papp.domain.repository.ThemePreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.service.PaymentService
 import xyz.lilsus.papp.domain.usecases.ClearLanguageOverrideUseCase
 import xyz.lilsus.papp.domain.usecases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
@@ -72,6 +77,7 @@ import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletViewModel
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
@@ -130,11 +136,32 @@ val nwcModule = module {
         )
     }
 
+    // Blink wallet support (temporary bridge)
+    single { BlinkCredentialStore(secureSettings = get()) }
+    single { BlinkApiClient(httpClient = get()) }
+    single {
+        BlinkPaymentRepository(
+            apiClient = get(),
+            credentialStore = get(),
+            scope = get()
+        )
+    }
+
+    // Unified payment service that routes to NWC or Blink
+    single<PaymentProvider> {
+        PaymentService(
+            walletSettingsRepository = get(),
+            nwcRepository = get(),
+            blinkRepository = get(),
+            scope = get()
+        )
+    }
+
     single { Bolt11InvoiceParser() }
     factory { LightningInputParser() }
     single<HapticFeedbackManager> { createHapticFeedbackManager() }
 
-    factory { PayInvoiceUseCase(repository = get()) }
+    factory { PayInvoiceUseCase(paymentProvider = get()) }
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
@@ -200,6 +227,14 @@ val nwcModule = module {
     }
 
     factory { AddWalletViewModel(dispatcher = get()) }
+
+    factory {
+        AddBlinkWalletViewModel(
+            walletSettingsRepository = get(),
+            credentialStore = get(),
+            dispatcher = get()
+        )
+    }
 
     factory {
         PaymentsSettingsViewModel(

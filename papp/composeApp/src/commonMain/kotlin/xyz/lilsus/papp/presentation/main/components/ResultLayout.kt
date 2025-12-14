@@ -20,6 +20,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.result_error_title
 import papp.composeapp.generated.resources.result_paid_fee
+import papp.composeapp.generated.resources.result_paid_fee_blink_hint
 import papp.composeapp.generated.resources.result_paid_title
 import papp.composeapp.generated.resources.tap_continue
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
@@ -59,6 +60,14 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (result.showBlinkFeeHint) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(Res.string.result_paid_fee_blink_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             is MainUiState.Error -> {

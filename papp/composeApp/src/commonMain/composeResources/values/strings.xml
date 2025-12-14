@@ -112,5 +112,19 @@
     <string name="error_invalid_wallet_uri">This wallet URI isn't valid. Please double-check and try again.</string>
     <string name="result_paid_title">Paid</string>
     <string name="result_paid_fee">Fee: %1$s</string>
+    <string name="result_paid_fee_blink_hint">Blink might refund this fee partially.</string>
     <string name="result_error_title">Error</string>
+    <!-- Blink wallet strings -->
+    <string name="add_blink_wallet_title">Add Blink Wallet</string>
+    <string name="add_blink_wallet_description">Connect your Blink wallet using an API key. You can create one at blink.sv.</string>
+    <string name="add_blink_wallet_alias_label">Wallet name</string>
+    <string name="add_blink_wallet_alias_placeholder">My Blink Wallet</string>
+    <string name="add_blink_wallet_api_key_label">API Key</string>
+    <string name="add_blink_wallet_api_key_placeholder">blink_...</string>
+    <string name="add_blink_wallet_connect">Connect</string>
+    <string name="error_authentication_failure">Authentication failed. Check your API key.</string>
+    <string name="error_authentication_failure_message">Authentication failed: %1$s</string>
+    <string name="wallet_type_nwc">NWC</string>
+    <string name="wallet_type_blink">Blink</string>
+    <string name="add_wallet_choose_type">Choose wallet type</string>
 </resources>

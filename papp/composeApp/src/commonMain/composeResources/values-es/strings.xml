@@ -113,5 +113,6 @@
     </string>
     <string name="result_paid_title">Pagado</string>
     <string name="result_paid_fee">Comisión: %1$s</string>
+    <string name="result_paid_fee_blink_hint">Blink podría reembolsar parcialmente esta comisión.</string>
     <string name="result_error_title">Error</string>
 </resources>

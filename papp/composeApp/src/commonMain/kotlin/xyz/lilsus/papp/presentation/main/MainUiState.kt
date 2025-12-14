@@ -10,7 +10,11 @@ sealed class MainUiState {
     object Loading : MainUiState()
     data class EnterAmount(val entry: ManualAmountUiState) : MainUiState()
     data class Confirm(val amount: DisplayAmount) : MainUiState()
-    data class Success(val amountPaid: DisplayAmount, val feePaid: DisplayAmount) : MainUiState()
+    data class Success(
+        val amountPaid: DisplayAmount,
+        val feePaid: DisplayAmount,
+        val showBlinkFeeHint: Boolean = false
+    ) : MainUiState()
 
     data class Error(val error: AppError) : MainUiState()
 }
