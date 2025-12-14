@@ -1,6 +1,7 @@
 package xyz.lilsus.papp
 
-import platform.Foundation.NSBundle
+import kotlin.experimental.ExperimentalNativeApi
+import kotlin.native.Platform
 
-actual val isDebugBuild: Boolean =
-    NSBundle.mainBundle.objectForInfoDictionaryKey("IS_DEBUG") as? Boolean ?: true
+@OptIn(ExperimentalNativeApi::class)
+actual val isDebugBuild: Boolean = Platform.isDebugBinary
