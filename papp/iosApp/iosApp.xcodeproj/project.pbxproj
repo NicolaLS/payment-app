@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		3E2F28A87C1CC1A08DDA1A6F /* papp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = papp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -50,6 +55,7 @@
 		97A229AE63675C10A9DAA454 = {
 			isa = PBXGroup;
 			children = (
+				D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */,
 				6672ACEE09FDB18D319237F0 /* Configuration */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				E073F01B7BAFD6FD252567F6 /* Products */,
@@ -129,6 +135,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
