@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.flowOf
@@ -19,6 +20,7 @@ import xyz.lilsus.papp.navigation.navigateToConnectWallet
 import xyz.lilsus.papp.navigation.navigateToSettings
 import xyz.lilsus.papp.navigation.paymentScreen
 import xyz.lilsus.papp.navigation.settingsScreen
+import xyz.lilsus.papp.platform.AppLifecycleEvents
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 private const val NWC_SCHEME = "nostr+walletconnect"
@@ -32,6 +34,12 @@ fun App() {
             val koin = KoinPlatformTools.defaultContext().get()
             koin.get<ObserveThemePreferenceUseCase>()()
         }.getOrElse { flowOf(ThemePreference.System) }
+    }
+    val lifecycleEvents = remember {
+        runCatching {
+            val koin = KoinPlatformTools.defaultContext().get()
+            koin.get<AppLifecycleEvents>()
+        }.getOrNull()
     }
     val themePreference by themePreferenceFlow.collectAsState(initial = ThemePreference.System)
     LaunchedEffect(navController) {
@@ -49,6 +57,12 @@ fun App() {
                 "$NWC_SCHEME://$afterScheme"
             }
             navController.navigateToConnectWallet(uri = normalizedUri)
+        }
+    }
+    lifecycleEvents?.let { events ->
+        LifecycleResumeEffect(events) {
+            events.notifyResumed()
+            onPauseOrDispose { }
         }
     }
     AppTheme(themePreference = themePreference) {

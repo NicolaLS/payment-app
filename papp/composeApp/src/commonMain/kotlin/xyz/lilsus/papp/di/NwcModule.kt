@@ -67,6 +67,7 @@ import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
 import xyz.lilsus.papp.domain.usecases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.platform.AppLifecycleEvents
 import xyz.lilsus.papp.platform.HapticFeedbackManager
 import xyz.lilsus.papp.platform.createHapticFeedbackManager
 import xyz.lilsus.papp.presentation.addconnection.ConnectWalletViewModel
@@ -108,6 +109,7 @@ val nwcModule = module {
     single<LnurlRepository> { LnurlRepositoryImpl() }
     single { createNwcHttpClient() }
     single { NwcSessionManager.create(scope = get(), httpClient = get()) }
+    single { AppLifecycleEvents() }
     single<NwcWalletFactory> {
         RealNwcWalletFactory(
             sessionManager = get(),
@@ -119,7 +121,8 @@ val nwcModule = module {
         NwcWalletRepositoryImpl(
             walletSettingsRepository = get(),
             walletFactory = get(),
-            scope = get()
+            scope = get(),
+            appResumedEvents = get<AppLifecycleEvents>().resumed
         )
     }
     single<WalletDiscoveryRepository> {

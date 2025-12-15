@@ -6,8 +6,10 @@ import io.github.nostr.nwc.model.NwcRequestState
 import io.github.nostr.nwc.model.PayInvoiceParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -34,6 +36,7 @@ class NwcWalletRepositoryImpl(
     private val walletSettingsRepository: WalletSettingsRepository,
     private val walletFactory: NwcWalletFactory,
     private val scope: CoroutineScope,
+    private val appResumedEvents: Flow<Unit> = emptyFlow(),
     private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS
 ) : NwcWalletRepository {
 
@@ -55,6 +58,11 @@ class NwcWalletRepositoryImpl(
                         closeWalletLocked()
                     }
                 }
+            }
+        }
+        scope.launch {
+            appResumedEvents.collect {
+                walletMutex.withLock { closeWalletLocked() }
             }
         }
     }
