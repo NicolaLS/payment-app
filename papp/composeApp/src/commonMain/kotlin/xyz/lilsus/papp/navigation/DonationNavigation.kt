@@ -10,8 +10,8 @@ data class DonationRequest(val amountSats: Long, val address: LightningAddress)
 
 object DonationNavigation {
     val donationAddress = LightningAddress(
-        username = "whisperingjoy526835",
-        domain = "getalby.com"
+        username = "lilsus",
+        domain = "blink.sv"
     )
 
     private val eventsChannel = Channel<DonationRequest>(
