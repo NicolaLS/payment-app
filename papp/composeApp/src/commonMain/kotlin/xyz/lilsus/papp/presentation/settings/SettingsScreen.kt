@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,11 +35,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.settings_currency
 import papp.composeapp.generated.resources.settings_currency_subtitle
-import papp.composeapp.generated.resources.settings_donate_subtitle
-import papp.composeapp.generated.resources.settings_donate_tier_large
-import papp.composeapp.generated.resources.settings_donate_tier_medium
-import papp.composeapp.generated.resources.settings_donate_tier_small
-import papp.composeapp.generated.resources.settings_donate_title
 import papp.composeapp.generated.resources.settings_footer_privacy
 import papp.composeapp.generated.resources.settings_footer_repo
 import papp.composeapp.generated.resources.settings_footer_version
@@ -189,49 +183,6 @@ private fun SettingsListItem(entry: SettingsEntry) {
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
             )
-        }
-    }
-}
-
-@Composable
-private fun DonationCard(onDonate1k: () -> Unit, onDonate5k: () -> Unit, onDonate10k: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 2.dp,
-        shape = MaterialTheme.shapes.large
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = stringResource(Res.string.settings_donate_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = stringResource(Res.string.settings_donate_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(onClick = onDonate1k) {
-                    Text(text = stringResource(Res.string.settings_donate_tier_small))
-                }
-                Button(onClick = onDonate5k) {
-                    Text(text = stringResource(Res.string.settings_donate_tier_medium))
-                }
-                Button(onClick = onDonate10k) {
-                    Text(text = stringResource(Res.string.settings_donate_tier_large))
-                }
-            }
         }
     }
 }
