@@ -35,6 +35,7 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
+import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.WalletConnection
@@ -47,6 +48,7 @@ import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
+import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
@@ -80,6 +82,7 @@ class MainViewModelTest {
             mapOf(
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    paymentHash = null,
                     amountMsats = null,
                     memo = Bolt11Memo.None
                 )
@@ -103,6 +106,7 @@ class MainViewModelTest {
             mapOf(
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    paymentHash = null,
                     amountMsats = null,
                     memo = Bolt11Memo.None
                 )
@@ -133,6 +137,7 @@ class MainViewModelTest {
             mapOf(
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    paymentHash = null,
                     amountMsats = null,
                     memo = Bolt11Memo.None
                 )
@@ -167,6 +172,7 @@ class MainViewModelTest {
             mapOf(
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    paymentHash = null,
                     amountMsats = null,
                     memo = Bolt11Memo.None
                 )
@@ -217,6 +223,7 @@ class MainViewModelTest {
             mapOf(
                 MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    paymentHash = null,
                     amountMsats = null,
                     memo = Bolt11Memo.None
                 )
@@ -264,6 +271,7 @@ class MainViewModelTest {
             mapOf(
                 AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
                     amountMsats = 250_000L,
                     memo = Bolt11Memo.None
                 )
@@ -301,6 +309,7 @@ class MainViewModelTest {
                 mapOf(
                     AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
                         paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                        paymentHash = null,
                         amountMsats = 10_000L,
                         memo = Bolt11Memo.None
                     )
@@ -338,6 +347,7 @@ class MainViewModelTest {
             mapOf(
                 AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
                     paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
                     amountMsats = 250_000L,
                     memo = Bolt11Memo.None
                 )
@@ -408,6 +418,7 @@ class MainViewModelTest {
             mapOf(
                 lnurlInvoice to Bolt11InvoiceSummary(
                     paymentRequest = lnurlInvoice,
+                    paymentHash = null,
                     amountMsats = amountMsats,
                     memo = Bolt11Memo.Text("Payment")
                 )
@@ -457,6 +468,7 @@ class MainViewModelTest {
             mapOf(
                 lnurlInvoice to Bolt11InvoiceSummary(
                     paymentRequest = lnurlInvoice,
+                    paymentHash = null,
                     amountMsats = chosenMsats,
                     memo = Bolt11Memo.Text("Payment")
                 )
@@ -539,11 +551,22 @@ class MainViewModelTest {
         dispatcherOverride: CoroutineDispatcher = dispatcher
     ): MainViewModel {
         val payInvoice = PayInvoiceUseCase(repository)
+        val lookupPayment = LookupPaymentUseCase(repository)
         val paymentPreferencesRepository = FakePaymentPreferencesRepository(preferences)
         val shouldConfirm = ShouldConfirmPaymentUseCase(paymentPreferencesRepository)
         val observeCurrencyPreference =
             ObserveCurrencyPreferenceUseCase(currencyPreferencesRepository)
         val getExchangeRate = GetExchangeRateUseCase(exchangeRateRepository)
+        val scope = kotlinx.coroutines.CoroutineScope(dispatcherOverride)
+        val currencyManager = CurrencyManager(
+            getExchangeRate = getExchangeRate,
+            scope = scope
+        )
+        val pendingTracker = PendingPaymentTracker(
+            lookupPayment = lookupPayment,
+            currencyManager = currencyManager,
+            scope = scope
+        )
         val fetchLnurl = FetchLnurlPayParamsUseCase(lnurlRepository)
         val resolveLightningAddress = ResolveLightningAddressUseCase(lnurlRepository)
         val requestLnurlInvoice = RequestLnurlInvoiceUseCase(lnurlRepository)
@@ -563,7 +586,8 @@ class MainViewModelTest {
             payInvoice = payInvoice,
             observeWalletConnection = walletConnection,
             observeCurrencyPreference = observeCurrencyPreference,
-            getExchangeRate = getExchangeRate,
+            currencyManager = currencyManager,
+            pendingTracker = pendingTracker,
             bolt11Parser = parser,
             manualAmount = manualAmount,
             shouldConfirmPayment = shouldConfirm,
@@ -604,6 +628,8 @@ private class RecordingNwcWalletRepository(private val result: PaidInvoice = Pai
         lastAmountMsats = amountMsats
         return ImmediatePayInvoiceRequest(result)
     }
+
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.NotFound
 }
 
 private class BlockingNwcWalletRepository : NwcWalletRepository {
@@ -622,6 +648,8 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
         recorded += invoice to amountMsats
         return DeferredPayInvoiceRequest(completion)
     }
+
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.NotFound
 
     fun complete(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
         completeIfNeeded(result)

@@ -28,6 +28,14 @@ sealed class AppError {
     data object Timeout : AppError()
 
     /**
+     * Payment was sent but final status is unknown.
+     * This is a "soft" error - the payment may have succeeded, failed, or still be processing.
+     * Callers should verify the payment status before treating this as a failure.
+     */
+    data class PaymentUnconfirmed(val paymentHash: String?, val message: String? = null) :
+        AppError()
+
+    /**
      * Authentication failed (e.g., invalid or revoked API key).
      */
     data class AuthenticationFailure(val message: String? = null) : AppError()

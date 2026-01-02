@@ -45,9 +45,7 @@ private class IosAmountFormatter(private val locale: AppLocale) : AmountFormatte
                 currencyCode = code
             }
         }
-        val fractionDigitsNumber =
-            (formatter.maximumFractionDigits as? NSNumber) ?: NSNumber(integer = 2)
-        val fractionDigits = fractionDigitsNumber.intValue
+        val fractionDigits = formatter.maximumFractionDigits.toInt()
         val decimalMinor = NSDecimalNumber(string = minor.toString())
         val major = decimalMinor.decimalNumberByMultiplyingByPowerOf10((-fractionDigits).toShort())
         return formatter.stringFromNumber(major) ?: "$minor $code"

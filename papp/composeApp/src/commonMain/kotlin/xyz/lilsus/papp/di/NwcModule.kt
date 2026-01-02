@@ -1,9 +1,5 @@
 package xyz.lilsus.papp.di
 
-import io.github.nostr.nwc.NwcSessionManager
-import io.github.nostr.nwc.logging.ConsoleNwcLogger
-import io.github.nostr.nwc.logging.NwcLog
-import io.github.nostr.nwc.logging.NwcLogLevel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,9 +11,9 @@ import xyz.lilsus.papp.data.blink.BlinkPaymentRepository
 import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
 import xyz.lilsus.papp.data.network.createNwcHttpClient
-import xyz.lilsus.papp.data.nwc.NwcWalletFactory
+import xyz.lilsus.papp.data.nwc.NwcClientFactory
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
-import xyz.lilsus.papp.data.nwc.RealNwcWalletFactory
+import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
 import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
 import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
@@ -46,6 +42,7 @@ import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
+import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
@@ -67,11 +64,14 @@ import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
 import xyz.lilsus.papp.domain.usecases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
-import xyz.lilsus.papp.platform.AppLifecycleEvents
 import xyz.lilsus.papp.platform.HapticFeedbackManager
+import xyz.lilsus.papp.platform.NetworkConnectivity
 import xyz.lilsus.papp.platform.createHapticFeedbackManager
+import xyz.lilsus.papp.platform.createNetworkConnectivity
 import xyz.lilsus.papp.presentation.addconnection.ConnectWalletViewModel
+import xyz.lilsus.papp.presentation.main.CurrencyManager
 import xyz.lilsus.papp.presentation.main.MainViewModel
+import xyz.lilsus.papp.presentation.main.PendingPaymentTracker
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
@@ -83,13 +83,6 @@ import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
 val nwcModule = module {
-    // Only enable NWC logging in debug builds
-    // R8/ProGuard will strip these calls in release builds automatically
-    if (xyz.lilsus.papp.isDebugBuild) {
-        NwcLog.setLogger(ConsoleNwcLogger)
-        NwcLog.setMinimumLevel(NwcLogLevel.DEBUG)
-    }
-
     single<CoroutineDispatcher> { Dispatchers.Default }
     single { CoroutineScope(SupervisorJob() + get<CoroutineDispatcher>()) }
 
@@ -108,11 +101,10 @@ val nwcModule = module {
     single<ExchangeRateRepository> { CoinGeckoExchangeRateRepository() }
     single<LnurlRepository> { LnurlRepositoryImpl() }
     single { createNwcHttpClient() }
-    single { NwcSessionManager.create(scope = get(), httpClient = get()) }
-    single { AppLifecycleEvents() }
-    single<NwcWalletFactory> {
-        RealNwcWalletFactory(
-            sessionManager = get(),
+    single<NetworkConnectivity> { createNetworkConnectivity() }
+    single<NwcClientFactory> {
+        RealNwcClientFactory(
+            httpClient = get(),
             scope = get()
         )
     }
@@ -120,9 +112,9 @@ val nwcModule = module {
     single<NwcWalletRepository> {
         NwcWalletRepositoryImpl(
             walletSettingsRepository = get(),
-            walletFactory = get(),
+            clientFactory = get(),
             scope = get(),
-            appResumedEvents = get<AppLifecycleEvents>().resumed
+            networkConnectivity = get()
         )
     }
     single<WalletDiscoveryRepository> {
@@ -165,6 +157,7 @@ val nwcModule = module {
     single<HapticFeedbackManager> { createHapticFeedbackManager() }
 
     factory { PayInvoiceUseCase(paymentProvider = get()) }
+    factory { LookupPaymentUseCase(paymentProvider = get()) }
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
@@ -197,6 +190,19 @@ val nwcModule = module {
     factory { ClearLanguageOverrideUseCase(repository = get()) }
     factory { RefreshLanguagePreferenceUseCase(repository = get()) }
     factory { GetExchangeRateUseCase(repository = get()) }
+    factory {
+        CurrencyManager(
+            getExchangeRate = get(),
+            scope = get()
+        )
+    }
+    factory {
+        PendingPaymentTracker(
+            lookupPayment = get(),
+            currencyManager = get(),
+            scope = get()
+        )
+    }
     factory { FetchLnurlPayParamsUseCase(repository = get()) }
     factory { ResolveLightningAddressUseCase(repository = get()) }
     factory { RequestLnurlInvoiceUseCase(repository = get()) }
@@ -206,7 +212,8 @@ val nwcModule = module {
             payInvoice = get(),
             observeWalletConnection = get(),
             observeCurrencyPreference = get(),
-            getExchangeRate = get(),
+            currencyManager = get(),
+            pendingTracker = get(),
             bolt11Parser = get(),
             manualAmount = get(),
             shouldConfirmPayment = get(),

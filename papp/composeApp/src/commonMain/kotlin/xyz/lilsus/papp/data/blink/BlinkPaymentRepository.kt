@@ -8,6 +8,7 @@ import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
+import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 
 /**
@@ -78,9 +79,14 @@ class BlinkPaymentRepository(
         }
 
         return PaidInvoice(
-            // Blink doesn't return preimage in the simple payment flow
-            preimage = "",
+            preimage = null, // Blink doesn't return preimage in the simple payment flow
             feesPaidMsats = result.feesPaidMsats
         )
+    }
+
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
+        // Blink API doesn't support payment lookup by hash.
+        // Return NotFound which will trigger a retry for pending payments.
+        return PaymentLookupResult.NotFound
     }
 }

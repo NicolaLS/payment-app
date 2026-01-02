@@ -41,7 +41,6 @@ fun MainScreen(
     onNavigateConnectWallet: (String) -> Unit,
     uiState: MainUiState,
     pendingPayments: List<PendingPaymentItem>,
-    highlightedPendingId: String? = null,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountPreset: (DisplayAmount) -> Unit = {},
     onManualAmountSubmit: () -> Unit = {},
@@ -109,7 +108,6 @@ fun MainScreen(
                         title = stringResource(Res.string.app_name_long),
                         subtitle = stringResource(Res.string.point_camera_message_subtitle),
                         pendingPayments = pendingPayments,
-                        highlightedPendingId = highlightedPendingId,
                         onPendingTap = onPendingTap
                     )
                 }

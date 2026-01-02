@@ -1,6 +1,6 @@
 package xyz.lilsus.papp.domain.usecases
 
-import io.github.nostr.nwc.NwcUri
+import io.github.nicolals.nwc.NwcConnectionUri
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
@@ -18,12 +18,12 @@ class SetWalletConnectionUseCase(private val repository: WalletSettingsRepositor
         if (trimmed.isEmpty()) {
             throw AppErrorException(AppError.InvalidWalletUri())
         }
-        val parsed = runCatching { NwcUri.parse(trimmed) }.getOrElse { error ->
-            throw AppErrorException(AppError.InvalidWalletUri(error.message), error)
-        }
+        val parsed = NwcConnectionUri.parse(trimmed)
+            ?: throw AppErrorException(AppError.InvalidWalletUri())
+
         val connection = WalletConnection(
-            uri = parsed.toUriString(),
-            walletPublicKey = parsed.walletPublicKeyHex,
+            uri = parsed.raw,
+            walletPublicKey = parsed.walletPubkey.hex,
             relayUrl = parsed.relays.firstOrNull(),
             lud16 = parsed.lud16,
             alias = alias?.takeIf { it.isNotBlank() }?.trim(),

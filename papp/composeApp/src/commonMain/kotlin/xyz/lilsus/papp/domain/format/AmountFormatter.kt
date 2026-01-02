@@ -10,9 +10,8 @@ interface AmountFormatter {
 
 expect fun createAmountFormatter(locale: AppLocale): AmountFormatter
 
-// TODO: Profiling test whether too many AmountFormatter's are being created.
 @Composable
 fun rememberAmountFormatter(locale: AppLocale? = null): AmountFormatter {
-    val resolved = locale ?: runCatching { rememberAppLocale() }.getOrElse { currentAppLocale() }
+    val resolved = locale ?: rememberAppLocale()
     return remember(resolved) { createAmountFormatter(resolved) }
 }

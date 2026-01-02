@@ -116,7 +116,7 @@ class ConnectWalletViewModel internal constructor(
                     uri = state.uri,
                     alias = state.aliasInput,
                     activate = state.setActive,
-                    metadata = state.discovery?.toMetadataSnapshot()
+                    metadata = state.discovery.toMetadataSnapshot()
                 )
             }.onSuccess { connection ->
                 _events.emit(ConnectWalletEvent.Success(connection))

@@ -25,9 +25,9 @@ open class Bolt11InvoiceParser {
             is AmountResult.Failure -> return Bolt11ParseResult.Failure(amountResult.reason)
         }
 
-        val memo = when (val memoResult = parseMemo(data)) {
-            is MemoResult.Success -> memoResult.memo
-            is MemoResult.Failure -> return Bolt11ParseResult.Failure(memoResult.reason)
+        val (memo, paymentHash) = when (val result = parseTaggedFields(data)) {
+            is TaggedFieldsResult.Success -> result.memo to result.paymentHash
+            is TaggedFieldsResult.Failure -> return Bolt11ParseResult.Failure(result.reason)
         }
 
         val canonicalInvoice = raw.lowercase()
@@ -35,6 +35,7 @@ open class Bolt11InvoiceParser {
         return Bolt11ParseResult.Success(
             Bolt11InvoiceSummary(
                 paymentRequest = canonicalInvoice,
+                paymentHash = paymentHash,
                 amountMsats = amount,
                 memo = memo
             )
@@ -106,9 +107,14 @@ open class Bolt11InvoiceParser {
         return AmountResult.Success(amountMsats)
     }
 
-    private fun parseMemo(data: Array<Byte>): MemoResult {
+    private sealed class TaggedFieldsResult {
+        data class Success(val memo: Bolt11Memo, val paymentHash: String?) : TaggedFieldsResult()
+        data class Failure(val reason: String) : TaggedFieldsResult()
+    }
+
+    private fun parseTaggedFields(data: Array<Byte>): TaggedFieldsResult {
         if (data.size < SIGNATURE_LENGTH_WORDS + TIMESTAMP_WORD_COUNT) {
-            return MemoResult.Failure("Invoice payload is too short")
+            return TaggedFieldsResult.Failure("Invoice payload is too short")
         }
 
         val words = data.asSequence()
@@ -117,37 +123,47 @@ open class Bolt11InvoiceParser {
 
         val payload = words.dropLast(SIGNATURE_LENGTH_WORDS)
         if (payload.size < TIMESTAMP_WORD_COUNT) {
-            return MemoResult.Failure("Invoice payload is missing timestamp")
+            return TaggedFieldsResult.Failure("Invoice payload is missing timestamp")
         }
 
         var index = TIMESTAMP_WORD_COUNT
         var descriptionText: String? = null
         var descriptionHash: ByteArray? = null
+        var paymentHash: ByteArray? = null
 
         while (index < payload.size) {
             if (index + 2 >= payload.size) {
-                return MemoResult.Failure("Tagged field length is truncated")
+                return TaggedFieldsResult.Failure("Tagged field length is truncated")
             }
             val type = payload[index]
             val dataLength = (payload[index + 1] shl 5) or payload[index + 2]
             index += 3
             if (index + dataLength > payload.size) {
-                return MemoResult.Failure("Tagged field exceeds invoice size")
+                return TaggedFieldsResult.Failure("Tagged field exceeds invoice size")
             }
             val fieldWords = payload.subList(index, index + dataLength)
             when (type) {
+                TYPE_PAYMENT_HASH -> if (paymentHash == null) {
+                    val bytes = fiveBitWordsToBytes(fieldWords)
+                        ?: return TaggedFieldsResult.Failure("Payment hash padding is invalid")
+                    if (bytes.size != 32) {
+                        return TaggedFieldsResult.Failure("Payment hash must be 32 bytes")
+                    }
+                    paymentHash = bytes
+                }
+
                 TYPE_DESCRIPTION -> if (descriptionText == null) {
                     val bytes = fiveBitWordsToBytes(fieldWords)
-                        ?: return MemoResult.Failure("Description padding is invalid")
+                        ?: return TaggedFieldsResult.Failure("Description padding is invalid")
                     descriptionText = runCatching { bytes.decodeToString() }.getOrNull()
-                        ?: return MemoResult.Failure("Description is not valid UTF-8")
+                        ?: return TaggedFieldsResult.Failure("Description is not valid UTF-8")
                 }
 
                 TYPE_DESCRIPTION_HASH -> if (descriptionHash == null) {
                     val bytes = fiveBitWordsToBytes(fieldWords)
-                        ?: return MemoResult.Failure("Description hash padding is invalid")
+                        ?: return TaggedFieldsResult.Failure("Description hash padding is invalid")
                     if (bytes.size != 32) {
-                        return MemoResult.Failure("Description hash must be 32 bytes")
+                        return TaggedFieldsResult.Failure("Description hash must be 32 bytes")
                     }
                     descriptionHash = bytes
                 }
@@ -161,7 +177,17 @@ open class Bolt11InvoiceParser {
             else -> Bolt11Memo.None
         }
 
-        return MemoResult.Success(memo)
+        val paymentHashHex = paymentHash?.toHexString()
+
+        return TaggedFieldsResult.Success(memo, paymentHashHex)
+    }
+
+    private fun ByteArray.toHexString(): String = buildString {
+        for (byte in this@toHexString) {
+            val unsigned = byte.toInt() and 0xFF
+            append(HEX_CHARS[unsigned shr 4])
+            append(HEX_CHARS[unsigned and 0x0F])
+        }
     }
 
     private fun parsePositiveLong(digits: String): Long? {
@@ -281,8 +307,11 @@ open class Bolt11InvoiceParser {
         private const val SIGNATURE_LENGTH_WORDS = 104
         private const val TIMESTAMP_WORD_COUNT = 7
 
+        private const val TYPE_PAYMENT_HASH = 1
         private const val TYPE_DESCRIPTION = 13
         private const val TYPE_DESCRIPTION_HASH = 23
+
+        private val HEX_CHARS = "0123456789abcdef".toCharArray()
 
         private const val MSATS_PER_BTC = 100_000_000_000L
         private const val MSATS_PER_MILLI_BITCOIN = 100_000_000L
@@ -293,6 +322,7 @@ open class Bolt11InvoiceParser {
 
 data class Bolt11InvoiceSummary(
     val paymentRequest: String,
+    val paymentHash: String?,
     val amountMsats: Long?,
     val memo: Bolt11Memo
 )

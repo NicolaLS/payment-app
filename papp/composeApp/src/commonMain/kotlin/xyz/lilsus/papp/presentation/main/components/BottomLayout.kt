@@ -1,8 +1,6 @@
 package xyz.lilsus.papp.presentation.main.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -22,12 +20,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
@@ -45,7 +41,6 @@ fun BottomLayout(
     title: String,
     subtitle: String? = null,
     pendingPayments: List<PendingPaymentItem> = emptyList(),
-    highlightedPendingId: String? = null,
     onPendingTap: (String) -> Unit = {}
 ) {
     val formatter = rememberAmountFormatter()
@@ -81,7 +76,6 @@ fun BottomLayout(
                     PendingChip(
                         item = pending,
                         formatter = formatter,
-                        isHighlighted = pending.id == highlightedPendingId,
                         onTap = { onPendingTap(pending.id) }
                     )
                 }
@@ -94,15 +88,8 @@ fun BottomLayout(
 private fun PendingChip(
     item: PendingPaymentItem,
     formatter: xyz.lilsus.papp.domain.format.AmountFormatter,
-    isHighlighted: Boolean,
     onTap: () -> Unit
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (isHighlighted) 1.1f else 1f,
-        animationSpec = tween(durationMillis = 150),
-        label = "chip_scale"
-    )
-
     val (containerColor, contentColor, icon) = when (item.status) {
         PendingStatus.Success -> Triple(
             MaterialTheme.colorScheme.tertiaryContainer,
@@ -125,7 +112,6 @@ private fun PendingChip(
 
     Surface(
         modifier = Modifier
-            .scale(scale)
             .clip(MaterialTheme.shapes.small)
             .clickable(onClick = onTap),
         shape = MaterialTheme.shapes.small,

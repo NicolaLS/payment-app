@@ -15,6 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +55,7 @@ class BlinkPaymentRepositoryTest {
         val result = context.repository.payInvoice("lnbc1000n1test")
 
         assertNotNull(result)
-        assertEquals("", result.preimage)
+        assertNull(result.preimage)
         assertEquals(10_000L, result.feesPaidMsats)
     }
 
@@ -123,7 +124,7 @@ class BlinkPaymentRepositoryTest {
         val result = context.repository.payInvoice("lnbc1test", amountMsats = 1000L)
 
         assertNotNull(result)
-        assertEquals("", result.preimage)
+        assertNull(result.preimage)
         assertEquals(2_000L, result.feesPaidMsats)
     }
 

@@ -1,5 +1,6 @@
 rootProject.name = "papp"
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+// Disabled due to naming conflict with nwc-kmp composite build
+// enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
@@ -33,3 +34,10 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
+
+// Include nwc-kmp for local development
+includeBuild("../../../../Nostr/nwc-kmp") {
+    dependencySubstitution {
+        substitute(module("io.github.nicolals:nwc-kmp")).using(project(":nwc-kmp"))
+    }
+}

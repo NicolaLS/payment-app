@@ -7,6 +7,7 @@ import androidx.camera.core.CameraXConfig
 import java.lang.ref.WeakReference
 import org.koin.core.context.startKoin
 import xyz.lilsus.papp.di.nwcModule
+import xyz.lilsus.papp.platform.initializeNetworkConnectivity
 
 class PappApplication :
     Application(),
@@ -21,6 +22,7 @@ class PappApplication :
     override fun onCreate() {
         super.onCreate()
         instance = this
+        initializeNetworkConnectivity(this)
         startKoin {
             modules(nwcModule)
         }

@@ -2,6 +2,7 @@ package xyz.lilsus.papp.domain.repository
 
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
+import xyz.lilsus.papp.domain.model.PaymentLookupResult
 
 /**
  * Abstraction for wallet payment operations.
@@ -28,4 +29,12 @@ interface PaymentProvider {
      * @throws xyz.lilsus.papp.domain.model.AppErrorException on failure.
      */
     suspend fun payInvoice(invoice: String, amountMsats: Long? = null): PaidInvoice
+
+    /**
+     * Looks up the status of a payment by payment hash.
+     *
+     * @param paymentHash The hex-encoded payment hash from the BOLT11 invoice.
+     * @return The [PaymentLookupResult] indicating the payment status.
+     */
+    suspend fun lookupPayment(paymentHash: String): PaymentLookupResult
 }

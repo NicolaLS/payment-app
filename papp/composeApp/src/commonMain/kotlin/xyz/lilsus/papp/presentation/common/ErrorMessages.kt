@@ -12,6 +12,8 @@ import papp.composeapp.generated.resources.error_payment_rejected_code
 import papp.composeapp.generated.resources.error_payment_rejected_full
 import papp.composeapp.generated.resources.error_payment_rejected_generic
 import papp.composeapp.generated.resources.error_payment_rejected_message
+import papp.composeapp.generated.resources.error_payment_unconfirmed
+import papp.composeapp.generated.resources.error_payment_unconfirmed_message
 import papp.composeapp.generated.resources.error_timeout
 import papp.composeapp.generated.resources.error_unexpected_generic
 import papp.composeapp.generated.resources.error_unexpected_with_details
@@ -45,6 +47,15 @@ fun errorMessageFor(error: AppError): String = when (error) {
     AppError.NetworkUnavailable -> stringResource(Res.string.error_network_unavailable)
 
     AppError.Timeout -> stringResource(Res.string.error_timeout)
+
+    is AppError.PaymentUnconfirmed -> {
+        val details = error.message?.takeUnless { it.isBlank() }
+        if (details != null) {
+            stringResource(Res.string.error_payment_unconfirmed_message, details)
+        } else {
+            stringResource(Res.string.error_payment_unconfirmed)
+        }
+    }
 
     is AppError.AuthenticationFailure -> {
         val details = error.message?.takeUnless { it.isBlank() }

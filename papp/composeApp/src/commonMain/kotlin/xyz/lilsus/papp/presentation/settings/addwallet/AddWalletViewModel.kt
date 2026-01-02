@@ -1,6 +1,6 @@
 package xyz.lilsus.papp.presentation.settings.addwallet
 
-import io.github.nostr.nwc.NwcUri
+import io.github.nicolals.nwc.NwcConnectionUri
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,8 +69,7 @@ class AddWalletViewModel internal constructor(
         }
     }
 
-    private fun isValid(uri: String): Boolean =
-        uri.isNotEmpty() && runCatching { NwcUri.parse(uri) }.isSuccess
+    private fun isValid(uri: String): Boolean = uri.isNotEmpty() && NwcConnectionUri.isValid(uri)
 
     fun clear() {
         scope.cancel()

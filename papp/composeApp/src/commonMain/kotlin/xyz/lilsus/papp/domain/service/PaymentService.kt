@@ -10,6 +10,7 @@ import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
+import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.PaymentProvider
@@ -56,6 +57,13 @@ class PaymentService(
             WalletType.NWC -> nwcRepository.payInvoice(invoice, amountMsats)
             WalletType.BLINK -> blinkRepository.payInvoice(invoice, amountMsats)
             null -> throw AppErrorException(AppError.MissingWalletConnection)
+        }
+
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult =
+        when (currentWalletType) {
+            WalletType.NWC -> nwcRepository.lookupPayment(paymentHash)
+            WalletType.BLINK -> blinkRepository.lookupPayment(paymentHash)
+            null -> PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
         }
 
     private fun createMissingWalletRequest(): PayInvoiceRequest {

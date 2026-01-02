@@ -129,7 +129,6 @@ private fun MainScreenEntry(
 
     val uiState by viewModel.uiState.collectAsState()
     val pendingPayments by viewModel.pendingPayments.collectAsState()
-    val highlightedPendingId by viewModel.highlightedPendingId.collectAsState()
     LaunchedEffect(uiState) {
         if (uiState != MainUiState.Active) {
             hidePreview()
@@ -180,7 +179,6 @@ private fun MainScreenEntry(
             onNavigateConnectWallet = onNavigateToConnectWallet,
             uiState = uiState,
             pendingPayments = pendingPayments,
-            highlightedPendingId = highlightedPendingId,
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))
             },

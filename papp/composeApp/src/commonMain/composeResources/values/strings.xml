@@ -17,6 +17,8 @@
     <string name="error_payment_rejected_full">Payment was rejected (%1$s): %2$s</string>
     <string name="error_network_unavailable">Network unavailable. Check your connection.</string>
     <string name="error_timeout">Wallet did not respond. Try again.</string>
+    <string name="error_payment_unconfirmed">Payment status unknown. It may have succeeded.</string>
+    <string name="error_payment_unconfirmed_message">Payment status unknown: %1$s</string>
     <string name="error_unexpected_generic">Something went wrong.</string>
     <string name="error_unexpected_with_details">Something went wrong: %1$s</string>
     <string name="settings_manage_wallets">Manage Wallets</string>

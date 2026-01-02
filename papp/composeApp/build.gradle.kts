@@ -60,7 +60,7 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(libs.koin.core)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.nwc.kmp)
+            implementation(libs.nwc)
             implementation(libs.multiplatform.settings)
             implementation(libs.bitcoin.kmp)
             implementation(libs.ktor.client.core)

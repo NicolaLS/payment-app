@@ -1,87 +1,70 @@
 package xyz.lilsus.papp.data.nwc
 
-import io.github.nostr.nwc.NwcWalletContract
-import io.github.nostr.nwc.model.BitcoinAmount
-import io.github.nostr.nwc.model.NwcRequestState
-import io.github.nostr.nwc.model.PayInvoiceParams
+import io.github.nicolals.nwc.Amount
+import io.github.nicolals.nwc.LookupInvoiceParams
+import io.github.nicolals.nwc.NwcClient
+import io.github.nicolals.nwc.NwcClientState
+import io.github.nicolals.nwc.NwcError
+import io.github.nicolals.nwc.NwcResult
+import io.github.nicolals.nwc.TransactionState
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withTimeoutOrNull
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
+import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.platform.NetworkConnectivity
 
 /**
- * Default [NwcWalletRepository] implementation backed by [NwcWalletContract].
+ * [NwcWalletRepository] implementation backed by [NwcClient].
  *
- * The repository lazily creates and caches an [NwcWalletContract] bound to the
- * current wallet-connect URI provided by [walletSettingsRepository].
+ * Creates a fresh client connection for each operation, ensuring reliability
+ * without the complexity of managing cached websocket state. This approach
+ * eliminates issues with stale connections (especially on iOS where background
+ * suspension leaves websockets in half-open states).
  *
- * All request methods return immediately with Loading state - client
- * initialization and requests happen in the background.
+ * Tradeoff: Slightly slower for rapid successive operations, but more reliable
+ * and much simpler. The primary use case (single payment) has optimal UX.
  */
 class NwcWalletRepositoryImpl(
     private val walletSettingsRepository: WalletSettingsRepository,
-    private val walletFactory: NwcWalletFactory,
+    private val clientFactory: NwcClientFactory,
     private val scope: CoroutineScope,
-    private val appResumedEvents: Flow<Unit> = emptyFlow(),
+    private val networkConnectivity: NetworkConnectivity,
     private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS
 ) : NwcWalletRepository {
 
-    private val walletMutex = Mutex()
-    private var cachedWallet: NwcWalletContract? = null
-    private var activeUri: String? = null
-
-    init {
-        scope.launch {
-            walletSettingsRepository.walletConnection.collectLatest { connection ->
-                if (connection == null) {
-                    // Close wallet when connection is cleared
-                    closeWallet()
-                    return@collectLatest
-                }
-                // Close wallet if switched to a different one
-                walletMutex.withLock {
-                    if (activeUri != null && activeUri != connection.uri) {
-                        closeWalletLocked()
-                    }
-                }
-            }
-        }
-        scope.launch {
-            appResumedEvents.collect {
-                walletMutex.withLock { closeWalletLocked() }
-            }
-        }
-    }
-
     override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
-        val request = startPayInvoiceRequest(invoice = invoice, amountMsats = amountMsats)
-        try {
-            val state = withTimeoutOrNull(payTimeoutMillis) {
-                request.state.first {
-                    it is PayInvoiceRequestState.Success || it is PayInvoiceRequestState.Failure
-                }
+        require(invoice.isNotBlank()) { "Invoice must not be blank." }
+        if (amountMsats != null) {
+            require(amountMsats > 0) { "Amount must be greater than zero." }
+        }
+
+        if (!networkConnectivity.isNetworkAvailable()) {
+            throw AppErrorException(AppError.NetworkUnavailable)
+        }
+
+        return withFreshClient { client ->
+            val result = client.payInvoice(
+                invoice = invoice,
+                amount = amountMsats?.let { Amount.fromMsats(it) },
+                timeoutMs = payTimeoutMillis,
+                verifyOnTimeout = true
+            )
+
+            when (result) {
+                is NwcResult.Success -> PaidInvoice(
+                    preimage = result.value.preimage,
+                    feesPaidMsats = result.value.feesPaid?.msats
+                )
+
+                is NwcResult.Failure -> throw result.error.toAppErrorException()
             }
-            return when (state) {
-                is PayInvoiceRequestState.Success -> state.invoice
-                is PayInvoiceRequestState.Failure -> throw AppErrorException(state.error)
-                null, PayInvoiceRequestState.Loading -> throw AppErrorException(AppError.Timeout)
-            }
-        } finally {
-            request.cancel()
         }
     }
 
@@ -91,46 +74,16 @@ class NwcWalletRepositoryImpl(
             require(amountMsats > 0) { "Amount must be greater than zero." }
         }
 
-        // Create app-level request that wraps the NwcWallet request
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(PayInvoiceRequestState.Loading)
-
-        // Hold reference to underlying NWC request for proper cancellation
-        var nwcRequest: io.github.nostr.nwc.NwcRequest<*>? = null
 
         val job = scope.launch {
             try {
-                val wallet = ensureWallet()
-                    ?: run {
-                        stateFlow.value =
-                            PayInvoiceRequestState.Failure(AppError.MissingWalletConnection)
-                        return@launch
-                    }
-
-                nwcRequest = wallet.payInvoice(
-                    PayInvoiceParams(
-                        invoice = invoice,
-                        amount = amountMsats?.let(BitcoinAmount::fromMsats)
-                    )
-                )
-
-                // Forward NWC request state to app state
-                nwcRequest!!.state.collect { nwcState ->
-                    stateFlow.value = when (nwcState) {
-                        NwcRequestState.Loading -> PayInvoiceRequestState.Loading
-
-                        is NwcRequestState.Success -> PayInvoiceRequestState.Success(
-                            invoice = PaidInvoice(
-                                preimage = nwcState.value.preimage,
-                                feesPaidMsats = nwcState.value.feesPaid?.msats
-                            )
-                        )
-
-                        is NwcRequestState.Failure -> PayInvoiceRequestState.Failure(
-                            error = nwcState.failure.toAppError()
-                        )
-                    }
-                }
+                val paidInvoice = payInvoice(invoice, amountMsats)
+                stateFlow.value = PayInvoiceRequestState.Success(paidInvoice)
             } catch (e: kotlinx.coroutines.CancellationException) {
+                stateFlow.value = PayInvoiceRequestState.Failure(
+                    error = AppError.Unexpected("Payment cancelled")
+                )
                 throw e
             } catch (e: AppErrorException) {
                 stateFlow.value = PayInvoiceRequestState.Failure(error = e.error)
@@ -144,44 +97,106 @@ class NwcWalletRepositoryImpl(
         return object : PayInvoiceRequest {
             override val state = stateFlow
             override fun cancel() {
-                nwcRequest?.cancel()
                 job.cancel()
             }
         }
     }
 
-    private suspend fun ensureWallet(): NwcWalletContract? {
-        val connection = walletSettingsRepository.getWalletConnection() ?: return null
-        val uri = connection.uri
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
+        require(paymentHash.isNotBlank()) { "Payment hash must not be blank." }
 
-        // Fast path
-        cachedWallet?.takeIf { activeUri == uri }?.let { return it }
+        if (!networkConnectivity.isNetworkAvailable()) {
+            return PaymentLookupResult.LookupError(AppError.NetworkUnavailable)
+        }
 
-        return walletMutex.withLock {
-            // Double-check inside lock
-            cachedWallet?.takeIf { activeUri == uri }?.let { return@withLock it }
+        return try {
+            withFreshClient { client ->
+                val result = client.lookupInvoice(
+                    params = LookupInvoiceParams(paymentHash = paymentHash),
+                    timeoutMs = LOOKUP_TIMEOUT_MILLIS
+                )
 
-            // Close existing wallet if URI changed
-            if (activeUri != null && activeUri != uri) {
-                closeWalletLocked()
+                when (result) {
+                    is NwcResult.Success -> {
+                        val tx = result.value
+                        when (tx.state) {
+                            TransactionState.SETTLED -> PaymentLookupResult.Settled(
+                                PaidInvoice(
+                                    preimage = tx.preimage,
+                                    feesPaidMsats = tx.feesPaid?.msats
+                                )
+                            )
+
+                            TransactionState.PENDING -> PaymentLookupResult.Pending
+
+                            TransactionState.FAILED, TransactionState.EXPIRED ->
+                                PaymentLookupResult.Failed
+
+                            null -> {
+                                // State is null - infer from other fields
+                                if (tx.settledAt != null || tx.preimage != null) {
+                                    PaymentLookupResult.Settled(
+                                        PaidInvoice(
+                                            preimage = tx.preimage,
+                                            feesPaidMsats = tx.feesPaid?.msats
+                                        )
+                                    )
+                                } else {
+                                    PaymentLookupResult.Pending
+                                }
+                            }
+                        }
+                    }
+
+                    is NwcResult.Failure -> {
+                        when (val error = result.error) {
+                            is NwcError.WalletError -> {
+                                if (error.code.code == "NOT_FOUND") {
+                                    PaymentLookupResult.NotFound
+                                } else {
+                                    PaymentLookupResult.LookupError(error.toAppError())
+                                }
+                            }
+
+                            is NwcError.ConnectionError -> PaymentLookupResult.LookupError(
+                                AppError.NetworkUnavailable
+                            )
+
+                            is NwcError.Timeout -> PaymentLookupResult.LookupError(AppError.Timeout)
+
+                            else -> PaymentLookupResult.LookupError(error.toAppError())
+                        }
+                    }
+                }
             }
-
-            // Create new wallet (returns immediately, init is deferred)
-            val wallet = walletFactory.create(connection)
-            cachedWallet = wallet
-            activeUri = uri
-            wallet
+        } catch (e: AppErrorException) {
+            PaymentLookupResult.LookupError(e.error)
         }
     }
 
-    private suspend fun closeWallet() {
-        walletMutex.withLock { closeWalletLocked() }
-    }
+    /**
+     * Executes [block] with a fresh NWC client connection.
+     * The client is always closed after the operation completes.
+     */
+    private suspend fun <T> withFreshClient(block: suspend (NwcClient) -> T): T {
+        val connection = walletSettingsRepository.getWalletConnection()
+            ?: throw AppErrorException(AppError.MissingWalletConnection)
 
-    private suspend fun closeWalletLocked() {
-        val previous = cachedWallet
-        cachedWallet = null
-        activeUri = null
-        previous?.close()
+        val client = clientFactory.create(connection)
+        try {
+            client.connect()
+
+            if (!client.awaitReady(timeoutMs = DEFAULT_NWC_REQUEST_TIMEOUT_MILLIS)) {
+                val state = client.state.value
+                if (state is NwcClientState.Failed) {
+                    throw state.error.toAppErrorException()
+                }
+                throw AppErrorException(AppError.NetworkUnavailable)
+            }
+
+            return block(client)
+        } finally {
+            client.close()
+        }
     }
 }
