@@ -1,0 +1,10 @@
+repository: https://github.com/NicolaLS/payment-app
+name: Lasr
+icon: assets/icon_background.png 
+description: Laser fast payment tool for your bitcoin lightning wallet
+version: 1.0 
+license: MIT
+assets:
+  - .*.apk
+remote_metadata:
+  - playstore
