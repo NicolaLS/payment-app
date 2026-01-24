@@ -242,6 +242,7 @@ val nwcModule = module {
         AddBlinkWalletViewModel(
             walletSettingsRepository = get(),
             credentialStore = get(),
+            apiClient = get(),
             dispatcher = get()
         )
     }

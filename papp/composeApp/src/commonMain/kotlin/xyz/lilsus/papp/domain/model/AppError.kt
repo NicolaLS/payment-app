@@ -41,6 +41,11 @@ sealed class AppError {
     data class AuthenticationFailure(val message: String? = null) : AppError()
 
     /**
+     * The API key does not have sufficient permissions for the requested operation.
+     */
+    data class InsufficientPermissions(val message: String? = null) : AppError()
+
+    /**
      * Provided wallet URI is invalid or malformed.
      */
     data class InvalidWalletUri(val reason: String? = null) : AppError()

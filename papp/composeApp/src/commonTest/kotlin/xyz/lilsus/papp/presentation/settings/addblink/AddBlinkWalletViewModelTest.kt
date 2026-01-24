@@ -1,12 +1,23 @@
 package xyz.lilsus.papp.presentation.settings.addblink
 
 import com.russhwolf.settings.MapSettings
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import io.ktor.serialization.kotlinx.json.json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Dispatchers
+import kotlinx.serialization.json.Json
+import xyz.lilsus.papp.data.blink.BlinkApiClient
 import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.domain.model.AppError
@@ -158,24 +169,82 @@ class AddBlinkWalletViewModelTest {
         context.viewModel.clear()
     }
 
-    private fun createTestContext(): TestContext {
+    @Test
+    fun submitWithReadOnlyApiKeyShowsInsufficientPermissionsError() = kotlinx.coroutines.test.runTest {
+        val context = createTestContext(authorizationResponse = READ_ONLY_AUTH_RESPONSE)
+
+        context.viewModel.updateAlias("My Wallet")
+        context.viewModel.updateApiKey("read_only_key")
+        context.viewModel.submit()
+
+        // Wait for async operation to complete
+        kotlinx.coroutines.delay(100)
+
+        val state = context.viewModel.uiState.value
+        assertNotNull(state.error)
+        assertTrue(state.error is AppError.InsufficientPermissions)
+        assertFalse(state.isSaving)
+
+        context.viewModel.clear()
+    }
+
+    private fun createTestContext(
+        authorizationResponse: String = DEFAULT_AUTH_RESPONSE
+    ): TestContext {
         val settings = MapSettings()
         val walletSettingsRepository = WalletSettingsRepositoryImpl(
             settings = settings,
             dispatcher = Dispatchers.Default
         )
         val credentialStore = BlinkCredentialStore(settings)
+        val apiClient = createMockApiClient(authorizationResponse)
         val viewModel = AddBlinkWalletViewModel(
             walletSettingsRepository = walletSettingsRepository,
             credentialStore = credentialStore,
+            apiClient = apiClient,
             dispatcher = Dispatchers.Default
         )
-        return TestContext(viewModel, walletSettingsRepository, credentialStore)
+        return TestContext(viewModel, walletSettingsRepository, credentialStore, apiClient)
+    }
+
+    private fun createMockApiClient(authorizationResponse: String): BlinkApiClient {
+        val mockEngine = MockEngine { _ ->
+            respond(
+                content = authorizationResponse,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        return BlinkApiClient(httpClient)
     }
 
     private data class TestContext(
         val viewModel: AddBlinkWalletViewModel,
         val walletSettingsRepository: WalletSettingsRepositoryImpl,
-        val credentialStore: BlinkCredentialStore
+        val credentialStore: BlinkCredentialStore,
+        val apiClient: BlinkApiClient
     )
+
+    companion object {
+        private const val DEFAULT_AUTH_RESPONSE = """{
+            "data": {
+                "authorization": {
+                    "scopes": ["READ", "WRITE", "RECEIVE"]
+                }
+            }
+        }"""
+
+        private const val READ_ONLY_AUTH_RESPONSE = """{
+            "data": {
+                "authorization": {
+                    "scopes": ["READ"]
+                }
+            }
+        }"""
+    }
 }

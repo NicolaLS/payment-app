@@ -66,6 +66,11 @@ fun errorMessageFor(error: AppError): String = when (error) {
         }
     }
 
+    is AppError.InsufficientPermissions -> {
+        // The message contains the full user-friendly explanation
+        error.message ?: stringResource(Res.string.error_authentication_failure)
+    }
+
     is AppError.InvalidWalletUri -> stringResource(
         Res.string.error_invalid_wallet_uri
     )

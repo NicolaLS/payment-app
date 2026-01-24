@@ -186,6 +186,43 @@ class BlinkApiClient(
         AmountTooSmall,
         LimitExceeded,
         RateLimited
+}
+    /**
+     * Fetches the authorization scopes for the provided API key.
+     *
+     * @param apiKey The Blink API key to check.
+     * @return List of scope strings (e.g., ["READ", "WRITE", "RECEIVE"]).
+     * @throws [AppErrorException] on failure.
+     */
+    suspend fun fetchAuthorizationScopes(apiKey: String): List<String> {
+        val query = """
+            query Authorization {
+                authorization {
+                    scopes
+                }
+            }
+        """.trimIndent()
+
+        val requestBody = buildJsonObject {
+            put("query", query)
+            put("variables", buildJsonObject { })
+        }
+
+        val response = executeGraphQlRequest(
+            apiKey = apiKey,
+            requestBody = requestBody,
+            logLabel = "Authorization"
+        )
+
+        val data = response["data"]?.jsonObject
+            ?: throw AppErrorException(AppError.Unexpected("Missing data in response"))
+
+        val scopes = data["authorization"]?.jsonObject
+            ?.get("scopes")?.jsonArray
+            ?.mapNotNull { it.jsonPrimitive.content.trim().takeIf { s -> s.isNotEmpty() } }
+            ?: emptyList()
+
+        return scopes
     }
 
     /**

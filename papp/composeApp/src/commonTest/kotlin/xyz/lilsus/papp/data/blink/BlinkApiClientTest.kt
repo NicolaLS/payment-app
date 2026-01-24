@@ -24,6 +24,67 @@ import xyz.lilsus.papp.domain.model.AppErrorException
 class BlinkApiClientTest {
 
     @Test
+    fun fetchAuthorizationScopesReturnsScopes() = runTest {
+        val mockEngine = MockEngine { _ ->
+            respond(
+                content = """{
+                    "data": {
+                        "authorization": {
+                            "scopes": ["READ", "WRITE", "RECEIVE"]
+                        }
+                    }
+                }""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+        val client = createClient(mockEngine)
+
+        val scopes = client.fetchAuthorizationScopes("test-api-key")
+
+        assertEquals(listOf("READ", "WRITE", "RECEIVE"), scopes)
+    }
+
+    @Test
+    fun fetchAuthorizationScopesReturnsEmptyListWhenNoScopes() = runTest {
+        val mockEngine = MockEngine { _ ->
+            respond(
+                content = """{
+                    "data": {
+                        "authorization": {
+                            "scopes": []
+                        }
+                    }
+                }""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+        val client = createClient(mockEngine)
+
+        val scopes = client.fetchAuthorizationScopes("test-api-key")
+
+        assertEquals(emptyList(), scopes)
+    }
+
+    @Test
+    fun fetchAuthorizationScopesThrowsOnInvalidApiKey() = runTest {
+        val mockEngine = MockEngine { _ ->
+            respond(
+                content = "Unauthorized",
+                status = HttpStatusCode.Unauthorized
+            )
+        }
+        val client = createClient(mockEngine)
+
+        val exception = assertFailsWith<AppErrorException> {
+            client.fetchAuthorizationScopes("invalid-key")
+        }
+
+        assertTrue(exception.error is AppError.AuthenticationFailure)
+    }
+
+    @Test
     fun fetchDefaultWalletIdReturnsIdOnValidResponse() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(

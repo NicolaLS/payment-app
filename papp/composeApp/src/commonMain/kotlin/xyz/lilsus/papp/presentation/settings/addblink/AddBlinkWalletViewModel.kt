@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import xyz.lilsus.papp.data.blink.BlinkApiClient
 import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
@@ -26,6 +28,7 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 class AddBlinkWalletViewModel internal constructor(
     private val walletSettingsRepository: WalletSettingsRepository,
     private val credentialStore: BlinkCredentialStore,
+    private val apiClient: BlinkApiClient,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -65,6 +68,22 @@ class AddBlinkWalletViewModel internal constructor(
             _uiState.update { it.copy(isSaving = true, error = null) }
 
             try {
+                // Check that the API key has the required permissions
+                val scopes = apiClient.fetchAuthorizationScopes(apiKey)
+                if (!scopes.contains(REQUIRED_SCOPE)) {
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            error = AppError.InsufficientPermissions(
+                                "This API key does not have permission to send payments. " +
+                                    "Please create a new API key and make sure to check all " +
+                                    "permission checkboxes (especially \"Write\")."
+                            )
+                        )
+                    }
+                    return@launch
+                }
+
                 // Generate a unique wallet ID for this Blink wallet
                 val walletId = generateWalletId()
 
@@ -82,6 +101,10 @@ class AddBlinkWalletViewModel internal constructor(
 
                 _uiState.update { it.copy(isSaving = false) }
                 _events.emit(AddBlinkWalletEvent.Success(connection))
+            } catch (e: AppErrorException) {
+                _uiState.update {
+                    it.copy(isSaving = false, error = e.error)
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
@@ -115,6 +138,7 @@ class AddBlinkWalletViewModel internal constructor(
 
     companion object {
         private const val HEX_CHARS = "0123456789abcdef"
+        private const val REQUIRED_SCOPE = "WRITE"
     }
 }
 
