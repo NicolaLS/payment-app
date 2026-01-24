@@ -20,6 +20,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
+import xyz.lilsus.papp.domain.model.BlinkErrorType
 
 class BlinkApiClientTest {
 
@@ -81,7 +82,9 @@ class BlinkApiClientTest {
             client.fetchAuthorizationScopes("invalid-key")
         }
 
-        assertTrue(exception.error is AppError.AuthenticationFailure)
+        val error = exception.error
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
     }
 
     @Test
@@ -205,7 +208,7 @@ class BlinkApiClientTest {
     }
 
     @Test
-    fun payInvoiceThrowsAuthenticationFailureOn401() = runTest {
+    fun payInvoiceThrowsBlinkErrorOn401() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(
                 content = "Unauthorized",
@@ -218,11 +221,13 @@ class BlinkApiClientTest {
             client.payInvoice("invalid-key", "wallet-123", "lnbc1test")
         }
 
-        assertTrue(exception.error is AppError.AuthenticationFailure)
+        val error = exception.error
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
     }
 
     @Test
-    fun payInvoiceThrowsAuthenticationFailureOnUnauthenticatedGraphQLError() = runTest {
+    fun payInvoiceThrowsBlinkErrorOnUnauthenticatedGraphQLError() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(
                 content = """{
@@ -241,11 +246,13 @@ class BlinkApiClientTest {
             client.payInvoice("invalid-key", "wallet-123", "lnbc1test")
         }
 
-        assertTrue(exception.error is AppError.AuthenticationFailure)
+        val error = exception.error
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
     }
 
     @Test
-    fun payInvoiceThrowsPaymentRejectedOnInsufficientBalance() = runTest {
+    fun payInvoiceThrowsBlinkErrorOnInsufficientBalance() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(
                 content = """{
@@ -270,11 +277,8 @@ class BlinkApiClientTest {
         }
 
         val error = exception.error
-        assertTrue(error is AppError.PaymentRejected)
-        // Error is translated to user-friendly message
-        assertTrue(
-            (error as AppError.PaymentRejected).message?.contains("Insufficient balance") == true
-        )
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.InsufficientBalance, (error as AppError.BlinkError).type)
     }
 
     @Test
@@ -310,7 +314,7 @@ class BlinkApiClientTest {
     }
 
     @Test
-    fun payInvoiceThrowsAuthenticationFailureOnPermissionDenied() = runTest {
+    fun payInvoiceThrowsBlinkErrorOnPermissionDenied() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(
                 content = """{
@@ -330,11 +334,8 @@ class BlinkApiClientTest {
         }
 
         val error = exception.error
-        // Permission errors are treated as authentication failures
-        assertTrue(error is AppError.AuthenticationFailure)
-        assertTrue(
-            (error as AppError.AuthenticationFailure).message?.contains("permission") == true
-        )
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.PermissionDenied, (error as AppError.BlinkError).type)
     }
 
     @Test

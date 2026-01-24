@@ -1,6 +1,22 @@
 package xyz.lilsus.papp.domain.model
 
 /**
+ * Blink-specific error types that can be translated to localized messages.
+ */
+enum class BlinkErrorType {
+    PermissionDenied,
+    InsufficientBalance,
+    RouteNotFound,
+    InvoiceExpired,
+    SelfPayment,
+    InvalidInvoice,
+    AmountTooSmall,
+    LimitExceeded,
+    RateLimited,
+    InvalidApiKey
+}
+
+/**
  * Represents user-visible error types emitted by the domain layer.
  *
  * Keep the variants high-level and UI-friendly; data-layer details should be
@@ -54,6 +70,11 @@ sealed class AppError {
      * Any other unexpected error. The optional [message] can be used for logging.
      */
     data class Unexpected(val message: String? = null) : AppError()
+
+    /**
+     * Blink wallet specific error with a localizable type.
+     */
+    data class BlinkError(val type: BlinkErrorType) : AppError()
 }
 
 /**

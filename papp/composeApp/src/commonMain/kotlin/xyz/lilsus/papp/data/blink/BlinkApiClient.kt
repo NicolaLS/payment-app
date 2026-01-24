@@ -19,6 +19,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
+import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.isDebugBuild
 
 /**
@@ -116,60 +117,35 @@ class BlinkApiClient(
         return when {
             translation != null -> when (translation) {
                 BlinkErrorTranslation.PermissionDenied ->
-                    AppError.AuthenticationFailure(
-                        "Your API key doesn't have permission to send payments. " +
-                            "Create a new key with all permissions enabled at: " +
-                            "https://dashboard.blink.sv/api-keys"
-                    )
+                    AppError.BlinkError(BlinkErrorType.PermissionDenied)
 
                 BlinkErrorTranslation.InsufficientBalance ->
-                    AppError.PaymentRejected(
-                        message = "Insufficient balance in your Blink wallet."
-                    )
+                    AppError.BlinkError(BlinkErrorType.InsufficientBalance)
 
                 BlinkErrorTranslation.RouteNotFound ->
-                    AppError.PaymentRejected(
-                        message = "Could not find a route to complete this payment. " +
-                            "The recipient may be offline or unreachable."
-                    )
+                    AppError.BlinkError(BlinkErrorType.RouteNotFound)
 
                 BlinkErrorTranslation.InvoiceExpired ->
-                    AppError.PaymentRejected(
-                        message = "This invoice has expired. Please request a new one."
-                    )
+                    AppError.BlinkError(BlinkErrorType.InvoiceExpired)
 
                 BlinkErrorTranslation.SelfPayment ->
-                    AppError.PaymentRejected(
-                        message = "You cannot pay an invoice from your own wallet."
-                    )
+                    AppError.BlinkError(BlinkErrorType.SelfPayment)
 
                 BlinkErrorTranslation.InvalidInvoice ->
-                    AppError.PaymentRejected(
-                        message = "This invoice appears to be invalid or corrupted."
-                    )
+                    AppError.BlinkError(BlinkErrorType.InvalidInvoice)
 
                 BlinkErrorTranslation.AmountTooSmall ->
-                    AppError.PaymentRejected(
-                        message = "The payment amount is too small to process."
-                    )
+                    AppError.BlinkError(BlinkErrorType.AmountTooSmall)
 
                 BlinkErrorTranslation.LimitExceeded ->
-                    AppError.PaymentRejected(
-                        message = "This payment exceeds your account limits. " +
-                            "Check your limits at: https://dashboard.blink.sv"
-                    )
+                    AppError.BlinkError(BlinkErrorType.LimitExceeded)
 
                 BlinkErrorTranslation.RateLimited ->
-                    AppError.PaymentRejected(
-                        message = "Too many requests. Please wait a moment and try again."
-                    )
+                    AppError.BlinkError(BlinkErrorType.RateLimited)
             }
 
             isAuthError ->
-                AppError.AuthenticationFailure(
-                    "Invalid or revoked API key. " +
-                        "Create a new key at: https://dashboard.blink.sv/api-keys"
-                )
+                AppError.BlinkError(BlinkErrorType.InvalidApiKey)
 
             else ->
                 AppError.PaymentRejected(code = code, message = message)
@@ -413,9 +389,7 @@ class BlinkApiClient(
             "ALREADY_PAID" -> BlinkPaymentResult.AlreadyPaid(feesPaidMsats = feePaidMsats)
 
             "FAILURE" -> throw AppErrorException(
-                AppError.PaymentRejected(
-                    message = "Payment could not be completed. Please try again."
-                )
+                AppError.PaymentRejected()
             )
 
             else -> throw AppErrorException(AppError.Unexpected("Unknown status: $status"))
@@ -464,18 +438,13 @@ class BlinkApiClient(
 
         if (status == HttpStatusCode.Unauthorized) {
             throw AppErrorException(
-                AppError.AuthenticationFailure(
-                    "Invalid or revoked API key. " +
-                        "Create a new key at: https://dashboard.blink.sv/api-keys"
-                )
+                AppError.BlinkError(BlinkErrorType.InvalidApiKey)
             )
         }
 
         if (status == HttpStatusCode.TooManyRequests) {
             throw AppErrorException(
-                AppError.PaymentRejected(
-                    message = "Too many requests. Please wait a moment and try again."
-                )
+                AppError.BlinkError(BlinkErrorType.RateLimited)
             )
         }
 

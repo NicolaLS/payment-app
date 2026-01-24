@@ -27,6 +27,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
+import xyz.lilsus.papp.domain.model.BlinkErrorType
 
 /**
  * Tests for BlinkPaymentRepository.
@@ -160,7 +161,7 @@ class BlinkPaymentRepositoryTest {
     }
 
     @Test
-    fun payInvoiceThrowsAuthenticationFailureOn401() = runTest {
+    fun payInvoiceThrowsBlinkErrorOn401() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(
                 content = "Unauthorized",
@@ -173,7 +174,9 @@ class BlinkPaymentRepositoryTest {
             context.repository.payInvoice("lnbc1test")
         }
 
-        assertTrue(exception.error is AppError.AuthenticationFailure)
+        val error = exception.error
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
     }
 
     @Test
@@ -194,7 +197,7 @@ class BlinkPaymentRepositoryTest {
     }
 
     @Test
-    fun payInvoiceThrowsPaymentRejectedOnFailureStatus() = runTest {
+    fun payInvoiceThrowsBlinkErrorOnInsufficientBalance() = runTest {
         val context = createTestContext(
             responseBody = """{
                 "data": {
@@ -214,8 +217,8 @@ class BlinkPaymentRepositoryTest {
         }
 
         val error = exception.error
-        assertTrue(error is AppError.PaymentRejected)
-        assertEquals("INSUFFICIENT_BALANCE", (error as AppError.PaymentRejected).code)
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.InsufficientBalance, (error as AppError.BlinkError).type)
     }
 
     private fun createTestContext(responseBody: String): TestContext {

@@ -118,7 +118,7 @@
     <string name="result_error_title">Error</string>
     <!-- Blink wallet strings -->
     <string name="add_blink_wallet_title">Add Blink Wallet</string>
-    <string name="add_blink_wallet_description">Connect your Blink wallet using an API key. You can create one at blink.sv.</string>
+    <string name="add_blink_wallet_description">Connect your Blink wallet using an API key. You can create one at dashboard.blink.sv.</string>
     <string name="add_blink_wallet_alias_label">Wallet name</string>
     <string name="add_blink_wallet_alias_placeholder">My Blink Wallet</string>
     <string name="add_blink_wallet_api_key_label">API Key</string>
@@ -126,6 +126,17 @@
     <string name="add_blink_wallet_connect">Connect</string>
     <string name="error_authentication_failure">Authentication failed. Check your API key.</string>
     <string name="error_authentication_failure_message">Authentication failed: %1$s</string>
+    <!-- Blink-specific error messages -->
+    <string name="error_blink_permission_denied">Your API key doesn\'t have permission to send payments. Create a new key with all permissions enabled.</string>
+    <string name="error_blink_insufficient_balance">Insufficient balance in your Blink wallet.</string>
+    <string name="error_blink_route_not_found">Could not find a route to complete this payment. The recipient may be offline or unreachable.</string>
+    <string name="error_blink_invoice_expired">This invoice has expired. Please request a new one.</string>
+    <string name="error_blink_self_payment">You cannot pay an invoice from your own wallet.</string>
+    <string name="error_blink_invalid_invoice">This invoice appears to be invalid or corrupted.</string>
+    <string name="error_blink_amount_too_small">The payment amount is too small to process.</string>
+    <string name="error_blink_limit_exceeded">This payment exceeds your account limits.</string>
+    <string name="error_blink_rate_limited">Too many requests. Please wait a moment and try again.</string>
+    <string name="error_blink_invalid_api_key">Invalid or revoked API key. Create a new key to continue.</string>
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>
     <string name="add_wallet_choose_type">Choose wallet type</string>

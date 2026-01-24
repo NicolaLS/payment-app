@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -86,12 +87,14 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
                             shape
                         )
                         .padding(horizontal = 20.dp, vertical = 16.dp)
-                        .fillMaxWidth(0.9f)
+                        .fillMaxWidth(0.9f),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = errorMessageFor(result.error),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
                 }
             }

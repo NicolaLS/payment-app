@@ -5,6 +5,16 @@ import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.error_authentication_failure
 import papp.composeapp.generated.resources.error_authentication_failure_message
+import papp.composeapp.generated.resources.error_blink_amount_too_small
+import papp.composeapp.generated.resources.error_blink_insufficient_balance
+import papp.composeapp.generated.resources.error_blink_invalid_api_key
+import papp.composeapp.generated.resources.error_blink_invalid_invoice
+import papp.composeapp.generated.resources.error_blink_invoice_expired
+import papp.composeapp.generated.resources.error_blink_limit_exceeded
+import papp.composeapp.generated.resources.error_blink_permission_denied
+import papp.composeapp.generated.resources.error_blink_rate_limited
+import papp.composeapp.generated.resources.error_blink_route_not_found
+import papp.composeapp.generated.resources.error_blink_self_payment
 import papp.composeapp.generated.resources.error_invalid_wallet_uri
 import papp.composeapp.generated.resources.error_missing_wallet_connection
 import papp.composeapp.generated.resources.error_network_unavailable
@@ -18,6 +28,7 @@ import papp.composeapp.generated.resources.error_timeout
 import papp.composeapp.generated.resources.error_unexpected_generic
 import papp.composeapp.generated.resources.error_unexpected_with_details
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.BlinkErrorType
 
 /**
  * Resolves a human-readable message for the provided [AppError] using localized string resources.
@@ -67,8 +78,7 @@ fun errorMessageFor(error: AppError): String = when (error) {
     }
 
     is AppError.InsufficientPermissions -> {
-        // The message contains the full user-friendly explanation
-        error.message ?: stringResource(Res.string.error_authentication_failure)
+        stringResource(Res.string.error_blink_permission_denied)
     }
 
     is AppError.InvalidWalletUri -> stringResource(
@@ -82,5 +92,28 @@ fun errorMessageFor(error: AppError): String = when (error) {
         } else {
             stringResource(Res.string.error_unexpected_generic)
         }
+    }
+
+    is AppError.BlinkError -> when (error.type) {
+        BlinkErrorType.PermissionDenied ->
+            stringResource(Res.string.error_blink_permission_denied)
+        BlinkErrorType.InsufficientBalance ->
+            stringResource(Res.string.error_blink_insufficient_balance)
+        BlinkErrorType.RouteNotFound ->
+            stringResource(Res.string.error_blink_route_not_found)
+        BlinkErrorType.InvoiceExpired ->
+            stringResource(Res.string.error_blink_invoice_expired)
+        BlinkErrorType.SelfPayment ->
+            stringResource(Res.string.error_blink_self_payment)
+        BlinkErrorType.InvalidInvoice ->
+            stringResource(Res.string.error_blink_invalid_invoice)
+        BlinkErrorType.AmountTooSmall ->
+            stringResource(Res.string.error_blink_amount_too_small)
+        BlinkErrorType.LimitExceeded ->
+            stringResource(Res.string.error_blink_limit_exceeded)
+        BlinkErrorType.RateLimited ->
+            stringResource(Res.string.error_blink_rate_limited)
+        BlinkErrorType.InvalidApiKey ->
+            stringResource(Res.string.error_blink_invalid_api_key)
     }
 }

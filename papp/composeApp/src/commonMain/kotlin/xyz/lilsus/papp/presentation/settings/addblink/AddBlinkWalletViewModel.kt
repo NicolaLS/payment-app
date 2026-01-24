@@ -18,6 +18,7 @@ import xyz.lilsus.papp.data.blink.BlinkApiClient
 import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
+import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
@@ -74,11 +75,7 @@ class AddBlinkWalletViewModel internal constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            error = AppError.InsufficientPermissions(
-                                "This API key does not have permission to send payments. " +
-                                    "Please create a new API key and make sure to check all " +
-                                    "permission checkboxes (especially \"Write\")."
-                            )
+                            error = AppError.BlinkError(BlinkErrorType.PermissionDenied)
                         )
                     }
                     return@launch

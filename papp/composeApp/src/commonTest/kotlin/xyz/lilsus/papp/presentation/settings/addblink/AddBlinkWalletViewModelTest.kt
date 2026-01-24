@@ -21,6 +21,7 @@ import xyz.lilsus.papp.data.blink.BlinkApiClient
 import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.BlinkErrorType
 
 /**
  * Tests for AddBlinkWalletViewModel.
@@ -170,19 +171,21 @@ class AddBlinkWalletViewModelTest {
     }
 
     @Test
-    fun submitWithReadOnlyApiKeyShowsInsufficientPermissionsError() = kotlinx.coroutines.test.runTest {
+    fun submitWithReadOnlyApiKeyShowsPermissionDeniedError() = kotlinx.coroutines.runBlocking {
         val context = createTestContext(authorizationResponse = READ_ONLY_AUTH_RESPONSE)
 
         context.viewModel.updateAlias("My Wallet")
         context.viewModel.updateApiKey("read_only_key")
         context.viewModel.submit()
 
-        // Wait for async operation to complete
-        kotlinx.coroutines.delay(100)
+        // Wait for async operation to complete (real time delay needed since ViewModel uses Dispatchers.Default)
+        kotlinx.coroutines.delay(200)
 
         val state = context.viewModel.uiState.value
         assertNotNull(state.error)
-        assertTrue(state.error is AppError.InsufficientPermissions)
+        val error = state.error
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.PermissionDenied, (error as AppError.BlinkError).type)
         assertFalse(state.isSaving)
 
         context.viewModel.clear()

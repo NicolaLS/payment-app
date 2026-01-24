@@ -18,6 +18,21 @@
     <string name="error_timeout">La billetera no respondió. Inténtalo de nuevo.</string>
     <string name="error_unexpected_generic">Algo salió mal.</string>
     <string name="error_unexpected_with_details">Algo salió mal: %1$s</string>
+    <string name="error_payment_unconfirmed">Estado de pago desconocido. Es posible que el pago haya sido exitoso.</string>
+    <string name="error_payment_unconfirmed_message">Estado de pago desconocido: %1$s</string>
+    <string name="error_authentication_failure">Autenticación fallida. Verifica tu clave API.</string>
+    <string name="error_authentication_failure_message">Autenticación fallida: %1$s</string>
+    <!-- Mensajes de error específicos de Blink -->
+    <string name="error_blink_permission_denied">Tu clave API no tiene permiso para enviar pagos. Crea una nueva clave con todos los permisos habilitados.</string>
+    <string name="error_blink_insufficient_balance">Saldo insuficiente en tu billetera Blink.</string>
+    <string name="error_blink_route_not_found">No se encontró una ruta para completar este pago. El destinatario puede estar desconectado o inalcanzable.</string>
+    <string name="error_blink_invoice_expired">Esta factura ha expirado. Solicita una nueva.</string>
+    <string name="error_blink_self_payment">No puedes pagar una factura desde tu propia billetera.</string>
+    <string name="error_blink_invalid_invoice">Esta factura parece ser inválida o estar corrupta.</string>
+    <string name="error_blink_amount_too_small">El monto del pago es demasiado pequeño para procesar.</string>
+    <string name="error_blink_limit_exceeded">Este pago excede los límites de tu cuenta.</string>
+    <string name="error_blink_rate_limited">Demasiadas solicitudes. Espera un momento e intenta de nuevo.</string>
+    <string name="error_blink_invalid_api_key">Clave API inválida o revocada. Crea una nueva clave para continuar.</string>
     <string name="settings_manage_wallets">Gestionar billeteras</string>
     <string name="settings_manage_wallets_subtitle">Sin conexión</string>
     <string name="settings_payments">Pagos</string>
@@ -115,4 +130,15 @@
     <string name="result_paid_fee">Comisión: %1$s</string>
     <string name="result_paid_fee_blink_hint">Blink podría reembolsar parcialmente esta comisión.</string>
     <string name="result_error_title">Error</string>
+    <!-- Cadenas de billetera Blink -->
+    <string name="add_blink_wallet_title">Añadir billetera Blink</string>
+    <string name="add_blink_wallet_description">Conecta tu billetera Blink usando una clave API. Puedes crear una en dashboard.blink.sv.</string>
+    <string name="add_blink_wallet_alias_label">Nombre de la billetera</string>
+    <string name="add_blink_wallet_alias_placeholder">Mi billetera Blink</string>
+    <string name="add_blink_wallet_api_key_label">Clave API</string>
+    <string name="add_blink_wallet_api_key_placeholder">blink_...</string>
+    <string name="add_blink_wallet_connect">Conectar</string>
+    <string name="wallet_type_nwc">NWC</string>
+    <string name="wallet_type_blink">Blink</string>
+    <string name="add_wallet_choose_type">Elegir tipo de billetera</string>
 </resources>
