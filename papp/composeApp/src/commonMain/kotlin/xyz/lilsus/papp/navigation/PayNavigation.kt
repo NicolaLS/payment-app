@@ -1,5 +1,8 @@
 package xyz.lilsus.papp.navigation
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,19 +11,21 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import kotlin.math.absoluteValue
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import xyz.lilsus.papp.navigation.DonationNavigation.events
 import xyz.lilsus.papp.presentation.main.MainEvent
@@ -35,9 +40,8 @@ import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
 @Serializable
 object Pay
 
-private const val PREVIEW_ZOOM_DRAG_FRACTION = 0.33f
-private const val PREVIEW_ZOOM_BASE_SPEED = 1.1f
-private const val PREVIEW_ZOOM_ACCELERATION = 1.6f
+/** Fraction of screen height needed to drag for full zoom range. */
+private const val ZOOM_DRAG_RANGE = 0.4f
 
 fun NavGraphBuilder.paymentScreen(
     onNavigateToSettings: () -> Unit = {},
@@ -59,20 +63,39 @@ private fun MainScreenEntry(
     val viewModel = rememberMainViewModel()
     val cameraPermission = rememberCameraPermissionState()
     val scannerController = rememberQrScannerController()
+    val scope = rememberCoroutineScope()
+
     var hasRequestedPermission by remember { mutableStateOf(false) }
     var scannerStarted by remember { mutableStateOf(false) }
     var previewVisible by remember { mutableStateOf(false) }
-    var zoomFraction by remember { mutableFloatStateOf(0f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
-    var accumulatedDrag by remember { mutableFloatStateOf(0f) }
-    var dragStartZoom by remember { mutableFloatStateOf(0f) }
+
+    // Use Animatable for smooth zoom with snap-back animation
+    val zoomFraction = remember { Animatable(0f) }
+
+    // Track drag start position for absolute distance calculation
+    var dragStartPosition by remember { mutableStateOf(Offset.Zero) }
 
     fun hidePreview() {
         if (previewVisible) {
             previewVisible = false
-            zoomFraction = 0f
+            scope.launch {
+                zoomFraction.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+            }
             scannerController.setZoom(0f)
         }
+    }
+
+    // Sync zoom changes to camera controller
+    LaunchedEffect(Unit) {
+        snapshotFlow { zoomFraction.value }
+            .collect { zoom -> scannerController.setZoom(zoom) }
     }
 
     DisposableEffect(viewModel, scannerController) {
@@ -141,13 +164,12 @@ private fun MainScreenEntry(
         .pointerInput(cameraPermission.hasPermission) {
             if (!cameraPermission.hasPermission) return@pointerInput
             detectDragGesturesAfterLongPress(
-                onDragStart = {
+                onDragStart = { startPosition ->
                     startScannerIfNeeded()
                     previewVisible = true
-                    accumulatedDrag = 0f
-                    dragStartZoom = zoomFraction
+                    dragStartPosition = startPosition
+                    scope.launch { zoomFraction.snapTo(0f) }
                     scannerController.resume()
-                    scannerController.setZoom(zoomFraction)
                 },
                 onDragCancel = {
                     hidePreview()
@@ -155,20 +177,21 @@ private fun MainScreenEntry(
                 onDragEnd = {
                     hidePreview()
                 },
-                onDrag = { _, dragAmount ->
-                    val height =
-                        containerSize.height.takeIf { it > 0 }
-                            ?: return@detectDragGesturesAfterLongPress
-                    accumulatedDrag = (accumulatedDrag + dragAmount.y)
-                    val normalized = (
-                        accumulatedDrag / (height * PREVIEW_ZOOM_DRAG_FRACTION)
-                        ).coerceIn(-1f, 1f)
-                    val curve = normalized * (
-                        PREVIEW_ZOOM_BASE_SPEED +
-                            PREVIEW_ZOOM_ACCELERATION * normalized.absoluteValue
-                        )
-                    zoomFraction = (dragStartZoom + curve).coerceIn(0f, 1f)
-                    scannerController.setZoom(zoomFraction)
+                onDrag = { change, _ ->
+                    val height = containerSize.height.toFloat()
+                        .takeIf { it > 0f }
+                        ?: return@detectDragGesturesAfterLongPress
+
+                    // Calculate drag distance from start position (absolute, not accumulated)
+                    val dragDistance = change.position.y - dragStartPosition.y
+
+                    // Linear mapping: drag 40% of screen height = full zoom range
+                    // The logarithmic zoom scaling in the camera controller handles
+                    // perceptual uniformity, so we keep the gesture linear.
+                    val newZoom = (dragDistance / (height * ZOOM_DRAG_RANGE))
+                        .coerceIn(0f, 1f)
+
+                    scope.launch { zoomFraction.snapTo(newZoom) }
                 }
             )
         }

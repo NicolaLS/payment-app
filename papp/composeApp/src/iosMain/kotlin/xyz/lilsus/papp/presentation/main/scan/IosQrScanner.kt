@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import androidx.compose.ui.viewinterop.UIKitView
+import kotlin.math.pow
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCObjectVar
@@ -209,10 +210,12 @@ private class IosQrScannerController : QrScannerController {
                         ) as? NSNumber
                         )?.doubleValue
                         ?: 4.0
-                val target = (minZoom + (maxZoom - minZoom) * clamped).coerceIn(minZoom, maxZoom)
+                // Use logarithmic scaling for perceptually uniform zoom.
+                // This makes equal gesture distances feel like equal zoom changes.
+                val target = minZoom * (maxZoom / minZoom).pow(clamped.toDouble())
                 val errorPtr = alloc<ObjCObjectVar<NSError?>>()
                 if (device.lockForConfiguration(errorPtr.ptr)) {
-                    device.videoZoomFactor = target
+                    device.videoZoomFactor = target.coerceIn(minZoom, maxZoom)
                     device.unlockForConfiguration()
                 }
             }

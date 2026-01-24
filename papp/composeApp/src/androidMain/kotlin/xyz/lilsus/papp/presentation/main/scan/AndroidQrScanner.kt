@@ -37,6 +37,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
+import kotlin.math.pow
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -195,7 +196,13 @@ private class AndroidQrScannerController(
     override fun setZoom(zoomFraction: Float) {
         val target = camera ?: return
         val clamped = zoomFraction.coerceIn(0f, 1f)
-        target.cameraControl.setLinearZoom(clamped)
+        val zoomState = target.cameraInfo.zoomState.value ?: return
+        val minZoom = zoomState.minZoomRatio
+        val maxZoom = zoomState.maxZoomRatio
+        // Use logarithmic scaling for perceptually uniform zoom.
+        // This makes equal gesture distances feel like equal zoom changes.
+        val zoomRatio = (minZoom * (maxZoom / minZoom).toDouble().pow(clamped.toDouble())).toFloat()
+        target.cameraControl.setZoomRatio(zoomRatio.coerceIn(minZoom, maxZoom))
     }
 
     private fun bindCamera() {
