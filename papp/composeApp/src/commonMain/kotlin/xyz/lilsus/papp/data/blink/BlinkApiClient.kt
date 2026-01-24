@@ -32,6 +32,163 @@ class BlinkApiClient(
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     /**
+     * Translates Blink API errors into user-friendly messages.
+     * Returns a translated message or null if no specific translation applies.
+     */
+    private fun translateBlinkError(code: String?, message: String?): BlinkErrorTranslation? {
+        val combinedText = listOfNotNull(code, message)
+            .joinToString(" ")
+            .lowercase()
+
+        return when {
+            // Permission/Authorization errors - API key missing write permissions
+            combinedText.contains("authorizationerror") ||
+                combinedText.contains("not authorized to execute mutations") ||
+                combinedText.contains("not authorized") && combinedText.contains("mutation") ->
+                BlinkErrorTranslation.PermissionDenied
+
+            // Insufficient balance
+            combinedText.contains("insufficient") && combinedText.contains("balance") ||
+                combinedText.contains("insufficientbalance") ||
+                combinedText.contains("not enough") && combinedText.contains("balance") ->
+                BlinkErrorTranslation.InsufficientBalance
+
+            // Route not found (Lightning Network routing failure)
+            combinedText.contains("route") && combinedText.contains("not found") ||
+                combinedText.contains("no_route") ||
+                combinedText.contains("routenotfound") ||
+                combinedText.contains("unable to find") && combinedText.contains("path") ->
+                BlinkErrorTranslation.RouteNotFound
+
+            // Invoice expired
+            combinedText.contains("invoice") && combinedText.contains("expired") ||
+                combinedText.contains("payment request") && combinedText.contains("expired") ||
+                combinedText.contains("expir") && combinedText.contains("invoice") ->
+                BlinkErrorTranslation.InvoiceExpired
+
+            // Self-payment (trying to pay your own invoice)
+            combinedText.contains("self") && combinedText.contains("payment") ||
+                combinedText.contains("selfpayment") ||
+                combinedText.contains("same wallet") ||
+                combinedText.contains("pay yourself") ->
+                BlinkErrorTranslation.SelfPayment
+
+            // Invalid invoice format
+            combinedText.contains("invalid") && combinedText.contains("invoice") ||
+                combinedText.contains("invalid") && combinedText.contains("payment request") ||
+                combinedText.contains("decode") && combinedText.contains("fail") ||
+                combinedText.contains("malformed") ->
+                BlinkErrorTranslation.InvalidInvoice
+
+            // Amount too small
+            combinedText.contains("amount") && combinedText.contains("too small") ||
+                combinedText.contains("below") && combinedText.contains("minimum") ||
+                combinedText.contains("dust") ->
+                BlinkErrorTranslation.AmountTooSmall
+
+            // Amount too large / limit exceeded
+            combinedText.contains("amount") && combinedText.contains("too large") ||
+                combinedText.contains("exceeds") && combinedText.contains("limit") ||
+                combinedText.contains("limit") && combinedText.contains("exceeded") ||
+                combinedText.contains("withdrawal limit") ->
+                BlinkErrorTranslation.LimitExceeded
+
+            // Rate limiting
+            combinedText.contains("rate") && combinedText.contains("limit") ||
+                combinedText.contains("too many requests") ||
+                combinedText.contains("throttl") ->
+                BlinkErrorTranslation.RateLimited
+
+            else -> null
+        }
+    }
+
+    /**
+     * Returns a user-friendly error for known Blink error patterns.
+     */
+    private fun createUserFriendlyError(
+        code: String?,
+        message: String?,
+        isAuthError: Boolean = false
+    ): AppError {
+        val translation = translateBlinkError(code, message)
+
+        return when {
+            translation != null -> when (translation) {
+                BlinkErrorTranslation.PermissionDenied ->
+                    AppError.AuthenticationFailure(
+                        "Your API key doesn't have permission to send payments. " +
+                            "Create a new key with all permissions enabled at: " +
+                            "https://dashboard.blink.sv/api-keys"
+                    )
+
+                BlinkErrorTranslation.InsufficientBalance ->
+                    AppError.PaymentRejected(
+                        message = "Insufficient balance in your Blink wallet."
+                    )
+
+                BlinkErrorTranslation.RouteNotFound ->
+                    AppError.PaymentRejected(
+                        message = "Could not find a route to complete this payment. " +
+                            "The recipient may be offline or unreachable."
+                    )
+
+                BlinkErrorTranslation.InvoiceExpired ->
+                    AppError.PaymentRejected(
+                        message = "This invoice has expired. Please request a new one."
+                    )
+
+                BlinkErrorTranslation.SelfPayment ->
+                    AppError.PaymentRejected(
+                        message = "You cannot pay an invoice from your own wallet."
+                    )
+
+                BlinkErrorTranslation.InvalidInvoice ->
+                    AppError.PaymentRejected(
+                        message = "This invoice appears to be invalid or corrupted."
+                    )
+
+                BlinkErrorTranslation.AmountTooSmall ->
+                    AppError.PaymentRejected(
+                        message = "The payment amount is too small to process."
+                    )
+
+                BlinkErrorTranslation.LimitExceeded ->
+                    AppError.PaymentRejected(
+                        message = "This payment exceeds your account limits. " +
+                            "Check your limits at: https://dashboard.blink.sv"
+                    )
+
+                BlinkErrorTranslation.RateLimited ->
+                    AppError.PaymentRejected(
+                        message = "Too many requests. Please wait a moment and try again."
+                    )
+            }
+
+            isAuthError ->
+                AppError.AuthenticationFailure(
+                    "Invalid or revoked API key. " +
+                        "Create a new key at: https://dashboard.blink.sv/api-keys"
+                )
+
+            else ->
+                AppError.PaymentRejected(code = code, message = message)
+        }
+    }
+
+    private enum class BlinkErrorTranslation {
+        PermissionDenied,
+        InsufficientBalance,
+        RouteNotFound,
+        InvoiceExpired,
+        SelfPayment,
+        InvalidInvoice,
+        AmountTooSmall,
+        LimitExceeded,
+        RateLimited
+    }
+
+    /**
      * Fetches the user's default Blink wallet id using the provided API key.
      *
      * Blink requires `walletId` for payment mutations; this allows the app to use the user's
@@ -200,7 +357,7 @@ class BlinkApiClient(
                 val firstError = errors[0].jsonObject
                 val message = firstError["message"]?.jsonPrimitive?.content
                 val code = firstError["code"]?.jsonPrimitive?.content
-                throw AppErrorException(AppError.PaymentRejected(code = code, message = message))
+                throw AppErrorException(createUserFriendlyError(code, message))
             }
         }
 
@@ -219,7 +376,9 @@ class BlinkApiClient(
             "ALREADY_PAID" -> BlinkPaymentResult.AlreadyPaid(feesPaidMsats = feePaidMsats)
 
             "FAILURE" -> throw AppErrorException(
-                AppError.PaymentRejected(message = "Payment failed")
+                AppError.PaymentRejected(
+                    message = "Payment could not be completed. Please try again."
+                )
             )
 
             else -> throw AppErrorException(AppError.Unexpected("Unknown status: $status"))
@@ -267,7 +426,20 @@ class BlinkApiClient(
         logHttpResponse(logLabel = logLabel, status = status, body = responseBody)
 
         if (status == HttpStatusCode.Unauthorized) {
-            throw AppErrorException(AppError.AuthenticationFailure("Invalid or revoked API key"))
+            throw AppErrorException(
+                AppError.AuthenticationFailure(
+                    "Invalid or revoked API key. " +
+                        "Create a new key at: https://dashboard.blink.sv/api-keys"
+                )
+            )
+        }
+
+        if (status == HttpStatusCode.TooManyRequests) {
+            throw AppErrorException(
+                AppError.PaymentRejected(
+                    message = "Too many requests. Please wait a moment and try again."
+                )
+            )
         }
 
         val jsonResponse = runCatching {
@@ -298,10 +470,8 @@ class BlinkApiClient(
             val extensions = firstError["extensions"]?.jsonObject
             val code = extensions?.get("code")?.jsonPrimitive?.content
 
-            if (code == "UNAUTHENTICATED" || code == "FORBIDDEN") {
-                throw AppErrorException(AppError.AuthenticationFailure(message))
-            }
-            throw AppErrorException(AppError.PaymentRejected(code = code, message = message))
+            val isAuthError = code == "UNAUTHENTICATED" || code == "FORBIDDEN"
+            throw AppErrorException(createUserFriendlyError(code, message, isAuthError))
         }
     }
 

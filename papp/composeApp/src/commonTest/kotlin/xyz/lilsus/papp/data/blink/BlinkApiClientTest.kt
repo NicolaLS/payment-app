@@ -184,7 +184,7 @@ class BlinkApiClientTest {
     }
 
     @Test
-    fun payInvoiceThrowsPaymentRejectedOnOperationError() = runTest {
+    fun payInvoiceThrowsPaymentRejectedOnInsufficientBalance() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(
                 content = """{
@@ -210,8 +210,70 @@ class BlinkApiClientTest {
 
         val error = exception.error
         assertTrue(error is AppError.PaymentRejected)
-        assertEquals("INSUFFICIENT_BALANCE", (error as AppError.PaymentRejected).code)
-        assertEquals("Insufficient balance", error.message)
+        // Error is translated to user-friendly message
+        assertTrue(
+            (error as AppError.PaymentRejected).message?.contains("Insufficient balance") == true
+        )
+    }
+
+    @Test
+    fun payInvoiceThrowsPaymentRejectedOnUnknownOperationError() = runTest {
+        val mockEngine = MockEngine { _ ->
+            respond(
+                content = """{
+                    "data": {
+                        "lnInvoicePaymentSend": {
+                            "status": "FAILURE",
+                            "errors": [{
+                                "message": "Some unknown error",
+                                "code": "UNKNOWN_CODE"
+                            }]
+                        }
+                    }
+                }""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+        val client = createClient(mockEngine)
+
+        val exception = assertFailsWith<AppErrorException> {
+            client.payInvoice("test-api-key", "wallet-123", "lnbc1test")
+        }
+
+        val error = exception.error
+        assertTrue(error is AppError.PaymentRejected)
+        // Unknown errors preserve the original code and message
+        assertEquals("UNKNOWN_CODE", (error as AppError.PaymentRejected).code)
+        assertEquals("Some unknown error", error.message)
+    }
+
+    @Test
+    fun payInvoiceThrowsAuthenticationFailureOnPermissionDenied() = runTest {
+        val mockEngine = MockEngine { _ ->
+            respond(
+                content = """{
+                    "errors": [{
+                        "message": "not authorized to execute mutations",
+                        "extensions": { "code": "AuthorizationError" }
+                    }]
+                }""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+        val client = createClient(mockEngine)
+
+        val exception = assertFailsWith<AppErrorException> {
+            client.payInvoice("test-api-key", "wallet-123", "lnbc1test")
+        }
+
+        val error = exception.error
+        // Permission errors are treated as authentication failures
+        assertTrue(error is AppError.AuthenticationFailure)
+        assertTrue(
+            (error as AppError.AuthenticationFailure).message?.contains("permission") == true
+        )
     }
 
     @Test

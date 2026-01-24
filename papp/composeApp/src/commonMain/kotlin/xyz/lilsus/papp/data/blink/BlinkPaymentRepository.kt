@@ -65,7 +65,11 @@ class BlinkPaymentRepository(
             ?: throw AppErrorException(AppError.MissingWalletConnection)
 
         val apiKey = credentialStore.getApiKey(walletId)
-            ?: throw AppErrorException(AppError.AuthenticationFailure("API key not found"))
+            ?: throw AppErrorException(
+                AppError.AuthenticationFailure(
+                    "API key not found. Please reconnect your Blink wallet."
+                )
+            )
 
         val blinkWalletId = apiClient.fetchDefaultWalletId(apiKey)
 
