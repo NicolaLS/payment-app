@@ -1,4 +1,27 @@
 #######################################################################
+# secp256k1-kmp JNI (Elliptic Curve Cryptography)
+# Loader is the only entry point needing protection - R8 traces the rest
+#######################################################################
+
+-keep,allowoptimization class fr.acinq.secp256k1.jni.NativeSecp256k1AndroidLoader {
+    public static fr.acinq.secp256k1.Secp256k1 load();
+}
+
+#######################################################################
+# libsodium / kotlin-multiplatform-libsodium (uses JNA, not JNI)
+# JNA uses reflection to map interface methods to native functions
+# nostr-kmp uses: sha256, random, chacha20-ietf, memcmp
+#######################################################################
+
+-keep class com.ionspin.kotlin.crypto.JnaLibsodiumInterface { *; }
+-keep class com.ionspin.kotlin.crypto.Hash256State { *; }
+
+# JNA core classes - accessed via JNI reflection internally
+-keep class com.sun.jna.* { *; }
+-keep class com.sun.jna.ptr.* { *; }
+-dontwarn com.sun.jna.**
+
+#######################################################################
 # Strip ALL Android Log calls everywhere (app + all deps)
 #######################################################################
 -assumenosideeffects class android.util.Log {
