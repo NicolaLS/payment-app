@@ -40,12 +40,12 @@ import papp.composeapp.generated.resources.onboarding_add_wallet_blink_step4_pre
 import papp.composeapp.generated.resources.onboarding_add_wallet_blink_step4_suffix
 import papp.composeapp.generated.resources.onboarding_add_wallet_blink_title
 import papp.composeapp.generated.resources.onboarding_add_wallet_button
-import papp.composeapp.generated.resources.onboarding_add_wallet_skip
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_intro
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step1
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step2
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step3
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_title
+import papp.composeapp.generated.resources.onboarding_add_wallet_skip
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold

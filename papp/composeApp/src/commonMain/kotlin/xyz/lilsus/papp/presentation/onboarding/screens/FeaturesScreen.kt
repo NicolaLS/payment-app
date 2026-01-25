@@ -54,9 +54,9 @@ import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
 data class FeaturePageContent(val title: String, val subtitle: String, val body: String)
 
 // Auto-rotation timing
-private const val INITIAL_DELAY_MS = 1800L  // Quick first transition to hint it's a carousel
-private const val AUTO_ADVANCE_INTERVAL_MS = 5500L  // Comfortable reading time for subsequent pages
-private const val PAGE_ANIMATION_MS = 600  // Smooth page transition
+private const val INITIAL_DELAY_MS = 1800L // Quick first transition to hint it's a carousel
+private const val AUTO_ADVANCE_INTERVAL_MS = 5500L // Comfortable reading time for subsequent pages
+private const val PAGE_ANIMATION_MS = 600 // Smooth page transition
 
 @Composable
 fun FeaturesScreen(
@@ -99,7 +99,7 @@ fun FeaturesScreen(
 
     // Auto-rotation effect
     LaunchedEffect(pagerState, userHasInteracted) {
-        if (userHasInteracted) return@LaunchedEffect  // Stop auto-rotation after user interaction
+        if (userHasInteracted) return@LaunchedEffect // Stop auto-rotation after user interaction
 
         // Initial delay before first auto-advance (shorter to hint it's a carousel)
         delay(INITIAL_DELAY_MS)
@@ -233,11 +233,7 @@ private fun FeatureCard(content: FeaturePageContent, modifier: Modifier = Modifi
 }
 
 @Composable
-private fun PageIndicator(
-    pagerState: PagerState,
-    pageCount: Int,
-    modifier: Modifier = Modifier
-) {
+private fun PageIndicator(pagerState: PagerState, pageCount: Int, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),

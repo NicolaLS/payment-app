@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Transparent
+import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -26,22 +27,34 @@ fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): 
 class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs: List<ArcSpec>) {
     private val colorAnim = Animatable(Transparent)
     private val clusterScaleAnim = Animatable(1f)
+    private val clusterShakeAnim = Animatable(0f)
+    private val rotationAnim = Animatable(0f)
+    private val boltScaleAnim = Animatable(0f)
     private val squareScaleAnims = List(squares.size) { Animatable(1f) }
     private val squareOffsetAnims =
         List(squares.size) { Animatable(Offset(0f, 0f), Offset.VectorConverter) }
     private val arcOffsetAnims =
         List(arcs.size) { Animatable(Offset(0f, 0f), Offset.VectorConverter) }
+    private val bitOpacityAnims = List(4) { Animatable(1f) }
 
     val color: Color
         get() = colorAnim.value
     val clusterScale: Float
         get() = clusterScaleAnim.value
+    val clusterShakeX: Float
+        get() = clusterShakeAnim.value
+    val rotation: Float
+        get() = rotationAnim.value
+    val boltScale: Float
+        get() = boltScaleAnim.value
     val squareScales: List<Float>
         get() = squareScaleAnims.map { it.value }
     val squareOffsets: List<Offset>
         get() = squareOffsetAnims.map { it.value }
     val arcOffsets: List<Offset>
         get() = arcOffsetAnims.map { it.value }
+    val bitOpacities: List<Float>
+        get() = bitOpacityAnims.map { it.value }
 
     suspend fun animateState(uiState: MainUiState, targetColor: Color) {
         coroutineScope {
@@ -61,7 +74,9 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
 
                 MainUiState.Loading -> animateToLoading()
 
-                is MainUiState.Success, is MainUiState.Error -> animateToResult()
+                is MainUiState.Success -> animateToResult(isSuccess = true)
+
+                is MainUiState.Error -> animateToResult(isSuccess = false)
             }
         }
     }
@@ -69,39 +84,83 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
     private suspend fun animateToActive() {
         coroutineScope {
             launch { reset() }
-            launch { animateScalesToInfinite() }
+            launch { animateScanningRotation() }
+            launch { animateScanningSequence() }
+            launch { animateDataBits() }
         }
     }
 
     private suspend fun animateToCompressed() {
         coroutineScope {
+            launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
             launch { clenchShrink() }
             launch { compressSquareOffsets() }
             launch { compressArcOffsets() }
+            launch { stopDataBits() }
         }
     }
 
     private suspend fun animateToLoading() {
         coroutineScope {
+            launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
             launch { clenchShrink() }
             launch { compressSquareOffsets() }
             launch { compressAndIndicateLoadingArcs() }
+            launch { stopDataBits() }
         }
     }
 
-    private suspend fun animateToResult() = coroutineScope {
-        compressArcOffsets()
-        reset(pop = true)
+    private suspend fun animateToResult(isSuccess: Boolean) = coroutineScope {
+        launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
+        launch { stopDataBits() }
+
+        if (isSuccess) {
+            launch {
+                delay(150)
+                boltScaleAnim.snapTo(0f)
+                // Elastic pop
+                boltScaleAnim.animateTo(1.2f, tween(250, easing = EaseInOutCubic))
+                boltScaleAnim.animateTo(1f, tween(150, easing = EaseInOutCubic))
+            }
+            compressArcOffsets()
+            reset(pop = true)
+        } else {
+            // Error: Shake it!
+            launch {
+                clusterShakeAnim.animateTo(
+                    targetValue = 0f,
+                    animationSpec = keyframes {
+                        durationMillis = 500
+                        0f at 0
+                        -10f at 50
+                        10f at 100
+                        -10f at 150
+                        10f at 200
+                        -5f at 250
+                        5f at 300
+                        0f at 500
+                    }
+                )
+            }
+            compressArcOffsets()
+            reset(pop = true, isError = true)
+        }
     }
 
-    private suspend fun reset(pop: Boolean = false) = coroutineScope {
+    private suspend fun reset(pop: Boolean = false, isError: Boolean = false) = coroutineScope {
         squareScaleAnims.forEach { launch { it.stop() } }
+        rotationAnim.snapTo(0f)
+
+        if (!pop) {
+            boltScaleAnim.snapTo(0f)
+            clusterShakeAnim.snapTo(0f)
+        }
 
         val popDuration = 250
         val settleDuration = 250
         val totalDuration = popDuration + settleDuration
 
-        // Animate scale - no overshoot for pop
+        // Animate scale
         launch {
             clusterScaleAnim.animateTo(
                 1f,
@@ -109,17 +168,22 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
             )
         }
 
-        // Animate square scales - no overshoot for pop
+        // Animate square scales
         squareScaleAnims.forEach {
             launch {
+                // If success pop, hide squares (bolt shows).
+                // If error pop, keep squares visible (they shake).
+                // If reset (active), show squares.
+                val targetScale = if (pop && !isError) 0f else 1f
+                val duration = if (pop) 200 else 500
                 it.animateTo(
-                    1f,
-                    tween(if (pop) totalDuration else 500)
+                    targetScale,
+                    tween(duration, easing = if (pop) EaseInOutCubic else LinearOutSlowInEasing)
                 )
             }
         }
 
-        // Animate square offsets - no overshoot for pop
+        // Animate square offsets
         squareOffsetAnims.forEach {
             launch {
                 it.animateTo(
@@ -129,14 +193,14 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
             }
         }
 
-        // Animate arc offsets - keep overshoot for pop
+        // Animate arc offsets
         arcOffsetAnims.forEachIndexed { index, anim ->
             launch {
                 if (pop) {
                     val spec = arcs[index]
                     val poppedOffset = Offset(
-                        stepTowardCenter(spec.x, spec.cornerLength, -0.1f),
-                        stepTowardCenter(spec.y, spec.cornerLength, -0.1f)
+                        stepTowardCenter(spec.x, spec.cornerLength, -0.15f),
+                        stepTowardCenter(spec.y, spec.cornerLength, -0.15f)
                     )
                     anim.animateTo(
                         poppedOffset,
@@ -154,27 +218,79 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
     private suspend fun clenchShrink() {
         clusterScaleAnim.animateTo(
             0.9f,
-            animationSpec = tween(durationMillis = 500, easing = EaseInOutCubic)
+            animationSpec = tween(durationMillis = 300, easing = EaseInOutCubic)
         )
     }
 
-    private suspend fun animateScalesToInfinite() = coroutineScope {
+    private suspend fun animateScanningRotation() {
+        rotationAnim.snapTo(0f)
+        rotationAnim.animateTo(
+            targetValue = 10f,
+            animationSpec = infiniteRepeatable(
+                animation = keyframes {
+                    durationMillis = 4000
+                    0f at 0 using EaseInOutCubic
+                    10f at 1000 using EaseInOutCubic
+                    0f at 2000 using EaseInOutCubic
+                    -10f at 3000 using EaseInOutCubic
+                    0f at 4000 using EaseInOutCubic
+                },
+                repeatMode = RepeatMode.Restart
+            )
+        )
+    }
+
+    private suspend fun animateScanningSequence() = coroutineScope {
+        val cycleDuration = 1000
+        val pulseDuration = 300
+
         squareScaleAnims.forEachIndexed { index, anim ->
             launch {
-                delay(index * 200L)
+                val startDelay = index * 100
+
                 anim.animateTo(
-                    targetValue = 1.2f,
+                    targetValue = 1f,
                     animationSpec = infiniteRepeatable(
                         animation = keyframes {
-                            durationMillis = 2000
-                            1f at 0 using LinearOutSlowInEasing
-                            1.1f at 1000 using EaseInOutCubic
-                            1f at 2000 using EaseInOutCubic
+                            durationMillis = cycleDuration
+                            1f at 0
+                            1f at startDelay
+                            1.15f at startDelay + (pulseDuration / 2) using EaseInOutCubic
+                            1f at startDelay + pulseDuration using EaseInOutCubic
+                            1f at cycleDuration
+                        },
+                        repeatMode = RepeatMode.Restart
+                    )
+                )
+            }
+        }
+    }
+
+    private suspend fun animateDataBits() = coroutineScope {
+        bitOpacityAnims.forEach { anim ->
+            launch {
+                // Random-looking flicker
+                anim.animateTo(
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = keyframes {
+                            durationMillis = 500 + (Random.nextLong(500)).toInt()
+                            1f at 0
+                            0.3f at (durationMillis * 0.2).toInt()
+                            1f at (durationMillis * 0.4).toInt()
+                            0.6f at (durationMillis * 0.7).toInt()
+                            1f at durationMillis
                         },
                         repeatMode = RepeatMode.Reverse
                     )
                 )
             }
+        }
+    }
+
+    private suspend fun stopDataBits() {
+        bitOpacityAnims.forEach {
+            it.snapTo(1f)
         }
     }
 

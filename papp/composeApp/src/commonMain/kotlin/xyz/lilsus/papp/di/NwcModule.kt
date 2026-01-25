@@ -19,10 +19,10 @@ import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.OnboardingRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
-import xyz.lilsus.papp.data.settings.createOnboardingSettings
 import xyz.lilsus.papp.data.settings.ThemePreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.data.settings.createLanguageRepository
+import xyz.lilsus.papp.data.settings.createOnboardingSettings
 import xyz.lilsus.papp.data.settings.createSecureSettings
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser

@@ -17,9 +17,7 @@ private const val KEY_COMPLETED_ONBOARDING = "onboarding.completed"
  */
 expect fun createOnboardingSettings(): Settings
 
-class OnboardingRepositoryImpl(
-    private val settings: Settings
-) : OnboardingRepository {
+class OnboardingRepositoryImpl(private val settings: Settings) : OnboardingRepository {
 
     private val _completedOnboarding = MutableStateFlow(
         settings.getBoolean(KEY_COMPLETED_ONBOARDING, false)
