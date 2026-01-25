@@ -142,4 +142,67 @@
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>
     <string name="add_wallet_choose_type">Elegir tipo de billetera</string>
+    <!-- Onboarding strings -->
+    <string name="onboarding_welcome_title">Bienvenido a Lasr</string>
+    <string name="onboarding_welcome_subtitle_line1">por Bitcoin Coast</string>
+    <string name="onboarding_welcome_subtitle_line2">La forma más rápida de recibir pagos con la billetera que ya usas.</string>
+    <string name="onboarding_welcome_get_started">Empezar</string>
+
+    <string name="onboarding_wallet_choice_question">¿Qué billetera vas a conectar?</string>
+    <string name="onboarding_wallet_choice_blink_title">Blink</string>
+    <string name="onboarding_wallet_choice_blink_description">Conéctate usando una clave API de tu cuenta Blink.</string>
+    <string name="onboarding_wallet_choice_nwc_title">Billetera NWC</string>
+    <string name="onboarding_wallet_choice_nwc_description">Cualquier billetera compatible con Nostr Wallet Connect (AlbyHub, Coinos, Primal, etc.)</string>
+    <string name="onboarding_wallet_choice_no_wallet">Todavía no tengo una billetera</string>
+
+    <string name="onboarding_no_wallet_title">Necesitarás una billetera</string>
+    <string name="onboarding_no_wallet_body">Lasr se conecta a tu billetera Lightning existente – no guarda fondos por sí misma.\n\nPuedes descargar la billetera Blink para empezar fácilmente, o usar cualquier billetera compatible con NWC como AlbyHub, Coinos, o clientes Nostr como Damus o Primal.</string>
+    <string name="onboarding_no_wallet_button">Ya tengo una billetera</string>
+    <string name="onboarding_no_wallet_start_again">Empezar de nuevo</string>
+
+    <string name="onboarding_features_page1_title">Escáner silencioso, resultados rápidos</string>
+    <string name="onboarding_features_page1_subtitle">Está funcionando – aunque no veas la cámara.</string>
+    <string name="onboarding_features_page1_body">Lasr escanea en segundo plano para un pago fluido. Apunta al código, espera un momento y listo.</string>
+
+    <string name="onboarding_features_page2_title">Auto Pay, tus reglas</string>
+    <string name="onboarding_features_page2_subtitle">Paga montos pequeños al instante – sin toques adicionales.</string>
+    <string name="onboarding_features_page2_body">Establece un límite con el que te sientas cómodo. Para cualquier monto superior, Lasr preguntará antes de pagar.</string>
+
+    <string name="onboarding_features_page3_title">Tu billetera sigue siendo tu billetera</string>
+    <string name="onboarding_features_page3_subtitle">Lasr es solo el atajo para pagar.</string>
+    <string name="onboarding_features_page3_body">Conecta la billetera que ya usas. Lasr se enfoca en pagos rápidos en persona – todo lo demás permanece en tu billetera.</string>
+
+    <string name="onboarding_features_continue">Continuar</string>
+
+    <string name="onboarding_autopay_title">Configuración de Auto Pay</string>
+    <string name="onboarding_autopay_body">Elige cuándo Lasr debe pedir confirmación antes de pagar.</string>
+    <string name="onboarding_autopay_always">Siempre pedir confirmación</string>
+    <string name="onboarding_autopay_threshold">Auto-pagar bajo un límite</string>
+    <string name="onboarding_autopay_threshold_label">Auto-pagar hasta %1$s sats</string>
+    <string name="onboarding_autopay_hint">Puedes cambiar esto en cualquier momento en Ajustes.</string>
+    <string name="onboarding_autopay_continue">Continuar</string>
+
+    <string name="onboarding_agreement_title">Antes de comenzar</string>
+    <string name="onboarding_agreement_body">Usar Lasr es bajo tu propio riesgo. Esta app se conecta a tu propia billetera Lightning – eres totalmente responsable de los fondos en tu billetera y de cualquier pago realizado.\n\nRecomendamos encarecidamente conectar billeteras con saldos pequeños o usar conexiones NWC con presupuestos limitados.</string>
+    <string name="onboarding_agreement_checkbox">Entiendo que el uso de esta app es bajo mi propio riesgo</string>
+    <string name="onboarding_agreement_continue">Continuar</string>
+
+    <string name="onboarding_add_wallet_button">Conectar billetera</string>
+    <string name="onboarding_add_wallet_skip">Omitir - usar billetera existente</string>
+
+    <string name="onboarding_add_wallet_blink_title">Conecta tu billetera Blink</string>
+    <string name="onboarding_add_wallet_blink_intro">Te conectarás usando una clave API del panel de Blink.</string>
+    <string name="onboarding_add_wallet_blink_step1_prefix">Ve a </string>
+    <string name="onboarding_add_wallet_blink_step1_suffix"> e inicia sesión con las mismas credenciales que usas en la app Blink.</string>
+    <string name="onboarding_add_wallet_blink_step2">Navega a Configuración y luego a Claves API.</string>
+    <string name="onboarding_add_wallet_blink_step3">Toca + para crear una nueva clave con todos los permisos habilitados.</string>
+    <string name="onboarding_add_wallet_blink_step4_prefix">Copia la clave que comienza con </string>
+    <string name="onboarding_add_wallet_blink_step4_suffix"> y vuelve aquí para pegarla.</string>
+    <string name="onboarding_add_wallet_blink_link" translatable="false">https://dashboard.blink.sv</string>
+
+    <string name="onboarding_add_wallet_nwc_title">Conectar vía NWC</string>
+    <string name="onboarding_add_wallet_nwc_intro">Crearás una conexión en tu billetera y traerás la cadena de conexión a Lasr.</string>
+    <string name="onboarding_add_wallet_nwc_step1">En tu billetera, crea una nueva conexión NWC para Lasr.</string>
+    <string name="onboarding_add_wallet_nwc_step2">Establece un presupuesto razonable y habilita los permisos de pago.</string>
+    <string name="onboarding_add_wallet_nwc_step3">Escanea el código QR o pega la cadena de conexión en la siguiente pantalla.</string>
 </resources>

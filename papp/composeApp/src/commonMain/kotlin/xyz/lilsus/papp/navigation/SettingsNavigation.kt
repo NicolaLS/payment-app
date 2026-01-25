@@ -178,6 +178,19 @@ fun NavController.navigateToSettingsAddBlinkWallet() {
     }
 }
 
+// Public navigation functions for access from outside settings (e.g., onboarding)
+fun NavController.navigateToAddWallet() {
+    navigate(route = SettingsAddWallet) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToAddBlinkWallet() {
+    navigate(route = SettingsAddBlinkWallet) {
+        launchSingleTop = true
+    }
+}
+
 @Composable
 private fun WalletSettingsEntry(navController: NavController) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
@@ -481,7 +494,17 @@ private fun AddBlinkWalletEntry(navController: NavController) {
         viewModel.events.collect { event ->
             when (event) {
                 is AddBlinkWalletEvent.Success -> {
-                    navController.popBackStack(SettingsManageWallets, inclusive = false)
+                    // Try to pop to settings manage wallets
+                    val popped = navController.popBackStack(
+                        route = SettingsManageWallets,
+                        inclusive = false
+                    )
+                    if (!popped) {
+                        // Coming from onboarding - navigate to Pay
+                        navController.navigate(Pay) {
+                            popUpTo(Onboarding) { inclusive = true }
+                        }
+                    }
                 }
 
                 AddBlinkWalletEvent.Cancelled -> {

@@ -17,7 +17,9 @@ import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
 import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
 import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
+import xyz.lilsus.papp.data.settings.OnboardingRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
+import xyz.lilsus.papp.data.settings.createOnboardingSettings
 import xyz.lilsus.papp.data.settings.ThemePreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.data.settings.createLanguageRepository
@@ -30,6 +32,7 @@ import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.LanguageRepository
 import xyz.lilsus.papp.domain.repository.LnurlRepository
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
+import xyz.lilsus.papp.domain.repository.OnboardingRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 import xyz.lilsus.papp.domain.repository.ThemePreferencesRepository
@@ -45,6 +48,7 @@ import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveOnboardingRequiredUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
@@ -74,6 +78,7 @@ import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.PendingPaymentTracker
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
+import xyz.lilsus.papp.presentation.onboarding.OnboardingViewModel
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
@@ -93,6 +98,9 @@ val nwcModule = module {
             dispatcher = get(),
             scope = get()
         )
+    }
+    single<OnboardingRepository> {
+        OnboardingRepositoryImpl(settings = createOnboardingSettings())
     }
     single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
     single<CurrencyPreferencesRepository> { CurrencyPreferencesRepositoryImpl(get()) }
@@ -166,6 +174,7 @@ val nwcModule = module {
     factory { ObserveThemePreferenceUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
     factory { GetWalletsUseCase(repository = get()) }
+    factory { ObserveOnboardingRequiredUseCase(onboardingRepository = get()) }
     factory { DiscoverWalletUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }
@@ -287,6 +296,14 @@ val nwcModule = module {
             discoverWallet = get(),
             setWalletConnection = get(),
             getWallets = get()
+        )
+    }
+
+    factory {
+        OnboardingViewModel(
+            persistConfirmationMode = get(),
+            persistConfirmationThreshold = get(),
+            dispatcher = get()
         )
     }
 }

@@ -143,4 +143,67 @@
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>
     <string name="add_wallet_choose_type">Wallet-Typ auswählen</string>
+    <!-- Onboarding strings -->
+    <string name="onboarding_welcome_title">Willkommen bei Lasr</string>
+    <string name="onboarding_welcome_subtitle_line1">von Bitcoin Coast</string>
+    <string name="onboarding_welcome_subtitle_line2">Der schnellste Weg, Zahlungen mit deiner vorhandenen Wallet zu empfangen.</string>
+    <string name="onboarding_welcome_get_started">Los geht's</string>
+
+    <string name="onboarding_wallet_choice_question">Welche Wallet möchtest du verbinden?</string>
+    <string name="onboarding_wallet_choice_blink_title">Blink</string>
+    <string name="onboarding_wallet_choice_blink_description">Verbinde dich mit einem API-Schlüssel aus deinem Blink-Konto.</string>
+    <string name="onboarding_wallet_choice_nwc_title">NWC Wallet</string>
+    <string name="onboarding_wallet_choice_nwc_description">Jede Wallet mit Nostr Wallet Connect (AlbyHub, Coinos, Primal, etc.)</string>
+    <string name="onboarding_wallet_choice_no_wallet">Ich habe noch keine Wallet</string>
+
+    <string name="onboarding_no_wallet_title">Du brauchst eine Wallet</string>
+    <string name="onboarding_no_wallet_body">Lasr verbindet sich mit deiner vorhandenen Lightning-Wallet – es speichert selbst keine Gelder.\n\nDu kannst die Blink-Wallet für einen einfachen Einstieg herunterladen oder jede Wallet nutzen, die NWC unterstützt, wie AlbyHub, Coinos oder Nostr-Clients wie Damus oder Primal.</string>
+    <string name="onboarding_no_wallet_button">Ich habe jetzt eine Wallet</string>
+    <string name="onboarding_no_wallet_start_again">Nochmal von vorne</string>
+
+    <string name="onboarding_features_page1_title">Leiser Scanner, schnelle Ergebnisse</string>
+    <string name="onboarding_features_page1_subtitle">Es funktioniert – auch wenn du die Kamera nicht siehst.</string>
+    <string name="onboarding_features_page1_body">Lasr scannt im Hintergrund für einen reibungslosen Checkout. Richte auf den Code, warte kurz, fertig.</string>
+
+    <string name="onboarding_features_page2_title">Auto Pay, deine Regeln</string>
+    <string name="onboarding_features_page2_subtitle">Kleine Beträge sofort bezahlen – ohne zusätzliche Taps.</string>
+    <string name="onboarding_features_page2_body">Lege ein Limit fest, mit dem du dich wohl fühlst. Für alles darüber fragt Lasr vor der Zahlung nach.</string>
+
+    <string name="onboarding_features_page3_title">Deine Wallet bleibt deine Wallet</string>
+    <string name="onboarding_features_page3_subtitle">Lasr ist nur die Checkout-Abkürzung.</string>
+    <string name="onboarding_features_page3_body">Verbinde die Wallet, die du bereits nutzt. Lasr konzentriert sich auf schnelle Zahlungen vor Ort – alles andere bleibt in deiner Wallet.</string>
+
+    <string name="onboarding_features_continue">Weiter</string>
+
+    <string name="onboarding_autopay_title">Auto Pay Einstellungen</string>
+    <string name="onboarding_autopay_body">Wähle aus, wann Lasr vor einer Zahlung um Bestätigung bitten soll.</string>
+    <string name="onboarding_autopay_always">Immer bestätigen</string>
+    <string name="onboarding_autopay_threshold">Auto-Pay unter einem Schwellenwert</string>
+    <string name="onboarding_autopay_threshold_label">Auto-Pay bis %1$s Sats</string>
+    <string name="onboarding_autopay_hint">Du kannst dies jederzeit in den Einstellungen ändern.</string>
+    <string name="onboarding_autopay_continue">Weiter</string>
+
+    <string name="onboarding_agreement_title">Bevor du beginnst</string>
+    <string name="onboarding_agreement_body">Die Nutzung von Lasr erfolgt auf eigenes Risiko. Diese App verbindet sich mit deiner eigenen Lightning-Wallet – du bist vollständig verantwortlich für die Gelder in deiner Wallet und alle getätigten Zahlungen.\n\nWir empfehlen dringend, Wallets mit kleinem Guthaben zu verbinden oder NWC-Verbindungen mit begrenztem Budget zu nutzen.</string>
+    <string name="onboarding_agreement_checkbox">Ich verstehe, dass die Nutzung dieser App auf mein eigenes Risiko erfolgt</string>
+    <string name="onboarding_agreement_continue">Weiter</string>
+
+    <string name="onboarding_add_wallet_button">Wallet verbinden</string>
+    <string name="onboarding_add_wallet_skip">Überspringen - vorhandene Wallet nutzen</string>
+
+    <string name="onboarding_add_wallet_blink_title">Verbinde deine Blink-Wallet</string>
+    <string name="onboarding_add_wallet_blink_intro">Du verbindest dich über einen API-Schlüssel vom Blink-Dashboard.</string>
+    <string name="onboarding_add_wallet_blink_step1_prefix">Gehe zu </string>
+    <string name="onboarding_add_wallet_blink_step1_suffix"> und melde dich mit denselben Zugangsdaten an, die du in der Blink-App verwendest.</string>
+    <string name="onboarding_add_wallet_blink_step2">Navigiere zu Einstellungen, dann API-Schlüssel.</string>
+    <string name="onboarding_add_wallet_blink_step3">Tippe auf +, um einen neuen Schlüssel mit allen Berechtigungen zu erstellen.</string>
+    <string name="onboarding_add_wallet_blink_step4_prefix">Kopiere den Schlüssel, der mit </string>
+    <string name="onboarding_add_wallet_blink_step4_suffix"> beginnt, und komme hierher zurück, um ihn einzufügen.</string>
+    <string name="onboarding_add_wallet_blink_link" translatable="false">https://dashboard.blink.sv</string>
+
+    <string name="onboarding_add_wallet_nwc_title">Per NWC verbinden</string>
+    <string name="onboarding_add_wallet_nwc_intro">Du erstellst eine Verbindung in deiner Wallet und bringst den Verbindungs-String zurück zu Lasr.</string>
+    <string name="onboarding_add_wallet_nwc_step1">Erstelle in deiner Wallet eine neue NWC-Verbindung für Lasr.</string>
+    <string name="onboarding_add_wallet_nwc_step2">Setze ein vernünftiges Budget und aktiviere Zahlungsberechtigungen.</string>
+    <string name="onboarding_add_wallet_nwc_step3">Scanne den QR-Code oder füge den Verbindungs-String auf dem nächsten Bildschirm ein.</string>
 </resources>
