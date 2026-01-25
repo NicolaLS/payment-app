@@ -33,6 +33,7 @@
     <string name="error_blink_limit_exceeded">Este pago excede los límites de tu cuenta.</string>
     <string name="error_blink_rate_limited">Demasiadas solicitudes. Espera un momento e intenta de nuevo.</string>
     <string name="error_blink_invalid_api_key">Clave API inválida o revocada. Crea una nueva clave para continuar.</string>
+    <string name="error_blink_invalid_api_key_wallet_removed">Error de autenticación: Tu clave API es inválida o fue revocada. Tu billetera fue eliminada automáticamente para que puedas reconectarla con una nueva clave.</string>
     <string name="settings_manage_wallets">Gestionar billeteras</string>
     <string name="settings_manage_wallets_subtitle">Sin conexión</string>
     <string name="settings_payments">Pagos</string>

@@ -162,7 +162,8 @@ class BlinkApiClient(
         AmountTooSmall,
         LimitExceeded,
         RateLimited
-}
+    }
+
     /**
      * Fetches the authorization scopes for the provided API key.
      *

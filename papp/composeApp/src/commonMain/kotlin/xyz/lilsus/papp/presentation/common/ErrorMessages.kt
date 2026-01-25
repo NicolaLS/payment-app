@@ -8,6 +8,7 @@ import papp.composeapp.generated.resources.error_authentication_failure_message
 import papp.composeapp.generated.resources.error_blink_amount_too_small
 import papp.composeapp.generated.resources.error_blink_insufficient_balance
 import papp.composeapp.generated.resources.error_blink_invalid_api_key
+import papp.composeapp.generated.resources.error_blink_invalid_api_key_wallet_removed
 import papp.composeapp.generated.resources.error_blink_invalid_invoice
 import papp.composeapp.generated.resources.error_blink_invoice_expired
 import papp.composeapp.generated.resources.error_blink_limit_exceeded
@@ -97,23 +98,35 @@ fun errorMessageFor(error: AppError): String = when (error) {
     is AppError.BlinkError -> when (error.type) {
         BlinkErrorType.PermissionDenied ->
             stringResource(Res.string.error_blink_permission_denied)
+
         BlinkErrorType.InsufficientBalance ->
             stringResource(Res.string.error_blink_insufficient_balance)
+
         BlinkErrorType.RouteNotFound ->
             stringResource(Res.string.error_blink_route_not_found)
+
         BlinkErrorType.InvoiceExpired ->
             stringResource(Res.string.error_blink_invoice_expired)
+
         BlinkErrorType.SelfPayment ->
             stringResource(Res.string.error_blink_self_payment)
+
         BlinkErrorType.InvalidInvoice ->
             stringResource(Res.string.error_blink_invalid_invoice)
+
         BlinkErrorType.AmountTooSmall ->
             stringResource(Res.string.error_blink_amount_too_small)
+
         BlinkErrorType.LimitExceeded ->
             stringResource(Res.string.error_blink_limit_exceeded)
+
         BlinkErrorType.RateLimited ->
             stringResource(Res.string.error_blink_rate_limited)
+
         BlinkErrorType.InvalidApiKey ->
             stringResource(Res.string.error_blink_invalid_api_key)
+
+        BlinkErrorType.InvalidApiKeyWalletRemoved ->
+            stringResource(Res.string.error_blink_invalid_api_key_wallet_removed)
     }
 }

@@ -137,6 +137,7 @@
     <string name="error_blink_limit_exceeded">This payment exceeds your account limits.</string>
     <string name="error_blink_rate_limited">Too many requests. Please wait a moment and try again.</string>
     <string name="error_blink_invalid_api_key">Invalid or revoked API key. Create a new key to continue.</string>
+    <string name="error_blink_invalid_api_key_wallet_removed">Authentication error: Your API key is invalid or was revoked. Your wallet was removed automatically so you can reconnect it with a new key.</string>
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>
     <string name="add_wallet_choose_type">Choose wallet type</string>

@@ -191,9 +191,7 @@ class AddBlinkWalletViewModelTest {
         context.viewModel.clear()
     }
 
-    private fun createTestContext(
-        authorizationResponse: String = DEFAULT_AUTH_RESPONSE
-    ): TestContext {
+    private fun createTestContext(authorizationResponse: String = DEFAULT_AUTH_RESPONSE): TestContext {
         val settings = MapSettings()
         val walletSettingsRepository = WalletSettingsRepositoryImpl(
             settings = settings,

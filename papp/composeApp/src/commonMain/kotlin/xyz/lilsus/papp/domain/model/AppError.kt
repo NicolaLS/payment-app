@@ -13,7 +13,10 @@ enum class BlinkErrorType {
     AmountTooSmall,
     LimitExceeded,
     RateLimited,
-    InvalidApiKey
+    InvalidApiKey,
+
+    /** API key was invalid/revoked and the wallet was automatically removed. */
+    InvalidApiKeyWalletRemoved
 }
 
 /**

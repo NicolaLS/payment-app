@@ -14,6 +14,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -21,6 +22,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -28,6 +31,8 @@ import kotlinx.serialization.json.jsonPrimitive
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkErrorType
+import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
 /**
  * Tests for BlinkPaymentRepository.
@@ -221,6 +226,38 @@ class BlinkPaymentRepositoryTest {
         assertEquals(BlinkErrorType.InsufficientBalance, (error as AppError.BlinkError).type)
     }
 
+    @Test
+    fun startPayInvoiceRemovesWalletOnInvalidApiKey() = runTest {
+        val mockEngine = MockEngine { _ ->
+            respond(
+                content = "Unauthorized",
+                status = HttpStatusCode.Unauthorized
+            )
+        }
+        val context = createTestContextWithEngine(mockEngine)
+
+        // Verify wallet and API key exist before payment
+        assertTrue(context.credentialStore.hasApiKey(TEST_WALLET_ID))
+        assertTrue(context.walletSettingsRepository.removedWallets.isEmpty())
+
+        val request = context.repository.startPayInvoiceRequest("lnbc1test", null)
+
+        // Wait for the request to complete
+        while (request.state.value is xyz.lilsus.papp.domain.model.PayInvoiceRequestState.Loading) {
+            kotlinx.coroutines.delay(10)
+        }
+
+        val state = request.state.value
+        assertTrue(state is xyz.lilsus.papp.domain.model.PayInvoiceRequestState.Failure)
+        val error = (state as xyz.lilsus.papp.domain.model.PayInvoiceRequestState.Failure).error
+        assertTrue(error is AppError.BlinkError)
+        assertEquals(BlinkErrorType.InvalidApiKeyWalletRemoved, (error as AppError.BlinkError).type)
+
+        // Verify wallet and API key were removed
+        assertFalse(context.credentialStore.hasApiKey(TEST_WALLET_ID))
+        assertTrue(context.walletSettingsRepository.removedWallets.contains(TEST_WALLET_ID))
+    }
+
     private fun createTestContext(responseBody: String): TestContext {
         var callCount = 0
         val mockEngine = MockEngine { _ ->
@@ -244,21 +281,56 @@ class BlinkPaymentRepositoryTest {
         val settings = MapSettings()
         val credentialStore = BlinkCredentialStore(settings)
         val apiClient = BlinkApiClient(httpClient)
+        val walletSettingsRepository = FakeWalletSettingsRepository()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val repository = BlinkPaymentRepository(apiClient, credentialStore, scope)
+        val repository = BlinkPaymentRepository(apiClient, credentialStore, walletSettingsRepository, scope)
 
         // Set up default test wallet
         credentialStore.storeApiKey(TEST_WALLET_ID, TEST_API_KEY)
         repository.setActiveWallet(TEST_WALLET_ID)
 
-        return TestContext(repository, credentialStore, apiClient)
+        return TestContext(repository, credentialStore, apiClient, walletSettingsRepository)
     }
 
     private data class TestContext(
         val repository: BlinkPaymentRepository,
         val credentialStore: BlinkCredentialStore,
-        val apiClient: BlinkApiClient
+        val apiClient: BlinkApiClient,
+        val walletSettingsRepository: FakeWalletSettingsRepository
     )
+
+    /**
+     * Fake implementation of WalletSettingsRepository for testing.
+     */
+    private class FakeWalletSettingsRepository : WalletSettingsRepository {
+        val removedWallets = mutableListOf<String>()
+        private val walletsState = MutableStateFlow<List<WalletConnection>>(emptyList())
+        private val activeWalletState = MutableStateFlow<WalletConnection?>(null)
+
+        override val wallets: Flow<List<WalletConnection>> = walletsState
+        override val walletConnection: Flow<WalletConnection?> = activeWalletState
+
+        override suspend fun getWalletConnection(): WalletConnection? = activeWalletState.value
+        override suspend fun getWallets(): List<WalletConnection> = walletsState.value
+        override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
+            walletsState.value = walletsState.value + connection
+            if (activate) activeWalletState.value = connection
+        }
+        override suspend fun setActiveWallet(walletPublicKey: String) {
+            activeWalletState.value = walletsState.value.find { it.walletPublicKey == walletPublicKey }
+        }
+        override suspend fun removeWallet(walletPublicKey: String) {
+            removedWallets.add(walletPublicKey)
+            walletsState.value = walletsState.value.filterNot { it.walletPublicKey == walletPublicKey }
+            if (activeWalletState.value?.walletPublicKey == walletPublicKey) {
+                activeWalletState.value = walletsState.value.firstOrNull()
+            }
+        }
+        override suspend fun clearWalletConnection() {
+            walletsState.value = emptyList()
+            activeWalletState.value = null
+        }
+    }
 
     companion object {
         private const val TEST_WALLET_ID = "blink-test-wallet-123"

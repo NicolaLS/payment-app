@@ -37,9 +37,9 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
-import kotlin.math.pow
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.pow
 
 private const val TAG = "QrScanner"
 

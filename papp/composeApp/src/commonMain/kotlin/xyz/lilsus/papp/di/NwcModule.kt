@@ -138,6 +138,7 @@ val nwcModule = module {
         BlinkPaymentRepository(
             apiClient = get(),
             credentialStore = get(),
+            walletSettingsRepository = get(),
             scope = get()
         )
     }
