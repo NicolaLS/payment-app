@@ -13,7 +13,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,20 +27,27 @@ import papp.composeapp.generated.resources.onboarding_autopay_hint
 import papp.composeapp.generated.resources.onboarding_autopay_threshold
 import papp.composeapp.generated.resources.onboarding_autopay_threshold_label
 import papp.composeapp.generated.resources.onboarding_autopay_title
+import xyz.lilsus.papp.domain.format.rememberAmountFormatter
+import xyz.lilsus.papp.domain.model.DisplayAmount
+import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
+import xyz.lilsus.papp.presentation.common.ThresholdSlider
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
 
 @Composable
 fun AutoPaySettingsScreen(
     confirmationMode: PaymentConfirmationMode,
     thresholdSats: Long,
+    fiatEquivalent: String?,
     onConfirmationModeChanged: (PaymentConfirmationMode) -> Unit,
     onThresholdChanged: (Long) -> Unit,
     onContinue: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val formatter = rememberAmountFormatter()
+
     OnboardingScaffold(
         currentStep = OnboardingStep.AutoPaySettings,
         onBack = onBack
@@ -109,22 +115,31 @@ fun AutoPaySettingsScreen(
                         Column(
                             modifier = Modifier.padding(start = 48.dp)
                         ) {
-                            Text(
-                                text = stringResource(
+                            val displayAmount = DisplayAmount(
+                                thresholdSats,
+                                DisplayCurrency.Satoshi
+                            )
+                            val satsFormatted = formatter.format(displayAmount)
+                            val labelText = if (fiatEquivalent != null) {
+                                stringResource(
                                     Res.string.onboarding_autopay_threshold_label,
-                                    formatSats(thresholdSats)
-                                ),
+                                    "$satsFormatted ($fiatEquivalent)"
+                                )
+                            } else {
+                                stringResource(
+                                    Res.string.onboarding_autopay_threshold_label,
+                                    satsFormatted
+                                )
+                            }
+                            Text(
+                                text = labelText,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
 
-                            Slider(
-                                value = thresholdToSliderIndex(thresholdSats).toFloat(),
-                                onValueChange = { sliderValue ->
-                                    onThresholdChanged(THRESHOLD_STEPS[sliderValue.toInt()])
-                                },
-                                valueRange = 0f..(THRESHOLD_STEPS.size - 1).toFloat(),
-                                steps = THRESHOLD_STEPS.size - 2
+                            ThresholdSlider(
+                                thresholdSats = thresholdSats,
+                                onThresholdChanged = onThresholdChanged
                             )
                         }
                     }
@@ -147,31 +162,4 @@ fun AutoPaySettingsScreen(
             }
         }
     }
-}
-
-// Exponential-ish threshold steps for better UX
-private val THRESHOLD_STEPS = listOf(
-    500L,
-    1_000L,
-    2_000L,
-    5_000L,
-    10_000L,
-    21_000L,
-    50_000L,
-    100_000L,
-    210_000L,
-    500_000L,
-    1_000_000L
-)
-
-private fun formatSats(sats: Long): String = when {
-    sats >= 1_000_000 -> "${sats / 1_000_000}M"
-    sats >= 1_000 -> "${sats / 1_000}k"
-    else -> sats.toString()
-}
-
-private fun thresholdToSliderIndex(threshold: Long): Int {
-    // Find the closest step
-    val index = THRESHOLD_STEPS.indexOfFirst { it >= threshold }
-    return if (index < 0) THRESHOLD_STEPS.size - 1 else index
 }

@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,6 +47,7 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
+import xyz.lilsus.papp.presentation.common.ThresholdSlider
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,10 +66,11 @@ fun PaymentsSettingsScreen(
     val scrollState = rememberScrollState()
     val formatter = rememberAmountFormatter()
     val displayThreshold = DisplayAmount(state.thresholdSats, DisplayCurrency.Satoshi)
+    val fiatText = state.thresholdFiatEquivalent?.let { " (${formatter.format(it)})" } ?: ""
     val thresholdText = when (state.confirmationMode) {
         PaymentConfirmationMode.Above -> stringResource(
             Res.string.settings_payments_confirm_threshold,
-            formatter.format(displayThreshold)
+            formatter.format(displayThreshold) + fiatText
         )
 
         PaymentConfirmationMode.Always -> stringResource(Res.string.settings_payments_option_always)
@@ -145,10 +146,9 @@ fun PaymentsSettingsScreen(
                         )
                     }
                     if (state.confirmationMode == PaymentConfirmationMode.Above) {
-                        Slider(
-                            value = state.thresholdSats.toFloat(),
-                            onValueChange = { onThresholdChanged(it.toLong()) },
-                            valueRange = state.minThreshold.toFloat()..state.maxThreshold.toFloat()
+                        ThresholdSlider(
+                            thresholdSats = state.thresholdSats,
+                            onThresholdChanged = onThresholdChanged
                         )
                     } else {
                         // keep layout height consistent

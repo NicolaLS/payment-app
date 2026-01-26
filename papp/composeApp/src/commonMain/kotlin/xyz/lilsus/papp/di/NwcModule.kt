@@ -260,6 +260,8 @@ val nwcModule = module {
     factory {
         PaymentsSettingsViewModel(
             observePreferences = get(),
+            observeCurrencyPreference = get(),
+            currencyManager = get(),
             setConfirmationMode = get(),
             setConfirmationThreshold = get(),
             setConfirmManualEntryPreference = get(),
@@ -303,6 +305,8 @@ val nwcModule = module {
         OnboardingViewModel(
             persistConfirmationMode = get(),
             persistConfirmationThreshold = get(),
+            observeCurrencyPreference = get(),
+            currencyManager = get(),
             dispatcher = get()
         )
     }

@@ -49,7 +49,7 @@
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_payments_title">Zahlungen</string>
     <string name="settings_payments_confirm_label">Zahlung bestätigen</string>
-    <string name="settings_payments_confirm_threshold">Über %1$s SAT</string>
+    <string name="settings_payments_confirm_threshold">Über %1$s</string>
     <string name="settings_payments_option_always">Immer</string>
     <string name="settings_payments_option_above">Über</string>
     <string name="settings_payments_confirm_manual_entry">Manuell eingegebene Beträge bestätigen</string>
@@ -179,7 +179,7 @@
     <string name="onboarding_autopay_body">Wähle aus, wann Lasr vor einer Zahlung um Bestätigung bitten soll.</string>
     <string name="onboarding_autopay_always">Immer bestätigen</string>
     <string name="onboarding_autopay_threshold">Auto-Pay unter einem Schwellenwert</string>
-    <string name="onboarding_autopay_threshold_label">Auto-Pay bis %1$s Sats</string>
+    <string name="onboarding_autopay_threshold_label">Auto-Pay bis %1$s</string>
     <string name="onboarding_autopay_hint">Du kannst dies jederzeit in den Einstellungen ändern.</string>
     <string name="onboarding_autopay_continue">Weiter</string>
 

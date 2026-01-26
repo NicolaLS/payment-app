@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.koin.mp.KoinPlatformTools
+import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.OnboardingRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
@@ -94,10 +95,13 @@ fun NavGraphBuilder.onboardingScreen(
         composable<OnboardingAutoPay> {
             val viewModel = rememberRetainedOnboardingViewModel()
             val uiState by viewModel.uiState.collectAsState()
+            val formatter = rememberAmountFormatter()
+            val fiatEquivalent = uiState.thresholdFiatEquivalent?.let { formatter.format(it) }
 
             AutoPaySettingsScreen(
                 confirmationMode = uiState.confirmationMode,
                 thresholdSats = uiState.thresholdSats,
+                fiatEquivalent = fiatEquivalent,
                 onConfirmationModeChanged = { mode -> viewModel.setConfirmationMode(mode) },
                 onThresholdChanged = { threshold -> viewModel.setThreshold(threshold) },
                 onContinue = {
