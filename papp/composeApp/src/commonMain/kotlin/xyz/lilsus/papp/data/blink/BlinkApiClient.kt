@@ -1,6 +1,9 @@
 package xyz.lilsus.papp.data.blink
 
 import io.ktor.client.HttpClient
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -162,6 +165,59 @@ class BlinkApiClient(
         AmountTooSmall,
         LimitExceeded,
         RateLimited
+    }
+
+    /**
+     * Looks up the status of a Lightning payment by its payment hash.
+     *
+     * @param apiKey The Blink API key for authentication.
+     * @param paymentHash The hex-encoded payment hash to look up.
+     * @return [BlinkPaymentStatusResult] indicating the payment status.
+     * @throws [AppErrorException] on failure.
+     */
+    suspend fun lookupPaymentStatus(apiKey: String, paymentHash: String): BlinkPaymentStatusResult {
+        val query = """
+            query LnInvoicePaymentStatusByHash(${'$'}input: LnInvoicePaymentStatusByHashInput!) {
+                lnInvoicePaymentStatusByHash(input: ${'$'}input) {
+                    status
+                }
+            }
+        """.trimIndent()
+
+        val requestBody = buildJsonObject {
+            put("query", query)
+            put(
+                "variables",
+                buildJsonObject {
+                    put(
+                        "input",
+                        buildJsonObject {
+                            put("paymentHash", paymentHash)
+                        }
+                    )
+                }
+            )
+        }
+
+        val response = executeGraphQlRequest(
+            apiKey = apiKey,
+            requestBody = requestBody,
+            logLabel = "LnInvoicePaymentStatusByHash"
+        )
+
+        val data = response["data"]?.jsonObject
+            ?: throw AppErrorException(AppError.Unexpected("Missing data in response"))
+
+        val status = data["lnInvoicePaymentStatusByHash"]?.jsonObject
+            ?.get("status")?.jsonPrimitive?.content
+
+        return when (status) {
+            "PAID" -> BlinkPaymentStatusResult.Paid
+            "PENDING" -> BlinkPaymentStatusResult.Pending
+            "EXPIRED" -> BlinkPaymentStatusResult.Failed
+            null -> BlinkPaymentStatusResult.NotFound
+            else -> BlinkPaymentStatusResult.NotFound
+        }
     }
 
     /**
@@ -427,6 +483,12 @@ class BlinkApiClient(
                 header("X-API-KEY", apiKey)
                 setBody(json.encodeToString(JsonObject.serializer(), requestBody))
             }
+        } catch (e: HttpRequestTimeoutException) {
+            throw AppErrorException(AppError.Timeout, e)
+        } catch (e: SocketTimeoutException) {
+            throw AppErrorException(AppError.Timeout, e)
+        } catch (e: ConnectTimeoutException) {
+            throw AppErrorException(AppError.Timeout, e)
         } catch (e: Exception) {
             throw AppErrorException(AppError.NetworkUnavailable, e)
         }
@@ -510,4 +572,21 @@ sealed class BlinkPaymentResult(open val feesPaidMsats: Long?) {
     /** Invoice was already paid. */
     data class AlreadyPaid(override val feesPaidMsats: Long? = null) :
         BlinkPaymentResult(feesPaidMsats)
+}
+
+/**
+ * Result of a Blink payment status lookup.
+ */
+sealed class BlinkPaymentStatusResult {
+    /** Payment was confirmed as paid. */
+    data object Paid : BlinkPaymentStatusResult()
+
+    /** Payment is still pending. */
+    data object Pending : BlinkPaymentStatusResult()
+
+    /** Payment failed or invoice expired. */
+    data object Failed : BlinkPaymentStatusResult()
+
+    /** Payment not found (may not have been initiated yet). */
+    data object NotFound : BlinkPaymentStatusResult()
 }

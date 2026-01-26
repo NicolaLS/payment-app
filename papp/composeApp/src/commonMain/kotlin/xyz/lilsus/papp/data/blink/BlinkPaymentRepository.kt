@@ -110,6 +110,16 @@ class BlinkPaymentRepository(
             apiClient.payInvoice(apiKey, blinkWalletId, invoice)
         }
 
+        // Handle PENDING status - payment is in-flight but not yet confirmed
+        if (result is BlinkPaymentResult.Pending) {
+            throw AppErrorException(
+                AppError.PaymentUnconfirmed(
+                    paymentHash = null, // Caller has payment hash from invoice
+                    message = "Payment is being processed"
+                )
+            )
+        }
+
         return PaidInvoice(
             preimage = null, // Blink doesn't return preimage in the simple payment flow
             feesPaidMsats = result.feesPaidMsats
@@ -117,8 +127,28 @@ class BlinkPaymentRepository(
     }
 
     override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
-        // Blink API doesn't support payment lookup by hash.
-        // Return NotFound which will trigger a retry for pending payments.
-        return PaymentLookupResult.NotFound
+        val walletId = activeWalletId
+            ?: return PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
+
+        val apiKey = credentialStore.getApiKey(walletId)
+            ?: return PaymentLookupResult.LookupError(
+                AppError.AuthenticationFailure("API key not found")
+            )
+
+        return try {
+            when (apiClient.lookupPaymentStatus(apiKey, paymentHash)) {
+                BlinkPaymentStatusResult.Paid -> PaymentLookupResult.Settled(
+                    PaidInvoice(preimage = null, feesPaidMsats = null)
+                )
+
+                BlinkPaymentStatusResult.Pending -> PaymentLookupResult.Pending
+
+                BlinkPaymentStatusResult.Failed -> PaymentLookupResult.Failed
+
+                BlinkPaymentStatusResult.NotFound -> PaymentLookupResult.NotFound
+            }
+        } catch (e: AppErrorException) {
+            PaymentLookupResult.LookupError(e.error)
+        }
     }
 }
