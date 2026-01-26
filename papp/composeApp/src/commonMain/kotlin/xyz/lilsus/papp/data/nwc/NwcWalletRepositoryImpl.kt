@@ -184,16 +184,7 @@ class NwcWalletRepositoryImpl(
 
         val client = clientFactory.create(connection)
         try {
-            client.connect()
-
-            if (!client.awaitReady(timeoutMs = DEFAULT_NWC_REQUEST_TIMEOUT_MILLIS)) {
-                val state = client.state.value
-                if (state is NwcClientState.Failed) {
-                    throw state.error.toAppErrorException()
-                }
-                throw AppErrorException(AppError.NetworkUnavailable)
-            }
-
+            // NwcClient now handles connection internally via ensureConnected() inside operations
             return block(client)
         } finally {
             client.close()

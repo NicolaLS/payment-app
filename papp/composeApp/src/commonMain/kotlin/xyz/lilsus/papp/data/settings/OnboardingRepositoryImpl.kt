@@ -19,15 +19,15 @@ expect fun createOnboardingSettings(): Settings
 
 class OnboardingRepositoryImpl(private val settings: Settings) : OnboardingRepository {
 
-    private val _completedOnboarding = MutableStateFlow(
+    private val _hasCompletedOnboarding = MutableStateFlow(
         settings.getBoolean(KEY_COMPLETED_ONBOARDING, false)
     )
 
-    override val hasCompletedOnboarding: Flow<Boolean> = _completedOnboarding.asStateFlow()
+    override val hasCompletedOnboarding: Flow<Boolean> = _hasCompletedOnboarding.asStateFlow()
 
     override suspend fun markOnboardingCompleted() {
-        if (_completedOnboarding.value) return
+        if (_hasCompletedOnboarding.value) return
         settings.putBoolean(KEY_COMPLETED_ONBOARDING, true)
-        _completedOnboarding.value = true
+        _hasCompletedOnboarding.value = true
     }
 }

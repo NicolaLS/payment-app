@@ -45,57 +45,57 @@ class BlinkApiClient(
             // Permission/Authorization errors - API key missing write permissions
             combinedText.contains("authorizationerror") ||
                 combinedText.contains("not authorized to execute mutations") ||
-                combinedText.contains("not authorized") && combinedText.contains("mutation") ->
+                (combinedText.contains("not authorized") && combinedText.contains("mutation")) ->
                 BlinkErrorTranslation.PermissionDenied
 
             // Insufficient balance
-            combinedText.contains("insufficient") && combinedText.contains("balance") ||
+            (combinedText.contains("insufficient") && combinedText.contains("balance")) ||
                 combinedText.contains("insufficientbalance") ||
-                combinedText.contains("not enough") && combinedText.contains("balance") ->
+                (combinedText.contains("not enough") && combinedText.contains("balance")) ->
                 BlinkErrorTranslation.InsufficientBalance
 
             // Route not found (Lightning Network routing failure)
-            combinedText.contains("route") && combinedText.contains("not found") ||
+            (combinedText.contains("route") && combinedText.contains("not found")) ||
                 combinedText.contains("no_route") ||
                 combinedText.contains("routenotfound") ||
-                combinedText.contains("unable to find") && combinedText.contains("path") ->
+                (combinedText.contains("unable to find") && combinedText.contains("path")) ->
                 BlinkErrorTranslation.RouteNotFound
 
             // Invoice expired
-            combinedText.contains("invoice") && combinedText.contains("expired") ||
-                combinedText.contains("payment request") && combinedText.contains("expired") ||
-                combinedText.contains("expir") && combinedText.contains("invoice") ->
+            (combinedText.contains("invoice") && combinedText.contains("expired")) ||
+                (combinedText.contains("payment request") && combinedText.contains("expired")) ||
+                (combinedText.contains("expir") && combinedText.contains("invoice")) ->
                 BlinkErrorTranslation.InvoiceExpired
 
             // Self-payment (trying to pay your own invoice)
-            combinedText.contains("self") && combinedText.contains("payment") ||
+            (combinedText.contains("self") && combinedText.contains("payment")) ||
                 combinedText.contains("selfpayment") ||
                 combinedText.contains("same wallet") ||
                 combinedText.contains("pay yourself") ->
                 BlinkErrorTranslation.SelfPayment
 
             // Invalid invoice format
-            combinedText.contains("invalid") && combinedText.contains("invoice") ||
-                combinedText.contains("invalid") && combinedText.contains("payment request") ||
-                combinedText.contains("decode") && combinedText.contains("fail") ||
+            (combinedText.contains("invalid") && combinedText.contains("invoice")) ||
+                (combinedText.contains("invalid") && combinedText.contains("payment request")) ||
+                (combinedText.contains("decode") && combinedText.contains("fail")) ||
                 combinedText.contains("malformed") ->
                 BlinkErrorTranslation.InvalidInvoice
 
             // Amount too small
-            combinedText.contains("amount") && combinedText.contains("too small") ||
-                combinedText.contains("below") && combinedText.contains("minimum") ||
+            (combinedText.contains("amount") && combinedText.contains("too small")) ||
+                (combinedText.contains("below") && combinedText.contains("minimum")) ||
                 combinedText.contains("dust") ->
                 BlinkErrorTranslation.AmountTooSmall
 
             // Amount too large / limit exceeded
-            combinedText.contains("amount") && combinedText.contains("too large") ||
-                combinedText.contains("exceeds") && combinedText.contains("limit") ||
-                combinedText.contains("limit") && combinedText.contains("exceeded") ||
+            (combinedText.contains("amount") && combinedText.contains("too large")) ||
+                (combinedText.contains("exceeds") && combinedText.contains("limit")) ||
+                (combinedText.contains("limit") && combinedText.contains("exceeded")) ||
                 combinedText.contains("withdrawal limit") ->
                 BlinkErrorTranslation.LimitExceeded
 
             // Rate limiting
-            combinedText.contains("rate") && combinedText.contains("limit") ||
+            (combinedText.contains("rate") && combinedText.contains("limit")) ||
                 combinedText.contains("too many requests") ||
                 combinedText.contains("throttl") ->
                 BlinkErrorTranslation.RateLimited
