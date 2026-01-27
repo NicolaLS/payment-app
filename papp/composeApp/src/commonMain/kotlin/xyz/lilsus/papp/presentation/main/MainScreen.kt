@@ -2,12 +2,15 @@ package xyz.lilsus.papp.presentation.main
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,11 +20,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.app_name_long
 import papp.composeapp.generated.resources.point_camera_message_subtitle
+import papp.composeapp.generated.resources.tap_dismiss_pending
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.presentation.main.PendingPaymentItem
@@ -77,7 +83,10 @@ fun MainScreen(
         }
     }
 
-    val isDismissable = uiState is MainUiState.Success || uiState is MainUiState.Error
+    val isWatchingPending = uiState is MainUiState.Loading && uiState.isWatchingPending
+    val isDismissable = uiState is MainUiState.Success ||
+        uiState is MainUiState.Error ||
+        isWatchingPending
 
     Scaffold(
         modifier = modifier,
@@ -98,11 +107,27 @@ fun MainScreen(
                 uiState = uiState
             )
             Crossfade(targetState = uiState) { state ->
-                when (state) {
-                    is MainUiState.Success, is MainUiState.Error -> ResultLayout(
+                when {
+                    state is MainUiState.Success || state is MainUiState.Error -> ResultLayout(
                         modifier = Modifier.fillMaxSize(),
                         result = state
                     )
+
+                    state is MainUiState.Loading && state.isWatchingPending -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = 24.dp, start = 24.dp, end = 24.dp),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.tap_dismiss_pending),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
 
                     else -> BottomLayout(
                         title = stringResource(Res.string.app_name_long),

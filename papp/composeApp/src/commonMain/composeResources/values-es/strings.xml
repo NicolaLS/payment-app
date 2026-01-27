@@ -2,6 +2,7 @@
 <resources>
     <string name="settings_title">Ajustes</string>
     <string name="tap_continue">Toca para continuar…</string>
+    <string name="tap_dismiss_pending">Toca para cerrar. El pago continúa en segundo plano.</string>
     <string name="point_camera_message_subtitle">Apunta la cámara a una factura.</string>
     <string name="confirm_payment_title">Confirmar pago</string>
     <string name="pay_button">Pagar</string>

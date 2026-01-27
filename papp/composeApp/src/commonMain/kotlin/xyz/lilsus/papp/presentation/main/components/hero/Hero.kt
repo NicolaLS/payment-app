@@ -41,7 +41,7 @@ fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
         MainUiState.Active -> MaterialTheme.colorScheme.onSurfaceVariant
 
         is MainUiState.Detected, is MainUiState.Confirm, is MainUiState.EnterAmount,
-        MainUiState.Loading -> MaterialTheme.colorScheme.primary
+        is MainUiState.Loading -> MaterialTheme.colorScheme.primary
 
         is MainUiState.Success -> MaterialTheme.colorScheme.tertiary
 

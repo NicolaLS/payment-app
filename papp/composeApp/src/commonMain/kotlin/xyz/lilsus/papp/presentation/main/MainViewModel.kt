@@ -123,7 +123,12 @@ class MainViewModel internal constructor(
         when (event) {
             is PendingEvent.BecameVisible -> {
                 // If we're still showing loading for this payment, return to Active
-                if (_uiState.value is MainUiState.Loading) {
+                // But NOT if user is explicitly watching this pending entry
+                val currentState = _uiState.value
+                val isWatchingThis = openPendingId == event.id &&
+                    currentState is MainUiState.Loading &&
+                    currentState.isWatchingPending
+                if (currentState is MainUiState.Loading && !isWatchingThis) {
                     _uiState.value = MainUiState.Active
                 }
             }
@@ -226,7 +231,7 @@ class MainViewModel internal constructor(
             pendingPayment = null
             manualEntryContext = null
             val amountMsats = amountSats * MSATS_PER_SAT
-            _uiState.value = MainUiState.Loading
+            _uiState.value = MainUiState.Loading()
             when (val result = resolveLightningAddressUseCase(address)) {
                 is Result.Success -> {
                     val satInfo = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
@@ -300,7 +305,7 @@ class MainViewModel internal constructor(
     }
 
     private fun fetchLnurl(endpoint: String, source: LnurlSource) {
-        _uiState.value = MainUiState.Loading
+        _uiState.value = MainUiState.Loading()
         scope.launch {
             when (val result = fetchLnurlPayParams(endpoint)) {
                 is Result.Success -> handleLnurlParams(result.data, source)
@@ -311,7 +316,7 @@ class MainViewModel internal constructor(
     }
 
     private fun resolveLightningAddress(address: LightningAddress) {
-        _uiState.value = MainUiState.Loading
+        _uiState.value = MainUiState.Loading()
         scope.launch {
             when (val result = resolveLightningAddressUseCase(address)) {
                 is Result.Success -> handleLnurlParams(result.data, LnurlSource.LightningAddress)
@@ -374,7 +379,7 @@ class MainViewModel internal constructor(
     }
 
     private fun payLnurlInvoice(session: LnurlSession, amountMsats: Long, isManualEntry: Boolean) {
-        _uiState.value = MainUiState.Loading
+        _uiState.value = MainUiState.Loading()
         scope.launch {
             // Round to full satoshis - many Lightning servers only accept full sat amounts
             val roundedAmount = roundToFullSatoshis(amountMsats)
@@ -553,8 +558,9 @@ class MainViewModel internal constructor(
 
         when (record.status) {
             PendingStatus.Waiting -> {
-                // Still waiting - show loading, background verification will update us
-                _uiState.value = MainUiState.Loading
+                // Still waiting - show loading with watching mode enabled
+                // User can watch as long as they want and tap to dismiss
+                _uiState.value = MainUiState.Loading(isWatchingPending = true)
             }
 
             PendingStatus.Success -> {
@@ -674,7 +680,7 @@ class MainViewModel internal constructor(
                             // Only show Loading if not already returned to Active (pending chip visible)
                             val record = pendingTracker.get(pendingId)
                             if (record?.visible != true) {
-                                _uiState.value = MainUiState.Loading
+                                _uiState.value = MainUiState.Loading()
                             }
                         }
 
@@ -830,7 +836,13 @@ class MainViewModel internal constructor(
 
         // Make the chip visible immediately since we need user awareness
         pendingTracker.makeVisible(pendingId)
-        _uiState.value = MainUiState.Active
+
+        // Only return to Active if user is NOT explicitly watching this pending entry
+        val isWatchingThis = openPendingId == pendingId
+        if (!isWatchingThis) {
+            _uiState.value = MainUiState.Active
+        }
+        // If watching, stay in Loading(isWatchingPending=true) - user can dismiss when ready
 
         // Start background verification polling
         val paymentHash = error.paymentHash ?: summary.paymentHash

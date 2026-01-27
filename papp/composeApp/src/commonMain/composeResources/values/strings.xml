@@ -2,6 +2,7 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="tap_continue">Tap to continue…</string>
+    <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
     <string name="app_name_long" translatable="false">Lasr</string>
     <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
     <string name="confirm_payment_title">Confirm Payment</string>
