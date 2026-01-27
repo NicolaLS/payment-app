@@ -22,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
@@ -336,6 +337,162 @@ class BlinkPaymentRepositoryTest {
         private const val TEST_WALLET_ID = "blink-test-wallet-123"
         private const val TEST_API_KEY = "blink_test_api_key"
         private const val TEST_BLINK_DEFAULT_WALLET_ID = "wallet-123"
+    }
+
+    @Test
+    fun lookupPaymentUsesProvidedWalletIdInsteadOfActiveWallet() = runTest {
+        // Set up two wallets with different API keys
+        val wallet1Id = "wallet-1"
+        val wallet2Id = "wallet-2"
+        val wallet1ApiKey = "api-key-1"
+        val wallet2ApiKey = "api-key-2"
+
+        var capturedApiKey: String? = null
+        val mockEngine = MockEngine { request ->
+            val body = (request.body as TextContent).text
+            // Capture the API key from the request header
+            capturedApiKey = request.headers["X-API-KEY"]
+            respond(
+                content = """{
+                    "data": {
+                        "lnInvoicePaymentStatusByHash": {
+                            "status": "PAID"
+                        }
+                    }
+                }""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val settings = MapSettings()
+        val credentialStore = BlinkCredentialStore(settings)
+        val apiClient = BlinkApiClient(httpClient)
+        val walletSettingsRepository = FakeWalletSettingsRepository()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val repository = BlinkPaymentRepository(apiClient, credentialStore, walletSettingsRepository, scope)
+
+        // Store API keys for both wallets
+        credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)
+        credentialStore.storeApiKey(wallet2Id, wallet2ApiKey)
+
+        // Set wallet1 as active
+        repository.setActiveWallet(wallet1Id)
+
+        // Look up payment on wallet2 (not the active wallet)
+        repository.lookupPayment(
+            paymentHash = "test-payment-hash",
+            walletUri = wallet2Id, // Provide specific wallet
+            walletType = null
+        )
+
+        // Verify wallet2's API key was used, not wallet1's
+        assertEquals(wallet2ApiKey, capturedApiKey)
+    }
+
+    @Test
+    fun lookupPaymentUsesActiveWalletWhenNoWalletUriProvided() = runTest {
+        var capturedApiKey: String? = null
+        val mockEngine = MockEngine { request ->
+            capturedApiKey = request.headers["X-API-KEY"]
+            respond(
+                content = """{
+                    "data": {
+                        "lnInvoicePaymentStatusByHash": {
+                            "status": "PAID"
+                        }
+                    }
+                }""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+        val context = createTestContextWithEngine(mockEngine)
+
+        // Look up without specifying wallet - should use active wallet
+        context.repository.lookupPayment(
+            paymentHash = "test-payment-hash",
+            walletUri = null,
+            walletType = null
+        )
+
+        // Verify the active wallet's API key was used
+        assertEquals(TEST_API_KEY, capturedApiKey)
+    }
+
+    @Test
+    fun concurrentLookupsOnDifferentWalletsUsesCorrectApiKeys() = runTest {
+        // Set up two wallets with different API keys
+        val wallet1Id = "wallet-1"
+        val wallet2Id = "wallet-2"
+        val wallet1ApiKey = "api-key-1"
+        val wallet2ApiKey = "api-key-2"
+
+        val capturedApiKeys = mutableListOf<String>()
+        val mockEngine = MockEngine { request ->
+            // Capture the API key from each request
+            capturedApiKeys.add(request.headers["X-API-KEY"] ?: "missing")
+            respond(
+                content = """{
+                    "data": {
+                        "lnInvoicePaymentStatusByHash": {
+                            "status": "PAID"
+                        }
+                    }
+                }""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            )
+        }
+
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val settings = MapSettings()
+        val credentialStore = BlinkCredentialStore(settings)
+        val apiClient = BlinkApiClient(httpClient)
+        val walletSettingsRepository = FakeWalletSettingsRepository()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val repository = BlinkPaymentRepository(apiClient, credentialStore, walletSettingsRepository, scope)
+
+        // Store API keys for both wallets
+        credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)
+        credentialStore.storeApiKey(wallet2Id, wallet2ApiKey)
+
+        // Set wallet1 as active (but we'll look up on both)
+        repository.setActiveWallet(wallet1Id)
+
+        // Run two lookups concurrently on different wallets
+        val lookup1 = async {
+            repository.lookupPayment(
+                paymentHash = "hash-1",
+                walletUri = wallet1Id,
+                walletType = null
+            )
+        }
+        val lookup2 = async {
+            repository.lookupPayment(
+                paymentHash = "hash-2",
+                walletUri = wallet2Id,
+                walletType = null
+            )
+        }
+
+        // Wait for both to complete
+        lookup1.await()
+        lookup2.await()
+
+        // Verify both API keys were used (order may vary due to concurrency)
+        assertEquals(2, capturedApiKeys.size)
+        assertTrue(capturedApiKeys.contains(wallet1ApiKey))
+        assertTrue(capturedApiKeys.contains(wallet2ApiKey))
     }
 
     private fun defaultWalletResponseBody(): String = """{

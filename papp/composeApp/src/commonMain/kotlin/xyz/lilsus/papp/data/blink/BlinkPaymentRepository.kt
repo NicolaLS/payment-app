@@ -10,6 +10,7 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
@@ -126,8 +127,14 @@ class BlinkPaymentRepository(
         )
     }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
-        val walletId = activeWalletId
+    override suspend fun lookupPayment(
+        paymentHash: String,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PaymentLookupResult {
+        // Use provided wallet ID or fall back to active wallet
+        // For Blink, walletUri is the wallet's public key (ID)
+        val walletId = walletUri ?: activeWalletId
             ?: return PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
 
         val apiKey = credentialStore.getApiKey(walletId)

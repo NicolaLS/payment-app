@@ -183,17 +183,22 @@ class PendingPaymentTracker(
     ) {
         pendingVerificationJobs[id]?.cancel()
 
+        // Capture wallet context at verification start to ensure we look up on the correct wallet
+        val record = pendingRequests[id] ?: return
+        val walletUri = record.walletUri
+        val walletType = record.walletType
+
         val job = scope.launch {
             var attempt = 0
             while (attempt < MAX_VERIFICATION_ATTEMPTS) {
                 delay(VERIFICATION_INTERVAL_MS)
 
-                val record = pendingRequests[id] ?: break
-                if (record.status != PendingStatus.Waiting) break
+                val currentRecord = pendingRequests[id] ?: break
+                if (currentRecord.status != PendingStatus.Waiting) break
 
                 attempt++
 
-                when (val result = lookupPayment(paymentHash)) {
+                when (val result = lookupPayment(paymentHash, walletUri, walletType)) {
                     is PaymentLookupResult.Settled -> {
                         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
                         val feeMsats = result.invoice.feesPaidMsats ?: 0L

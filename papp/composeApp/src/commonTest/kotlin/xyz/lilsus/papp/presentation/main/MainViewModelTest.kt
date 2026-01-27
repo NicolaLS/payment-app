@@ -39,6 +39,7 @@ import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
 import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
@@ -629,7 +630,8 @@ private class RecordingNwcWalletRepository(private val result: PaidInvoice = Pai
         return ImmediatePayInvoiceRequest(result)
     }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.NotFound
+    override suspend fun lookupPayment(paymentHash: String, walletUri: String?, walletType: WalletType?): PaymentLookupResult =
+        PaymentLookupResult.NotFound
 }
 
 private class BlockingNwcWalletRepository : NwcWalletRepository {
@@ -649,7 +651,8 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
         return DeferredPayInvoiceRequest(completion)
     }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.NotFound
+    override suspend fun lookupPayment(paymentHash: String, walletUri: String?, walletType: WalletType?): PaymentLookupResult =
+        PaymentLookupResult.NotFound
 
     fun complete(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
         completeIfNeeded(result)

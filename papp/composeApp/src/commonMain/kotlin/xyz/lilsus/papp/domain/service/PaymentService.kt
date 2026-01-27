@@ -59,12 +59,19 @@ class PaymentService(
             null -> throw AppErrorException(AppError.MissingWalletConnection)
         }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult =
-        when (currentWalletType) {
-            WalletType.NWC -> nwcRepository.lookupPayment(paymentHash)
-            WalletType.BLINK -> blinkRepository.lookupPayment(paymentHash)
+    override suspend fun lookupPayment(
+        paymentHash: String,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PaymentLookupResult {
+        // Use provided wallet type for routing, or fall back to current wallet type
+        val effectiveType = walletType ?: currentWalletType
+        return when (effectiveType) {
+            WalletType.NWC -> nwcRepository.lookupPayment(paymentHash, walletUri, walletType)
+            WalletType.BLINK -> blinkRepository.lookupPayment(paymentHash, walletUri, walletType)
             null -> PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
         }
+    }
 
     private fun createMissingWalletRequest(): PayInvoiceRequest {
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(

@@ -16,6 +16,7 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
@@ -102,7 +103,11 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
+    override suspend fun lookupPayment(
+        paymentHash: String,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PaymentLookupResult {
         require(paymentHash.isNotBlank()) { "Payment hash must not be blank." }
 
         if (!networkConnectivity.isNetworkAvailable()) {
@@ -110,7 +115,7 @@ class NwcWalletRepositoryImpl(
         }
 
         return try {
-            withFreshClient { client ->
+            withFreshClient(walletUri) { client ->
                 val result = client.lookupInvoice(
                     params = LookupInvoiceParams(paymentHash = paymentHash),
                     timeoutMs = LOOKUP_TIMEOUT_MILLIS
@@ -177,10 +182,22 @@ class NwcWalletRepositoryImpl(
     /**
      * Executes [block] with a fresh NWC client connection.
      * The client is always closed after the operation completes.
+     *
+     * @param specificWalletUri If provided, uses this wallet URI instead of the current active wallet.
      */
-    private suspend fun <T> withFreshClient(block: suspend (NwcClient) -> T): T {
-        val connection = walletSettingsRepository.getWalletConnection()
-            ?: throw AppErrorException(AppError.MissingWalletConnection)
+    private suspend fun <T> withFreshClient(
+        specificWalletUri: String? = null,
+        block: suspend (NwcClient) -> T
+    ): T {
+        val connection = if (specificWalletUri != null) {
+            // Find wallet by URI
+            walletSettingsRepository.getWallets()
+                .firstOrNull { it.uri == specificWalletUri }
+                ?: throw AppErrorException(AppError.MissingWalletConnection)
+        } else {
+            walletSettingsRepository.getWalletConnection()
+                ?: throw AppErrorException(AppError.MissingWalletConnection)
+        }
 
         val client = clientFactory.create(connection)
         try {
