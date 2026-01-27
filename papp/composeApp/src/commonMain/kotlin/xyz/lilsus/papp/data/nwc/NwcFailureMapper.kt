@@ -14,7 +14,7 @@ internal fun NwcError.toAppError(): AppError = when (this) {
         message = message.takeIf { it.isNotEmpty() }
     )
 
-    is NwcError.ConnectionError -> AppError.NetworkUnavailable
+    is NwcError.ConnectionError -> AppError.RelayConnectionFailed(message)
 
     is NwcError.Timeout -> AppError.Timeout
 

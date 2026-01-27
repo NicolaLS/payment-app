@@ -273,7 +273,8 @@ class PendingPaymentTracker(
 
     private fun errorMessageFor(error: AppError): String = when (error) {
         is AppError.PaymentRejected -> error.message ?: error.code ?: "Rejected"
-        AppError.NetworkUnavailable -> "Network error"
+        AppError.NetworkUnavailable -> "No internet"
+        is AppError.RelayConnectionFailed -> "Connection failed"
         AppError.Timeout -> "Timed out"
         is AppError.PaymentUnconfirmed -> error.message ?: "Unconfirmed"
         is AppError.Unexpected -> error.message ?: "Error"

@@ -23,6 +23,7 @@ import papp.composeapp.generated.resources.error_payment_rejected_generic
 import papp.composeapp.generated.resources.error_payment_rejected_message
 import papp.composeapp.generated.resources.error_payment_unconfirmed
 import papp.composeapp.generated.resources.error_payment_unconfirmed_message
+import papp.composeapp.generated.resources.error_relay_connection_failed
 import papp.composeapp.generated.resources.error_timeout
 import papp.composeapp.generated.resources.error_unexpected_generic
 import papp.composeapp.generated.resources.error_unexpected_with_details
@@ -46,6 +47,8 @@ fun errorMessageFor(error: AppError): String = when (error) {
     }
 
     AppError.NetworkUnavailable -> stringResource(Res.string.error_network_unavailable)
+
+    is AppError.RelayConnectionFailed -> stringResource(Res.string.error_relay_connection_failed)
 
     AppError.Timeout -> stringResource(Res.string.error_timeout)
 

@@ -164,7 +164,7 @@ class NwcWalletRepositoryImpl(
                             }
 
                             is NwcError.ConnectionError -> PaymentLookupResult.LookupError(
-                                AppError.NetworkUnavailable
+                                AppError.RelayConnectionFailed(error.message)
                             )
 
                             is NwcError.Timeout -> PaymentLookupResult.LookupError(AppError.Timeout)

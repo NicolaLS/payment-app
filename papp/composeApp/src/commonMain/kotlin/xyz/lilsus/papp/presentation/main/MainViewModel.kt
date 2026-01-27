@@ -827,7 +827,7 @@ class MainViewModel internal constructor(
         }
 
         // Timeout means request was sent but no response - treat as unconfirmed
-        // (NetworkUnavailable means request wasn't sent, so that's a hard failure)
+        // (NetworkUnavailable/RelayConnectionFailed means request wasn't sent, so that's a hard failure)
         if (error is AppError.Timeout) {
             val paymentHash = summary.paymentHash
             if (paymentHash != null) {

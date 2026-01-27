@@ -37,9 +37,17 @@ sealed class AppError {
     data class PaymentRejected(val code: String? = null, val message: String? = null) : AppError()
 
     /**
-     * Networking is currently unavailable or the wallet could not be reached.
+     * Device networking is currently unavailable (no internet connection).
+     * Detected by pre-flight network check before attempting wallet operations.
      */
     data object NetworkUnavailable : AppError()
+
+    /**
+     * Network is available but connection to the wallet relay failed.
+     * This can happen due to relay being down, DNS issues, TLS errors, etc.
+     * Unlike [NetworkUnavailable], the device has internet but the relay couldn't be reached.
+     */
+    data class RelayConnectionFailed(val message: String? = null) : AppError()
 
     /**
      * The wallet did not respond within the allowed time window.
