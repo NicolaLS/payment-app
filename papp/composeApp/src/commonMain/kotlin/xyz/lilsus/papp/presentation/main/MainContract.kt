@@ -31,4 +31,15 @@ sealed interface MainIntent {
 
     /** Tap a pending payment chip - shows result if ready, does nothing if still waiting */
     data class TapPending(val id: String) : MainIntent
+
+    /** Swipe to switch to next wallet (swipe left). */
+    data object SwipeWalletNext : MainIntent
+
+    /** Swipe to switch to previous wallet (swipe right). */
+    data object SwipeWalletPrevious : MainIntent
 }
+
+/**
+ * Represents a wallet for display in the wallet indicator.
+ */
+data class WalletInfo(val pubKey: String, val displayName: String, val isActive: Boolean)

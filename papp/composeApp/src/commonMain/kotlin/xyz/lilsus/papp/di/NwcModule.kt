@@ -221,6 +221,8 @@ val nwcModule = module {
         MainViewModel(
             payInvoice = get(),
             observeWalletConnection = get(),
+            observeWallets = get(),
+            setActiveWallet = get(),
             observeCurrencyPreference = get(),
             currencyManager = get(),
             pendingTracker = get(),

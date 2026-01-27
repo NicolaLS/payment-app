@@ -30,7 +30,6 @@ import papp.composeapp.generated.resources.point_camera_message_subtitle
 import papp.composeapp.generated.resources.tap_dismiss_pending
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
-import xyz.lilsus.papp.presentation.main.PendingPaymentItem
 import xyz.lilsus.papp.presentation.main.components.BottomLayout
 import xyz.lilsus.papp.presentation.main.components.ConfirmationBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ManualAmountBottomSheet
@@ -46,6 +45,7 @@ fun MainScreen(
     onNavigateSettings: () -> Unit,
     onNavigateConnectWallet: (String) -> Unit,
     uiState: MainUiState,
+    wallets: List<WalletInfo> = emptyList(),
     pendingPayments: List<PendingPaymentItem>,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountPreset: (DisplayAmount) -> Unit = {},
@@ -132,6 +132,7 @@ fun MainScreen(
                     else -> BottomLayout(
                         title = stringResource(Res.string.app_name_long),
                         subtitle = stringResource(Res.string.point_camera_message_subtitle),
+                        wallets = wallets,
                         pendingPayments = pendingPayments,
                         onPendingTap = onPendingTap
                     )

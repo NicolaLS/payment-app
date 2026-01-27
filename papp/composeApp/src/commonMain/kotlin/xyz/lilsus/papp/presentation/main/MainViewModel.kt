@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
@@ -34,9 +35,11 @@ import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
+import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
@@ -46,6 +49,8 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
+    private val observeWallets: ObserveWalletsUseCase,
+    private val setActiveWallet: SetActiveWalletUseCase,
     private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
     private val currencyManager: CurrencyManager,
     private val pendingTracker: PendingPaymentTracker,
@@ -69,6 +74,9 @@ class MainViewModel internal constructor(
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
 
     val pendingPayments: StateFlow<List<PendingPaymentItem>> = pendingTracker.displayItems
+
+    private val _wallets = MutableStateFlow<List<WalletInfo>>(emptyList())
+    val wallets: StateFlow<List<WalletInfo>> = _wallets.asStateFlow()
 
     /** Tracks which pending item the user is currently viewing (loading or result) */
     private var openPendingId: String? = null
@@ -117,6 +125,37 @@ class MainViewModel internal constructor(
                 handlePendingEvent(event)
             }
         }
+        scope.launch {
+            combine(observeWallets(), observeWalletConnection()) { all, active ->
+                all.map { wallet ->
+                    WalletInfo(
+                        pubKey = wallet.walletPublicKey,
+                        displayName = wallet.alias?.takeIf { it.isNotBlank() }
+                            ?: abbreviateKey(wallet.walletPublicKey),
+                        isActive = wallet.walletPublicKey == active?.walletPublicKey
+                    )
+                }
+            }.collect { _wallets.value = it }
+        }
+    }
+
+    private fun abbreviateKey(key: String): String =
+        if (key.length > 8) "${key.take(4)}…${key.takeLast(4)}" else key
+
+    private fun switchToNextWallet() {
+        val current = _wallets.value
+        val activeIndex = current.indexOfFirst { it.isActive }
+        if (activeIndex < 0 || current.size <= 1) return
+        val nextIndex = (activeIndex + 1) % current.size
+        scope.launch { setActiveWallet(current[nextIndex].pubKey) }
+    }
+
+    private fun switchToPreviousWallet() {
+        val current = _wallets.value
+        val activeIndex = current.indexOfFirst { it.isActive }
+        if (activeIndex < 0 || current.size <= 1) return
+        val prevIndex = (activeIndex - 1 + current.size) % current.size
+        scope.launch { setActiveWallet(current[prevIndex].pubKey) }
     }
 
     private fun handlePendingEvent(event: PendingEvent) {
@@ -174,6 +213,8 @@ class MainViewModel internal constructor(
             MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
             is MainIntent.StartDonation -> handleDonation(intent.amountSats, intent.address)
             is MainIntent.TapPending -> handlePendingTap(intent.id)
+            MainIntent.SwipeWalletNext -> switchToNextWallet()
+            MainIntent.SwipeWalletPrevious -> switchToPreviousWallet()
         }
     }
 

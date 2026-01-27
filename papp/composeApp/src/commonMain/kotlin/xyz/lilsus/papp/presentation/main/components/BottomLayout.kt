@@ -1,17 +1,24 @@
 package xyz.lilsus.papp.presentation.main.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -33,6 +40,7 @@ import papp.composeapp.generated.resources.pending_chip_waiting
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.presentation.main.PendingPaymentItem
 import xyz.lilsus.papp.presentation.main.PendingStatus
+import xyz.lilsus.papp.presentation.main.WalletInfo
 import xyz.lilsus.papp.presentation.util.formatTimeHHmm
 
 @Composable
@@ -40,6 +48,7 @@ fun BottomLayout(
     modifier: Modifier = Modifier.fillMaxWidth(),
     title: String,
     subtitle: String? = null,
+    wallets: List<WalletInfo> = emptyList(),
     pendingPayments: List<PendingPaymentItem> = emptyList(),
     onPendingTap: (String) -> Unit = {}
 ) {
@@ -62,6 +71,10 @@ fun BottomLayout(
                 style = MaterialTheme.typography.labelMedium
             )
         }
+        if (wallets.size > 1) {
+            Spacer(modifier = Modifier.height(12.dp))
+            WalletIndicator(wallets = wallets)
+        }
         AnimatedVisibility(
             visible = pendingPayments.isNotEmpty(),
             enter = fadeIn() + slideInVertically { it },
@@ -77,6 +90,43 @@ fun BottomLayout(
                         item = pending,
                         formatter = formatter,
                         onTap = { onPendingTap(pending.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WalletIndicator(wallets: List<WalletInfo>) {
+    val active = wallets.find { it.isActive } ?: return
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        AnimatedContent(
+            targetState = active.displayName,
+            transitionSpec = { fadeIn() togetherWith fadeOut() }
+        ) { name ->
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (wallets.size > 1) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                wallets.forEach { wallet ->
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(
+                                color = if (wallet.isActive) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                },
+                                shape = CircleShape
+                            )
                     )
                 }
             }

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -42,6 +43,9 @@ object Pay
 
 /** Fraction of screen height needed to drag for full zoom range. */
 private const val ZOOM_DRAG_RANGE = 0.4f
+
+/** Horizontal swipe threshold in pixels to trigger wallet switch. */
+private const val SWIPE_THRESHOLD = 100f
 
 fun NavGraphBuilder.paymentScreen(
     onNavigateToSettings: () -> Unit = {},
@@ -152,15 +156,38 @@ private fun MainScreenEntry(
 
     val uiState by viewModel.uiState.collectAsState()
     val pendingPayments by viewModel.pendingPayments.collectAsState()
+    val wallets by viewModel.wallets.collectAsState()
     LaunchedEffect(uiState) {
         if (uiState != MainUiState.Active) {
             hidePreview()
         }
     }
 
+    // Track horizontal swipe for wallet switching
+    var swipeStartX by remember { mutableStateOf(0f) }
+
+    val canSwipeWallets = uiState == MainUiState.Active && wallets.size > 1
+
     val gestureModifier = Modifier
         .fillMaxSize()
         .onSizeChanged { containerSize = it }
+        .pointerInput(canSwipeWallets) {
+            if (!canSwipeWallets) return@pointerInput
+            detectHorizontalDragGestures(
+                onDragStart = { offset -> swipeStartX = offset.x },
+                onDragEnd = { },
+                onHorizontalDrag = { change, _ ->
+                    val totalDrag = change.position.x - swipeStartX
+                    if (totalDrag > SWIPE_THRESHOLD) {
+                        viewModel.dispatch(MainIntent.SwipeWalletPrevious)
+                        swipeStartX = change.position.x
+                    } else if (totalDrag < -SWIPE_THRESHOLD) {
+                        viewModel.dispatch(MainIntent.SwipeWalletNext)
+                        swipeStartX = change.position.x
+                    }
+                }
+            )
+        }
         .pointerInput(cameraPermission.hasPermission) {
             if (!cameraPermission.hasPermission) return@pointerInput
             detectDragGesturesAfterLongPress(
@@ -201,6 +228,7 @@ private fun MainScreenEntry(
             onNavigateSettings = onNavigateToSettings,
             onNavigateConnectWallet = onNavigateToConnectWallet,
             uiState = uiState,
+            wallets = wallets,
             pendingPayments = pendingPayments,
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))

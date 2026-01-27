@@ -53,9 +53,11 @@ import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
+import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
@@ -583,9 +585,13 @@ class MainViewModelTest {
                 exchangeRate = null
             )
         )
+        val observeWallets = ObserveWalletsUseCase(walletSettingsRepository)
+        val setActiveWallet = SetActiveWalletUseCase(walletSettingsRepository)
         return MainViewModel(
             payInvoice = payInvoice,
             observeWalletConnection = walletConnection,
+            observeWallets = observeWallets,
+            setActiveWallet = setActiveWallet,
             observeCurrencyPreference = observeCurrencyPreference,
             currencyManager = currencyManager,
             pendingTracker = pendingTracker,
