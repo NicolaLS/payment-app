@@ -119,7 +119,7 @@ class LookupPaymentUseCaseTest {
         data class LookupCall(val paymentHash: String, val walletUri: String?, val walletType: WalletType?)
 
         private val _lookupCalls = mutableListOf<LookupCall>()
-        val lookupCalls: List<LookupCall> get() = synchronized(_lookupCalls) { _lookupCalls.toList() }
+        val lookupCalls: List<LookupCall> get() = _lookupCalls.toList()
 
         override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
             error("Not implemented")
@@ -130,9 +130,7 @@ class LookupPaymentUseCaseTest {
         }
 
         override suspend fun lookupPayment(paymentHash: String, walletUri: String?, walletType: WalletType?): PaymentLookupResult {
-            synchronized(_lookupCalls) {
-                _lookupCalls.add(LookupCall(paymentHash, walletUri, walletType))
-            }
+            _lookupCalls.add(LookupCall(paymentHash, walletUri, walletType))
             return PaymentLookupResult.NotFound
         }
     }
