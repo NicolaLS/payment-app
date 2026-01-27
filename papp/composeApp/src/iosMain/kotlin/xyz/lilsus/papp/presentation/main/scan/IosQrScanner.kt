@@ -120,6 +120,7 @@ private class IosQrScannerController : QrScannerController {
     private var previewLayer: AVCaptureVideoPreviewLayer? = null
     private var previewSurface: CameraPreviewSurface? = null
     private var currentDevice: AVCaptureDevice? = null
+    private var lifecycleObserver: NSObjectProtocol? = null
 
     private val delegate = MetadataDelegate(
         isPaused = { paused },
@@ -135,11 +136,24 @@ private class IosQrScannerController : QrScannerController {
 
     override fun start(onQrCodeScanned: (String) -> Unit) {
         this.onQrCodeScanned = onQrCodeScanned
-        dispatch_async(sessionQueue) {
-            configureSessionIfNeeded()
-            if (!session.running) {
-                session.startRunning()
+
+        // Register lifecycle observer to heal scanner when app becomes active
+        if (lifecycleObserver == null) {
+            lifecycleObserver = NSNotificationCenter.defaultCenter.addObserverForName(
+                name = UIApplicationDidBecomeActiveNotification,
+                `object` = null,
+                queue = NSOperationQueue.mainQueue
+            ) { _ ->
+                dispatch_async(sessionQueue) {
+                    if (!paused) {
+                        ensureSessionRunning()
+                    }
+                }
             }
+        }
+
+        dispatch_async(sessionQueue) {
+            ensureSessionRunning()
             paused = false
         }
     }
@@ -152,13 +166,18 @@ private class IosQrScannerController : QrScannerController {
 
     override fun resume() {
         dispatch_async(sessionQueue) {
-            if (session.running) {
-                paused = false
-            }
+            ensureSessionRunning()
+            paused = false
         }
     }
 
     override fun stop() {
+        // Remove lifecycle observer to prevent memory leaks
+        lifecycleObserver?.let {
+            NSNotificationCenter.defaultCenter.removeObserver(it)
+        }
+        lifecycleObserver = null
+
         dispatch_async(sessionQueue) {
             if (session.running) {
                 session.stopRunning()
@@ -218,6 +237,31 @@ private class IosQrScannerController : QrScannerController {
                     device.videoZoomFactor = target.coerceIn(minZoom, maxZoom)
                     device.unlockForConfiguration()
                 }
+            }
+        }
+    }
+
+    private fun ensureSessionRunning() {
+        configureSessionIfNeeded()
+        if (!session.running) {
+            session.startRunning()
+        }
+        resetFocusAndExposure()
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun resetFocusAndExposure() {
+        val device = currentDevice ?: return
+        memScoped {
+            val errorPtr = alloc<ObjCObjectVar<NSError?>>()
+            if (device.lockForConfiguration(errorPtr.ptr)) {
+                if (device.isFocusModeSupported(AVCaptureFocusModeContinuousAutoFocus)) {
+                    device.focusMode = AVCaptureFocusModeContinuousAutoFocus
+                }
+                if (device.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure)) {
+                    device.exposureMode = AVCaptureExposureModeContinuousAutoExposure
+                }
+                device.unlockForConfiguration()
             }
         }
     }
