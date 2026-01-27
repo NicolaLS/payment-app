@@ -104,17 +104,17 @@ fun FeaturesScreen(
         // Initial delay before first auto-advance (shorter to hint it's a carousel)
         delay(INITIAL_DELAY_MS)
 
-        while (!userHasInteracted && pagerState.currentPage < totalPages - 1) {
+        while (!userHasInteracted) {
+            val nextPage = (pagerState.currentPage + 1) % totalPages
+
             // Animate to next page
             pagerState.animateScrollToPage(
-                page = pagerState.currentPage + 1,
+                page = nextPage,
                 animationSpec = tween(durationMillis = PAGE_ANIMATION_MS)
             )
 
-            // Wait before next auto-advance
-            if (pagerState.currentPage < totalPages - 1) {
-                delay(AUTO_ADVANCE_INTERVAL_MS)
-            }
+            // Wait before next auto-advance (normal interval for all subsequent transitions)
+            delay(AUTO_ADVANCE_INTERVAL_MS)
         }
     }
 
