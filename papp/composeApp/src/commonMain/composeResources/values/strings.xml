@@ -12,9 +12,7 @@
     <string name="enter_amount_range_max">Max %1$s</string>
     <string name="error_missing_wallet_connection">Connect a wallet to continue.</string>
     <string name="error_payment_rejected_generic">Payment was rejected.</string>
-    <string name="error_payment_rejected_code">Payment was rejected (%1$s).</string>
     <string name="error_payment_rejected_message">Payment was rejected: %1$s</string>
-    <string name="error_payment_rejected_full">Payment was rejected (%1$s): %2$s</string>
     <string name="error_network_unavailable">Network unavailable. Check your connection.</string>
     <string name="error_timeout">Wallet did not respond. Try again.</string>
     <string name="error_payment_unconfirmed">Payment status unknown. It may have succeeded.</string>

@@ -19,8 +19,6 @@ import papp.composeapp.generated.resources.error_blink_self_payment
 import papp.composeapp.generated.resources.error_invalid_wallet_uri
 import papp.composeapp.generated.resources.error_missing_wallet_connection
 import papp.composeapp.generated.resources.error_network_unavailable
-import papp.composeapp.generated.resources.error_payment_rejected_code
-import papp.composeapp.generated.resources.error_payment_rejected_full
 import papp.composeapp.generated.resources.error_payment_rejected_generic
 import papp.composeapp.generated.resources.error_payment_rejected_message
 import papp.composeapp.generated.resources.error_payment_unconfirmed
@@ -39,20 +37,11 @@ fun errorMessageFor(error: AppError): String = when (error) {
     AppError.MissingWalletConnection -> stringResource(Res.string.error_missing_wallet_connection)
 
     is AppError.PaymentRejected -> {
-        val code = error.code?.takeUnless { it.isBlank() }
         val message = error.message?.takeUnless { it.isBlank() }
-        when {
-            code != null && message != null -> stringResource(
-                Res.string.error_payment_rejected_full,
-                code,
-                message
-            )
-
-            code != null -> stringResource(Res.string.error_payment_rejected_code, code)
-
-            message != null -> stringResource(Res.string.error_payment_rejected_message, message)
-
-            else -> stringResource(Res.string.error_payment_rejected_generic)
+        if (message != null) {
+            stringResource(Res.string.error_payment_rejected_message, message)
+        } else {
+            stringResource(Res.string.error_payment_rejected_generic)
         }
     }
 
