@@ -185,7 +185,7 @@ class AddBlinkWalletViewModelTest {
         assertNotNull(state.error)
         val error = state.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.PermissionDenied, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.PermissionDenied, error.type)
         assertFalse(state.isSaving)
 
         context.viewModel.clear()

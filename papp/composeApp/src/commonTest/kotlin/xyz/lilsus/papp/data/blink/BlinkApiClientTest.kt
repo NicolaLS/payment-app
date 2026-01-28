@@ -84,7 +84,7 @@ class BlinkApiClientTest {
 
         val error = exception.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.InvalidApiKey, error.type)
     }
 
     @Test
@@ -223,7 +223,7 @@ class BlinkApiClientTest {
 
         val error = exception.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.InvalidApiKey, error.type)
     }
 
     @Test
@@ -248,7 +248,7 @@ class BlinkApiClientTest {
 
         val error = exception.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.InvalidApiKey, error.type)
     }
 
     @Test
@@ -278,7 +278,7 @@ class BlinkApiClientTest {
 
         val error = exception.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InsufficientBalance, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.InsufficientBalance, error.type)
     }
 
     @Test
@@ -309,7 +309,7 @@ class BlinkApiClientTest {
         val error = exception.error
         assertTrue(error is AppError.PaymentRejected)
         // Unknown errors preserve the original code and message
-        assertEquals("UNKNOWN_CODE", (error as AppError.PaymentRejected).code)
+        assertEquals("UNKNOWN_CODE", error.code)
         assertEquals("Some unknown error", error.message)
     }
 
@@ -335,7 +335,7 @@ class BlinkApiClientTest {
 
         val error = exception.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.PermissionDenied, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.PermissionDenied, error.type)
     }
 
     @Test

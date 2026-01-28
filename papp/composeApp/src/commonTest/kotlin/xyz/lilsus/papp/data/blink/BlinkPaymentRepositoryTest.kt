@@ -182,7 +182,7 @@ class BlinkPaymentRepositoryTest {
 
         val error = exception.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InvalidApiKey, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.InvalidApiKey, error.type)
     }
 
     @Test
@@ -224,7 +224,7 @@ class BlinkPaymentRepositoryTest {
 
         val error = exception.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InsufficientBalance, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.InsufficientBalance, error.type)
     }
 
     @Test
@@ -250,9 +250,9 @@ class BlinkPaymentRepositoryTest {
 
         val state = request.state.value
         assertTrue(state is xyz.lilsus.papp.domain.model.PayInvoiceRequestState.Failure)
-        val error = (state as xyz.lilsus.papp.domain.model.PayInvoiceRequestState.Failure).error
+        val error = state.error
         assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InvalidApiKeyWalletRemoved, (error as AppError.BlinkError).type)
+        assertEquals(BlinkErrorType.InvalidApiKeyWalletRemoved, error.type)
 
         // Verify wallet and API key were removed
         assertFalse(context.credentialStore.hasApiKey(TEST_WALLET_ID))

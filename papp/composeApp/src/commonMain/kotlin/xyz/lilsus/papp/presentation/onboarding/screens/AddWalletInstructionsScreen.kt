@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -22,11 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -134,16 +136,16 @@ private fun BlinkInstructionSteps(onOpenDashboard: () -> Unit) {
         withStyle(SpanStyle(color = onSurfaceVariant)) {
             append(step1Prefix)
         }
-        pushStringAnnotation(tag = "URL", annotation = BLINK_DASHBOARD_URL)
-        withStyle(
-            SpanStyle(
-                color = primaryColor,
-                textDecoration = TextDecoration.Underline
-            )
-        ) {
-            append("dashboard.blink.sv")
+        withLink(LinkAnnotation.Clickable("URL") { onOpenDashboard() }) {
+            withStyle(
+                SpanStyle(
+                    color = primaryColor,
+                    textDecoration = TextDecoration.Underline
+                )
+            ) {
+                append("dashboard.blink.sv")
+            }
         }
-        pop()
         withStyle(SpanStyle(color = onSurfaceVariant)) {
             append(step1Suffix)
         }
@@ -188,13 +190,9 @@ private fun BlinkInstructionSteps(onOpenDashboard: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.size(24.dp)
                 )
-                ClickableText(
+                BasicText(
                     text = step1Text,
-                    style = bodyMediumStyle,
-                    onClick = { offset ->
-                        step1Text.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                            .firstOrNull()?.let { onOpenDashboard() }
-                    }
+                    style = bodyMediumStyle
                 )
             }
 

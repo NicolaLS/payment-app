@@ -40,7 +40,7 @@ class ManualAmountControllerTest {
         assertEquals("0", state.rawWhole)
         assertEquals("1", state.rawFraction)
         assertNotNull(state.amount)
-        assertEquals(10L, state.amount?.minor)
+        assertEquals(10L, state.amount.minor)
     }
 
     @Test

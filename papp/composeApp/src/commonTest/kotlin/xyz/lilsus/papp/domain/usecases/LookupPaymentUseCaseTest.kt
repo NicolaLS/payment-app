@@ -85,11 +85,11 @@ class LookupPaymentUseCaseTest {
         val call2 = provider.lookupCalls.find { it.paymentHash == "hash-2" }
 
         assertTrue(call1 != null, "Expected lookup call for hash-1")
-        assertEquals(nwcWalletUri, call1!!.walletUri)
+        assertEquals(nwcWalletUri, call1.walletUri)
         assertEquals(WalletType.NWC, call1.walletType)
 
         assertTrue(call2 != null, "Expected lookup call for hash-2")
-        assertEquals(blinkWalletUri, call2!!.walletUri)
+        assertEquals(blinkWalletUri, call2.walletUri)
         assertEquals(WalletType.BLINK, call2.walletType)
     }
 
