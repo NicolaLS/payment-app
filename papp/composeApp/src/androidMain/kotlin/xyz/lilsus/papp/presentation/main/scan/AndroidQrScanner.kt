@@ -333,6 +333,11 @@ private class QrCodeAnalyzer(
             val input = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
             barcodeScanner.process(input)
                 .addOnSuccessListener(analysisExecutor) { barcodes ->
+                    // TODO: When multiple QR codes are in frame, select the largest one
+                    // (by bounding box area) instead of taking the first. This handles
+                    // the edge case where a non-Lightning QR is detected first, causing
+                    // a confusing error. The largest QR is likely the one the user is
+                    // pointing at. ML Kit provides boundingBox on each Barcode object.
                     val value = barcodes.firstOrNull()?.rawValue
                     if (value != null) {
                         mainExecutor.execute { onQrCodeScanned(value) }

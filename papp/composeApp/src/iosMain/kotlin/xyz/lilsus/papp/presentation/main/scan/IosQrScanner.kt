@@ -328,6 +328,11 @@ private class MetadataDelegate(
         fromConnection: AVCaptureConnection
     ) {
         if (isPaused()) return
+        // TODO: When multiple QR codes are in frame, select the largest one
+        // (by bounds area) instead of taking the first. This handles the edge
+        // case where a non-Lightning QR is detected first, causing a confusing
+        // error. The largest QR is likely the one the user is pointing at.
+        // AVMetadataMachineReadableCodeObject provides bounds property.
         val code =
             didOutputMetadataObjects.firstOrNull() as? AVMetadataMachineReadableCodeObject ?: return
         val value = code.stringValue ?: return
