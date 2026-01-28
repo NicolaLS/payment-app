@@ -1,6 +1,6 @@
 [versions]
 # Kotlin 2.3.0 required for nostr-kmp/nwc-kmp compatibility
-agp = "8.13.0"
+agp = "8.13.2"
 ktlint = "14.0.1"
 androidx-activity = "1.12.1"
 androidx-appcompat = "1.7.1"
