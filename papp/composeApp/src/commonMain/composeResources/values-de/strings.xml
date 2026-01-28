@@ -130,6 +130,8 @@
     <string name="error_unrecognized_input">Dieser QR-Code enthält keine Lightning-Rechnung.</string>
     <string name="error_invalid_invoice">Diese Rechnung ist ungültig oder fehlerhaft.</string>
     <string name="error_invalid_invoice_with_details">Diese Rechnung ist ungültig: %1$s</string>
+    <string name="toast_bitcoin_address">Das ist eine Bitcoin-Adresse. Bitte um eine Lightning-Rechnung.</string>
+    <string name="toast_bolt12_not_supported">BOLT12-Angebote werden noch nicht unterstützt.</string>
     <string name="result_paid_title">Bezahlt</string>
     <string name="result_paid_fee">Gebühr: %1$s</string>
     <string name="result_paid_fee_blink_hint">Blink könnte diese Gebühr teilweise erstatten.</string>

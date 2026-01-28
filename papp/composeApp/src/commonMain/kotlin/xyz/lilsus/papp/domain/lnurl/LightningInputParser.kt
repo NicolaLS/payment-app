@@ -9,14 +9,31 @@ class LightningInputParser {
     fun parse(raw: String): ParseResult {
         val trimmed = raw.trim()
         if (trimmed.isEmpty()) {
-            return ParseResult.Failure("Input is blank")
+            return ParseResult.Failure(FailureReason.Empty)
         }
         return parseInternal(trimmed, allowBitcoinScheme = true)
     }
 
     sealed class ParseResult {
         data class Success(val target: Target) : ParseResult()
-        data class Failure(val reason: String) : ParseResult()
+        data class Failure(val reason: FailureReason) : ParseResult()
+    }
+
+    /**
+     * Describes why parsing failed. Used to show appropriate feedback to the user.
+     */
+    sealed class FailureReason {
+        /** Input is empty or blank. */
+        data object Empty : FailureReason()
+
+        /** Input is a Bitcoin on-chain address (not Lightning). */
+        data object BitcoinAddress : FailureReason()
+
+        /** Input is a BOLT12 offer which is not yet supported. */
+        data object Bolt12Offer : FailureReason()
+
+        /** Input doesn't match any known Lightning or Bitcoin format. */
+        data object Unrecognized : FailureReason()
     }
 
     sealed class Target {
@@ -43,9 +60,7 @@ class LightningInputParser {
                 }
             }
 
-            val beforeQuery = if (queryIndex ==
-                -1
-            ) {
+            val beforeQuery = if (queryIndex == -1) {
                 withoutScheme
             } else {
                 withoutScheme.substring(0, queryIndex)
@@ -54,12 +69,13 @@ class LightningInputParser {
                 return parseInternal(beforeQuery, allowBitcoinScheme = false)
             }
 
-            current = withoutScheme
+            // bitcoin: URI without lightning param - it's an on-chain address
+            return ParseResult.Failure(FailureReason.BitcoinAddress)
         }
 
         if (looksLikeLightningAddress(current)) {
             val address = toLightningAddress(current)
-                ?: return ParseResult.Failure("Lightning address is malformed")
+                ?: return ParseResult.Failure(FailureReason.Unrecognized)
             return ParseResult.Success(Target.LightningAddressTarget(address))
         }
 
@@ -67,7 +83,7 @@ class LightningInputParser {
         val hostCandidate = schemeStripped.substringBefore('/')
         if (hostCandidate != current && looksLikeLightningAddress(hostCandidate)) {
             val address = toLightningAddress(hostCandidate)
-                ?: return ParseResult.Failure("Lightning address is malformed")
+                ?: return ParseResult.Failure(FailureReason.Unrecognized)
             return ParseResult.Success(Target.LightningAddressTarget(address))
         }
 
@@ -95,12 +111,22 @@ class LightningInputParser {
             return ParseResult.Success(Target.Lnurl(lnurlEndpoint))
         }
 
+        // Check for BOLT12 offers (not yet supported)
+        if (looksLikeBolt12Offer(current)) {
+            return ParseResult.Failure(FailureReason.Bolt12Offer)
+        }
+
         // Only treat as BOLT11 candidate if it looks like one (starts with "ln")
         if (looksLikeBolt11(current)) {
             return ParseResult.Success(Target.Bolt11Candidate(current))
         }
 
-        return ParseResult.Failure("Unrecognized format")
+        // Check for standalone bitcoin addresses (without bitcoin: scheme)
+        if (looksLikeBitcoinAddress(current)) {
+            return ParseResult.Failure(FailureReason.BitcoinAddress)
+        }
+
+        return ParseResult.Failure(FailureReason.Unrecognized)
     }
 
     private fun looksLikeLnurl(value: String): Boolean {
@@ -110,12 +136,36 @@ class LightningInputParser {
     }
 
     /**
-     * Checks if the input looks like a BOLT11 invoice (starts with "ln").
+     * Checks if the input looks like a BOLT11 invoice (starts with "ln" but not "lno").
      * This is a quick heuristic check - actual validation happens in Bolt11InvoiceParser.
      */
     private fun looksLikeBolt11(value: String): Boolean {
         if (value.length < 2) return false
-        return value.substring(0, 2).lowercase() == "ln"
+        val lower = value.lowercase()
+        // Exclude BOLT12 offers which start with "lno"
+        if (lower.startsWith("lno")) return false
+        return lower.startsWith("ln")
+    }
+
+    /**
+     * Checks if the input looks like a BOLT12 offer (starts with "lno1").
+     */
+    private fun looksLikeBolt12Offer(value: String): Boolean =
+        value.length >= 4 && value.lowercase().startsWith("lno1")
+
+    /**
+     * Checks if the input looks like a Bitcoin address.
+     * Covers legacy (1..., 3...), SegWit (bc1q...), and Taproot (bc1p...) addresses.
+     */
+    private fun looksLikeBitcoinAddress(value: String): Boolean {
+        val lower = value.lowercase()
+        // Bech32/Bech32m (SegWit and Taproot)
+        if (lower.startsWith("bc1")) return value.length in 42..62
+        // Legacy P2PKH (starts with 1)
+        if (value.startsWith("1")) return value.length in 25..34
+        // Legacy P2SH (starts with 3)
+        if (value.startsWith("3")) return value.length in 25..34
+        return false
     }
 
     private fun decodeBech32Lnurl(value: String): String? {

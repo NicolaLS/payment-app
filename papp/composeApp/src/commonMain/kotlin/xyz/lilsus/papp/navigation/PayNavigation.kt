@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -28,11 +29,16 @@ import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.getString
+import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.toast_bitcoin_address
+import papp.composeapp.generated.resources.toast_bolt12_not_supported
 import xyz.lilsus.papp.navigation.DonationNavigation.events
 import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
 import xyz.lilsus.papp.presentation.main.MainScreen
 import xyz.lilsus.papp.presentation.main.MainUiState
+import xyz.lilsus.papp.presentation.main.ToastMessage
 import xyz.lilsus.papp.presentation.main.rememberMainViewModel
 import xyz.lilsus.papp.presentation.main.scan.CameraPreviewHost
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
@@ -68,6 +74,7 @@ private fun MainScreenEntry(
     val cameraPermission = rememberCameraPermissionState()
     val scannerController = rememberQrScannerController()
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var hasRequestedPermission by remember { mutableStateOf(false) }
     var scannerStarted by remember { mutableStateOf(false) }
@@ -113,7 +120,19 @@ private fun MainScreenEntry(
     LaunchedEffect(viewModel) {
         viewModel.events.collectLatest { event ->
             when (event) {
-                is MainEvent.ShowError -> Unit // TODO: hook up snackbar/toast presentation.
+                is MainEvent.ShowError -> Unit
+
+                // Full-screen errors are shown via UI state
+                is MainEvent.ShowToast -> {
+                    val message = when (event.message) {
+                        ToastMessage.BitcoinAddressNotSupported ->
+                            getString(Res.string.toast_bitcoin_address)
+
+                        ToastMessage.Bolt12NotSupported ->
+                            getString(Res.string.toast_bolt12_not_supported)
+                    }
+                    snackbarHostState.showSnackbar(message)
+                }
             }
         }
     }
@@ -230,6 +249,7 @@ private fun MainScreenEntry(
             uiState = uiState,
             wallets = wallets,
             pendingPayments = pendingPayments,
+            snackbarHostState = snackbarHostState,
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))
             },

@@ -225,9 +225,23 @@ class MainViewModel internal constructor(
         pendingInvoice = null
 
         when (val parse = lightningInputParser.parse(rawInput)) {
-            is LightningInputParser.ParseResult.Failure -> emitError(
-                AppError.UnrecognizedInput(parse.reason)
-            )
+            is LightningInputParser.ParseResult.Failure -> {
+                // Show toast for known unsupported formats, silently ignore unknown
+                when (parse.reason) {
+                    LightningInputParser.FailureReason.BitcoinAddress ->
+                        _events.tryEmit(
+                            MainEvent.ShowToast(ToastMessage.BitcoinAddressNotSupported)
+                        )
+
+                    LightningInputParser.FailureReason.Bolt12Offer ->
+                        _events.tryEmit(MainEvent.ShowToast(ToastMessage.Bolt12NotSupported))
+
+                    LightningInputParser.FailureReason.Empty,
+                    LightningInputParser.FailureReason.Unrecognized -> {
+                        // Silently ignore - scanner keeps running
+                    }
+                }
+            }
 
             is LightningInputParser.ParseResult.Success -> {
                 when (val target = parse.target) {

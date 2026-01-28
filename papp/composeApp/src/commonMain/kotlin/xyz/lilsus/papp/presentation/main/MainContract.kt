@@ -13,6 +13,23 @@ sealed interface MainEvent {
      * Notifies the UI about an error that should be displayed out of band (snackbar, toast, etc.).
      */
     data class ShowError(val error: AppError) : MainEvent
+
+    /**
+     * Shows a brief toast message that auto-dismisses. Used for non-blocking feedback
+     * like unsupported QR code formats.
+     */
+    data class ShowToast(val message: ToastMessage) : MainEvent
+}
+
+/**
+ * Predefined toast messages for type-safe localization.
+ */
+sealed interface ToastMessage {
+    /** Scanned QR is a Bitcoin on-chain address, not Lightning. */
+    data object BitcoinAddressNotSupported : ToastMessage
+
+    /** Scanned QR is a BOLT12 offer which is not yet supported. */
+    data object Bolt12NotSupported : ToastMessage
 }
 
 /**

@@ -129,6 +129,8 @@
     <string name="error_unrecognized_input">Este código QR no contiene una factura Lightning.</string>
     <string name="error_invalid_invoice">Esta factura es inválida o está malformada.</string>
     <string name="error_invalid_invoice_with_details">Esta factura es inválida: %1$s</string>
+    <string name="toast_bitcoin_address">Esto es una dirección Bitcoin. Pide una factura Lightning.</string>
+    <string name="toast_bolt12_not_supported">Las ofertas BOLT12 aún no son compatibles.</string>
     <string name="result_paid_title">Pagado</string>
     <string name="result_paid_fee">Comisión: %1$s</string>
     <string name="result_paid_fee_blink_hint">Blink podría reembolsar parcialmente esta comisión.</string>
