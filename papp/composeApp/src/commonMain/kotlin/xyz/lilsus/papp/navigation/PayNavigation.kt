@@ -132,8 +132,8 @@ private fun MainScreenEntry(
     fun startScannerIfNeeded() {
         if (scannerStarted) return
         if (!cameraPermission.hasPermission) return
-        scannerController.start { invoice ->
-            viewModel.dispatch(MainIntent.InvoiceDetected(invoice))
+        scannerController.start { rawValue ->
+            viewModel.dispatch(MainIntent.QrCodeScanned(rawValue))
         }
         scannerStarted = true
     }

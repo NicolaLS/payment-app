@@ -126,8 +126,10 @@
         gehen von der veralteten NIP-04-Verschlüsselung aus, die weniger Schutz bietet als NIP-44.
     </string>
     <string name="connect_wallet_warning_heading">Bitte prüfen</string>
-    <string name="error_invalid_wallet_uri">Diese Wallet-URI ist ungültig. Bitte überprüfe sie und versuche es erneut.
-    </string>
+    <string name="error_invalid_wallet_uri">Diese Wallet-URI ist ungültig. Bitte überprüfe sie und versuche es erneut.</string>
+    <string name="error_unrecognized_input">Dieser QR-Code enthält keine Lightning-Rechnung.</string>
+    <string name="error_invalid_invoice">Diese Rechnung ist ungültig oder fehlerhaft.</string>
+    <string name="error_invalid_invoice_with_details">Diese Rechnung ist ungültig: %1$s</string>
     <string name="result_paid_title">Bezahlt</string>
     <string name="result_paid_fee">Gebühr: %1$s</string>
     <string name="result_paid_fee_blink_hint">Blink könnte diese Gebühr teilweise erstatten.</string>

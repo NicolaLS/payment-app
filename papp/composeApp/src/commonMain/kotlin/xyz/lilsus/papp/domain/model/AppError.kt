@@ -74,8 +74,21 @@ sealed class AppError {
 
     /**
      * Provided wallet URI is invalid or malformed.
+     * This should only be used for NWC connection URIs, not for invoice parsing.
      */
     data class InvalidWalletUri(val reason: String? = null) : AppError()
+
+    /**
+     * The scanned input is not a recognized Lightning payment format.
+     * Used when a QR code doesn't match BOLT11, LNURL, or Lightning Address patterns.
+     */
+    data class UnrecognizedInput(val reason: String? = null) : AppError()
+
+    /**
+     * The invoice is malformed or invalid.
+     * Used when BOLT11 parsing fails or LNURL returns an invalid invoice.
+     */
+    data class InvalidInvoice(val reason: String? = null) : AppError()
 
     /**
      * Any other unexpected error. The optional [message] can be used for logging.

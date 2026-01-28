@@ -125,8 +125,10 @@
         Supondremos el cifrado heredado NIP-04, que es menos seguro que NIP-44.
     </string>
     <string name="connect_wallet_warning_heading">Revisa antes de conectar</string>
-    <string name="error_invalid_wallet_uri">La URI de la billetera no es válida. Verifícala e inténtalo de nuevo.
-    </string>
+    <string name="error_invalid_wallet_uri">La URI de la billetera no es válida. Verifícala e inténtalo de nuevo.</string>
+    <string name="error_unrecognized_input">Este código QR no contiene una factura Lightning.</string>
+    <string name="error_invalid_invoice">Esta factura es inválida o está malformada.</string>
+    <string name="error_invalid_invoice_with_details">Esta factura es inválida: %1$s</string>
     <string name="result_paid_title">Pagado</string>
     <string name="result_paid_fee">Comisión: %1$s</string>
     <string name="result_paid_fee_blink_hint">Blink podría reembolsar parcialmente esta comisión.</string>

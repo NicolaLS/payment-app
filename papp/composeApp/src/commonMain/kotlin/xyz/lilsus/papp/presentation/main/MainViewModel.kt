@@ -204,7 +204,7 @@ class MainViewModel internal constructor(
     fun dispatch(intent: MainIntent) {
         when (intent) {
             MainIntent.DismissResult -> handleDismissResult()
-            is MainIntent.InvoiceDetected -> handleInvoiceDetected(intent.invoice)
+            is MainIntent.QrCodeScanned -> handleQrCodeScanned(intent.rawValue)
             MainIntent.ManualAmountDismiss -> handleManualAmountDismiss()
             MainIntent.ManualAmountSubmit -> handleManualAmountSubmit()
             is MainIntent.ManualAmountKeyPress -> handleManualAmountKeyPress(intent.key)
@@ -218,7 +218,7 @@ class MainViewModel internal constructor(
         }
     }
 
-    private fun handleInvoiceDetected(rawInput: String) {
+    private fun handleQrCodeScanned(rawInput: String) {
         if (_uiState.value !is MainUiState.Active) return
 
         manualEntryContext = null
@@ -226,7 +226,7 @@ class MainViewModel internal constructor(
 
         when (val parse = lightningInputParser.parse(rawInput)) {
             is LightningInputParser.ParseResult.Failure -> emitError(
-                AppError.InvalidWalletUri(parse.reason)
+                AppError.UnrecognizedInput(parse.reason)
             )
 
             is LightningInputParser.ParseResult.Success -> {
@@ -312,7 +312,7 @@ class MainViewModel internal constructor(
     private fun processBoltInvoice(invoice: String) {
         val summary = parseBolt11Invoice(invoice)
         if (summary == null) {
-            emitError(AppError.InvalidWalletUri("Failed to parse BOLT11 invoice"))
+            emitError(AppError.InvalidInvoice("Failed to parse BOLT11 invoice"))
             return
         }
 
@@ -375,7 +375,7 @@ class MainViewModel internal constructor(
         inputCurrencyOverride: CurrencyInfo? = null
     ) {
         if (params.minSendable <= 0 || params.maxSendable < params.minSendable) {
-            emitError(AppError.InvalidWalletUri("LNURL amount range is invalid"))
+            emitError(AppError.InvalidInvoice("LNURL amount range is invalid"))
             return
         }
         val session = LnurlSession(params = params, source = source)
@@ -451,14 +451,14 @@ class MainViewModel internal constructor(
         val parsed = parseBolt11Invoice(invoice)
         if (parsed == null) {
             manualEntryContext = null
-            emitError(AppError.InvalidWalletUri("Failed to parse BOLT11 invoice"))
+            emitError(AppError.InvalidInvoice("Failed to parse BOLT11 invoice"))
             return
         }
 
         if (parsed.amountMsats != amountMsats) {
             manualEntryContext = null
             emitError(
-                AppError.InvalidWalletUri(
+                AppError.InvalidInvoice(
                     "LNURL server returned amount (${parsed.amountMsats} msat) that does not match requested amount ($amountMsats msat)"
                 )
             )
@@ -468,7 +468,7 @@ class MainViewModel internal constructor(
         val memoValid = validateLnurlMemo(parsed.memo, session.params)
         if (!memoValid) {
             manualEntryContext = null
-            emitError(AppError.InvalidWalletUri("LNURL invoice metadata mismatch"))
+            emitError(AppError.InvalidInvoice("LNURL invoice metadata mismatch"))
             return
         }
 
@@ -535,7 +535,7 @@ class MainViewModel internal constructor(
                 if (amountMsats < params.minSendable || amountMsats > params.maxSendable) {
                     _events.tryEmit(
                         MainEvent.ShowError(
-                            AppError.InvalidWalletUri("Amount is outside the allowed range")
+                            AppError.InvalidInvoice("Amount is outside the allowed range")
                         )
                     )
                     return

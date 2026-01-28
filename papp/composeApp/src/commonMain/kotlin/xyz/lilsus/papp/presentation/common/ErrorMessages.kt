@@ -16,6 +16,8 @@ import papp.composeapp.generated.resources.error_blink_permission_denied
 import papp.composeapp.generated.resources.error_blink_rate_limited
 import papp.composeapp.generated.resources.error_blink_route_not_found
 import papp.composeapp.generated.resources.error_blink_self_payment
+import papp.composeapp.generated.resources.error_invalid_invoice
+import papp.composeapp.generated.resources.error_invalid_invoice_with_details
 import papp.composeapp.generated.resources.error_invalid_wallet_uri
 import papp.composeapp.generated.resources.error_missing_wallet_connection
 import papp.composeapp.generated.resources.error_network_unavailable
@@ -27,6 +29,7 @@ import papp.composeapp.generated.resources.error_relay_connection_failed
 import papp.composeapp.generated.resources.error_timeout
 import papp.composeapp.generated.resources.error_unexpected_generic
 import papp.composeapp.generated.resources.error_unexpected_with_details
+import papp.composeapp.generated.resources.error_unrecognized_input
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.BlinkErrorType
 
@@ -74,9 +77,18 @@ fun errorMessageFor(error: AppError): String = when (error) {
         stringResource(Res.string.error_blink_permission_denied)
     }
 
-    is AppError.InvalidWalletUri -> stringResource(
-        Res.string.error_invalid_wallet_uri
-    )
+    is AppError.InvalidWalletUri -> stringResource(Res.string.error_invalid_wallet_uri)
+
+    is AppError.UnrecognizedInput -> stringResource(Res.string.error_unrecognized_input)
+
+    is AppError.InvalidInvoice -> {
+        val details = error.reason?.takeUnless { it.isBlank() }
+        if (details != null) {
+            stringResource(Res.string.error_invalid_invoice_with_details, details)
+        } else {
+            stringResource(Res.string.error_invalid_invoice)
+        }
+    }
 
     is AppError.Unexpected -> {
         val details = error.message?.takeUnless { it.isBlank() }

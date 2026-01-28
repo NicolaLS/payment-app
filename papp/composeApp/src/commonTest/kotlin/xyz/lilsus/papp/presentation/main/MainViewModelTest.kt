@@ -94,7 +94,7 @@ class MainViewModelTest {
         val repository = RecordingNwcWalletRepository()
         val viewModel = createViewModel(parser, repository)
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
             val state = viewModel.uiState.first { it is MainUiState.EnterAmount }
             assertTrue(state is MainUiState.EnterAmount)
             assertNull(state.entry.amount)
@@ -118,7 +118,7 @@ class MainViewModelTest {
         val repository = RecordingNwcWalletRepository()
         val viewModel = createViewModel(parser, repository)
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
             viewModel.uiState.first { it is MainUiState.EnterAmount }
 
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(1)))
@@ -149,7 +149,7 @@ class MainViewModelTest {
         val repository = RecordingNwcWalletRepository()
         val viewModel = createViewModel(parser, repository)
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
             viewModel.uiState.first { it is MainUiState.EnterAmount }
 
             listOf(1, 2, 3).forEach { digit ->
@@ -192,7 +192,7 @@ class MainViewModelTest {
             )
         )
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
             viewModel.uiState.first { it is MainUiState.EnterAmount }
 
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(3)))
@@ -243,7 +243,7 @@ class MainViewModelTest {
             )
         )
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(MANUAL_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
             viewModel.uiState.first { it is MainUiState.EnterAmount }
 
             listOf(1, 0, 0).forEach { digit ->
@@ -287,7 +287,7 @@ class MainViewModelTest {
             preferences = PaymentPreferences(confirmationMode = PaymentConfirmationMode.Always)
         )
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(AMOUNT_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
 
             val confirm = viewModel.uiState.first {
                 it is MainUiState.Confirm
@@ -321,10 +321,10 @@ class MainViewModelTest {
             val repository = BlockingNwcWalletRepository()
             val viewModel = createViewModel(parser, repository)
             try {
-                viewModel.dispatch(MainIntent.InvoiceDetected(AMOUNT_INVOICE_INPUT))
+                viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
                 viewModel.uiState.first { it is MainUiState.Loading }
 
-                viewModel.dispatch(MainIntent.InvoiceDetected("ignored-invoice"))
+                viewModel.dispatch(MainIntent.QrCodeScanned("ignored-invoice"))
 
                 assertEquals(
                     listOf(AMOUNT_PAYMENT_REQUEST to null),
@@ -369,7 +369,7 @@ class MainViewModelTest {
         )
         try {
             runCurrent()
-            viewModel.dispatch(MainIntent.InvoiceDetected(AMOUNT_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
             viewModel.uiState.first { it is MainUiState.Loading }
 
             advanceTimeBy(5_000L)
@@ -434,7 +434,7 @@ class MainViewModelTest {
             lnurlRepository = lnurlRepository
         )
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_ENDPOINT))
 
             val success = viewModel.uiState.first {
                 it is MainUiState.Success
@@ -484,7 +484,7 @@ class MainViewModelTest {
             lnurlRepository = lnurlRepository
         )
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_ENDPOINT))
             viewModel.uiState.first { it is MainUiState.EnterAmount }
 
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(2)))
@@ -530,7 +530,7 @@ class MainViewModelTest {
             lnurlRepository = lnurlRepository
         )
         try {
-            viewModel.dispatch(MainIntent.InvoiceDetected(LNURL_ENDPOINT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_ENDPOINT))
 
             val state = viewModel.uiState.first {
                 it is MainUiState.EnterAmount && it.entry.currency == DisplayCurrency.Fiat("USD")

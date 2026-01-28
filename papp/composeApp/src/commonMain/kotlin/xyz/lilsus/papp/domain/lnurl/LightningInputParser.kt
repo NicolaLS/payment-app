@@ -2,6 +2,7 @@ package xyz.lilsus.papp.domain.lnurl
 
 import fr.acinq.bitcoin.Bech32
 import kotlin.math.min
+import xyz.lilsus.papp.domain.util.decodeUrlComponent
 
 class LightningInputParser {
 
@@ -88,22 +89,33 @@ class LightningInputParser {
                 ignoreCase = true
             ) -> convertSchemeToHttps(current, "lnurl")
 
-            current.startsWith("https://", ignoreCase = true) ||
-                current.startsWith("http://", ignoreCase = true) -> current
-
             else -> null
         }
         if (lnurlEndpoint != null) {
             return ParseResult.Success(Target.Lnurl(lnurlEndpoint))
         }
 
-        return ParseResult.Success(Target.Bolt11Candidate(current))
+        // Only treat as BOLT11 candidate if it looks like one (starts with "ln")
+        if (looksLikeBolt11(current)) {
+            return ParseResult.Success(Target.Bolt11Candidate(current))
+        }
+
+        return ParseResult.Failure("Unrecognized format")
     }
 
     private fun looksLikeLnurl(value: String): Boolean {
         if (value.length < 6) return false
         val prefix = value.substring(0, min(6, value.length)).lowercase()
         return prefix.startsWith("lnurl")
+    }
+
+    /**
+     * Checks if the input looks like a BOLT11 invoice (starts with "ln").
+     * This is a quick heuristic check - actual validation happens in Bolt11InvoiceParser.
+     */
+    private fun looksLikeBolt11(value: String): Boolean {
+        if (value.length < 2) return false
+        return value.substring(0, 2).lowercase() == "ln"
     }
 
     private fun decodeBech32Lnurl(value: String): String? {
@@ -192,35 +204,5 @@ class LightningInputParser {
                 decodeUrlComponent(key).lowercase() to decodeUrlComponent(value)
             }
             .toMap()
-    }
-
-    private fun decodeUrlComponent(value: String): String {
-        if (value.none { it == '%' || it == '+' }) return value
-        val sb = StringBuilder(value.length)
-        var index = 0
-        while (index < value.length) {
-            when (val ch = value[index]) {
-                '+' -> {
-                    sb.append(' ')
-                    index += 1
-                }
-
-                '%' -> {
-                    if (index + 2 >= value.length) {
-                        return value
-                    }
-                    val hex = value.substring(index + 1, index + 3)
-                    val decoded = hex.toIntOrNull(16) ?: return value
-                    sb.append(decoded.toChar())
-                    index += 3
-                }
-
-                else -> {
-                    sb.append(ch)
-                    index += 1
-                }
-            }
-        }
-        return sb.toString()
     }
 }

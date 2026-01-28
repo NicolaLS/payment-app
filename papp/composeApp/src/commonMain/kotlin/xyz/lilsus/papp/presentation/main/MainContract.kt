@@ -19,7 +19,7 @@ sealed interface MainEvent {
  * Intents that describe user-driven interactions with the main payment flow.
  */
 sealed interface MainIntent {
-    data class InvoiceDetected(val invoice: String) : MainIntent
+    data class QrCodeScanned(val rawValue: String) : MainIntent
     data object DismissResult : MainIntent
     data class ManualAmountKeyPress(val key: ManualAmountKey) : MainIntent
     data class ManualAmountPreset(val amount: DisplayAmount) : MainIntent
