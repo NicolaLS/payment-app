@@ -47,12 +47,12 @@ class NwcWalletRepositoryImplTest {
     }
 
     @Test
-    fun connectionErrorMapsToNetworkUnavailable() {
+    fun connectionErrorMapsToRelayConnectionFailed() {
         val error = NwcError.ConnectionError("Failed to connect")
 
         val appError = error.toAppError()
 
-        assertEquals(AppError.NetworkUnavailable, appError)
+        assertEquals(AppError.RelayConnectionFailed("Failed to connect"), appError)
     }
 
     @Test

@@ -88,8 +88,7 @@ class LightningInputParser {
         }
 
         val lnurlEndpoint = when {
-            looksLikeLnurl(current) -> decodeBech32Lnurl(current)
-
+            // Check URL schemes first (before bech32) to avoid misclassification
             current.startsWith(
                 "lnurlp://",
                 ignoreCase = true
@@ -104,6 +103,9 @@ class LightningInputParser {
                 "lnurl://",
                 ignoreCase = true
             ) -> convertSchemeToHttps(current, "lnurl")
+
+            // Then check for bech32-encoded LNURL
+            looksLikeLnurl(current) -> decodeBech32Lnurl(current)
 
             else -> null
         }

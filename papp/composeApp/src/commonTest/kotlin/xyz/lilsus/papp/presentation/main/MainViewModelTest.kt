@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
@@ -95,7 +96,7 @@ class MainViewModelTest {
         val viewModel = createViewModel(parser, repository)
         try {
             viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
-            val state = viewModel.uiState.first { it is MainUiState.EnterAmount }
+            val state = viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
             assertTrue(state is MainUiState.EnterAmount)
             assertNull(state.entry.amount)
         } finally {
@@ -119,12 +120,12 @@ class MainViewModelTest {
         val viewModel = createViewModel(parser, repository)
         try {
             viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
-            viewModel.uiState.first { it is MainUiState.EnterAmount }
+            viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
 
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(1)))
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(2)))
 
-            val state = viewModel.uiState.first {
+            val state = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.EnterAmount && it.entry.amount?.minor == 12L
             }
             val enterState = state as MainUiState.EnterAmount
@@ -150,7 +151,7 @@ class MainViewModelTest {
         val viewModel = createViewModel(parser, repository)
         try {
             viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
-            viewModel.uiState.first { it is MainUiState.EnterAmount }
+            viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
 
             listOf(1, 2, 3).forEach { digit ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(digit)))
@@ -158,7 +159,7 @@ class MainViewModelTest {
 
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val success = viewModel.uiState.first {
+            val success = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.Success
             } as MainUiState.Success
             assertEquals(MANUAL_PAYMENT_REQUEST, repository.lastInvoice)
@@ -193,7 +194,7 @@ class MainViewModelTest {
         )
         try {
             viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
-            viewModel.uiState.first { it is MainUiState.EnterAmount }
+            viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
 
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(3)))
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(0)))
@@ -201,7 +202,7 @@ class MainViewModelTest {
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(0)))
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(0)))
 
-            viewModel.uiState.first {
+            viewModel.uiState.firstWithTimeout {
                 it is MainUiState.EnterAmount &&
                     it.entry.amount?.minor == 3_000L &&
                     it.entry.currency == DisplayCurrency.Fiat("USD")
@@ -209,7 +210,7 @@ class MainViewModelTest {
 
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val success = viewModel.uiState.first {
+            val success = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.Success
             } as MainUiState.Success
             assertEquals(50_000_000L, repository.lastAmountMsats)
@@ -244,7 +245,7 @@ class MainViewModelTest {
         )
         try {
             viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
-            viewModel.uiState.first { it is MainUiState.EnterAmount }
+            viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
 
             listOf(1, 0, 0).forEach { digit ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(digit)))
@@ -252,7 +253,7 @@ class MainViewModelTest {
 
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val confirm = viewModel.uiState.first {
+            val confirm = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.Confirm
             } as MainUiState.Confirm
             assertEquals(100L, confirm.amount.minor)
@@ -260,7 +261,7 @@ class MainViewModelTest {
 
             viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
 
-            viewModel.uiState.first { it is MainUiState.Success }
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
             assertEquals(MANUAL_PAYMENT_REQUEST, repository.lastInvoice)
             assertEquals(100_000L, repository.lastAmountMsats)
         } finally {
@@ -289,7 +290,7 @@ class MainViewModelTest {
         try {
             viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
 
-            val confirm = viewModel.uiState.first {
+            val confirm = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.Confirm
             } as MainUiState.Confirm
             assertEquals(250L, confirm.amount.minor)
@@ -297,7 +298,7 @@ class MainViewModelTest {
 
             viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
 
-            viewModel.uiState.first { it is MainUiState.Success }
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
             assertEquals(AMOUNT_PAYMENT_REQUEST, repository.lastInvoice)
             assertNull(repository.lastAmountMsats)
         } finally {
@@ -322,7 +323,7 @@ class MainViewModelTest {
             val viewModel = createViewModel(parser, repository)
             try {
                 viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-                viewModel.uiState.first { it is MainUiState.Loading }
+                viewModel.uiState.firstWithTimeout { it is MainUiState.Loading }
 
                 viewModel.dispatch(MainIntent.QrCodeScanned("ignored-invoice"))
 
@@ -332,7 +333,7 @@ class MainViewModelTest {
                 )
 
                 repository.complete()
-                viewModel.uiState.first { it is MainUiState.Success }
+                viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
                 assertEquals(
                     listOf(AMOUNT_PAYMENT_REQUEST to null),
                     repository.invoices
@@ -370,17 +371,17 @@ class MainViewModelTest {
         try {
             runCurrent()
             viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-            viewModel.uiState.first { it is MainUiState.Loading }
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Loading }
 
             advanceTimeBy(5_000L)
             runCurrent()
-            val pendingId = viewModel.pendingPayments.first { it.isNotEmpty() }.first().id
+            val pendingId = viewModel.pendingPayments.firstWithTimeout { it.isNotEmpty() }.first().id
 
             currencyPreferencesRepository.setCurrencyCode("SAT")
             runCurrent()
 
             repository.complete()
-            viewModel.pendingPayments.first { list ->
+            viewModel.pendingPayments.firstWithTimeout { list ->
                 list.any { it.id == pendingId && it.status == PendingStatus.Success }
             }
 
@@ -392,7 +393,7 @@ class MainViewModelTest {
             runCurrent()
 
             viewModel.dispatch(MainIntent.TapPending(pendingId))
-            val success = viewModel.uiState.first { it is MainUiState.Success } as MainUiState.Success
+            val success = viewModel.uiState.firstWithTimeout { it is MainUiState.Success } as MainUiState.Success
             assertEquals(DisplayCurrency.Satoshi, success.amountPaid.currency)
         } finally {
             repository.completeIfNeeded()
@@ -434,9 +435,9 @@ class MainViewModelTest {
             lnurlRepository = lnurlRepository
         )
         try {
-            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_ENDPOINT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_INPUT))
 
-            val success = viewModel.uiState.first {
+            val success = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.Success
             } as MainUiState.Success
             assertEquals(lnurlInvoice, repository.lastInvoice)
@@ -484,13 +485,13 @@ class MainViewModelTest {
             lnurlRepository = lnurlRepository
         )
         try {
-            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_ENDPOINT))
-            viewModel.uiState.first { it is MainUiState.EnterAmount }
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_INPUT))
+            viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
 
             viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(2)))
             viewModel.dispatch(MainIntent.ManualAmountSubmit)
 
-            val success = viewModel.uiState.first {
+            val success = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.Success
             } as MainUiState.Success
             assertEquals(lnurlInvoice, repository.lastInvoice)
@@ -530,9 +531,9 @@ class MainViewModelTest {
             lnurlRepository = lnurlRepository
         )
         try {
-            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_ENDPOINT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_INPUT))
 
-            val state = viewModel.uiState.first {
+            val state = viewModel.uiState.firstWithTimeout {
                 it is MainUiState.EnterAmount && it.entry.currency == DisplayCurrency.Fiat("USD")
             } as MainUiState.EnterAmount
 
@@ -609,9 +610,9 @@ class MainViewModelTest {
     }
 }
 
-private const val MANUAL_INVOICE_INPUT = "manual-invoice"
+private const val MANUAL_INVOICE_INPUT = "lnbc1manualinvoice"
 private const val MANUAL_PAYMENT_REQUEST = "lnbc1manual"
-private const val AMOUNT_INVOICE_INPUT = "amount-invoice"
+private const val AMOUNT_INVOICE_INPUT = "lnbc1amountinvoice"
 private const val AMOUNT_PAYMENT_REQUEST = "lnbc1amount"
 
 private class RecordingNwcWalletRepository(private val result: PaidInvoice = PaidInvoice(preimage = "preimage", feesPaidMsats = 5_000L)) :
@@ -818,6 +819,7 @@ private class FakeWalletSettingsRepository : WalletSettingsRepository {
     }
 }
 
+private const val LNURL_INPUT = "lnurlp://example.com/lnurl"
 private const val LNURL_ENDPOINT = "https://example.com/lnurl"
 private const val LNURL_CALLBACK = "https://example.com/callback"
 private const val LNURL_METADATA_RAW = "[[\"text/plain\",\"Payment\"]]"
@@ -831,3 +833,7 @@ private val LNURL_METADATA = LnurlPayMetadata(
     tag = null
 )
 private const val MSATS_PER_SAT = 1_000L
+private const val TEST_TIMEOUT_MS = 5_000L
+
+private suspend fun <T> Flow<T>.firstWithTimeout(timeoutMs: Long = TEST_TIMEOUT_MS, predicate: suspend (T) -> Boolean): T =
+    withTimeout(timeoutMs) { first(predicate) }
