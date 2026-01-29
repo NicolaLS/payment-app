@@ -258,7 +258,14 @@ class PendingPaymentTracker(
                     }
                 }
             }
-            // Max attempts reached - keep as pending
+            if (records.value[id]?.status == PendingStatus.Waiting) {
+                val error = AppError.PaymentUnconfirmed(
+                    paymentHash = paymentHash,
+                    message = "Verification timed out"
+                )
+                markFailure(id, error)
+                _events.tryEmit(PendingEvent.Failed(id, error))
+            }
         }
 
         job.invokeOnCompletion { verificationJobs.remove(id) }

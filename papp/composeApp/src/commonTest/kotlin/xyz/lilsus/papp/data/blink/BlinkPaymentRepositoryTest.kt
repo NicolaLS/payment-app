@@ -34,6 +34,7 @@ import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.platform.NetworkConnectivity
 
 /**
  * Tests for BlinkPaymentRepository.
@@ -186,12 +187,25 @@ class BlinkPaymentRepositoryTest {
     }
 
     @Test
-    fun payInvoiceThrowsNetworkUnavailableOnNetworkError() = runTest {
+    fun payInvoiceReturnsUnconfirmedOnNetworkError() = runTest {
+        var callCount = 0
         val mockEngine = MockEngine { _ ->
-            respond(
-                content = "Service Unavailable",
-                status = HttpStatusCode.ServiceUnavailable
-            )
+            callCount += 1
+            if (callCount == 1) {
+                respond(
+                    content = defaultWalletResponseBody(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(
+                        HttpHeaders.ContentType,
+                        ContentType.Application.Json.toString()
+                    )
+                )
+            } else {
+                respond(
+                    content = "Service Unavailable",
+                    status = HttpStatusCode.ServiceUnavailable
+                )
+            }
         }
         val context = createTestContextWithEngine(mockEngine)
 
@@ -199,7 +213,7 @@ class BlinkPaymentRepositoryTest {
             context.repository.payInvoice("lnbc1test")
         }
 
-        assertTrue(exception.error is AppError.NetworkUnavailable)
+        assertTrue(exception.error is AppError.PaymentUnconfirmed)
     }
 
     @Test
@@ -284,7 +298,14 @@ class BlinkPaymentRepositoryTest {
         val apiClient = BlinkApiClient(httpClient)
         val walletSettingsRepository = FakeWalletSettingsRepository()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val repository = BlinkPaymentRepository(apiClient, credentialStore, walletSettingsRepository, scope)
+        val networkConnectivity = AlwaysOnlineNetworkConnectivity()
+        val repository = BlinkPaymentRepository(
+            apiClient,
+            credentialStore,
+            walletSettingsRepository,
+            networkConnectivity,
+            scope
+        )
 
         // Set up default test wallet
         credentialStore.storeApiKey(TEST_WALLET_ID, TEST_API_KEY)
@@ -299,6 +320,10 @@ class BlinkPaymentRepositoryTest {
         val apiClient: BlinkApiClient,
         val walletSettingsRepository: FakeWalletSettingsRepository
     )
+
+    private class AlwaysOnlineNetworkConnectivity : NetworkConnectivity {
+        override fun isNetworkAvailable(): Boolean = true
+    }
 
     /**
      * Fake implementation of WalletSettingsRepository for testing.
@@ -355,8 +380,16 @@ class BlinkPaymentRepositoryTest {
             respond(
                 content = """{
                     "data": {
-                        "lnInvoicePaymentStatusByHash": {
-                            "status": "PAID"
+                        "me": {
+                            "defaultAccount": {
+                                "wallets": [{
+                                    "__typename": "BTCWallet",
+                                    "transactionsByPaymentHash": [{
+                                        "status": "SUCCESS",
+                                        "direction": "SEND"
+                                    }]
+                                }]
+                            }
                         }
                     }
                 }""",
@@ -375,7 +408,14 @@ class BlinkPaymentRepositoryTest {
         val apiClient = BlinkApiClient(httpClient)
         val walletSettingsRepository = FakeWalletSettingsRepository()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val repository = BlinkPaymentRepository(apiClient, credentialStore, walletSettingsRepository, scope)
+        val networkConnectivity = AlwaysOnlineNetworkConnectivity()
+        val repository = BlinkPaymentRepository(
+            apiClient,
+            credentialStore,
+            walletSettingsRepository,
+            networkConnectivity,
+            scope
+        )
 
         // Store API keys for both wallets
         credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)
@@ -403,8 +443,16 @@ class BlinkPaymentRepositoryTest {
             respond(
                 content = """{
                     "data": {
-                        "lnInvoicePaymentStatusByHash": {
-                            "status": "PAID"
+                        "me": {
+                            "defaultAccount": {
+                                "wallets": [{
+                                    "__typename": "BTCWallet",
+                                    "transactionsByPaymentHash": [{
+                                        "status": "SUCCESS",
+                                        "direction": "SEND"
+                                    }]
+                                }]
+                            }
                         }
                     }
                 }""",
@@ -440,8 +488,16 @@ class BlinkPaymentRepositoryTest {
             respond(
                 content = """{
                     "data": {
-                        "lnInvoicePaymentStatusByHash": {
-                            "status": "PAID"
+                        "me": {
+                            "defaultAccount": {
+                                "wallets": [{
+                                    "__typename": "BTCWallet",
+                                    "transactionsByPaymentHash": [{
+                                        "status": "SUCCESS",
+                                        "direction": "SEND"
+                                    }]
+                                }]
+                            }
                         }
                     }
                 }""",
@@ -460,7 +516,14 @@ class BlinkPaymentRepositoryTest {
         val apiClient = BlinkApiClient(httpClient)
         val walletSettingsRepository = FakeWalletSettingsRepository()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val repository = BlinkPaymentRepository(apiClient, credentialStore, walletSettingsRepository, scope)
+        val networkConnectivity = AlwaysOnlineNetworkConnectivity()
+        val repository = BlinkPaymentRepository(
+            apiClient,
+            credentialStore,
+            walletSettingsRepository,
+            networkConnectivity,
+            scope
+        )
 
         // Store API keys for both wallets
         credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)

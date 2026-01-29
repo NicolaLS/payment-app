@@ -13,6 +13,7 @@ import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.platform.NetworkConnectivity
 
 /**
  * Payment provider implementation for Blink wallets.
@@ -22,6 +23,7 @@ class BlinkPaymentRepository(
     private val apiClient: BlinkApiClient,
     private val credentialStore: BlinkCredentialStore,
     private val walletSettingsRepository: WalletSettingsRepository,
+    private val networkConnectivity: NetworkConnectivity,
     private val scope: CoroutineScope
 ) : PaymentProvider {
 
@@ -90,6 +92,10 @@ class BlinkPaymentRepository(
     }
 
     override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        if (!networkConnectivity.isNetworkAvailable()) {
+            throw AppErrorException(AppError.NetworkUnavailable)
+        }
+
         val walletId = activeWalletId
             ?: throw AppErrorException(AppError.MissingWalletConnection)
 
@@ -102,13 +108,30 @@ class BlinkPaymentRepository(
 
         val blinkWalletId = apiClient.fetchDefaultWalletId(apiKey)
 
-        val result = if (amountMsats != null) {
-            // Zero-amount invoice - convert msats to sats
-            val amountSats = (amountMsats + 999) / 1000 // Round up to nearest sat
-            apiClient.payNoAmountInvoice(apiKey, blinkWalletId, invoice, amountSats)
-        } else {
-            // Invoice with embedded amount
-            apiClient.payInvoice(apiKey, blinkWalletId, invoice)
+        val result = try {
+            if (amountMsats != null) {
+                // Zero-amount invoice - convert msats to sats
+                val amountSats = (amountMsats + 999) / 1000 // Round up to nearest sat
+                apiClient.payNoAmountInvoice(apiKey, blinkWalletId, invoice, amountSats)
+            } else {
+                // Invoice with embedded amount
+                apiClient.payInvoice(apiKey, blinkWalletId, invoice)
+            }
+        } catch (e: AppErrorException) {
+            val mappedError = when (e.error) {
+                AppError.NetworkUnavailable,
+                AppError.Timeout ->
+                    AppError.PaymentUnconfirmed(
+                        paymentHash = null, // Caller has payment hash from invoice
+                        message = "Payment status unknown"
+                    )
+
+                else -> null
+            }
+            if (mappedError != null) {
+                throw AppErrorException(mappedError, e)
+            }
+            throw e
         }
 
         // Handle PENDING status - payment is in-flight but not yet confirmed
@@ -132,6 +155,10 @@ class BlinkPaymentRepository(
         walletUri: String?,
         walletType: WalletType?
     ): PaymentLookupResult {
+        if (!networkConnectivity.isNetworkAvailable()) {
+            return PaymentLookupResult.LookupError(AppError.NetworkUnavailable)
+        }
+
         // Use provided wallet ID or fall back to active wallet
         // For Blink, walletUri is the wallet's public key (ID)
         val walletId = walletUri ?: activeWalletId

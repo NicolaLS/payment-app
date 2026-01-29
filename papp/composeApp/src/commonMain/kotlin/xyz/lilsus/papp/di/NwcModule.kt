@@ -162,6 +162,7 @@ val nwcModule = module {
             apiClient = get(),
             credentialStore = get(),
             walletSettingsRepository = get(),
+            networkConnectivity = get(),
             scope = get()
         )
     }

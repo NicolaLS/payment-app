@@ -170,6 +170,8 @@ class BlinkApiClient(
     /**
      * Looks up the status of a Lightning payment by its payment hash.
      *
+     * Uses wallet transactions for outgoing payments to avoid invoice-not-found errors.
+     *
      * @param apiKey The Blink API key for authentication.
      * @param paymentHash The hex-encoded payment hash to look up.
      * @return [BlinkPaymentStatusResult] indicating the payment status.
@@ -177,9 +179,25 @@ class BlinkApiClient(
      */
     suspend fun lookupPaymentStatus(apiKey: String, paymentHash: String): BlinkPaymentStatusResult {
         val query = """
-            query LnInvoicePaymentStatusByHash(${'$'}input: LnInvoicePaymentStatusByHashInput!) {
-                lnInvoicePaymentStatusByHash(input: ${'$'}input) {
-                    status
+            query TransactionsByPaymentHash(${'$'}paymentHash: PaymentHash!) {
+                me {
+                    defaultAccount {
+                        wallets {
+                            __typename
+                            ... on BTCWallet {
+                                transactionsByPaymentHash(paymentHash: ${'$'}paymentHash) {
+                                    status
+                                    direction
+                                }
+                            }
+                            ... on UsdWallet {
+                                transactionsByPaymentHash(paymentHash: ${'$'}paymentHash) {
+                                    status
+                                    direction
+                                }
+                            }
+                        }
+                    }
                 }
             }
         """.trimIndent()
@@ -189,12 +207,7 @@ class BlinkApiClient(
             put(
                 "variables",
                 buildJsonObject {
-                    put(
-                        "input",
-                        buildJsonObject {
-                            put("paymentHash", paymentHash)
-                        }
-                    )
+                    put("paymentHash", paymentHash)
                 }
             )
         }
@@ -202,20 +215,41 @@ class BlinkApiClient(
         val response = executeGraphQlRequest(
             apiKey = apiKey,
             requestBody = requestBody,
-            logLabel = "LnInvoicePaymentStatusByHash"
+            logLabel = "TransactionsByPaymentHash"
         )
 
         val data = response["data"]?.jsonObject
             ?: throw AppErrorException(AppError.Unexpected("Missing data in response"))
 
-        val status = data["lnInvoicePaymentStatusByHash"]?.jsonObject
-            ?.get("status")?.jsonPrimitive?.content
+        val wallets = data["me"]?.jsonObject
+            ?.get("defaultAccount")?.jsonObject
+            ?.get("wallets")?.jsonArray
+            ?: return BlinkPaymentStatusResult.NotFound
 
-        return when (status) {
-            "PAID" -> BlinkPaymentStatusResult.Paid
-            "PENDING" -> BlinkPaymentStatusResult.Pending
-            "EXPIRED" -> BlinkPaymentStatusResult.Failed
-            null -> BlinkPaymentStatusResult.NotFound
+        val sendStatuses = wallets.flatMap { wallet ->
+            wallet.jsonObject["transactionsByPaymentHash"]
+                ?.jsonArray
+                ?.mapNotNull { transaction ->
+                    val direction = transaction.jsonObject["direction"]?.jsonPrimitive?.content
+                    val status = transaction.jsonObject["status"]?.jsonPrimitive?.content
+                    status?.takeIf { direction == "SEND" }
+                }
+                ?: emptyList()
+        }
+
+        return when {
+            sendStatuses.any { it == "SUCCESS" } -> BlinkPaymentStatusResult.Paid
+
+            sendStatuses.any { it == "PENDING" } -> BlinkPaymentStatusResult.Pending
+
+            sendStatuses.any {
+                it == "FAILURE" ||
+                    it == "FAILED" ||
+                    it == "EXPIRED"
+            } -> BlinkPaymentStatusResult.Failed
+
+            sendStatuses.isEmpty() -> BlinkPaymentStatusResult.NotFound
+
             else -> BlinkPaymentStatusResult.NotFound
         }
     }
