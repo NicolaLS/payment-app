@@ -1,5 +1,9 @@
 package xyz.lilsus.papp.presentation.main
 
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -11,6 +15,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import xyz.lilsus.papp.data.exchange.currentTimeMillis
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.model.AppError
@@ -221,16 +226,21 @@ class PendingPaymentTracker(
         val walletType = record.walletType
 
         val job = scope.launch {
-            var attempt = 0
-            while (attempt < MAX_VERIFICATION_ATTEMPTS) {
-                delay(VERIFICATION_INTERVAL_MS)
+            val startedAt = TimeSource.Monotonic.markNow()
 
+            while (startedAt.elapsedNow() < VERIFICATION_TIMEOUT) {
                 val currentRecord = records.value[id] ?: break
                 if (currentRecord.status != PendingStatus.Waiting) break
 
-                attempt++
+                val remaining = VERIFICATION_TIMEOUT - startedAt.elapsedNow()
+                if (remaining < MIN_LOOKUP_BUDGET) break
 
-                when (val result = lookupPayment(paymentHash, walletUri, walletType)) {
+                val attemptStart = TimeSource.Monotonic.markNow()
+                val result = withTimeoutOrNull(remaining) {
+                    lookupPayment(paymentHash, walletUri, walletType)
+                } ?: break
+
+                when (result) {
                     is PaymentLookupResult.Settled -> {
                         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
                         val feeMsats = result.invoice.feesPaidMsats ?: 0L
@@ -254,10 +264,19 @@ class PendingPaymentTracker(
                     PaymentLookupResult.NotFound,
                     PaymentLookupResult.Pending,
                     is PaymentLookupResult.LookupError -> {
-                        // Continue polling
+                        // Continue polling within the verification window.
                     }
                 }
+
+                val attemptDuration = attemptStart.elapsedNow()
+                val remainingAfter = VERIFICATION_TIMEOUT - startedAt.elapsedNow()
+                if (remainingAfter <= Duration.ZERO) break
+
+                if (attemptDuration < FAST_RETRY_THRESHOLD) {
+                    delay(minOf(RETRY_BACKOFF, remainingAfter))
+                }
             }
+
             if (records.value[id]?.status == PendingStatus.Waiting) {
                 val error = AppError.PaymentUnconfirmed(
                     paymentHash = paymentHash,
@@ -322,8 +341,10 @@ class PendingPaymentTracker(
 
     companion object {
         private const val PENDING_NOTICE_DELAY_MS = 5_000L
-        private const val VERIFICATION_INTERVAL_MS = 1_000L
-        private const val MAX_VERIFICATION_ATTEMPTS = 30
+        private val VERIFICATION_TIMEOUT = 30.seconds
+        private val MIN_LOOKUP_BUDGET = 2.seconds
+        private val FAST_RETRY_THRESHOLD = 750.milliseconds
+        private val RETRY_BACKOFF = 500.milliseconds
     }
 }
 
