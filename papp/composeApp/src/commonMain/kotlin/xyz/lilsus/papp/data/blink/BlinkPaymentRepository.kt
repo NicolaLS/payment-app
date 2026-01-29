@@ -86,6 +86,7 @@ class BlinkPaymentRepository(
 
         // Remove the wallet and API key
         credentialStore.removeApiKey(walletId)
+        credentialStore.removeDefaultWalletId(walletId)
         walletSettingsRepository.removeWallet(walletId)
 
         return AppError.BlinkError(BlinkErrorType.InvalidApiKeyWalletRemoved)
@@ -106,7 +107,10 @@ class BlinkPaymentRepository(
                 )
             )
 
-        val blinkWalletId = apiClient.fetchDefaultWalletId(apiKey)
+        val blinkWalletId = credentialStore.getDefaultWalletId(walletId)
+            ?: apiClient.fetchDefaultWalletId(apiKey).also {
+                credentialStore.storeDefaultWalletId(walletId, it)
+            }
 
         val result = try {
             if (amountMsats != null) {

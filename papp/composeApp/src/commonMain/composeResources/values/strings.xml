@@ -147,6 +147,14 @@
     <string name="error_blink_invalid_api_key_wallet_removed">Authentication error: Your API key is invalid or was revoked. Your wallet was removed automatically so you can reconnect it with a new key.</string>
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>
+
+    <string name="settings_wallet_details_title">Wallet Details</string>
+    <string name="settings_wallet_details_type">Type</string>
+    <string name="settings_wallet_details_connection_id">Connection ID</string>
+    <string name="settings_wallet_details_blink_default_id">Blink default wallet ID</string>
+    <string name="settings_wallet_details_default_id_unset">Not set yet</string>
+    <string name="settings_wallet_details_blink_default_id_hint">If you switched your default wallet recently, refresh it here.</string>
+    <string name="settings_wallet_details_blink_refresh">Refresh default wallet</string>
     <string name="add_wallet_choose_type">Choose wallet type</string>
 
     <!-- Onboarding strings -->

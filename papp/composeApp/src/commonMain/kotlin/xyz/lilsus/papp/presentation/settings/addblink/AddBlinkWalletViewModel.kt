@@ -81,11 +81,14 @@ class AddBlinkWalletViewModel internal constructor(
                     return@launch
                 }
 
+                val defaultWalletId = apiClient.fetchDefaultWalletId(apiKey)
+
                 // Generate a unique wallet ID for this Blink wallet
                 val walletId = generateWalletId()
 
                 // Store the API key securely
                 credentialStore.storeApiKey(walletId, apiKey)
+                credentialStore.storeDefaultWalletId(walletId, defaultWalletId)
 
                 // Create and save the wallet connection
                 val connection = WalletConnection(

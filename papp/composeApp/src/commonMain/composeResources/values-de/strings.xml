@@ -146,6 +146,14 @@
     <string name="add_blink_wallet_connect">Verbinden</string>
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>
+
+    <string name="settings_wallet_details_title">Wallet-Details</string>
+    <string name="settings_wallet_details_type">Typ</string>
+    <string name="settings_wallet_details_connection_id">Verbindungs-ID</string>
+    <string name="settings_wallet_details_blink_default_id">Blink-Standard-Wallet-ID</string>
+    <string name="settings_wallet_details_default_id_unset">Noch nicht gesetzt</string>
+    <string name="settings_wallet_details_blink_default_id_hint">Falls du deine Standard-Wallet kürzlich gewechselt hast, aktualisiere sie hier.</string>
+    <string name="settings_wallet_details_blink_refresh">Standard-Wallet aktualisieren</string>
     <string name="add_wallet_choose_type">Wallet-Typ auswählen</string>
     <!-- Onboarding strings -->
     <string name="onboarding_welcome_title">Willkommen bei Lasr</string>

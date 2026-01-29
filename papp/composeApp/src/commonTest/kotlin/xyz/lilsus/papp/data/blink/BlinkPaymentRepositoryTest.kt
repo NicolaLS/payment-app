@@ -112,6 +112,53 @@ class BlinkPaymentRepositoryTest {
     }
 
     @Test
+    fun payInvoiceUsesStoredDefaultWalletIdWhenAvailable() = runTest {
+        var paymentRequestBody: String? = null
+        var defaultWalletQuerySeen = false
+        val mockEngine = MockEngine { request ->
+            val body = (request.body as TextContent).text
+            if (body.contains("DefaultWalletId")) {
+                defaultWalletQuerySeen = true
+                respond(
+                    content = defaultWalletResponseBody(),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(
+                        HttpHeaders.ContentType,
+                        ContentType.Application.Json.toString()
+                    )
+                )
+            } else {
+                paymentRequestBody = body
+                respond(
+                    content = """{
+                        "data": {
+                            "lnInvoicePaymentSend": {
+                                "status": "SUCCESS",
+                                "errors": []
+                            }
+                        }
+                    }""",
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(
+                        HttpHeaders.ContentType,
+                        ContentType.Application.Json.toString()
+                    )
+                )
+            }
+        }
+        val context = createTestContextWithEngine(mockEngine)
+        context.credentialStore.storeDefaultWalletId(TEST_WALLET_ID, TEST_BLINK_DEFAULT_WALLET_ID)
+
+        context.repository.payInvoice("lnbc1000n1test")
+
+        val body = paymentRequestBody ?: error("Expected payment request body to be captured")
+        val jsonBody = Json.parseToJsonElement(body).jsonObject
+        val input = jsonBody["variables"]!!.jsonObject["input"]!!.jsonObject
+        assertEquals(TEST_BLINK_DEFAULT_WALLET_ID, input["walletId"]!!.jsonPrimitive.content)
+        assertFalse(defaultWalletQuerySeen)
+    }
+
+    @Test
     fun payNoAmountInvoiceWithUserProvidedAmountSucceeds() = runTest {
         val context = createTestContext(
             responseBody = """{
@@ -253,6 +300,7 @@ class BlinkPaymentRepositoryTest {
 
         // Verify wallet and API key exist before payment
         assertTrue(context.credentialStore.hasApiKey(TEST_WALLET_ID))
+        context.credentialStore.storeDefaultWalletId(TEST_WALLET_ID, TEST_BLINK_DEFAULT_WALLET_ID)
         assertTrue(context.walletSettingsRepository.removedWallets.isEmpty())
 
         val request = context.repository.startPayInvoiceRequest("lnbc1test", null)
@@ -270,6 +318,7 @@ class BlinkPaymentRepositoryTest {
 
         // Verify wallet and API key were removed
         assertFalse(context.credentialStore.hasApiKey(TEST_WALLET_ID))
+        assertNull(context.credentialStore.getDefaultWalletId(TEST_WALLET_ID))
         assertTrue(context.walletSettingsRepository.removedWallets.contains(TEST_WALLET_ID))
     }
 

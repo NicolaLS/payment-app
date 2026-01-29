@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.presentation.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +54,7 @@ fun ManageWalletsScreen(
     onAddWallet: () -> Unit,
     onSelectWallet: (String) -> Unit,
     onRemoveWallet: (String) -> Unit,
+    onWalletDetails: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -96,6 +98,7 @@ fun ManageWalletsScreen(
                         WalletCard(
                             wallet = row.wallet,
                             isActive = row.isActive,
+                            onDetails = { onWalletDetails(row.wallet.pubKey) },
                             onRemoveWallet = { onRemoveWallet(row.wallet.pubKey) },
                             onSetActive = { onSelectWallet(row.wallet.pubKey) }
                         )
@@ -112,11 +115,14 @@ fun ManageWalletsScreen(
 private fun WalletCard(
     wallet: WalletDisplay,
     isActive: Boolean,
+    onDetails: () -> Unit,
     onRemoveWallet: () -> Unit,
     onSetActive: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onDetails),
         tonalElevation = if (isActive) 8.dp else 4.dp,
         shape = MaterialTheme.shapes.large
     ) {
@@ -254,7 +260,8 @@ private fun ManageWalletsScreenPreview() {
             onBack = {},
             onAddWallet = {},
             onSelectWallet = {},
-            onRemoveWallet = {}
+            onRemoveWallet = {},
+            onWalletDetails = {}
         )
     }
 }

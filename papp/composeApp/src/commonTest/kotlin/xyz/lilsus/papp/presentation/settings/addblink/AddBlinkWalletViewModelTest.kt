@@ -8,6 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlin.test.Test
@@ -209,9 +210,15 @@ class AddBlinkWalletViewModelTest {
     }
 
     private fun createMockApiClient(authorizationResponse: String): BlinkApiClient {
-        val mockEngine = MockEngine { _ ->
+        val mockEngine = MockEngine { request ->
+            val body = (request.body as TextContent).text
+            val responseBody = if (body.contains("authorization")) {
+                authorizationResponse
+            } else {
+                DEFAULT_WALLET_RESPONSE
+            }
             respond(
-                content = authorizationResponse,
+                content = responseBody,
                 status = HttpStatusCode.OK,
                 headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             )
@@ -244,6 +251,18 @@ class AddBlinkWalletViewModelTest {
             "data": {
                 "authorization": {
                     "scopes": ["READ"]
+                }
+            }
+        }"""
+
+        private const val DEFAULT_WALLET_RESPONSE = """{
+            "data": {
+                "me": {
+                    "defaultAccount": {
+                        "defaultWallet": {
+                            "id": "wallet-123"
+                        }
+                    }
                 }
             }
         }"""

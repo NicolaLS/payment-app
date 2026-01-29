@@ -17,6 +17,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
@@ -59,6 +60,8 @@ import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletViewModel
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletEvent
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletScreen
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
+import xyz.lilsus.papp.presentation.settings.wallet.WalletDetailsScreen
+import xyz.lilsus.papp.presentation.settings.wallet.WalletDetailsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
@@ -92,6 +95,9 @@ internal object SettingsChooseWalletType
 @Serializable
 internal object SettingsAddBlinkWallet
 
+@Serializable
+internal data class SettingsWalletDetails(val walletId: String)
+
 fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> Unit = {}) {
     navigation<SettingsSubNav>(startDestination = Settings) {
         composable<Settings> {
@@ -120,6 +126,13 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
         }
         composable<SettingsAddBlinkWallet> {
             AddBlinkWalletEntry(navController = navController)
+        }
+        composable<SettingsWalletDetails> { backStackEntry ->
+            val route = backStackEntry.toRoute<SettingsWalletDetails>()
+            WalletDetailsEntry(
+                navController = navController,
+                walletId = route.walletId
+            )
         }
     }
 }
@@ -156,6 +169,12 @@ fun NavController.navigateToSettingsTheme() {
 
 fun NavController.navigateToSettingsManageWallets() {
     navigate(route = SettingsManageWallets) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsWalletDetails(walletId: String) {
+    navigate(route = SettingsWalletDetails(walletId)) {
         launchSingleTop = true
     }
 }
@@ -218,7 +237,35 @@ private fun WalletSettingsEntry(navController: NavController) {
         onBack = { navController.popBackStack() },
         onAddWallet = { navController.navigateToSettingsChooseWalletType() },
         onSelectWallet = { viewModel.selectWallet(it) },
-        onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) }
+        onRemoveWallet = { pubKey -> viewModel.removeWallet(pubKey) },
+        onWalletDetails = { pubKey ->
+            navController.navigateToSettingsWalletDetails(pubKey)
+        }
+    )
+}
+
+@Composable
+private fun WalletDetailsEntry(navController: NavController, walletId: String) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = rememberRetainedInstance(
+        factory = {
+            WalletDetailsViewModel(
+                walletId = walletId,
+                walletSettingsRepository = koin.get(),
+                credentialStore = koin.get(),
+                apiClient = koin.get(),
+                dispatcher = koin.get()
+            )
+        },
+        onDispose = { it.clear() }
+    )
+
+    val state by viewModel.uiState.collectAsState()
+
+    WalletDetailsScreen(
+        state = state,
+        onBack = { navController.popBackStack() },
+        onRefreshBlinkDefaultWallet = viewModel::refreshDefaultWalletId
     )
 }
 
