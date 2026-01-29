@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.data.exchange.currentTimeMillis
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
@@ -18,18 +19,27 @@ import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
+import xyz.lilsus.papp.presentation.main.PendingPaymentTracker.Companion.PENDING_NOTICE_DELAY_MS
 
 /**
  * Tracks pending payments and their verification status.
  * Emits events when payments are settled or fail, allowing the ViewModel to update UI accordingly.
+ *
+ * Thread-safety: Uses MutableStateFlow with atomic updates for the records map.
+ * Jobs are tracked separately and accessed only from coroutines launched on [scope].
  */
 class PendingPaymentTracker(
     private val lookupPayment: LookupPaymentUseCase,
     private val currencyManager: CurrencyManager,
     private val scope: CoroutineScope
 ) {
-    private val pendingRequests = LinkedHashMap<String, PendingRecord>()
-    private val pendingVerificationJobs = mutableMapOf<String, Job>()
+    // Thread-safe record storage using StateFlow with atomic updates
+    private val records = MutableStateFlow<Map<String, PendingRecord>>(emptyMap())
+
+    // Job tracking - accessed only from scope's coroutines
+    private val visibilityJobs = mutableMapOf<String, Job>()
+    private val verificationJobs = mutableMapOf<String, Job>()
+    private val requests = mutableMapOf<String, PayInvoiceRequest>()
 
     private val _displayItems = MutableStateFlow<List<PendingPaymentItem>>(emptyList())
     val displayItems: StateFlow<List<PendingPaymentItem>> = _displayItems.asStateFlow()
@@ -48,7 +58,7 @@ class PendingPaymentTracker(
         walletUri: String?,
         walletType: WalletType?
     ): String {
-        val id = "pending-${currentTimeMillis()}-${pendingRequests.size}"
+        val id = "pending-${currentTimeMillis()}-${records.value.size}"
         val record = PendingRecord(
             id = id,
             summary = summary,
@@ -59,17 +69,22 @@ class PendingPaymentTracker(
             walletType = walletType,
             paymentHash = summary.paymentHash
         )
-        pendingRequests[id] = record
+        records.update { it + (id to record) }
 
         // After delay, if still waiting, show chip
-        record.visibilityJob = scope.launch {
+        val visibilityJob = scope.launch {
             delay(PENDING_NOTICE_DELAY_MS)
-            if (pendingRequests[id]?.status == PendingStatus.Waiting) {
-                record.visible = true
+            val current = records.value[id]
+            if (current?.status == PendingStatus.Waiting) {
+                records.update { records ->
+                    records[id]?.let { records + (id to it.copy(visible = true)) } ?: records
+                }
                 refreshDisplayItems()
                 _events.tryEmit(PendingEvent.BecameVisible(id))
             }
         }
+        visibilityJobs[id] = visibilityJob
+
         return id
     }
 
@@ -83,13 +98,19 @@ class PendingPaymentTracker(
         paidMsats: Long? = null,
         feeMsats: Long? = null
     ) {
-        val record = pendingRequests[id] ?: return
-        record.status = status
-        record.error = error ?: record.error
-        paidMsats?.let { record.paidMsats = it }
-        feeMsats?.let { record.feeMsats = it }
+        records.update { currentRecords ->
+            currentRecords[id]?.let { record ->
+                val updated = record.copy(
+                    status = status,
+                    error = error ?: record.error,
+                    paidMsats = paidMsats ?: record.paidMsats,
+                    feeMsats = feeMsats ?: record.feeMsats
+                )
+                currentRecords + (id to updated)
+            } ?: currentRecords
+        }
         if (status != PendingStatus.Waiting) {
-            record.visibilityJob?.cancel()
+            visibilityJobs.remove(id)?.cancel()
         }
         refreshDisplayItems()
     }
@@ -112,23 +133,28 @@ class PendingPaymentTracker(
      * Makes a pending payment's chip visible immediately.
      */
     fun makeVisible(id: String) {
-        val record = pendingRequests[id] ?: return
-        if (!record.visible) {
-            record.visible = true
-            refreshDisplayItems()
+        records.update { records ->
+            records[id]?.let { record ->
+                if (!record.visible) {
+                    records + (id to record.copy(visible = true))
+                } else {
+                    records
+                }
+            } ?: records
         }
+        refreshDisplayItems()
     }
 
     /**
      * Gets a pending record by ID.
      */
-    fun get(id: String): PendingRecord? = pendingRequests[id]
+    fun get(id: String): PendingRecord? = records.value[id]
 
     /**
      * Finds a pending record for a given invoice and wallet.
      */
     fun findByInvoiceAndWallet(paymentRequest: String, walletUri: String?): PendingRecord? =
-        pendingRequests.values.firstOrNull {
+        records.value.values.firstOrNull {
             it.summary.paymentRequest == paymentRequest && it.walletUri == walletUri
         }
 
@@ -136,10 +162,11 @@ class PendingPaymentTracker(
      * Removes a pending record.
      */
     fun remove(id: String) {
-        val record = pendingRequests.remove(id) ?: return
-        pendingVerificationJobs.remove(id)?.cancel()
-        record.visibilityJob?.cancel()
-        record.request?.cancel()
+        if (records.value[id] == null) return
+        records.update { it - id }
+        verificationJobs.remove(id)?.cancel()
+        visibilityJobs.remove(id)?.cancel()
+        requests.remove(id)?.cancel()
         refreshDisplayItems()
     }
 
@@ -148,7 +175,7 @@ class PendingPaymentTracker(
      * Called when one wallet successfully pays - the invoice can only be paid once.
      */
     fun removeOthersForSameInvoice(excludeId: String, paymentRequest: String) {
-        val toRemove = pendingRequests.values
+        val toRemove = records.value.values
             .filter { it.id != excludeId && it.summary.paymentRequest == paymentRequest }
             .map { it.id }
         toRemove.forEach { remove(it) }
@@ -158,16 +185,21 @@ class PendingPaymentTracker(
      * Sets the PayInvoiceRequest for a pending record.
      */
     fun setRequest(id: String, request: PayInvoiceRequest?) {
-        pendingRequests[id]?.request = request
+        if (records.value[id] != null) {
+            if (request != null) {
+                requests[id] = request
+            } else {
+                requests.remove(id)
+            }
+        }
     }
 
     /**
      * Clears the PayInvoiceRequest for a pending record if it matches.
      */
     fun clearRequestIfMatches(id: String, request: PayInvoiceRequest) {
-        val record = pendingRequests[id]
-        if (record?.request === request) {
-            record.request = null
+        if (requests[id] === request) {
+            requests.remove(id)
         }
     }
 
@@ -181,10 +213,10 @@ class PendingPaymentTracker(
         amountOverrideMsats: Long?,
         paymentHash: String
     ) {
-        pendingVerificationJobs[id]?.cancel()
+        verificationJobs.remove(id)?.cancel()
 
         // Capture wallet context at verification start to ensure we look up on the correct wallet
-        val record = pendingRequests[id] ?: return
+        val record = records.value[id] ?: return
         val walletUri = record.walletUri
         val walletType = record.walletType
 
@@ -193,7 +225,7 @@ class PendingPaymentTracker(
             while (attempt < MAX_VERIFICATION_ATTEMPTS) {
                 delay(VERIFICATION_INTERVAL_MS)
 
-                val currentRecord = pendingRequests[id] ?: break
+                val currentRecord = records.value[id] ?: break
                 if (currentRecord.status != PendingStatus.Waiting) break
 
                 attempt++
@@ -229,8 +261,8 @@ class PendingPaymentTracker(
             // Max attempts reached - keep as pending
         }
 
-        job.invokeOnCompletion { pendingVerificationJobs.remove(id) }
-        pendingVerificationJobs[id] = job
+        job.invokeOnCompletion { verificationJobs.remove(id) }
+        verificationJobs[id] = job
     }
 
     /**
@@ -238,7 +270,7 @@ class PendingPaymentTracker(
      */
     fun refreshDisplayItems() {
         val currencyState = currencyManager.state.value
-        _displayItems.value = pendingRequests.values
+        _displayItems.value = records.value.values
             .filter { it.visible }
             .map { record ->
                 PendingPaymentItem(
@@ -261,13 +293,13 @@ class PendingPaymentTracker(
      * Clears all pending records and cancels all jobs.
      */
     fun clear() {
-        pendingVerificationJobs.values.forEach { it.cancel() }
-        pendingVerificationJobs.clear()
-        pendingRequests.values.forEach {
-            it.request?.cancel()
-            it.visibilityJob?.cancel()
-        }
-        pendingRequests.clear()
+        verificationJobs.values.forEach { it.cancel() }
+        verificationJobs.clear()
+        visibilityJobs.values.forEach { it.cancel() }
+        visibilityJobs.clear()
+        requests.values.forEach { it.cancel() }
+        requests.clear()
+        records.value = emptyMap()
         _displayItems.value = emptyList()
     }
 
@@ -318,9 +350,10 @@ enum class PendingOrigin {
 }
 
 /**
- * Internal record of a pending payment.
+ * Immutable record of a pending payment.
+ * Thread-safe: stored in MutableStateFlow with copy-on-write updates.
  */
-class PendingRecord(
+data class PendingRecord(
     val id: String,
     val summary: Bolt11InvoiceSummary,
     val amountMsats: Long,
@@ -329,11 +362,9 @@ class PendingRecord(
     val walletUri: String?,
     val walletType: WalletType?,
     val paymentHash: String?,
-    var status: PendingStatus = PendingStatus.Waiting,
-    var error: AppError? = null,
-    var paidMsats: Long? = null,
-    var feeMsats: Long? = null,
-    var visible: Boolean = false,
-    var request: PayInvoiceRequest? = null,
-    internal var visibilityJob: Job? = null
+    val status: PendingStatus = PendingStatus.Waiting,
+    val error: AppError? = null,
+    val paidMsats: Long? = null,
+    val feeMsats: Long? = null,
+    val visible: Boolean = false
 )
