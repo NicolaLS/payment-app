@@ -32,6 +32,9 @@ class LightningInputParser {
         /** Input is a BOLT12 offer which is not yet supported. */
         data object Bolt12Offer : FailureReason()
 
+        /** Input is a NWC wallet URI (should be added via Settings, not payment screen). */
+        data class NwcWalletUri(val uri: String) : FailureReason()
+
         /** Input doesn't match any known Lightning or Bitcoin format. */
         data object Unrecognized : FailureReason()
     }
@@ -44,6 +47,7 @@ class LightningInputParser {
 
     private fun parseInternal(value: String, allowBitcoinScheme: Boolean): ParseResult {
         var current = value.trim()
+
         if (current.startsWith("lightning:", ignoreCase = true)) {
             current = current.substringAfter(':')
         }
@@ -132,6 +136,12 @@ class LightningInputParser {
             return ParseResult.Failure(FailureReason.BitcoinAddress)
         }
 
+        // Check for NWC wallet URI - users might try to scan wallet QRs on payment screen
+        // This is checked last since payments are the primary use case
+        if (looksLikeNwcUri(value)) {
+            return ParseResult.Failure(FailureReason.NwcWalletUri(value))
+        }
+
         return ParseResult.Failure(FailureReason.Unrecognized)
     }
 
@@ -158,6 +168,13 @@ class LightningInputParser {
      */
     private fun looksLikeBolt12Offer(value: String): Boolean =
         value.length >= 4 && value.lowercase().startsWith("lno1")
+
+    /**
+     * Checks if the input looks like a NWC wallet connection URI.
+     * Handles both nostr+walletconnect:// and nostr+walletconnect: formats.
+     */
+    private fun looksLikeNwcUri(value: String): Boolean =
+        value.startsWith("nostr+walletconnect:", ignoreCase = true)
 
     /**
      * Checks if the input looks like a Bitcoin address.

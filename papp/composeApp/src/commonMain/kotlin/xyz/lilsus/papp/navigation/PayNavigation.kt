@@ -133,6 +133,10 @@ private fun MainScreenEntry(
                     }
                     snackbarHostState.showSnackbar(message)
                 }
+
+                is MainEvent.NavigateToConnectWallet -> {
+                    onNavigateToConnectWallet(event.uri)
+                }
             }
         }
     }

@@ -227,7 +227,7 @@ class MainViewModel internal constructor(
         when (val parse = lightningInputParser.parse(rawInput)) {
             is LightningInputParser.ParseResult.Failure -> {
                 // Show toast for known unsupported formats, silently ignore unknown
-                when (parse.reason) {
+                when (val reason = parse.reason) {
                     LightningInputParser.FailureReason.BitcoinAddress ->
                         _events.tryEmit(
                             MainEvent.ShowToast(ToastMessage.BitcoinAddressNotSupported)
@@ -235,6 +235,11 @@ class MainViewModel internal constructor(
 
                     LightningInputParser.FailureReason.Bolt12Offer ->
                         _events.tryEmit(MainEvent.ShowToast(ToastMessage.Bolt12NotSupported))
+
+                    is LightningInputParser.FailureReason.NwcWalletUri -> {
+                        if (vibrateOnScan) haptics.notifyScanSuccess()
+                        _events.tryEmit(MainEvent.NavigateToConnectWallet(reason.uri))
+                    }
 
                     LightningInputParser.FailureReason.Empty,
                     LightningInputParser.FailureReason.Unrecognized -> {

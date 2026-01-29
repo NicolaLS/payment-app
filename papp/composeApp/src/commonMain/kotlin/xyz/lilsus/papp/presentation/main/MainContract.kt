@@ -19,6 +19,12 @@ sealed interface MainEvent {
      * like unsupported QR code formats.
      */
     data class ShowToast(val message: ToastMessage) : MainEvent
+
+    /**
+     * Navigates to the wallet connection screen with a pre-filled NWC URI.
+     * Triggered when user scans a wallet QR on the payment screen.
+     */
+    data class NavigateToConnectWallet(val uri: String) : MainEvent
 }
 
 /**

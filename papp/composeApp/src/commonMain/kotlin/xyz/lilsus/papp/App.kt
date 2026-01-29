@@ -95,8 +95,8 @@ fun App() {
             )
             paymentScreen(
                 onNavigateToSettings = { navController.navigateToSettings() },
-                onNavigateToConnectWallet = { pkh ->
-                    navController.navigateToConnectWallet(pubKeyHex = pkh)
+                onNavigateToConnectWallet = { uri ->
+                    navController.navigateToConnectWallet(uri = uri)
                 }
             )
             settingsScreen(
