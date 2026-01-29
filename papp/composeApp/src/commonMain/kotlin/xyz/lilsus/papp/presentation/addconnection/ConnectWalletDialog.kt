@@ -68,9 +68,8 @@ fun ConnectWalletDialog(initialUri: String? = null, onDismiss: () -> Unit) {
     )
 
     LaunchedEffect(initialUri) {
-        if (initialUri != null) {
-            viewModel.load(initialUri)
-        }
+        // Always call load - empty/null URIs will trigger InvalidWalletUri error
+        viewModel.load(initialUri ?: "")
     }
 
     LaunchedEffect(viewModel) {
