@@ -3,7 +3,6 @@ package xyz.lilsus.papp.data.nwc
 import io.github.nicolals.nwc.Amount
 import io.github.nicolals.nwc.LookupInvoiceParams
 import io.github.nicolals.nwc.NwcClient
-import io.github.nicolals.nwc.NwcClientState
 import io.github.nicolals.nwc.NwcError
 import io.github.nicolals.nwc.NwcResult
 import io.github.nicolals.nwc.TransactionState
@@ -24,17 +23,12 @@ import xyz.lilsus.papp.platform.NetworkConnectivity
 /**
  * [NwcWalletRepository] implementation backed by [NwcClient].
  *
- * Creates a fresh client connection for each operation, ensuring reliability
- * without the complexity of managing cached websocket state. This approach
- * eliminates issues with stale connections (especially on iOS where background
- * suspension leaves websockets in half-open states).
- *
- * Tradeoff: Slightly slower for rapid successive operations, but more reliable
- * and much simpler. The primary use case (single payment) has optimal UX.
+ * Uses [NwcConnectionManager] to obtain persistent clients, preventing
+ * connection thrashing and ensuring reliable background cleanup.
  */
 class NwcWalletRepositoryImpl(
     private val walletSettingsRepository: WalletSettingsRepository,
-    private val clientFactory: NwcClientFactory,
+    private val connectionManager: NwcConnectionManager,
     private val scope: CoroutineScope,
     private val networkConnectivity: NetworkConnectivity,
     private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS
@@ -50,22 +44,21 @@ class NwcWalletRepositoryImpl(
             throw AppErrorException(AppError.NetworkUnavailable)
         }
 
-        return withFreshClient { client ->
-            val result = client.payInvoice(
-                invoice = invoice,
-                amount = amountMsats?.let { Amount.fromMsats(it) },
-                timeoutMs = payTimeoutMillis,
-                verifyOnTimeout = true
+        val client = getClient()
+        val result = client.payInvoice(
+            invoice = invoice,
+            amount = amountMsats?.let { Amount.fromMsats(it) },
+            timeoutMs = payTimeoutMillis,
+            verifyOnTimeout = true
+        )
+
+        return when (result) {
+            is NwcResult.Success -> PaidInvoice(
+                preimage = result.value.preimage,
+                feesPaidMsats = result.value.feesPaid?.msats
             )
 
-            when (result) {
-                is NwcResult.Success -> PaidInvoice(
-                    preimage = result.value.preimage,
-                    feesPaidMsats = result.value.feesPaid?.msats
-                )
-
-                is NwcResult.Failure -> throw result.error.toAppErrorException()
-            }
+            is NwcResult.Failure -> throw result.error.toAppErrorException()
         }
     }
 
@@ -115,62 +108,61 @@ class NwcWalletRepositoryImpl(
         }
 
         return try {
-            withFreshClient(walletUri) { client ->
-                val result = client.lookupInvoice(
-                    params = LookupInvoiceParams(paymentHash = paymentHash),
-                    timeoutMs = LOOKUP_TIMEOUT_MILLIS
-                )
+            val client = getClient(walletUri)
+            val result = client.lookupInvoice(
+                params = LookupInvoiceParams(paymentHash = paymentHash),
+                timeoutMs = LOOKUP_TIMEOUT_MILLIS
+            )
 
-                when (result) {
-                    is NwcResult.Success -> {
-                        val tx = result.value
-                        when (tx.state) {
-                            TransactionState.SETTLED -> PaymentLookupResult.Settled(
-                                PaidInvoice(
-                                    preimage = tx.preimage,
-                                    feesPaidMsats = tx.feesPaid?.msats
-                                )
+            when (result) {
+                is NwcResult.Success -> {
+                    val tx = result.value
+                    when (tx.state) {
+                        TransactionState.SETTLED -> PaymentLookupResult.Settled(
+                            PaidInvoice(
+                                preimage = tx.preimage,
+                                feesPaidMsats = tx.feesPaid?.msats
                             )
+                        )
 
-                            TransactionState.PENDING -> PaymentLookupResult.Pending
+                        TransactionState.PENDING -> PaymentLookupResult.Pending
 
-                            TransactionState.FAILED, TransactionState.EXPIRED ->
-                                PaymentLookupResult.Failed
+                        TransactionState.FAILED, TransactionState.EXPIRED ->
+                            PaymentLookupResult.Failed
 
-                            null -> {
-                                // State is null - infer from other fields
-                                if (tx.settledAt != null || tx.preimage != null) {
-                                    PaymentLookupResult.Settled(
-                                        PaidInvoice(
-                                            preimage = tx.preimage,
-                                            feesPaidMsats = tx.feesPaid?.msats
-                                        )
+                        null -> {
+                            // State is null - infer from other fields
+                            if (tx.settledAt != null || tx.preimage != null) {
+                                PaymentLookupResult.Settled(
+                                    PaidInvoice(
+                                        preimage = tx.preimage,
+                                        feesPaidMsats = tx.feesPaid?.msats
                                     )
-                                } else {
-                                    PaymentLookupResult.Pending
-                                }
+                                )
+                            } else {
+                                PaymentLookupResult.Pending
                             }
                         }
                     }
+                }
 
-                    is NwcResult.Failure -> {
-                        when (val error = result.error) {
-                            is NwcError.WalletError -> {
-                                if (error.code.code == "NOT_FOUND") {
-                                    PaymentLookupResult.NotFound
-                                } else {
-                                    PaymentLookupResult.LookupError(error.toAppError())
-                                }
+                is NwcResult.Failure -> {
+                    when (val error = result.error) {
+                        is NwcError.WalletError -> {
+                            if (error.code.code == "NOT_FOUND") {
+                                PaymentLookupResult.NotFound
+                            } else {
+                                PaymentLookupResult.LookupError(error.toAppError())
                             }
-
-                            is NwcError.ConnectionError -> PaymentLookupResult.LookupError(
-                                AppError.RelayConnectionFailed(error.message)
-                            )
-
-                            is NwcError.Timeout -> PaymentLookupResult.LookupError(AppError.Timeout)
-
-                            else -> PaymentLookupResult.LookupError(error.toAppError())
                         }
+
+                        is NwcError.ConnectionError -> PaymentLookupResult.LookupError(
+                            AppError.RelayConnectionFailed(error.message)
+                        )
+
+                        is NwcError.Timeout -> PaymentLookupResult.LookupError(AppError.Timeout)
+
+                        else -> PaymentLookupResult.LookupError(error.toAppError())
                     }
                 }
             }
@@ -179,32 +171,16 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    /**
-     * Executes [block] with a fresh NWC client connection.
-     * The client is always closed after the operation completes.
-     *
-     * @param specificWalletUri If provided, uses this wallet URI instead of the current active wallet.
-     */
-    private suspend fun <T> withFreshClient(
-        specificWalletUri: String? = null,
-        block: suspend (NwcClient) -> T
-    ): T {
+    private suspend fun getClient(specificWalletUri: String? = null): NwcClient {
         val connection = if (specificWalletUri != null) {
             // Find wallet by URI
             walletSettingsRepository.getWallets()
                 .firstOrNull { it.uri == specificWalletUri }
                 ?: throw AppErrorException(AppError.MissingWalletConnection)
         } else {
-            walletSettingsRepository.getWalletConnection()
-                ?: throw AppErrorException(AppError.MissingWalletConnection)
+            null
         }
 
-        val client = clientFactory.create(connection)
-        try {
-            // NwcClient now handles connection internally via ensureConnected() inside operations
-            return block(client)
-        } finally {
-            client.close()
-        }
+        return connectionManager.getClient(connection)
     }
 }

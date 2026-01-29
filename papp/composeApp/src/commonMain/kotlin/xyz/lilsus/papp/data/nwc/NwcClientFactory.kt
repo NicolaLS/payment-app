@@ -17,7 +17,9 @@ import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
 fun interface NwcClientFactory {
     /**
      * Create an [NwcClient] for the given connection.
-     * The client is not connected yet - call connect() and awaitReady() before use.
+     *
+     * The client auto-connects on creation and handles reconnection internally.
+     * Operations will wait for connection if needed.
      *
      * @throws IllegalArgumentException if the connection URI is invalid.
      */

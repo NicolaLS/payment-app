@@ -12,6 +12,7 @@ import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
 import xyz.lilsus.papp.data.network.createNwcHttpClient
 import xyz.lilsus.papp.data.nwc.NwcClientFactory
+import xyz.lilsus.papp.data.nwc.NwcConnectionManager
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
 import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
 import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
@@ -70,6 +71,7 @@ import xyz.lilsus.papp.domain.usecases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
 import xyz.lilsus.papp.platform.NetworkConnectivity
+import xyz.lilsus.papp.platform.createAppLifecycleObserver
 import xyz.lilsus.papp.platform.createHapticFeedbackManager
 import xyz.lilsus.papp.platform.createNetworkConnectivity
 import xyz.lilsus.papp.presentation.addconnection.ConnectWalletViewModel
@@ -110,6 +112,9 @@ val nwcModule = module {
     single<LnurlRepository> { LnurlRepositoryImpl() }
     single { createNwcHttpClient() }
     single<NetworkConnectivity> { createNetworkConnectivity() }
+
+    single { createAppLifecycleObserver() }
+
     single<NwcClientFactory> {
         RealNwcClientFactory(
             httpClient = get(),
@@ -117,14 +122,24 @@ val nwcModule = module {
         )
     }
 
+    single(createdAtStart = true) {
+        NwcConnectionManager(
+            appLifecycle = get(),
+            walletSettings = get(),
+            clientFactory = get(),
+            scope = get()
+        )
+    }
+
     single<NwcWalletRepository> {
         NwcWalletRepositoryImpl(
             walletSettingsRepository = get(),
-            clientFactory = get(),
+            connectionManager = get(),
             scope = get(),
             networkConnectivity = get()
         )
     }
+
     single<WalletDiscoveryRepository> {
         WalletDiscoveryRepositoryImpl(
             dispatcher = get(),
