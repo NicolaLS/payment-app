@@ -19,6 +19,8 @@ import papp.composeapp.generated.resources.error_blink_self_payment
 import papp.composeapp.generated.resources.error_invalid_invoice
 import papp.composeapp.generated.resources.error_invalid_invoice_with_details
 import papp.composeapp.generated.resources.error_invalid_wallet_uri
+import papp.composeapp.generated.resources.error_lnurl
+import papp.composeapp.generated.resources.error_lnurl_with_details
 import papp.composeapp.generated.resources.error_missing_wallet_connection
 import papp.composeapp.generated.resources.error_network_unavailable
 import papp.composeapp.generated.resources.error_payment_rejected_generic
@@ -87,6 +89,15 @@ fun errorMessageFor(error: AppError): String = when (error) {
             stringResource(Res.string.error_invalid_invoice_with_details, details)
         } else {
             stringResource(Res.string.error_invalid_invoice)
+        }
+    }
+
+    is AppError.LnurlError -> {
+        val details = error.reason?.takeUnless { it.isBlank() }
+        if (details != null) {
+            stringResource(Res.string.error_lnurl_with_details, details)
+        } else {
+            stringResource(Res.string.error_lnurl)
         }
     }
 

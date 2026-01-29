@@ -35,11 +35,11 @@ class LnurlRepositoryImpl(
         withContext(dispatcher) {
             val url = endpoint.trim()
             if (url.isEmpty()) {
-                return@withContext Result.Error(AppError.InvalidWalletUri("LNURL is blank"))
+                return@withContext Result.Error(AppError.LnurlError("LNURL is blank"))
             }
             val parsedUrl = runCatching { Url(url) }.getOrNull()
                 ?: return@withContext Result.Error(
-                    AppError.InvalidWalletUri("LNURL is not a valid URL")
+                    AppError.LnurlError("LNURL is not a valid URL")
                 )
             try {
                 val response = client.get(url)
@@ -61,7 +61,7 @@ class LnurlRepositoryImpl(
         val isOnion = address.domain.endsWith(".onion", ignoreCase = true)
         if (isOnion) {
             return Result.Error(
-                AppError.InvalidWalletUri("Lightning addresses require HTTPS endpoints")
+                AppError.LnurlError("Lightning addresses require HTTPS endpoints")
             )
         }
         val endpoint = buildAddressUrl(address)
@@ -74,7 +74,7 @@ class LnurlRepositoryImpl(
         comment: String?
     ): Result<String> = withContext(dispatcher) {
         if (amountMsats <= 0) {
-            return@withContext Result.Error(AppError.InvalidWalletUri("Amount must be positive"))
+            return@withContext Result.Error(AppError.LnurlError("Amount must be positive"))
         }
         try {
             val response = client.get(callback) {
@@ -99,35 +99,35 @@ class LnurlRepositoryImpl(
 
     private fun parsePayParams(raw: String, domain: String): Result<LnurlPayParams> {
         val element = runCatching { json.parseToJsonElement(raw) }.getOrNull()
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL pay response is not JSON"))
+            ?: return Result.Error(AppError.LnurlError("LNURL pay response is not JSON"))
         if (element is JsonObject &&
             element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true
         ) {
             val reason = element["reason"]?.jsonPrimitive?.contentOrNull
-            return Result.Error(AppError.InvalidWalletUri(reason))
+            return Result.Error(AppError.LnurlError(reason))
         }
         if (element !is JsonObject) {
-            return Result.Error(AppError.InvalidWalletUri("LNURL pay response must be an object"))
+            return Result.Error(AppError.LnurlError("LNURL pay response must be an object"))
         }
 
         val callbackRaw = element["callback"]?.jsonPrimitive?.contentOrNull
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL pay callback missing"))
+            ?: return Result.Error(AppError.LnurlError("LNURL pay callback missing"))
         val callback = normalizeCallback(callbackRaw)
         val maxSendable = element["maxSendable"]?.jsonPrimitive?.longOrBigInt()
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL maxSendable missing"))
+            ?: return Result.Error(AppError.LnurlError("LNURL maxSendable missing"))
         val minSendable = element["minSendable"]?.jsonPrimitive?.longOrBigInt()
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL minSendable missing"))
+            ?: return Result.Error(AppError.LnurlError("LNURL minSendable missing"))
         if (maxSendable <= 0 || minSendable <= 0 || maxSendable < minSendable) {
-            return Result.Error(AppError.InvalidWalletUri("LNURL sendable amounts invalid"))
+            return Result.Error(AppError.LnurlError("LNURL sendable amounts invalid"))
         }
         val tag = element["tag"]?.jsonPrimitive?.contentOrNull
         if (tag != null && !tag.equals("payRequest", ignoreCase = true)) {
-            return Result.Error(AppError.InvalidWalletUri("LNURL tag is not payRequest"))
+            return Result.Error(AppError.LnurlError("LNURL tag is not payRequest"))
         }
         val metadataRaw = element["metadata"]?.jsonPrimitive?.contentOrNull
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL metadata missing"))
+            ?: return Result.Error(AppError.LnurlError("LNURL metadata missing"))
         val metadata = parseMetadata(metadataRaw)
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL metadata malformed"))
+            ?: return Result.Error(AppError.LnurlError("LNURL metadata malformed"))
         val commentAllowed = element["commentAllowed"]?.jsonPrimitive?.intOrNull
 
         return Result.Success(
@@ -184,20 +184,20 @@ class LnurlRepositoryImpl(
 
     private fun parseInvoice(raw: String): Result<String> {
         val element = runCatching { json.parseToJsonElement(raw) }.getOrNull()
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL invoice response is not JSON"))
+            ?: return Result.Error(AppError.LnurlError("LNURL invoice response is not JSON"))
         if (element is JsonObject &&
             element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true
         ) {
             val reason = element["reason"]?.jsonPrimitive?.contentOrNull
-            return Result.Error(AppError.InvalidWalletUri(reason))
+            return Result.Error(AppError.LnurlError(reason))
         }
         if (element !is JsonObject) {
             return Result.Error(
-                AppError.InvalidWalletUri("LNURL invoice response must be an object")
+                AppError.LnurlError("LNURL invoice response must be an object")
             )
         }
         val invoice = element["pr"]?.jsonPrimitive?.contentOrNull
-            ?: return Result.Error(AppError.InvalidWalletUri("LNURL invoice is missing"))
+            ?: return Result.Error(AppError.LnurlError("LNURL invoice is missing"))
         return Result.Success(invoice)
     }
 

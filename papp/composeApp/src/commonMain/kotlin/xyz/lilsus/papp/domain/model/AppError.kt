@@ -91,6 +91,12 @@ sealed class AppError {
     data class InvalidInvoice(val reason: String? = null) : AppError()
 
     /**
+     * LNURL or Lightning Address resolution failed.
+     * Used when the LNURL endpoint returns an error or the Lightning Address cannot be resolved.
+     */
+    data class LnurlError(val reason: String? = null) : AppError()
+
+    /**
      * Any other unexpected error. The optional [message] can be used for logging.
      */
     data class Unexpected(val message: String? = null) : AppError()

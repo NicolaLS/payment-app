@@ -759,17 +759,17 @@ private class FakeLnurlRepository(
     }
 
     override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> = endpointResponses[endpoint]
-        ?: Result.Error(AppError.InvalidWalletUri("LNURL not stubbed: $endpoint"))
+        ?: Result.Error(AppError.LnurlError("LNURL not stubbed: $endpoint"))
 
     override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> = addressResponses[address.full]
         ?: Result.Error(
-            AppError.InvalidWalletUri("Lightning address not stubbed: ${address.full}")
+            AppError.LnurlError("Lightning address not stubbed: ${address.full}")
         )
 
     override suspend fun requestInvoice(callback: String, amountMsats: Long, comment: String?): Result<String> =
         invoiceResponses["$callback:$amountMsats"]
             ?: invoiceResponses[callback]
-            ?: Result.Error(AppError.InvalidWalletUri("Invoice not stubbed"))
+            ?: Result.Error(AppError.LnurlError("Invoice not stubbed"))
 }
 
 private class FakeExchangeRateRepository(private val result: Result<ExchangeRate>?) : ExchangeRateRepository {

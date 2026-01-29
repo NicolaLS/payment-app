@@ -115,6 +115,8 @@
     <string name="error_unrecognized_input">This QR code doesn't contain a Lightning invoice.</string>
     <string name="error_invalid_invoice">This invoice is invalid or malformed.</string>
     <string name="error_invalid_invoice_with_details">This invoice is invalid: %1$s</string>
+    <string name="error_lnurl">Failed to resolve this payment address.</string>
+    <string name="error_lnurl_with_details">Failed to resolve payment address: %1$s</string>
     <string name="toast_bitcoin_address">This is a Bitcoin address. Ask for a Lightning invoice.</string>
     <string name="toast_bolt12_not_supported">BOLT12 offers are not yet supported.</string>
     <string name="result_paid_title">Paid</string>

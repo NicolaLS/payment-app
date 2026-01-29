@@ -124,7 +124,6 @@ private class IosQrScannerController : QrScannerController {
 
     private val delegate = MetadataDelegate(
         isPaused = { paused },
-        pause = { paused = true },
         emitResult = { value ->
             onQrCodeScanned?.let { callback ->
                 dispatch_async(dispatch_get_main_queue()) {
@@ -165,6 +164,8 @@ private class IosQrScannerController : QrScannerController {
     }
 
     override fun resume() {
+        // Reset debounce so the same QR code can be scanned again after resuming
+        delegate.resetLastValue()
         dispatch_async(sessionQueue) {
             ensureSessionRunning()
             paused = false
@@ -317,10 +318,17 @@ private class IosQrScannerController : QrScannerController {
 
 private class MetadataDelegate(
     private val isPaused: () -> Boolean,
-    private val pause: () -> Unit,
     private val emitResult: (String) -> Unit
 ) : NSObject(),
     AVCaptureMetadataOutputObjectsDelegateProtocol {
+
+    // Debounce at scanner level: only emit when value changes.
+    // This prevents flooding the main thread with duplicate events.
+    private var lastEmittedValue: String? = null
+
+    fun resetLastValue() {
+        lastEmittedValue = null
+    }
 
     override fun captureOutput(
         output: AVCaptureOutput,
@@ -336,7 +344,14 @@ private class MetadataDelegate(
         val code =
             didOutputMetadataObjects.firstOrNull() as? AVMetadataMachineReadableCodeObject ?: return
         val value = code.stringValue ?: return
-        pause()
+
+        // Debounce: only emit if value changed from last emission
+        if (value == lastEmittedValue) return
+        lastEmittedValue = value
+
+        // Don't pause here - let the scanner continue running.
+        // The UI will pause when transitioning away from Active state.
+        // This matches Android behavior and prevents freeze on ignored scans.
         emitResult(value)
     }
 }

@@ -163,6 +163,8 @@ private class AndroidQrScannerController(
     override fun resume() {
         if (!isBound.get()) return
         isActive.set(true)
+        // Reset debounce so the same QR code can be scanned again after resuming
+        analyzer?.resetLastValue()
         analyzer?.resume()
     }
 
@@ -304,12 +306,21 @@ private class QrCodeAnalyzer(
     private val onQrCodeScanned: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
+    // Debounce at scanner level: only emit when value changes.
+    // This prevents flooding the main thread with duplicate events.
+    @Volatile
+    private var lastEmittedValue: String? = null
+
     fun pause() {
         active.set(false)
     }
 
     fun resume() {
         active.set(true)
+    }
+
+    fun resetLastValue() {
+        lastEmittedValue = null
     }
 
     fun close() {
@@ -339,7 +350,8 @@ private class QrCodeAnalyzer(
                     // a confusing error. The largest QR is likely the one the user is
                     // pointing at. ML Kit provides boundingBox on each Barcode object.
                     val value = barcodes.firstOrNull()?.rawValue
-                    if (value != null) {
+                    if (value != null && value != lastEmittedValue) {
+                        lastEmittedValue = value
                         mainExecutor.execute { onQrCodeScanned(value) }
                     }
                 }

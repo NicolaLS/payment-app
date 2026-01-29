@@ -107,6 +107,10 @@ class LightningInputParser {
             // Then check for bech32-encoded LNURL
             looksLikeLnurl(current) -> decodeBech32Lnurl(current)
 
+            // Raw HTTP(S) URLs can be LNURL endpoints
+            current.startsWith("https://", ignoreCase = true) ||
+                current.startsWith("http://", ignoreCase = true) -> current
+
             else -> null
         }
         if (lnurlEndpoint != null) {
@@ -216,15 +220,18 @@ class LightningInputParser {
         if (parts.size != 2) return false
         val (userPart, domainPart) = parts
         if (userPart.isEmpty() || domainPart.isEmpty()) return false
-        val usernameValid = userPart.all {
-            it.isLowerCaseLetterOrDigit() ||
-                it in setOf('-', '_', '.', '+')
+        // Lightning addresses are case-insensitive - check lowercase version
+        val usernameValid = userPart.lowercase().all {
+            it.isLetterOrDigit() || it in setOf('-', '_', '.', '+')
         }
-        val domainValid = domainPart.all { it.isLowerCaseLetterOrDigit() || it == '-' || it == '.' }
+        val domainValid = domainPart.lowercase().all {
+            it.isLetterOrDigit() || it == '-' ||
+                it == '.'
+        }
         return usernameValid && domainValid && domainPart.contains('.')
     }
 
-    private fun Char.isLowerCaseLetterOrDigit(): Boolean = this in 'a'..'z' || this in '0'..'9'
+    private fun Char.isLetterOrDigit(): Boolean = this in 'a'..'z' || this in '0'..'9'
 
     private fun toLightningAddress(raw: String): LightningAddress? {
         val parts = raw.lowercase().split('@')
