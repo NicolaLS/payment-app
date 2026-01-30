@@ -14,8 +14,12 @@ ktlint_code_style = android_studio
 # Allow @Composable functions to use PascalCase (standard Compose convention)
 ktlint_function_naming_ignore_when_annotated_with = Composable
 
-# Allow wildcard imports for iOS platform APIs (standard KMP iOS interop)
+# Allow wildcard imports for iOS platform APIs in IntelliJ (standard KMP iOS interop)
 ij_kotlin_packages_to_use_import_on_demand = platform.**, kotlinx.cinterop.**
+
+[**/iosMain/**/*.kt]
+# Disable wildcard import rule for iOS platform code - cinterop requires wildcards
+ktlint_standard_no-wildcard-imports = disabled
 
 [**/commonTest/**/*.kt]
 max_line_length = 140
