@@ -89,8 +89,8 @@ android {
         applicationId = "xyz.lilsus.papp"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.0"
+        versionCode = 8
+        versionName = "1.1"
         ndk {
             //noinspection ChromeOsAbiSupport
             // FIXME: Support 32bit once ML Kit & acinq-secp256k1 ship 16KB-aligned natives
