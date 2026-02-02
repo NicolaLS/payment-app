@@ -19,10 +19,19 @@ import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
+import kotlinx.cinterop.useContents
 import kotlinx.cinterop.value
 import platform.AVFoundation.*
+import platform.CoreMedia.CMSampleBufferGetImageBuffer
+import platform.CoreMedia.CMSampleBufferRef
+import platform.CoreMedia.CMTimeMake
+import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import platform.Foundation.*
 import platform.UIKit.*
+import platform.Vision.VNBarcodeObservation
+import platform.Vision.VNBarcodeSymbologyQR
+import platform.Vision.VNDetectBarcodesRequest
+import platform.Vision.VNImageRequestHandler
 import platform.darwin.*
 
 @Composable
@@ -122,15 +131,34 @@ private class IosQrScannerController : QrScannerController {
     private var currentDevice: AVCaptureDevice? = null
     private var lifecycleObserver: NSObjectProtocol? = null
 
-    private val delegate = MetadataDelegate(
-        isPaused = { paused },
-        emitResult = { value ->
-            onQrCodeScanned?.let { callback ->
-                dispatch_async(dispatch_get_main_queue()) {
-                    callback(value)
-                }
+    // Shared debounce across both detectors to prevent duplicate emissions.
+    // Only accessed from sessionQueue.
+    private var lastEmittedValue: String? = null
+
+    private fun emitIfNew(value: String) {
+        // Must be called from sessionQueue
+        if (value == lastEmittedValue) return
+        lastEmittedValue = value
+        onQrCodeScanned?.let { callback ->
+            dispatch_async(dispatch_get_main_queue()) {
+                callback(value)
             }
         }
+    }
+
+    private fun resetLastEmittedValue() {
+        // Must be called from sessionQueue
+        lastEmittedValue = null
+    }
+
+    private val metadataDelegate = MetadataDelegate(
+        isPaused = { paused },
+        emitIfNew = ::emitIfNew
+    )
+
+    private val visionDelegate = VisionDelegate(
+        isPaused = { paused },
+        emitIfNew = ::emitIfNew
     )
 
     override fun start(onQrCodeScanned: (String) -> Unit) {
@@ -164,9 +192,9 @@ private class IosQrScannerController : QrScannerController {
     }
 
     override fun resume() {
-        // Reset debounce so the same QR code can be scanned again after resuming
-        delegate.resetLastValue()
         dispatch_async(sessionQueue) {
+            // Reset debounce so the same QR code can be scanned again after resuming
+            resetLastEmittedValue()
             ensureSessionRunning()
             paused = false
         }
@@ -184,6 +212,8 @@ private class IosQrScannerController : QrScannerController {
                 session.stopRunning()
             }
             paused = true
+            // Reset configured so next start() will reconfigure the session
+            configured = false
         }
         previewSurface = null
         currentDevice = null
@@ -267,36 +297,113 @@ private class IosQrScannerController : QrScannerController {
         }
     }
 
+    private fun selectDevice(): AVCaptureDevice? {
+        // Try ultra-wide camera first for maximum field of view
+        val ultraWide = AVCaptureDevice.defaultDeviceWithDeviceType(
+            deviceType = AVCaptureDeviceTypeBuiltInUltraWideCamera,
+            mediaType = AVMediaTypeVideo,
+            position = AVCaptureDevicePositionBack
+        )
+        if (ultraWide != null) return ultraWide
+
+        // Fallback to default back camera
+        return AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun configureDeviceFormat(device: AVCaptureDevice): Boolean {
+        // Target: 4:3 aspect ratio, 1920x1440, 60fps
+        val targetWidth = 1920
+        val targetHeight = 1440
+        val targetFps = 60.0
+
+        @Suppress("UNCHECKED_CAST")
+        val formats = device.formats as? List<AVCaptureDeviceFormat> ?: return false
+
+        for (format in formats) {
+            val desc = format.formatDescription ?: continue
+            val dimensions = CMVideoFormatDescriptionGetDimensions(desc)
+
+            val matchesDimensions = dimensions.useContents {
+                width == targetWidth && height == targetHeight
+            }
+            if (!matchesDimensions) continue
+
+            // Check FPS support
+            @Suppress("UNCHECKED_CAST")
+            val fpsRanges = format.videoSupportedFrameRateRanges as? List<AVFrameRateRange>
+                ?: continue
+            val supports60fps = fpsRanges.any { it.maxFrameRate >= targetFps }
+            if (!supports60fps) continue
+
+            // Found a matching format - configure it
+            memScoped {
+                val errorPtr = alloc<ObjCObjectVar<NSError?>>()
+                if (device.lockForConfiguration(errorPtr.ptr)) {
+                    device.activeFormat = format
+                    device.activeVideoMinFrameDuration = CMTimeMake(value = 1, timescale = 60)
+                    device.activeVideoMaxFrameDuration = CMTimeMake(value = 1, timescale = 60)
+                    device.unlockForConfiguration()
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     @OptIn(ExperimentalForeignApi::class)
     private fun configureSessionIfNeeded() {
         if (configured) return
 
         session.beginConfiguration()
-        session.sessionPreset = AVCaptureSessionPresetHigh
 
-        val device = AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
+        val device = selectDevice()
         if (device == null) {
+            session.sessionPreset = AVCaptureSessionPresetHigh
             session.commitConfiguration()
             NSLog("Failed to acquire capture device for QR scanning")
             return
         }
         currentDevice = device
 
-        val input = createDeviceInput(device)
-        if (input != null && session.canAddInput(input)) {
-            session.addInput(input)
+        // Try to set custom format, use InputPriority preset if successful
+        val customFormatSet = configureDeviceFormat(device)
+        if (customFormatSet) {
+            session.sessionPreset = AVCaptureSessionPresetInputPriority
         } else {
-            NSLog("Unable to add camera input to capture session")
+            session.sessionPreset = AVCaptureSessionPresetHigh
         }
 
-        val metadataOutput = AVCaptureMetadataOutput()
-        if (session.canAddOutput(metadataOutput)) {
-            session.addOutput(metadataOutput)
-            metadataOutput.setMetadataObjectsDelegate(delegate, sessionQueue)
-            metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
-        } else {
-            NSLog("Unable to add metadata output to capture session")
+        val input = createDeviceInput(device)
+        if (input == null || !session.canAddInput(input)) {
+            NSLog("Unable to add camera input to capture session")
+            session.commitConfiguration()
+            // Don't set configured = true, allow retry on next start
+            return
         }
+        session.addInput(input)
+
+        // Metadata-based QR detection
+        val metadataOutput = AVCaptureMetadataOutput()
+        if (!session.canAddOutput(metadataOutput)) {
+            NSLog("Unable to add metadata output to capture session")
+            session.commitConfiguration()
+            return
+        }
+        session.addOutput(metadataOutput)
+        metadataOutput.setMetadataObjectsDelegate(metadataDelegate, sessionQueue)
+        metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
+
+        // Vision-based QR detection (runs in parallel)
+        val videoOutput = AVCaptureVideoDataOutput()
+        videoOutput.alwaysDiscardsLateVideoFrames = true
+        if (!session.canAddOutput(videoOutput)) {
+            NSLog("Unable to add video output to capture session")
+            session.commitConfiguration()
+            return
+        }
+        session.addOutput(videoOutput)
+        videoOutput.setSampleBufferDelegate(visionDelegate, sessionQueue)
 
         session.commitConfiguration()
         configured = true
@@ -318,17 +425,9 @@ private class IosQrScannerController : QrScannerController {
 
 private class MetadataDelegate(
     private val isPaused: () -> Boolean,
-    private val emitResult: (String) -> Unit
+    private val emitIfNew: (String) -> Unit
 ) : NSObject(),
     AVCaptureMetadataOutputObjectsDelegateProtocol {
-
-    // Debounce at scanner level: only emit when value changes.
-    // This prevents flooding the main thread with duplicate events.
-    private var lastEmittedValue: String? = null
-
-    fun resetLastValue() {
-        lastEmittedValue = null
-    }
 
     override fun captureOutput(
         output: AVCaptureOutput,
@@ -345,13 +444,48 @@ private class MetadataDelegate(
             didOutputMetadataObjects.firstOrNull() as? AVMetadataMachineReadableCodeObject ?: return
         val value = code.stringValue ?: return
 
-        // Debounce: only emit if value changed from last emission
-        if (value == lastEmittedValue) return
-        lastEmittedValue = value
+        // Debounce handled by controller's shared lastEmittedValue
+        emitIfNew(value)
+    }
+}
 
-        // Don't pause here - let the scanner continue running.
-        // The UI will pause when transitioning away from Active state.
-        // This matches Android behavior and prevents freeze on ignored scans.
-        emitResult(value)
+private class VisionDelegate(
+    private val isPaused: () -> Boolean,
+    private val emitIfNew: (String) -> Unit
+) : NSObject(),
+    AVCaptureVideoDataOutputSampleBufferDelegateProtocol {
+
+    override fun captureOutput(
+        output: AVCaptureOutput,
+        didOutputSampleBuffer: CMSampleBufferRef?,
+        fromConnection: AVCaptureConnection
+    ) {
+        if (isPaused()) return
+        val sampleBuffer = didOutputSampleBuffer ?: return
+        val pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) ?: return
+
+        val request = VNDetectBarcodesRequest { request, _ ->
+            @Suppress("UNCHECKED_CAST")
+            val results =
+                request?.results as? List<VNBarcodeObservation>
+                    ?: return@VNDetectBarcodesRequest
+
+            for (observation in results) {
+                if (observation.symbology != VNBarcodeSymbologyQR) continue
+                val payload = observation.payloadStringValue ?: continue
+
+                // Debounce handled by controller's shared lastEmittedValue
+                emitIfNew(payload)
+                return@VNDetectBarcodesRequest
+            }
+        }
+        request.symbologies = listOf(VNBarcodeSymbologyQR)
+
+        val handler = VNImageRequestHandler(pixelBuffer, options = emptyMap<Any?, Any>())
+        memScoped {
+            val errorPtr = alloc<ObjCObjectVar<NSError?>>()
+            handler.performRequests(listOf(request), errorPtr.ptr)
+            // Ignore errors - just try again on next frame
+        }
     }
 }
