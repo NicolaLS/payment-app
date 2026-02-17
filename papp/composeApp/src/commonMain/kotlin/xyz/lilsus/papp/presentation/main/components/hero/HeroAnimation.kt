@@ -1,6 +1,6 @@
 package xyz.lilsus.papp.presentation.main.components.hero
 
-import androidx.compose.animation.Animatable
+import androidx.compose.animation.Animatable as ColorAnimatable
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInOutCubic
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -25,7 +25,7 @@ fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): 
     remember { HeroAnimationState(squares, arcs) }
 
 class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs: List<ArcSpec>) {
-    private val colorAnim = Animatable(Transparent)
+    private val colorAnim = ColorAnimatable(Transparent)
     private val clusterScaleAnim = Animatable(1f)
     private val clusterShakeAnim = Animatable(0f)
     private val rotationAnim = Animatable(0f)
@@ -47,14 +47,14 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
         get() = rotationAnim.value
     val boltScale: Float
         get() = boltScaleAnim.value
-    val squareScales: List<Float>
-        get() = squareScaleAnims.map { it.value }
-    val squareOffsets: List<Offset>
-        get() = squareOffsetAnims.map { it.value }
-    val arcOffsets: List<Offset>
-        get() = arcOffsetAnims.map { it.value }
-    val bitOpacities: List<Float>
-        get() = bitOpacityAnims.map { it.value }
+
+    fun squareScale(index: Int): Float = squareScaleAnims[index].value
+
+    fun squareOffset(index: Int): Offset = squareOffsetAnims[index].value
+
+    fun arcOffset(index: Int): Offset = arcOffsetAnims[index].value
+
+    fun bitOpacity(index: Int): Float = bitOpacityAnims[index].value
 
     suspend fun animateState(uiState: MainUiState, targetColor: Color) {
         coroutineScope {

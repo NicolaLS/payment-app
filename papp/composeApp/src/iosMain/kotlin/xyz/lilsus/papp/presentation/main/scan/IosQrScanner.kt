@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import androidx.compose.ui.viewinterop.UIKitView
+import kotlin.math.abs
 import kotlin.math.pow
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -127,6 +128,7 @@ private class IosQrScannerController : QrScannerController {
 
     // Debounce repeated payloads. Only accessed from sessionQueue.
     private var lastEmittedValue: String? = null
+    private var lastAppliedZoomFactor: Double? = null
 
     private fun emitIfNew(value: String) {
         // Must be called from sessionQueue
@@ -202,6 +204,7 @@ private class IosQrScannerController : QrScannerController {
             paused = true
             // Reset configured so next start() will reconfigure the session
             configured = false
+            lastAppliedZoomFactor = null
         }
         previewSurface = null
         currentDevice = null
@@ -251,9 +254,15 @@ private class IosQrScannerController : QrScannerController {
                 // Use logarithmic scaling for perceptually uniform zoom.
                 // This makes equal gesture distances feel like equal zoom changes.
                 val target = minZoom * (maxZoom / minZoom).pow(clamped.toDouble())
+                val clampedTarget = target.coerceIn(minZoom, maxZoom)
+                val previous = lastAppliedZoomFactor
+                if (previous != null && abs(previous - clampedTarget) < ZOOM_FACTOR_EPSILON) {
+                    return@memScoped
+                }
                 val errorPtr = alloc<ObjCObjectVar<NSError?>>()
                 if (device.lockForConfiguration(errorPtr.ptr)) {
-                    device.videoZoomFactor = target.coerceIn(minZoom, maxZoom)
+                    device.videoZoomFactor = clampedTarget
+                    lastAppliedZoomFactor = clampedTarget
                     device.unlockForConfiguration()
                 }
             }
@@ -321,16 +330,23 @@ private class IosQrScannerController : QrScannerController {
             @Suppress("UNCHECKED_CAST")
             val fpsRanges = format.videoSupportedFrameRateRanges as? List<AVFrameRateRange>
                 ?: continue
-            val supports60fps = fpsRanges.any { it.maxFrameRate >= targetFps }
-            if (!supports60fps) continue
+            val supportsTargetFps = fpsRanges.any { it.maxFrameRate >= targetFps }
+            if (!supportsTargetFps) continue
 
             // Found a matching format - configure it
             memScoped {
                 val errorPtr = alloc<ObjCObjectVar<NSError?>>()
                 if (device.lockForConfiguration(errorPtr.ptr)) {
                     device.activeFormat = format
-                    device.activeVideoMinFrameDuration = CMTimeMake(value = 1, timescale = 60)
-                    device.activeVideoMaxFrameDuration = CMTimeMake(value = 1, timescale = 60)
+                    val fpsTimescale = targetFps.toInt()
+                    device.activeVideoMinFrameDuration = CMTimeMake(
+                        value = 1,
+                        timescale = fpsTimescale
+                    )
+                    device.activeVideoMaxFrameDuration = CMTimeMake(
+                        value = 1,
+                        timescale = fpsTimescale
+                    )
                     device.unlockForConfiguration()
                     return true
                 }
@@ -451,3 +467,5 @@ private fun selectPreferredMetadataValue(metadataObjects: List<*>): String? {
     if (candidates.isEmpty()) return firstValue
     return pickPreferredQrValue(candidates, frameWidth = 1f, frameHeight = 1f)
 }
+
+private const val ZOOM_FACTOR_EPSILON = 0.01

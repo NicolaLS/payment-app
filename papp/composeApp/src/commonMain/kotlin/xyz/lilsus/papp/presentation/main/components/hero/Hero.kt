@@ -71,8 +71,9 @@ fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
                 translate(left = animationState.clusterShakeX) {
                     // Squares
                     squares.forEachIndexed { index, spec ->
-                        val px = (spec.x + animationState.squareOffsets[index].x) * canvasSize
-                        val py = (spec.y + animationState.squareOffsets[index].y) * canvasSize
+                        val squareOffset = animationState.squareOffset(index)
+                        val px = (spec.x + squareOffset.x) * canvasSize
+                        val py = (spec.y + squareOffset.y) * canvasSize
 
                         val s = spec.size * canvasSize
                         val size = Size(s, s)
@@ -82,7 +83,7 @@ fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
                         val cornerRadius = CornerRadius(s * 0.05f)
                         val stroke = Stroke(width = s * 0.1f)
 
-                        scale(animationState.squareScales[index], pivot = squareCenter) {
+                        scale(animationState.squareScale(index), pivot = squareCenter) {
                             if (spec.outlined) {
                                 // Finder Pattern (Ring)
                                 drawRoundRect(
@@ -121,13 +122,13 @@ fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
                                     )
                                 }
 
-                                drawBit(px, py, animationState.bitOpacities[0])
-                                drawBit(px + miniSize + gap, py, animationState.bitOpacities[1])
-                                drawBit(px, py + miniSize + gap, animationState.bitOpacities[2])
+                                drawBit(px, py, animationState.bitOpacity(0))
+                                drawBit(px + miniSize + gap, py, animationState.bitOpacity(1))
+                                drawBit(px, py + miniSize + gap, animationState.bitOpacity(2))
                                 drawBit(
                                     px + miniSize + gap,
                                     py + miniSize + gap,
-                                    animationState.bitOpacities[3]
+                                    animationState.bitOpacity(3)
                                 )
                             }
                         }
@@ -166,8 +167,9 @@ fun Hero(modifier: Modifier = Modifier, uiState: MainUiState) {
             // Apply rotation to the arcs
             rotate(animationState.rotation, pivot = canvasCenter) {
                 arcs.forEachIndexed { index, spec ->
-                    val px = (spec.x + animationState.arcOffsets[index].x) * canvasSize
-                    val py = (spec.y + animationState.arcOffsets[index].y) * canvasSize
+                    val arcOffset = animationState.arcOffset(index)
+                    val px = (spec.x + arcOffset.x) * canvasSize
+                    val py = (spec.y + arcOffset.y) * canvasSize
                     val cornerLength = canvasSize * spec.cornerLength
                     val cornerStroke = Stroke(width = canvasSize * 0.02f, cap = StrokeCap.Round)
                     drawArc(

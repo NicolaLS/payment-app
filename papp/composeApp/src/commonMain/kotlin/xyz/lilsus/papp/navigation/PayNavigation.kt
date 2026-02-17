@@ -26,7 +26,11 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.getString
@@ -49,6 +53,7 @@ object Pay
 
 /** Fraction of screen height needed to drag for full zoom range. */
 private const val ZOOM_DRAG_RANGE = 0.4f
+private const val ZOOM_STEP = 0.01f
 
 /** Horizontal swipe threshold in pixels to trigger wallet switch. */
 private const val SWIPE_THRESHOLD = 100f
@@ -106,6 +111,8 @@ private fun MainScreenEntry(
     // Sync zoom changes to camera controller
     LaunchedEffect(Unit) {
         snapshotFlow { zoomFraction.value }
+            .map(::quantizeZoom)
+            .distinctUntilChanged()
             .collect { zoom -> scannerController.setZoom(zoom) }
     }
 
@@ -241,7 +248,10 @@ private fun MainScreenEntry(
                     val newZoom = (dragDistance / (height * ZOOM_DRAG_RANGE))
                         .coerceIn(0f, 1f)
 
-                    scope.launch { zoomFraction.snapTo(newZoom) }
+                    val quantizedZoom = quantizeZoom(newZoom)
+                    if (abs(quantizedZoom - zoomFraction.value) >= ZOOM_STEP) {
+                        scope.launch { zoomFraction.snapTo(quantizedZoom) }
+                    }
                 }
             )
         }
@@ -299,3 +309,6 @@ private fun MainScreenEntry(
         }
     }
 }
+
+private fun quantizeZoom(value: Float): Float =
+    ((value.coerceIn(0f, 1f) / ZOOM_STEP).roundToInt() * ZOOM_STEP)
