@@ -83,14 +83,6 @@ class LightningInputParser {
             return ParseResult.Success(Target.LightningAddressTarget(address))
         }
 
-        val schemeStripped = current.substringAfter("://", current)
-        val hostCandidate = schemeStripped.substringBefore('/')
-        if (hostCandidate != current && looksLikeLightningAddress(hostCandidate)) {
-            val address = toLightningAddress(hostCandidate)
-                ?: return ParseResult.Failure(FailureReason.Unrecognized)
-            return ParseResult.Success(Target.LightningAddressTarget(address))
-        }
-
         val lnurlEndpoint = when {
             // Check URL schemes first (before bech32) to avoid misclassification
             current.startsWith(
@@ -232,26 +224,45 @@ class LightningInputParser {
     }
 
     private fun looksLikeLightningAddress(raw: String): Boolean {
-        if (!raw.contains('@')) return false
-        val parts = raw.split('@')
+        val candidate = raw.trim()
+        if (!candidate.contains('@')) return false
+        if (candidate.contains("://")) return false
+        if (candidate.any { it == '/' || it == '?' || it == '#' }) return false
+        if (candidate.count { it == '@' } != 1) return false
+
+        val parts = candidate.split('@', limit = 2)
         if (parts.size != 2) return false
-        val (userPart, domainPart) = parts
-        if (userPart.isEmpty() || domainPart.isEmpty()) return false
-        // Lightning addresses are case-insensitive - check lowercase version
+        val (userPart, domainPartRaw) = parts
+        if (userPart.isEmpty() || domainPartRaw.isEmpty()) return false
+
         val usernameValid = userPart.lowercase().all {
-            it.isLetterOrDigit() || it in setOf('-', '_', '.', '+')
+            it.isLetterOrDigit() || it == '-' || it == '_' || it == '.' || it == '+'
         }
-        val domainValid = domainPart.lowercase().all {
-            it.isLetterOrDigit() || it == '-' ||
-                it == '.'
+        if (!usernameValid) return false
+
+        return isValidDomain(domainPartRaw.lowercase())
+    }
+
+    private fun isValidDomain(domain: String): Boolean {
+        if (domain.length > MAX_DOMAIN_LENGTH) return false
+        val labels = domain.split('.')
+        if (labels.size < 2) return false
+        val validLabels = labels.all { label ->
+            label.isNotEmpty() &&
+                label.length <= MAX_DOMAIN_LABEL_LENGTH &&
+                !label.startsWith('-') &&
+                !label.endsWith('-') &&
+                label.all { it.isLetterOrDigit() || it == '-' }
         }
-        return usernameValid && domainValid && domainPart.contains('.')
+        if (!validLabels) return false
+        return labels.last().any { it in 'a'..'z' }
     }
 
     private fun Char.isLetterOrDigit(): Boolean = this in 'a'..'z' || this in '0'..'9'
 
     private fun toLightningAddress(raw: String): LightningAddress? {
-        val parts = raw.lowercase().split('@')
+        if (!looksLikeLightningAddress(raw)) return null
+        val parts = raw.trim().lowercase().split('@', limit = 2)
         if (parts.size != 2) return null
         val (userPart, domainPart) = parts
         if (userPart.isEmpty() || domainPart.isEmpty()) return null
@@ -280,5 +291,10 @@ class LightningInputParser {
                 decodeUrlComponent(key).lowercase() to decodeUrlComponent(value)
             }
             .toMap()
+    }
+
+    companion object {
+        private const val MAX_DOMAIN_LENGTH = 253
+        private const val MAX_DOMAIN_LABEL_LENGTH = 63
     }
 }
