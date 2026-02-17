@@ -1,8 +1,6 @@
 package xyz.lilsus.papp.navigation
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -86,7 +84,7 @@ private fun MainScreenEntry(
     var previewVisible by remember { mutableStateOf(false) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // Use Animatable for smooth zoom with snap-back animation
+    // Use Animatable for zoom state synchronization with scanner controller
     val zoomFraction = remember { Animatable(0f) }
 
     // Track drag start position for absolute distance calculation
@@ -95,17 +93,10 @@ private fun MainScreenEntry(
     fun hidePreview() {
         if (previewVisible) {
             previewVisible = false
-            scope.launch {
-                zoomFraction.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                )
-            }
-            scannerController.setZoom(0f)
         }
+        // Reset immediately so manual zoom never persists between presses.
+        scope.launch { zoomFraction.snapTo(0f) }
+        scannerController.setZoom(0f)
     }
 
     // Sync zoom changes to camera controller

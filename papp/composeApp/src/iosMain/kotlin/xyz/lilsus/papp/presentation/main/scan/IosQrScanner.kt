@@ -119,19 +119,19 @@ private class IosQrScannerController : QrScannerController {
         null
     )
     private var onQrCodeScanned: ((String) -> Unit)? = null
-    private var configured = false
+    private var started = false
     private var paused: Boolean = true
+    private var configured = false
     private var previewLayer: AVCaptureVideoPreviewLayer? = null
-    private var previewSurface: CameraPreviewSurface? = null
     private var currentDevice: AVCaptureDevice? = null
     private var lifecycleObserver: NSObjectProtocol? = null
+    private var subjectAreaObserver: NSObjectProtocol? = null
 
-    // Debounce repeated payloads. Only accessed from sessionQueue.
     private var lastEmittedValue: String? = null
+    private var desiredZoomFraction: Float = 0f
     private var lastAppliedZoomFactor: Double? = null
 
     private fun emitIfNew(value: String) {
-        // Must be called from sessionQueue
         if (value == lastEmittedValue) return
         lastEmittedValue = value
         onQrCodeScanned?.let { callback ->
@@ -141,73 +141,62 @@ private class IosQrScannerController : QrScannerController {
         }
     }
 
+    private val metadataDelegate = MetadataDelegate(
+        isPaused = { paused },
+        onMetadataObjects = { metadataObjects ->
+            val value = selectPreferredMetadataValue(metadataObjects) ?: return@MetadataDelegate
+            emitIfNew(value)
+        }
+    )
+
     private fun resetLastEmittedValue() {
-        // Must be called from sessionQueue
         lastEmittedValue = null
     }
 
-    private val metadataDelegate = MetadataDelegate(
-        isPaused = { paused },
-        emitIfNew = ::emitIfNew
-    )
-
     override fun start(onQrCodeScanned: (String) -> Unit) {
         this.onQrCodeScanned = onQrCodeScanned
-
-        // Register lifecycle observer to heal scanner when app becomes active
-        if (lifecycleObserver == null) {
-            lifecycleObserver = NSNotificationCenter.defaultCenter.addObserverForName(
-                name = UIApplicationDidBecomeActiveNotification,
-                `object` = null,
-                queue = NSOperationQueue.mainQueue
-            ) { _ ->
-                dispatch_async(sessionQueue) {
-                    if (!paused) {
-                        ensureSessionRunning()
-                    }
-                }
-            }
-        }
-
+        ensureLifecycleObserver()
         dispatch_async(sessionQueue) {
-            ensureSessionRunning()
+            started = true
             paused = false
+            ensureSessionRunning()
+            applyZoomIfNeeded()
         }
     }
 
     override fun pause() {
         dispatch_async(sessionQueue) {
+            if (!started) return@dispatch_async
             paused = true
         }
     }
 
     override fun resume() {
         dispatch_async(sessionQueue) {
-            // Reset debounce so the same QR code can be scanned again after resuming
+            if (!started) return@dispatch_async
             resetLastEmittedValue()
-            ensureSessionRunning()
             paused = false
+            ensureSessionRunning()
+            applyZoomIfNeeded()
         }
     }
 
     override fun stop() {
-        // Remove lifecycle observer to prevent memory leaks
-        lifecycleObserver?.let {
-            NSNotificationCenter.defaultCenter.removeObserver(it)
-        }
-        lifecycleObserver = null
-
+        removeLifecycleObserver()
         dispatch_async(sessionQueue) {
+            started = false
+            paused = true
             if (session.running) {
                 session.stopRunning()
             }
-            paused = true
-            // Reset configured so next start() will reconfigure the session
+            removeSubjectAreaObserver()
+            teardownSession()
             configured = false
+            currentDevice = null
             lastAppliedZoomFactor = null
+            desiredZoomFraction = 0f
+            resetLastEmittedValue()
         }
-        previewSurface = null
-        currentDevice = null
         dispatch_async(dispatch_get_main_queue()) {
             previewLayer?.removeFromSuperlayer()
             previewLayer = null
@@ -216,7 +205,6 @@ private class IosQrScannerController : QrScannerController {
     }
 
     override fun bindPreview(surface: CameraPreviewSurface) {
-        previewSurface = surface
         dispatch_async(dispatch_get_main_queue()) {
             val layer = previewLayer ?: AVCaptureVideoPreviewLayer.layerWithSession(session).apply {
                 videoGravity = AVLayerVideoGravityResizeAspectFill
@@ -227,50 +215,74 @@ private class IosQrScannerController : QrScannerController {
             surface.view.layoutIfNeeded()
             layer.frame = surface.view.bounds
             surface.view.layer.addSublayer(layer)
-            previewLayer = layer
         }
     }
 
     override fun unbindPreview() {
-        previewSurface = null
         dispatch_async(dispatch_get_main_queue()) {
             previewLayer?.removeFromSuperlayer()
+        }
+        dispatch_async(sessionQueue) {
+            val previousRequestedZoom = desiredZoomFraction
+            desiredZoomFraction = 0f
+            applyZoomIfNeeded(previousRequestedZoom)
         }
     }
 
     override fun setZoom(zoomFraction: Float) {
-        val device = currentDevice ?: return
-        val clamped = zoomFraction.coerceIn(0f, 1f)
         dispatch_async(sessionQueue) {
-            memScoped {
-                val minZoom = 1.0
-                val maxZoom =
-                    (
-                        device.activeFormat.valueForKey(
-                            "videoMaxZoomFactor"
-                        ) as? NSNumber
-                        )?.doubleValue
-                        ?: 4.0
-                // Use logarithmic scaling for perceptually uniform zoom.
-                // This makes equal gesture distances feel like equal zoom changes.
-                val target = minZoom * (maxZoom / minZoom).pow(clamped.toDouble())
-                val clampedTarget = target.coerceIn(minZoom, maxZoom)
-                val previous = lastAppliedZoomFactor
-                if (previous != null && abs(previous - clampedTarget) < ZOOM_FACTOR_EPSILON) {
-                    return@memScoped
-                }
-                val errorPtr = alloc<ObjCObjectVar<NSError?>>()
-                if (device.lockForConfiguration(errorPtr.ptr)) {
-                    device.videoZoomFactor = clampedTarget
-                    lastAppliedZoomFactor = clampedTarget
-                    device.unlockForConfiguration()
+            val previousRequestedZoom = desiredZoomFraction
+            desiredZoomFraction = zoomFraction.coerceIn(0f, 1f)
+            applyZoomIfNeeded(previousRequestedZoom)
+        }
+    }
+
+    private fun ensureLifecycleObserver() {
+        if (lifecycleObserver != null) return
+        lifecycleObserver = NSNotificationCenter.defaultCenter.addObserverForName(
+            name = UIApplicationDidBecomeActiveNotification,
+            `object` = null,
+            queue = NSOperationQueue.mainQueue
+        ) { _ ->
+            dispatch_async(sessionQueue) {
+                if (started && !paused) {
+                    ensureSessionRunning()
                 }
             }
         }
     }
 
+    private fun removeLifecycleObserver() {
+        lifecycleObserver?.let {
+            NSNotificationCenter.defaultCenter.removeObserver(it)
+        }
+        lifecycleObserver = null
+    }
+
+    private fun installSubjectAreaObserver(device: AVCaptureDevice) {
+        if (subjectAreaObserver != null) return
+        subjectAreaObserver = NSNotificationCenter.defaultCenter.addObserverForName(
+            name = AVCaptureDeviceSubjectAreaDidChangeNotification,
+            `object` = device,
+            queue = null
+        ) { _ ->
+            dispatch_async(sessionQueue) {
+                if (!started || paused || currentDevice !== device) return@dispatch_async
+                runAutofocusPulse(device)
+            }
+        }
+    }
+
+    private fun removeSubjectAreaObserver() {
+        subjectAreaObserver?.let {
+            NSNotificationCenter.defaultCenter.removeObserver(it)
+        }
+        subjectAreaObserver = null
+    }
+
     private fun ensureSessionRunning() {
         configureSessionIfNeeded()
+        if (!configured) return
         if (!session.running) {
             session.startRunning()
         }
@@ -289,13 +301,90 @@ private class IosQrScannerController : QrScannerController {
                 if (device.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure)) {
                     device.exposureMode = AVCaptureExposureModeContinuousAutoExposure
                 }
+                device.subjectAreaChangeMonitoringEnabled = true
                 device.unlockForConfiguration()
             }
         }
     }
 
+    private fun teardownSession() {
+        session.beginConfiguration()
+        try {
+            removeAllInputsAndOutputs()
+        } finally {
+            session.commitConfiguration()
+        }
+    }
+
+    private fun removeAllInputsAndOutputs() {
+        @Suppress("UNCHECKED_CAST")
+        val inputs = session.inputs as? List<AVCaptureInput> ?: emptyList()
+        for (input in inputs) {
+            session.removeInput(input)
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        val outputs = session.outputs as? List<AVCaptureOutput> ?: emptyList()
+        for (output in outputs) {
+            session.removeOutput(output)
+        }
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun configureSessionIfNeeded() {
+        if (configured) return
+
+        session.beginConfiguration()
+        var success = false
+        try {
+            removeAllInputsAndOutputs()
+            removeSubjectAreaObserver()
+
+            val device = selectDevice()
+            if (device == null) {
+                session.sessionPreset = AVCaptureSessionPresetHigh
+                NSLog("Failed to acquire capture device for QR scanning")
+                return
+            }
+            currentDevice = device
+
+            val customFormatSet = configureDeviceFormat(device)
+            session.sessionPreset = if (customFormatSet) {
+                AVCaptureSessionPresetInputPriority
+            } else {
+                AVCaptureSessionPresetHigh
+            }
+
+            val input = createDeviceInput(device)
+            if (input == null || !session.canAddInput(input)) {
+                NSLog("Unable to add camera input to capture session")
+                return
+            }
+            session.addInput(input)
+
+            val metadataOutput = AVCaptureMetadataOutput()
+            if (!session.canAddOutput(metadataOutput)) {
+                NSLog("Unable to add metadata output to capture session")
+                return
+            }
+            session.addOutput(metadataOutput)
+            metadataOutput.setMetadataObjectsDelegate(metadataDelegate, sessionQueue)
+            metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
+            installSubjectAreaObserver(device)
+
+            success = true
+        } finally {
+            session.commitConfiguration()
+        }
+
+        configured = success
+        if (!success) {
+            currentDevice = null
+            lastAppliedZoomFactor = null
+        }
+    }
+
     private fun selectDevice(): AVCaptureDevice? {
-        // Try ultra-wide camera first for maximum field of view
         val ultraWide = AVCaptureDevice.defaultDeviceWithDeviceType(
             deviceType = AVCaptureDeviceTypeBuiltInUltraWideCamera,
             mediaType = AVMediaTypeVideo,
@@ -303,37 +392,38 @@ private class IosQrScannerController : QrScannerController {
         )
         if (ultraWide != null) return ultraWide
 
-        // Fallback to default back camera
+        val wide = AVCaptureDevice.defaultDeviceWithDeviceType(
+            deviceType = AVCaptureDeviceTypeBuiltInWideAngleCamera,
+            mediaType = AVMediaTypeVideo,
+            position = AVCaptureDevicePositionBack
+        )
+        if (wide != null) return wide
+
         return AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
     }
 
     @OptIn(ExperimentalForeignApi::class)
     private fun configureDeviceFormat(device: AVCaptureDevice): Boolean {
-        // Target: 4:3 aspect ratio, 1920x1440, 60fps
         val targetWidth = 1920
         val targetHeight = 1440
         val targetFps = 60.0
 
         @Suppress("UNCHECKED_CAST")
         val formats = device.formats as? List<AVCaptureDeviceFormat> ?: return false
-
         for (format in formats) {
             val desc = format.formatDescription ?: continue
             val dimensions = CMVideoFormatDescriptionGetDimensions(desc)
-
             val matchesDimensions = dimensions.useContents {
                 width == targetWidth && height == targetHeight
             }
             if (!matchesDimensions) continue
 
-            // Check FPS support
             @Suppress("UNCHECKED_CAST")
             val fpsRanges = format.videoSupportedFrameRateRanges as? List<AVFrameRateRange>
                 ?: continue
             val supportsTargetFps = fpsRanges.any { it.maxFrameRate >= targetFps }
             if (!supportsTargetFps) continue
 
-            // Found a matching format - configure it
             memScoped {
                 val errorPtr = alloc<ObjCObjectVar<NSError?>>()
                 if (device.lockForConfiguration(errorPtr.ptr)) {
@@ -356,53 +446,6 @@ private class IosQrScannerController : QrScannerController {
     }
 
     @OptIn(ExperimentalForeignApi::class)
-    private fun configureSessionIfNeeded() {
-        if (configured) return
-
-        session.beginConfiguration()
-
-        val device = selectDevice()
-        if (device == null) {
-            session.sessionPreset = AVCaptureSessionPresetHigh
-            session.commitConfiguration()
-            NSLog("Failed to acquire capture device for QR scanning")
-            return
-        }
-        currentDevice = device
-
-        // Try to set custom format, use InputPriority preset if successful
-        val customFormatSet = configureDeviceFormat(device)
-        if (customFormatSet) {
-            session.sessionPreset = AVCaptureSessionPresetInputPriority
-        } else {
-            session.sessionPreset = AVCaptureSessionPresetHigh
-        }
-
-        val input = createDeviceInput(device)
-        if (input == null || !session.canAddInput(input)) {
-            NSLog("Unable to add camera input to capture session")
-            session.commitConfiguration()
-            // Don't set configured = true, allow retry on next start
-            return
-        }
-        session.addInput(input)
-
-        // Metadata-based QR detection
-        val metadataOutput = AVCaptureMetadataOutput()
-        if (!session.canAddOutput(metadataOutput)) {
-            NSLog("Unable to add metadata output to capture session")
-            session.commitConfiguration()
-            return
-        }
-        session.addOutput(metadataOutput)
-        metadataOutput.setMetadataObjectsDelegate(metadataDelegate, sessionQueue)
-        metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
-
-        session.commitConfiguration()
-        configured = true
-    }
-
-    @OptIn(ExperimentalForeignApi::class)
     private fun createDeviceInput(device: AVCaptureDevice): AVCaptureDeviceInput? = memScoped {
         val error = alloc<ObjCObjectVar<NSError?>>()
         val input = AVCaptureDeviceInput.deviceInputWithDevice(device, error.ptr)
@@ -414,11 +457,99 @@ private class IosQrScannerController : QrScannerController {
             input
         }
     }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun applyZoomIfNeeded(previousRequestedZoom: Float = desiredZoomFraction) {
+        val device = currentDevice ?: return
+        memScoped {
+            val minZoom = 1.0
+            val maxZoom =
+                (
+                    device.activeFormat.valueForKey(
+                        "videoMaxZoomFactor"
+                    ) as? NSNumber
+                    )?.doubleValue
+                    ?: 4.0
+            val target = minZoom * (maxZoom / minZoom).pow(desiredZoomFraction.toDouble())
+            val clampedTarget = target.coerceIn(minZoom, maxZoom)
+            val previous = lastAppliedZoomFactor
+            if (previous != null && abs(previous - clampedTarget) < ZOOM_FACTOR_EPSILON) {
+                return@memScoped
+            }
+            val errorPtr = alloc<ObjCObjectVar<NSError?>>()
+            var shouldRestoreContinuous = false
+            if (device.lockForConfiguration(errorPtr.ptr)) {
+                device.videoZoomFactor = clampedTarget
+                val shouldPulseFocus = shouldRunAutofocusPulse(
+                    previousRequestedZoom = previousRequestedZoom,
+                    requestedZoom = desiredZoomFraction
+                )
+                if (shouldPulseFocus) {
+                    if (device.isFocusModeSupported(AVCaptureFocusModeAutoFocus)) {
+                        device.focusMode = AVCaptureFocusModeAutoFocus
+                    }
+                    if (device.isExposureModeSupported(AVCaptureExposureModeAutoExpose)) {
+                        device.exposureMode = AVCaptureExposureModeAutoExpose
+                    }
+                    shouldRestoreContinuous = true
+                }
+                device.subjectAreaChangeMonitoringEnabled = true
+                lastAppliedZoomFactor = clampedTarget
+                device.unlockForConfiguration()
+            }
+            if (shouldRestoreContinuous) {
+                scheduleContinuousFocusAndExposureRestore(device)
+            }
+        }
+    }
+
+    private fun shouldRunAutofocusPulse(
+        previousRequestedZoom: Float,
+        requestedZoom: Float
+    ): Boolean {
+        val snappedBackToDefault =
+            previousRequestedZoom >= ZOOM_PULSE_FROM_THRESHOLD &&
+                requestedZoom <= ZOOM_DEFAULT_THRESHOLD
+        val largeZoomJump = abs(previousRequestedZoom - requestedZoom) >= ZOOM_PULSE_DELTA_THRESHOLD
+        return snappedBackToDefault || largeZoomJump
+    }
+
+    private fun runAutofocusPulse(device: AVCaptureDevice) {
+        memScoped {
+            val errorPtr = alloc<ObjCObjectVar<NSError?>>()
+            var shouldRestoreContinuous = false
+            if (device.lockForConfiguration(errorPtr.ptr)) {
+                if (device.isFocusModeSupported(AVCaptureFocusModeAutoFocus)) {
+                    device.focusMode = AVCaptureFocusModeAutoFocus
+                }
+                if (device.isExposureModeSupported(AVCaptureExposureModeAutoExpose)) {
+                    device.exposureMode = AVCaptureExposureModeAutoExpose
+                }
+                device.subjectAreaChangeMonitoringEnabled = true
+                shouldRestoreContinuous = true
+                device.unlockForConfiguration()
+            }
+            if (shouldRestoreContinuous) {
+                scheduleContinuousFocusAndExposureRestore(device)
+            }
+        }
+    }
+
+    private fun scheduleContinuousFocusAndExposureRestore(device: AVCaptureDevice) {
+        val delayNanos = REFOCUS_RESTORE_DELAY_MS * NSEC_PER_MSEC.toLong()
+        dispatch_after(
+            dispatch_time(DISPATCH_TIME_NOW, delayNanos),
+            sessionQueue
+        ) {
+            if (currentDevice !== device) return@dispatch_after
+            resetFocusAndExposure()
+        }
+    }
 }
 
 private class MetadataDelegate(
     private val isPaused: () -> Boolean,
-    private val emitIfNew: (String) -> Unit
+    private val onMetadataObjects: (List<*>) -> Unit
 ) : NSObject(),
     AVCaptureMetadataOutputObjectsDelegateProtocol {
 
@@ -428,10 +559,7 @@ private class MetadataDelegate(
         fromConnection: AVCaptureConnection
     ) {
         if (isPaused()) return
-        val value = selectPreferredMetadataValue(didOutputMetadataObjects) ?: return
-
-        // Debounce handled by controller's lastEmittedValue
-        emitIfNew(value)
+        onMetadataObjects(didOutputMetadataObjects)
     }
 }
 
@@ -439,14 +567,19 @@ private fun selectPreferredMetadataValue(metadataObjects: List<*>): String? {
     if (metadataObjects.isEmpty()) return null
     if (metadataObjects.size == 1) {
         val code = metadataObjects.first() as? AVMetadataMachineReadableCodeObject ?: return null
-        return code.stringValue?.takeIf { it.isNotBlank() }
+        return code.stringValue
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
     }
 
     val candidates = ArrayList<QrDetectionCandidate>(metadataObjects.size)
     var firstValue: String? = null
     for (objectCandidate in metadataObjects) {
         val code = objectCandidate as? AVMetadataMachineReadableCodeObject ?: continue
-        val value = code.stringValue?.takeIf { it.isNotBlank() } ?: continue
+        val value = code.stringValue
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: continue
         if (firstValue == null) firstValue = value
         val candidate = code.bounds.useContents {
             val left = origin.x.toFloat()
@@ -465,7 +598,15 @@ private fun selectPreferredMetadataValue(metadataObjects: List<*>): String? {
     }
 
     if (candidates.isEmpty()) return firstValue
-    return pickPreferredQrValue(candidates, frameWidth = 1f, frameHeight = 1f)
+    return pickPreferredQrValue(
+        candidates = candidates,
+        frameWidth = 1f,
+        frameHeight = 1f
+    )
 }
 
 private const val ZOOM_FACTOR_EPSILON = 0.01
+private const val ZOOM_PULSE_FROM_THRESHOLD = 0.12f
+private const val ZOOM_DEFAULT_THRESHOLD = 0.02f
+private const val ZOOM_PULSE_DELTA_THRESHOLD = 0.2f
+private const val REFOCUS_RESTORE_DELAY_MS = 220L
