@@ -83,6 +83,11 @@ class LightningInputParser {
             return ParseResult.Success(Target.LightningAddressTarget(address))
         }
 
+        val urlWrappedAddress = parseUrlWrappedLightningAddress(current)
+        if (urlWrappedAddress != null) {
+            return ParseResult.Success(Target.LightningAddressTarget(urlWrappedAddress))
+        }
+
         val lnurlEndpoint = when {
             // Check URL schemes first (before bech32) to avoid misclassification
             current.startsWith(
@@ -192,6 +197,32 @@ class LightningInputParser {
             val bytes = convert5BitTo8Bit(data) ?: return@runCatching null
             bytes.decodeToString()
         }.getOrNull()
+    }
+
+    private fun parseUrlWrappedLightningAddress(value: String): LightningAddress? {
+        if (!value.startsWith("http://", ignoreCase = true) &&
+            !value.startsWith("https://", ignoreCase = true)
+        ) {
+            return null
+        }
+        val withoutScheme = value.substringAfter("://", missingDelimiterValue = "")
+        if (withoutScheme.isEmpty()) return null
+        if (withoutScheme.contains('?') || withoutScheme.contains('#')) return null
+
+        val authority = withoutScheme.substringBefore('/')
+        val path = withoutScheme.substringAfter('/', missingDelimiterValue = "")
+        if (authority.isEmpty()) return null
+        if (path.isNotEmpty()) return null
+        if (authority.count { it == '@' } != 1) return null
+
+        val user = authority.substringBefore('@')
+        val host = authority.substringAfter('@')
+        if (user.isEmpty() || host.isEmpty()) return null
+        if (user.contains(':')) return null
+
+        val candidate = "$user@$host"
+        if (!looksLikeLightningAddress(candidate)) return null
+        return toLightningAddress(candidate)
     }
 
     private fun convertSchemeToHttps(value: String, scheme: String): String? {

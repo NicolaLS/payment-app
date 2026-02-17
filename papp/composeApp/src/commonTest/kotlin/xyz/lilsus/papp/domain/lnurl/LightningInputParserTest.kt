@@ -32,6 +32,16 @@ class LightningInputParserTest {
     }
 
     @Test
+    fun parsesUrlWrappedLightningAddress() {
+        val result = parser.parse("http://jum@blink.sv/")
+
+        val success = assertIs<LightningInputParser.ParseResult.Success>(result)
+        val target = assertIs<LightningInputParser.Target.LightningAddressTarget>(success.target)
+        assertEquals("jum", target.address.username)
+        assertEquals("blink.sv", target.address.domain)
+    }
+
+    @Test
     fun doesNotTreatHttpUrlWithPathAsLightningAddress() {
         val result = parser.parse("https://some.random.domain.com/some/resource")
 
