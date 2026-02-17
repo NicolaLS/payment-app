@@ -22,16 +22,10 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.useContents
 import kotlinx.cinterop.value
 import platform.AVFoundation.*
-import platform.CoreMedia.CMSampleBufferGetImageBuffer
-import platform.CoreMedia.CMSampleBufferRef
 import platform.CoreMedia.CMTimeMake
 import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import platform.Foundation.*
 import platform.UIKit.*
-import platform.Vision.VNBarcodeObservation
-import platform.Vision.VNBarcodeSymbologyQR
-import platform.Vision.VNDetectBarcodesRequest
-import platform.Vision.VNImageRequestHandler
 import platform.darwin.*
 
 @Composable
@@ -131,8 +125,7 @@ private class IosQrScannerController : QrScannerController {
     private var currentDevice: AVCaptureDevice? = null
     private var lifecycleObserver: NSObjectProtocol? = null
 
-    // Shared debounce across both detectors to prevent duplicate emissions.
-    // Only accessed from sessionQueue.
+    // Debounce repeated payloads. Only accessed from sessionQueue.
     private var lastEmittedValue: String? = null
 
     private fun emitIfNew(value: String) {
@@ -152,11 +145,6 @@ private class IosQrScannerController : QrScannerController {
     }
 
     private val metadataDelegate = MetadataDelegate(
-        isPaused = { paused },
-        emitIfNew = ::emitIfNew
-    )
-
-    private val visionDelegate = VisionDelegate(
         isPaused = { paused },
         emitIfNew = ::emitIfNew
     )
@@ -394,17 +382,6 @@ private class IosQrScannerController : QrScannerController {
         metadataOutput.setMetadataObjectsDelegate(metadataDelegate, sessionQueue)
         metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
 
-        // Vision-based QR detection (runs in parallel)
-        val videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.alwaysDiscardsLateVideoFrames = true
-        if (!session.canAddOutput(videoOutput)) {
-            NSLog("Unable to add video output to capture session")
-            session.commitConfiguration()
-            return
-        }
-        session.addOutput(videoOutput)
-        videoOutput.setSampleBufferDelegate(visionDelegate, sessionQueue)
-
         session.commitConfiguration()
         configured = true
     }
@@ -435,57 +412,42 @@ private class MetadataDelegate(
         fromConnection: AVCaptureConnection
     ) {
         if (isPaused()) return
-        // TODO: When multiple QR codes are in frame, select the largest one
-        // (by bounds area) instead of taking the first. This handles the edge
-        // case where a non-Lightning QR is detected first, causing a confusing
-        // error. The largest QR is likely the one the user is pointing at.
-        // AVMetadataMachineReadableCodeObject provides bounds property.
-        val code =
-            didOutputMetadataObjects.firstOrNull() as? AVMetadataMachineReadableCodeObject ?: return
-        val value = code.stringValue ?: return
+        val value = selectPreferredMetadataValue(didOutputMetadataObjects) ?: return
 
-        // Debounce handled by controller's shared lastEmittedValue
+        // Debounce handled by controller's lastEmittedValue
         emitIfNew(value)
     }
 }
 
-private class VisionDelegate(
-    private val isPaused: () -> Boolean,
-    private val emitIfNew: (String) -> Unit
-) : NSObject(),
-    AVCaptureVideoDataOutputSampleBufferDelegateProtocol {
-
-    override fun captureOutput(
-        output: AVCaptureOutput,
-        didOutputSampleBuffer: CMSampleBufferRef?,
-        fromConnection: AVCaptureConnection
-    ) {
-        if (isPaused()) return
-        val sampleBuffer = didOutputSampleBuffer ?: return
-        val pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) ?: return
-
-        val request = VNDetectBarcodesRequest { request, _ ->
-            @Suppress("UNCHECKED_CAST")
-            val results =
-                request?.results as? List<VNBarcodeObservation>
-                    ?: return@VNDetectBarcodesRequest
-
-            for (observation in results) {
-                if (observation.symbology != VNBarcodeSymbologyQR) continue
-                val payload = observation.payloadStringValue ?: continue
-
-                // Debounce handled by controller's shared lastEmittedValue
-                emitIfNew(payload)
-                return@VNDetectBarcodesRequest
-            }
-        }
-        request.symbologies = listOf(VNBarcodeSymbologyQR)
-
-        val handler = VNImageRequestHandler(pixelBuffer, options = emptyMap<Any?, Any>())
-        memScoped {
-            val errorPtr = alloc<ObjCObjectVar<NSError?>>()
-            handler.performRequests(listOf(request), errorPtr.ptr)
-            // Ignore errors - just try again on next frame
-        }
+private fun selectPreferredMetadataValue(metadataObjects: List<*>): String? {
+    if (metadataObjects.isEmpty()) return null
+    if (metadataObjects.size == 1) {
+        val code = metadataObjects.first() as? AVMetadataMachineReadableCodeObject ?: return null
+        return code.stringValue?.takeIf { it.isNotBlank() }
     }
+
+    val candidates = ArrayList<QrDetectionCandidate>(metadataObjects.size)
+    var firstValue: String? = null
+    for (objectCandidate in metadataObjects) {
+        val code = objectCandidate as? AVMetadataMachineReadableCodeObject ?: continue
+        val value = code.stringValue?.takeIf { it.isNotBlank() } ?: continue
+        if (firstValue == null) firstValue = value
+        val candidate = code.bounds.useContents {
+            val left = origin.x.toFloat()
+            val top = origin.y.toFloat()
+            val width = size.width.toFloat()
+            val height = size.height.toFloat()
+            QrDetectionCandidate(
+                value = value,
+                left = left,
+                top = top,
+                right = left + width,
+                bottom = top + height
+            )
+        }
+        candidates.add(candidate)
+    }
+
+    if (candidates.isEmpty()) return firstValue
+    return pickPreferredQrValue(candidates, frameWidth = 1f, frameHeight = 1f)
 }

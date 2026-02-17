@@ -344,12 +344,22 @@ private class QrCodeAnalyzer(
             val input = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
             barcodeScanner.process(input)
                 .addOnSuccessListener(analysisExecutor) { barcodes ->
-                    // TODO: When multiple QR codes are in frame, select the largest one
-                    // (by bounding box area) instead of taking the first. This handles
-                    // the edge case where a non-Lightning QR is detected first, causing
-                    // a confusing error. The largest QR is likely the one the user is
-                    // pointing at. ML Kit provides boundingBox on each Barcode object.
-                    val value = barcodes.firstOrNull()?.rawValue
+                    val rotation = image.imageInfo.rotationDegrees
+                    val frameWidth = if (rotation == 90 || rotation == 270) {
+                        image.height.toFloat()
+                    } else {
+                        image.width.toFloat()
+                    }
+                    val frameHeight = if (rotation == 90 || rotation == 270) {
+                        image.width.toFloat()
+                    } else {
+                        image.height.toFloat()
+                    }
+                    val value = selectPreferredBarcodeValue(
+                        barcodes = barcodes,
+                        frameWidth = frameWidth,
+                        frameHeight = frameHeight
+                    )
                     if (value != null && value != lastEmittedValue) {
                         lastEmittedValue = value
                         mainExecutor.execute { onQrCodeScanned(value) }
@@ -366,6 +376,37 @@ private class QrCodeAnalyzer(
             Log.e(TAG, "Unexpected failure while analyzing image", failure)
         }
     }
+}
+
+private fun selectPreferredBarcodeValue(
+    barcodes: List<Barcode>,
+    frameWidth: Float,
+    frameHeight: Float
+): String? {
+    if (barcodes.isEmpty()) return null
+    if (barcodes.size == 1) {
+        return barcodes.first().rawValue?.takeIf { it.isNotBlank() }
+    }
+
+    val candidates = ArrayList<QrDetectionCandidate>(barcodes.size)
+    var firstValue: String? = null
+    for (barcode in barcodes) {
+        val value = barcode.rawValue?.takeIf { it.isNotBlank() } ?: continue
+        if (firstValue == null) firstValue = value
+        val bounds = barcode.boundingBox ?: continue
+        candidates.add(
+            QrDetectionCandidate(
+                value = value,
+                left = bounds.left.toFloat(),
+                top = bounds.top.toFloat(),
+                right = bounds.right.toFloat(),
+                bottom = bounds.bottom.toFloat()
+            )
+        )
+    }
+
+    if (candidates.isEmpty()) return firstValue
+    return pickPreferredQrValue(candidates, frameWidth, frameHeight)
 }
 
 private fun isCameraPermissionGranted(context: Context): Boolean =
