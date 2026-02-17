@@ -6,6 +6,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
@@ -301,6 +302,39 @@ class MainViewModelTest {
             viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
             assertEquals(AMOUNT_PAYMENT_REQUEST, repository.lastInvoice)
             assertNull(repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun alreadyPaidResultShowsAlreadyPaidSuccessState() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository(
+            result = PaidInvoice(
+                preimage = null,
+                feesPaidMsats = null,
+                wasAlreadyPaid = true
+            )
+        )
+        val viewModel = createViewModel(parser, repository)
+        try {
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+
+            val success = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Success
+            } as MainUiState.Success
+            assertTrue(success.wasAlreadyPaid)
+            assertFalse(success.showBlinkFeeHint)
         } finally {
             viewModel.clear()
         }

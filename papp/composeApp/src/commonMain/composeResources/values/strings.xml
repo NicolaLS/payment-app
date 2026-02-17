@@ -122,6 +122,8 @@
     <string name="result_paid_title">Paid</string>
     <string name="result_paid_fee">Fee: %1$s</string>
     <string name="result_paid_fee_blink_hint">Blink might refund this fee partially.</string>
+    <string name="result_already_paid_title">Already Paid</string>
+    <string name="result_already_paid_message">No payment was sent. This invoice was already paid.</string>
     <string name="result_error_title">Error</string>
     <!-- Blink wallet strings -->
     <string name="add_blink_wallet_title">Add Blink Wallet</string>

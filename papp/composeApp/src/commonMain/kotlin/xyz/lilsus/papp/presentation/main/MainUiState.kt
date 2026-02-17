@@ -13,7 +13,8 @@ sealed class MainUiState {
     data class Success(
         val amountPaid: DisplayAmount,
         val feePaid: DisplayAmount,
-        val showBlinkFeeHint: Boolean = false
+        val showBlinkFeeHint: Boolean = false,
+        val wasAlreadyPaid: Boolean = false
     ) : MainUiState()
 
     data class Error(val error: AppError) : MainUiState()

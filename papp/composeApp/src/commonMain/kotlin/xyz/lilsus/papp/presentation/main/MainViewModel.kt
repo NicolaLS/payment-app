@@ -644,7 +644,8 @@ class MainViewModel internal constructor(
         lastPaymentResult = CompletedPayment(
             amountMsats = paid,
             feeMsats = fee,
-            showBlinkFeeHint = showBlinkFeeHint
+            showBlinkFeeHint = showBlinkFeeHint,
+            wasAlreadyPaid = false
         )
         _uiState.value = MainUiState.Success(
             amountPaid = currencyManager.convertMsatsToDisplay(paid, currencyState),
@@ -786,8 +787,13 @@ class MainViewModel internal constructor(
         result: PaidInvoice
     ) {
         val record = pendingTracker.get(pendingId)
-        val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
-        val feeMsats = result.feesPaidMsats ?: 0L
+        val wasAlreadyPaid = result.wasAlreadyPaid
+        val paidMsats = if (wasAlreadyPaid) {
+            0L
+        } else {
+            amountOverrideMsats ?: summary.amountMsats ?: 0L
+        }
+        val feeMsats = if (wasAlreadyPaid) 0L else result.feesPaidMsats ?: 0L
         clearPaymentSessionState()
 
         // Remove any other pending requests for the same invoice (from other wallets)
@@ -798,7 +804,7 @@ class MainViewModel internal constructor(
         val isOpen = openPendingId == pendingId
         val chipVisible = record?.visible == true
 
-        if (chipVisible && !isOpen) {
+        if (!wasAlreadyPaid && chipVisible && !isOpen) {
             // Chip is showing but user isn't viewing it - update in place, stay on Active
             if (vibrateOnPayment) haptics.notifyPaymentSuccess()
             pendingTracker.markSuccess(pendingId, paidMsats, feeMsats)
@@ -816,16 +822,18 @@ class MainViewModel internal constructor(
             feeMsats,
             currencyManager.state.value
         )
-        val showBlinkFeeHint = record?.walletType == WalletType.BLINK
+        val showBlinkFeeHint = !wasAlreadyPaid && record?.walletType == WalletType.BLINK
         _uiState.value = MainUiState.Success(
             amountPaid = paidDisplay,
             feePaid = feeDisplay,
-            showBlinkFeeHint = showBlinkFeeHint
+            showBlinkFeeHint = showBlinkFeeHint,
+            wasAlreadyPaid = wasAlreadyPaid
         )
         lastPaymentResult = CompletedPayment(
             amountMsats = paidMsats,
             feeMsats = feeMsats,
-            showBlinkFeeHint = showBlinkFeeHint
+            showBlinkFeeHint = showBlinkFeeHint,
+            wasAlreadyPaid = wasAlreadyPaid
         )
         // Clear openPendingId since we're showing the result directly
         if (isOpen) openPendingId = null
@@ -1013,7 +1021,8 @@ class MainViewModel internal constructor(
                         payment.feeMsats,
                         currencyState
                     ),
-                    showBlinkFeeHint = payment.showBlinkFeeHint
+                    showBlinkFeeHint = payment.showBlinkFeeHint,
+                    wasAlreadyPaid = payment.wasAlreadyPaid
                 )
             }
 
@@ -1056,7 +1065,8 @@ private data class PendingPayment(
 private data class CompletedPayment(
     val amountMsats: Long,
     val feeMsats: Long,
-    val showBlinkFeeHint: Boolean
+    val showBlinkFeeHint: Boolean,
+    val wasAlreadyPaid: Boolean
 )
 
 private data class LnurlSession(val params: LnurlPayParams, val source: LnurlSource)

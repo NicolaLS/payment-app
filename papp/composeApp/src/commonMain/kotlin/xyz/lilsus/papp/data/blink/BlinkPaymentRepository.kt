@@ -148,9 +148,12 @@ class BlinkPaymentRepository(
             )
         }
 
+        val wasAlreadyPaid = result is BlinkPaymentResult.AlreadyPaid
+
         return PaidInvoice(
             preimage = null, // Blink doesn't return preimage in the simple payment flow
-            feesPaidMsats = result.feesPaidMsats
+            feesPaidMsats = if (wasAlreadyPaid) null else result.feesPaidMsats,
+            wasAlreadyPaid = wasAlreadyPaid
         )
     }
 

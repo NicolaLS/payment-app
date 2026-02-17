@@ -19,6 +19,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
+import papp.composeapp.generated.resources.result_already_paid_message
+import papp.composeapp.generated.resources.result_already_paid_title
 import papp.composeapp.generated.resources.result_error_title
 import papp.composeapp.generated.resources.result_paid_fee
 import papp.composeapp.generated.resources.result_paid_fee_blink_hint
@@ -41,33 +43,48 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
     ) {
         when (result) {
             is MainUiState.Success -> {
-                Text(
-                    text = stringResource(Res.string.result_paid_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = formatter.format(result.amountPaid),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(
-                        Res.string.result_paid_fee,
-                        formatter.format(result.feePaid)
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (result.showBlinkFeeHint) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                if (result.wasAlreadyPaid) {
                     Text(
-                        text = stringResource(Res.string.result_paid_fee_blink_hint),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = stringResource(Res.string.result_already_paid_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(Res.string.result_already_paid_message),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Text(
+                        text = stringResource(Res.string.result_paid_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = formatter.format(result.amountPaid),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(
+                            Res.string.result_paid_fee,
+                            formatter.format(result.feePaid)
+                        ),
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (result.showBlinkFeeHint) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(Res.string.result_paid_fee_blink_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -134,6 +151,21 @@ fun ResultLayoutPreviewError() {
         ResultLayout(
             modifier = Modifier.fillMaxWidth(),
             result = MainUiState.Error(AppError.Unexpected(errorMsg))
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ResultLayoutPreviewAlreadyPaid() {
+    AppTheme {
+        ResultLayout(
+            modifier = Modifier.fillMaxWidth(),
+            result = MainUiState.Success(
+                amountPaid = DisplayAmount(0, DisplayCurrency.Satoshi),
+                feePaid = DisplayAmount(0, DisplayCurrency.Satoshi),
+                wasAlreadyPaid = true
+            )
         )
     }
 }

@@ -68,6 +68,30 @@ class BlinkPaymentRepositoryTest {
     }
 
     @Test
+    fun payInvoiceReturnsAlreadyPaidResultWithoutFees() = runTest {
+        val context = createTestContext(
+            responseBody = """{
+                "data": {
+                    "lnInvoicePaymentSend": {
+                        "status": "ALREADY_PAID",
+                        "errors": [],
+                        "transaction": {
+                            "settlementFee": -10,
+                            "settlementCurrency": "BTC"
+                        }
+                    }
+                }
+            }"""
+        )
+
+        val result = context.repository.payInvoice("lnbc1000n1test")
+
+        assertNotNull(result)
+        assertTrue(result.wasAlreadyPaid)
+        assertNull(result.feesPaidMsats)
+    }
+
+    @Test
     fun payInvoiceUsesDefaultWalletIdFromApi() = runTest {
         var paymentRequestBody: String? = null
         var callCount = 0
