@@ -60,7 +60,11 @@ import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConnectWalletDialog(initialUri: String? = null, onDismiss: () -> Unit) {
+fun ConnectWalletDialog(
+    initialUri: String? = null,
+    onDismiss: () -> Unit,
+    onSuccess: () -> Unit = onDismiss
+) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<ConnectWalletViewModel>() },
@@ -76,7 +80,7 @@ fun ConnectWalletDialog(initialUri: String? = null, onDismiss: () -> Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 ConnectWalletEvent.Cancelled -> onDismiss()
-                is ConnectWalletEvent.Success -> onDismiss()
+                is ConnectWalletEvent.Success -> onSuccess()
             }
         }
     }
