@@ -28,6 +28,7 @@ import xyz.lilsus.papp.data.settings.createSecureSettings
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.LanguageRepository
@@ -95,10 +96,17 @@ val nwcModule = module {
 
     single { createSecureSettings() }
     single<WalletSettingsRepository> {
+        val blinkCredentialStore = get<BlinkCredentialStore>()
         WalletSettingsRepositoryImpl(
             settings = get(),
             dispatcher = get(),
-            scope = get()
+            scope = get(),
+            onWalletRemoved = { wallet ->
+                if (wallet.type == WalletType.BLINK) {
+                    blinkCredentialStore.removeApiKey(wallet.walletPublicKey)
+                    blinkCredentialStore.removeDefaultWalletId(wallet.walletPublicKey)
+                }
+            }
         )
     }
     single<OnboardingRepository> {

@@ -23,7 +23,8 @@ private const val KEY_ACTIVE_PUBKEY = "wallet.active"
 class WalletSettingsRepositoryImpl(
     private val settings: Settings,
     private val dispatcher: CoroutineDispatcher = kotlinx.coroutines.Dispatchers.Default,
-    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher),
+    private val onWalletRemoved: (WalletConnection) -> Unit = {}
 ) : WalletSettingsRepository {
 
     private val json = Json {
@@ -82,6 +83,8 @@ class WalletSettingsRepositoryImpl(
     }
 
     override suspend fun removeWallet(walletPublicKey: String) {
+        val wallet = state.value.wallets.firstOrNull { it.walletPublicKey == walletPublicKey }
+            ?: return
         updateState { current ->
             val remaining = current.wallets.filterNot { it.walletPublicKey == walletPublicKey }
             val nextActive = when {
@@ -94,10 +97,13 @@ class WalletSettingsRepositoryImpl(
                 activePubKey = nextActive
             )
         }
+        onWalletRemoved(wallet)
     }
 
     override suspend fun clearWalletConnection() {
+        val walletsToRemove = state.value.wallets
         updateState { WalletState() }
+        walletsToRemove.forEach(onWalletRemoved)
     }
 
     private fun updateState(transform: (WalletState) -> WalletState) {
