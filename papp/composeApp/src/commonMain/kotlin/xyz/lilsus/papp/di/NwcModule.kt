@@ -16,7 +16,6 @@ import xyz.lilsus.papp.data.nwc.NwcConnectionManager
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
 import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
 import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
-import xyz.lilsus.papp.data.nwc.WalletMetadataSynchronizer
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.OnboardingRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
@@ -152,13 +151,9 @@ val nwcModule = module {
             httpClient = get()
         )
     }
-    single {
-        WalletMetadataSynchronizer(
-            scope = get(),
-            discoveryRepository = get(),
-            walletSettingsRepository = get()
-        )
-    }
+    // TODO(wallet-metadata): Re-introduce metadata refresh only with safe stale-write handling.
+    // Metadata can change over time (encryption/capabilities/policy), but metadata-only refreshes
+    // must never reactivate removed/inactive wallets; implement timestamped refresh + guarded writes.
 
     // Blink wallet support (temporary bridge)
     single { BlinkCredentialStore(secureSettings = get()) }
