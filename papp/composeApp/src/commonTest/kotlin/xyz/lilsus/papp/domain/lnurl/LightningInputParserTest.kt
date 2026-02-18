@@ -45,9 +45,16 @@ class LightningInputParserTest {
     fun doesNotTreatHttpUrlWithPathAsLightningAddress() {
         val result = parser.parse("https://some.random.domain.com/some/resource")
 
+        val failure = assertIs<LightningInputParser.ParseResult.Failure>(result)
+        assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)
+    }
+
+    @Test
+    fun parsesRawLnurlLikeHttpUrl() {
+        val result = parser.parse("https://example.com/.well-known/lnurlp/pay")
+
         val success = assertIs<LightningInputParser.ParseResult.Success>(result)
-        val target = success.target
-        assertIs<LightningInputParser.Target.Lnurl>(target)
+        assertTrue(success.target is LightningInputParser.Target.Lnurl)
     }
 
     @Test
@@ -70,6 +77,14 @@ class LightningInputParserTest {
     @Test
     fun rejectsAddressWithoutDomainSuffix() {
         val result = parser.parse("pay@localhost")
+
+        val failure = assertIs<LightningInputParser.ParseResult.Failure>(result)
+        assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)
+    }
+
+    @Test
+    fun rejectsPlainDomainWithoutUserPart() {
+        val result = parser.parse("golol.de")
 
         val failure = assertIs<LightningInputParser.ParseResult.Failure>(result)
         assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)

@@ -24,9 +24,11 @@ import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.repository.LnurlRepository
+import xyz.lilsus.papp.platform.NetworkConnectivity
 
 class LnurlRepositoryImpl(
     private val client: HttpClient = createBaseHttpClient(),
+    private val networkConnectivity: NetworkConnectivity = AlwaysOnlineConnectivity,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) : LnurlRepository {
@@ -36,6 +38,9 @@ class LnurlRepositoryImpl(
             val url = endpoint.trim()
             if (url.isEmpty()) {
                 return@withContext Result.Error(AppError.LnurlError("LNURL is blank"))
+            }
+            if (!networkConnectivity.isNetworkAvailable()) {
+                return@withContext Result.Error(AppError.NetworkUnavailable)
             }
             val parsedUrl = runCatching { Url(url) }.getOrNull()
                 ?: return@withContext Result.Error(
@@ -47,10 +52,14 @@ class LnurlRepositoryImpl(
                 parsePayParams(body, parsedUrl.host)
             } catch (cause: Throwable) {
                 when (cause) {
-                    is kotlinx.io.IOException -> Result.Error(
-                        AppError.NetworkUnavailable,
-                        cause
-                    )
+                    is kotlinx.io.IOException -> {
+                        val error = if (!networkConnectivity.isNetworkAvailable()) {
+                            AppError.NetworkUnavailable
+                        } else {
+                            AppError.LnurlError("Failed to reach LNURL endpoint")
+                        }
+                        Result.Error(error, cause)
+                    }
 
                     else -> Result.Error(AppError.Unexpected(cause.message), cause)
                 }
@@ -73,6 +82,9 @@ class LnurlRepositoryImpl(
         amountMsats: Long,
         comment: String?
     ): Result<String> = withContext(dispatcher) {
+        if (!networkConnectivity.isNetworkAvailable()) {
+            return@withContext Result.Error(AppError.NetworkUnavailable)
+        }
         if (amountMsats <= 0) {
             return@withContext Result.Error(AppError.LnurlError("Amount must be positive"))
         }
@@ -87,10 +99,14 @@ class LnurlRepositoryImpl(
             parseInvoice(body)
         } catch (cause: Throwable) {
             when (cause) {
-                is kotlinx.io.IOException -> Result.Error(
-                    AppError.NetworkUnavailable,
-                    cause
-                )
+                is kotlinx.io.IOException -> {
+                    val error = if (!networkConnectivity.isNetworkAvailable()) {
+                        AppError.NetworkUnavailable
+                    } else {
+                        AppError.LnurlError("Failed to reach LNURL callback endpoint")
+                    }
+                    Result.Error(error, cause)
+                }
 
                 else -> Result.Error(AppError.Unexpected(cause.message), cause)
             }
@@ -240,5 +256,9 @@ class LnurlRepositoryImpl(
                 append(tag)
             }
         }
+    }
+
+    private data object AlwaysOnlineConnectivity : NetworkConnectivity {
+        override fun isNetworkAvailable(): Boolean = true
     }
 }

@@ -109,7 +109,7 @@ val nwcModule = module {
     single<ThemePreferencesRepository> { ThemePreferencesRepositoryImpl(get()) }
     single<LanguageRepository> { createLanguageRepository() }
     single<ExchangeRateRepository> { CoinGeckoExchangeRateRepository() }
-    single<LnurlRepository> { LnurlRepositoryImpl() }
+    single<LnurlRepository> { LnurlRepositoryImpl(networkConnectivity = get()) }
     single { createNwcHttpClient() }
     single<NetworkConnectivity> { createNetworkConnectivity() }
 

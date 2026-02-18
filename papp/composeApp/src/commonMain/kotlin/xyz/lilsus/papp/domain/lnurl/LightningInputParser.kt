@@ -108,9 +108,11 @@ class LightningInputParser {
             // Then check for bech32-encoded LNURL
             looksLikeLnurl(current) -> decodeBech32Lnurl(current)
 
-            // Raw HTTP(S) URLs can be LNURL endpoints
+            // Only treat raw HTTP(S) URLs as LNURL when they contain LNURL-specific hints.
+            // This avoids latching onto generic website URLs from random QR codes.
             current.startsWith("https://", ignoreCase = true) ||
-                current.startsWith("http://", ignoreCase = true) -> current
+                current.startsWith("http://", ignoreCase = true) ->
+                current.takeIf(::looksLikeLnurlHttpUrl)
 
             else -> null
         }
@@ -231,6 +233,16 @@ class LightningInputParser {
         val isOnion = withoutScheme.contains(".onion", ignoreCase = true)
         val protocol = if (isOnion) "http" else "https"
         return "$protocol://$withoutScheme"
+    }
+
+    private fun looksLikeLnurlHttpUrl(value: String): Boolean {
+        val lower = value.lowercase()
+        return lower.contains("/.well-known/lnurlp/") ||
+            lower.contains("/lnurlp/") ||
+            lower.contains("/lnurl/") ||
+            lower.contains("tag=payrequest") ||
+            lower.contains("lnurl=") ||
+            lower.contains("lightning=")
     }
 
     private fun convert5BitTo8Bit(data: Array<Byte>): ByteArray? {
