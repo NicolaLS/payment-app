@@ -195,8 +195,7 @@ class AddBlinkWalletViewModelTest {
     private fun createTestContext(authorizationResponse: String = DEFAULT_AUTH_RESPONSE): TestContext {
         val settings = MapSettings()
         val walletSettingsRepository = WalletSettingsRepositoryImpl(
-            settings = settings,
-            dispatcher = Dispatchers.Default
+            settings = settings
         )
         val credentialStore = BlinkCredentialStore(settings)
         val apiClient = createMockApiClient(authorizationResponse)

@@ -99,8 +99,6 @@ val nwcModule = module {
         val blinkCredentialStore = get<BlinkCredentialStore>()
         WalletSettingsRepositoryImpl(
             settings = get(),
-            dispatcher = get(),
-            scope = get(),
             onWalletRemoved = { wallet ->
                 if (wallet.type == WalletType.BLINK) {
                     blinkCredentialStore.removeApiKey(wallet.walletPublicKey)

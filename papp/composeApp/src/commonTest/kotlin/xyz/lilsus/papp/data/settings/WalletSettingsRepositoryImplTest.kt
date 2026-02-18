@@ -5,9 +5,6 @@ package xyz.lilsus.papp.data.settings
 import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
@@ -40,15 +37,25 @@ class WalletSettingsRepositoryImplTest {
         assertEquals(setOf(nwcWallet, blinkWallet), removed.toSet())
     }
 
-    private fun TestScope.createRepository(onRemoved: (WalletConnection) -> Unit): WalletSettingsRepositoryImpl {
-        val dispatcher = UnconfinedTestDispatcher(testScheduler)
+    @Test
+    fun loadsPersistedWalletSynchronouslyOnConstruction() = runTest {
+        val settings = MapSettings()
+        val wallet = walletConnection("nwc-wallet", WalletType.NWC)
+        val writer = WalletSettingsRepositoryImpl(settings = settings)
+        writer.saveWalletConnection(wallet, activate = true)
+
+        val reader = WalletSettingsRepositoryImpl(settings = settings)
+        val active = reader.getWalletConnection()
+
+        assertEquals(wallet.walletPublicKey, active?.walletPublicKey)
+        assertEquals(wallet.type, active?.type)
+    }
+
+    private fun createRepository(onRemoved: (WalletConnection) -> Unit): WalletSettingsRepositoryImpl {
         val repository = WalletSettingsRepositoryImpl(
             settings = MapSettings(),
-            dispatcher = dispatcher,
-            scope = this,
             onWalletRemoved = onRemoved
         )
-        runCurrent()
         return repository
     }
 
