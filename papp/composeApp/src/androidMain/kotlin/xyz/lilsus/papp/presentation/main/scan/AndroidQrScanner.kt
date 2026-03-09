@@ -22,13 +22,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -39,9 +42,12 @@ import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.abs
 import kotlin.math.pow
 
 private const val TAG = "QrScanner"
+private const val FAR_MODE_BASE_ZOOM_RATIO = 2f
+private const val ZOOM_RATIO_EPSILON = 0.001f
 
 actual class CameraPreviewSurface internal constructor(val previewView: PreviewView)
 
@@ -87,9 +93,13 @@ actual fun rememberCameraPermissionState(): CameraPermissionState {
 actual fun CameraPreviewHost(
     controller: QrScannerController,
     visible: Boolean,
-    modifier: Modifier
+    modifier: Modifier,
+    preferCompatibleMode: Boolean,
+    onPreviewStreamingChanged: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val streamingChangedState = rememberUpdatedState(onPreviewStreamingChanged)
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
@@ -97,14 +107,35 @@ actual fun CameraPreviewHost(
     }
     val surface = remember { CameraPreviewSurface(previewView) }
 
+    SideEffect {
+        previewView.implementationMode = if (preferCompatibleMode) {
+            PreviewView.ImplementationMode.COMPATIBLE
+        } else {
+            PreviewView.ImplementationMode.PERFORMANCE
+        }
+    }
+
     DisposableEffect(controller, surface, visible) {
         if (visible) {
             controller.bindPreview(surface)
         } else {
             controller.unbindPreview()
+            streamingChangedState.value(false)
         }
         onDispose {
             controller.unbindPreview()
+            streamingChangedState.value(false)
+        }
+    }
+
+    DisposableEffect(previewView, lifecycleOwner, visible) {
+        val observer = Observer<PreviewView.StreamState> { state ->
+            streamingChangedState.value(state == PreviewView.StreamState.STREAMING)
+        }
+        previewView.previewStreamState.observe(lifecycleOwner, observer)
+        onDispose {
+            previewView.previewStreamState.removeObserver(observer)
+            streamingChangedState.value(false)
         }
     }
 
@@ -134,6 +165,7 @@ private class AndroidQrScannerController(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner
 ) : QrScannerController {
+    override val supportsManualModeSelection: Boolean = true
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysis: ImageAnalysis? = null
@@ -145,6 +177,9 @@ private class AndroidQrScannerController(
     private val isActive = AtomicBoolean(false)
     private val isBound = AtomicBoolean(false)
     private var camera: Camera? = null
+    private var desiredScanMode = QrScannerMode.Near
+    private var desiredZoomFraction = 0f
+    private var lastAppliedZoomRatio: Float? = null
 
     override fun start(onQrCodeScanned: (String) -> Unit) {
         this.onQrCodeScanned = onQrCodeScanned
@@ -166,6 +201,7 @@ private class AndroidQrScannerController(
         // Reset debounce so the same QR code can be scanned again after resuming
         analyzer?.resetLastValue()
         analyzer?.resume()
+        applyZoomIfNeeded()
     }
 
     override fun stop() {
@@ -178,6 +214,7 @@ private class AndroidQrScannerController(
         previewUseCase = null
         previewSurface = null
         camera = null
+        lastAppliedZoomRatio = null
         analysisExecutor?.shutdown()
         analysisExecutor = null
         cameraProvider = null
@@ -195,16 +232,16 @@ private class AndroidQrScannerController(
         previewSurface = null
     }
 
+    override fun setMode(mode: QrScannerMode) {
+        if (desiredScanMode == mode) return
+        desiredScanMode = mode
+        analyzer?.resetLastValue()
+        applyZoomIfNeeded()
+    }
+
     override fun setZoom(zoomFraction: Float) {
-        val target = camera ?: return
-        val clamped = zoomFraction.coerceIn(0f, 1f)
-        val zoomState = target.cameraInfo.zoomState.value ?: return
-        val minZoom = zoomState.minZoomRatio
-        val maxZoom = zoomState.maxZoomRatio
-        // Use logarithmic scaling for perceptually uniform zoom.
-        // This makes equal gesture distances feel like equal zoom changes.
-        val zoomRatio = (minZoom * (maxZoom / minZoom).toDouble().pow(clamped.toDouble())).toFloat()
-        target.cameraControl.setZoomRatio(zoomRatio.coerceIn(minZoom, maxZoom))
+        desiredZoomFraction = zoomFraction.coerceIn(0f, 1f)
+        applyZoomIfNeeded()
     }
 
     private fun bindCamera() {
@@ -296,6 +333,38 @@ private class AndroidQrScannerController(
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
             .build()
     )
+
+    private fun applyZoomIfNeeded() {
+        val target = camera ?: return
+        val zoomState = target.cameraInfo.zoomState.value ?: return
+        val minZoom = zoomState.minZoomRatio
+        val maxZoom = zoomState.maxZoomRatio
+        val baseZoomRatio = when (desiredScanMode) {
+            QrScannerMode.Near -> minZoom
+            QrScannerMode.Far -> FAR_MODE_BASE_ZOOM_RATIO.coerceIn(minZoom, maxZoom)
+        }
+        val zoomRatio = if (
+            desiredZoomFraction <= 0f ||
+            maxZoom <= baseZoomRatio + ZOOM_RATIO_EPSILON
+        ) {
+            baseZoomRatio
+        } else {
+            // Keep the existing logarithmic feel, but anchor the range to the mode's base zoom.
+            (
+                baseZoomRatio *
+                    (maxZoom / baseZoomRatio).toDouble().pow(desiredZoomFraction.toDouble())
+                )
+                .toFloat()
+                .coerceIn(baseZoomRatio, maxZoom)
+        }
+
+        lastAppliedZoomRatio?.let { lastZoomRatio ->
+            if (abs(lastZoomRatio - zoomRatio) < ZOOM_RATIO_EPSILON) return
+        }
+
+        lastAppliedZoomRatio = zoomRatio
+        target.cameraControl.setZoomRatio(zoomRatio)
+    }
 }
 
 private class QrCodeAnalyzer(

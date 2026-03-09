@@ -5,6 +5,9 @@
     <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
     <string name="app_name_long" translatable="false">Lasr</string>
     <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
+    <string name="scanner_mode_label">Mode: %1$s</string>
+    <string name="scanner_mode_near">Near</string>
+    <string name="scanner_mode_far">Far</string>
     <string name="confirm_payment_title">Confirm Payment</string>
     <string name="pay_button">Pay</string>
     <string name="dismiss_button">Dismiss</string>

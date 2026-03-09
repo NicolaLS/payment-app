@@ -19,6 +19,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.presentation.main.MainUiState
+import xyz.lilsus.papp.presentation.main.scan.QrScannerMode
 
 @Composable
 fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): HeroAnimationState =
@@ -26,6 +27,7 @@ fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): 
 
 class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs: List<ArcSpec>) {
     private val colorAnim = ColorAnimatable(Transparent)
+    private val modeScaleAnim = Animatable(1f)
     private val clusterScaleAnim = Animatable(1f)
     private val clusterShakeAnim = Animatable(0f)
     private val rotationAnim = Animatable(0f)
@@ -39,6 +41,8 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
 
     val color: Color
         get() = colorAnim.value
+    val modeScale: Float
+        get() = modeScaleAnim.value
     val clusterScale: Float
         get() = clusterScaleAnim.value
     val clusterShakeX: Float
@@ -81,6 +85,13 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
         }
     }
 
+    suspend fun animateActiveMode(mode: QrScannerMode) {
+        modeScaleAnim.animateTo(
+            targetValue = if (mode == QrScannerMode.Far) FAR_MODE_SCALE else 1f,
+            animationSpec = tween(durationMillis = 220, easing = EaseInOutCubic)
+        )
+    }
+
     private suspend fun animateToActive() {
         coroutineScope {
             launch { reset() }
@@ -91,6 +102,7 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
     }
 
     private suspend fun animateToCompressed() {
+        normalizeModeScale()
         coroutineScope {
             launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
             launch { clenchShrink() }
@@ -101,6 +113,7 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
     }
 
     private suspend fun animateToLoading() {
+        normalizeModeScale()
         coroutineScope {
             launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
             launch { clenchShrink() }
@@ -110,41 +123,52 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
         }
     }
 
-    private suspend fun animateToResult(isSuccess: Boolean) = coroutineScope {
-        launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
-        launch { stopDataBits() }
+    private suspend fun animateToResult(isSuccess: Boolean) {
+        normalizeModeScale()
+        coroutineScope {
+            launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
+            launch { stopDataBits() }
 
-        if (isSuccess) {
-            launch {
-                delay(150)
-                boltScaleAnim.snapTo(0f)
-                // Elastic pop
-                boltScaleAnim.animateTo(1.2f, tween(250, easing = EaseInOutCubic))
-                boltScaleAnim.animateTo(1f, tween(150, easing = EaseInOutCubic))
+            if (isSuccess) {
+                launch {
+                    delay(150)
+                    boltScaleAnim.snapTo(0f)
+                    // Elastic pop
+                    boltScaleAnim.animateTo(1.2f, tween(250, easing = EaseInOutCubic))
+                    boltScaleAnim.animateTo(1f, tween(150, easing = EaseInOutCubic))
+                }
+                compressArcOffsets()
+                reset(pop = true)
+            } else {
+                // Error: Shake it!
+                launch {
+                    clusterShakeAnim.animateTo(
+                        targetValue = 0f,
+                        animationSpec = keyframes {
+                            durationMillis = 500
+                            0f at 0
+                            -10f at 50
+                            10f at 100
+                            -10f at 150
+                            10f at 200
+                            -5f at 250
+                            5f at 300
+                            0f at 500
+                        }
+                    )
+                }
+                compressArcOffsets()
+                reset(pop = true, isError = true)
             }
-            compressArcOffsets()
-            reset(pop = true)
-        } else {
-            // Error: Shake it!
-            launch {
-                clusterShakeAnim.animateTo(
-                    targetValue = 0f,
-                    animationSpec = keyframes {
-                        durationMillis = 500
-                        0f at 0
-                        -10f at 50
-                        10f at 100
-                        -10f at 150
-                        10f at 200
-                        -5f at 250
-                        5f at 300
-                        0f at 500
-                    }
-                )
-            }
-            compressArcOffsets()
-            reset(pop = true, isError = true)
         }
+    }
+
+    private suspend fun normalizeModeScale() {
+        if (modeScaleAnim.value == 1f) return
+        modeScaleAnim.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 180, easing = EaseInOutCubic)
+        )
     }
 
     private suspend fun reset(pop: Boolean = false, isError: Boolean = false) = coroutineScope {
@@ -366,3 +390,5 @@ fun stepTowardCenter(value: Float, size: Float, step: Float): Float {
     val delta = 0.5f - center
     return delta * step
 }
+
+private const val FAR_MODE_SCALE = 0.65f

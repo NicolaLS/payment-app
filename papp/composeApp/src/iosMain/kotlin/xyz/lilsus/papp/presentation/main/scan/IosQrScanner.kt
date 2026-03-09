@@ -83,18 +83,23 @@ actual fun rememberCameraPermissionState(): CameraPermissionState {
 actual fun CameraPreviewHost(
     controller: QrScannerController,
     visible: Boolean,
-    modifier: Modifier
+    modifier: Modifier,
+    preferCompatibleMode: Boolean,
+    onPreviewStreamingChanged: (Boolean) -> Unit
 ) {
     val surface = remember { CameraPreviewSurface(UIView()) }
 
     DisposableEffect(controller, surface, visible) {
         if (visible) {
             controller.bindPreview(surface)
+            onPreviewStreamingChanged(true)
         } else {
             controller.unbindPreview()
+            onPreviewStreamingChanged(false)
         }
         onDispose {
             controller.unbindPreview()
+            onPreviewStreamingChanged(false)
         }
     }
 
@@ -109,56 +114,43 @@ actual fun CameraPreviewHost(
 
 private fun isCameraAuthorized(): Boolean =
     AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
-        AVAuthorizationStatusAuthorized
+        platform.AVFoundation.AVAuthorizationStatusAuthorized
 
 private class IosQrScannerController : QrScannerController {
-
-    private val session = AVCaptureMultiCamSession()
+    private val session = AVCaptureSession()
     private val sessionQueue: dispatch_queue_t = dispatch_queue_create(
         "xyz.lilsus.papp.qr.session",
         null
     )
+    private val availableBackCameras by lazy(::discoverBackCameras)
+
+    override val supportsManualModeSelection: Boolean
+        get() = availableBackCameras.supportsManualModeSelection
+
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private var started = false
-    private var paused: Boolean = true
+    private var paused = true
     private var configured = false
+    private var desiredScanMode = QrScannerMode.Near
+    private var configuredScanMode: QrScannerMode? = null
     private var previewLayer: AVCaptureVideoPreviewLayer? = null
-    private var wideDevice: AVCaptureDevice? = null
-    private var ultraWideDevice: AVCaptureDevice? = null
+    private var activeDevice: AVCaptureDevice? = null
     private var zoomDevice: AVCaptureDevice? = null
-    private var zoomBaseFactor: Double = 1.0
-    private var captureConfigurationSummary: String = "QR scanner configuration: mode=unconfigured"
+    private var zoomBaseFactor = DEFAULT_BASE_ZOOM_FACTOR
+    private var captureConfigurationSummary = "QR scanner configuration: mode=unconfigured"
     private var lifecycleObserver: NSObjectProtocol? = null
     private var subjectAreaObserver: NSObjectProtocol? = null
-
     private var lastEmittedValue: String? = null
-    private var desiredZoomFraction: Float = 0f
+    private var desiredZoomFraction = 0f
     private var lastAppliedZoomFactor: Double? = null
-
-    private fun emitIfNew(value: String) {
-        if (value == lastEmittedValue) return
-        lastEmittedValue = value
-        onQrCodeScanned?.let { callback ->
-            dispatch_async(dispatch_get_main_queue()) {
-                callback(value)
-            }
-        }
-    }
 
     private val metadataDelegate = MetadataDelegate(
         isPaused = { paused },
         onMetadataObjects = { metadataObjects ->
-            // Dual-camera mode currently emits the first accepted payload across both streams.
-            // If field reports show wrong-QR picks when wide and ultra-wide see different codes
-            // at nearly the same time, introduce a short-window cross-camera arbiter here.
             val value = selectPreferredMetadataValue(metadataObjects) ?: return@MetadataDelegate
             emitIfNew(value)
         }
     )
-
-    private fun resetLastEmittedValue() {
-        lastEmittedValue = null
-    }
 
     override fun start(onQrCodeScanned: (String) -> Unit) {
         this.onQrCodeScanned = onQrCodeScanned
@@ -166,6 +158,7 @@ private class IosQrScannerController : QrScannerController {
         dispatch_async(sessionQueue) {
             started = true
             paused = false
+            resetLastEmittedValue()
             ensureSessionRunning()
             applyZoomIfNeeded()
         }
@@ -199,7 +192,8 @@ private class IosQrScannerController : QrScannerController {
             removeSubjectAreaObserver()
             teardownSession()
             configured = false
-            clearConfiguredDevices()
+            configuredScanMode = null
+            clearConfiguredDevice()
             lastAppliedZoomFactor = null
             desiredZoomFraction = 0f
             resetLastEmittedValue()
@@ -236,12 +230,40 @@ private class IosQrScannerController : QrScannerController {
         }
     }
 
+    override fun setMode(mode: QrScannerMode) {
+        dispatch_async(sessionQueue) {
+            if (desiredScanMode == mode) return@dispatch_async
+            desiredScanMode = mode
+            resetLastEmittedValue()
+            if (configured || started) {
+                configureSessionIfNeeded(force = true)
+                if (!paused) {
+                    applyZoomIfNeeded()
+                }
+            }
+        }
+    }
+
     override fun setZoom(zoomFraction: Float) {
         dispatch_async(sessionQueue) {
             val previousRequestedZoom = desiredZoomFraction
             desiredZoomFraction = zoomFraction.coerceIn(0f, 1f)
             applyZoomIfNeeded(previousRequestedZoom)
         }
+    }
+
+    private fun emitIfNew(value: String) {
+        if (value == lastEmittedValue) return
+        lastEmittedValue = value
+        onQrCodeScanned?.let { callback ->
+            dispatch_async(dispatch_get_main_queue()) {
+                callback(value)
+            }
+        }
+    }
+
+    private fun resetLastEmittedValue() {
+        lastEmittedValue = null
     }
 
     private fun ensureLifecycleObserver() {
@@ -288,9 +310,9 @@ private class IosQrScannerController : QrScannerController {
     }
 
     private fun ensureSessionRunning() {
-        configureSessionIfNeeded()
+        configureSessionIfNeeded(force = configuredScanMode != desiredScanMode)
         if (!configured) return
-        if (!session.running) {
+        if (!session.running && started && !paused) {
             session.startRunning()
         }
         resetFocusAndExposure()
@@ -298,16 +320,8 @@ private class IosQrScannerController : QrScannerController {
 
     @OptIn(ExperimentalForeignApi::class)
     private fun resetFocusAndExposure() {
-        val devices = linkedSetOf<AVCaptureDevice>()
-        wideDevice?.let(devices::add)
-        ultraWideDevice?.let(devices::add)
-        if (devices.isEmpty()) {
-            zoomDevice?.let(devices::add)
-        }
-        if (devices.isEmpty()) return
-        for (device in devices) {
-            resetFocusAndExposure(device)
-        }
+        val device = activeDevice ?: return
+        resetFocusAndExposure(device)
     }
 
     @OptIn(ExperimentalForeignApi::class)
@@ -336,11 +350,10 @@ private class IosQrScannerController : QrScannerController {
         }
     }
 
-    private fun clearConfiguredDevices() {
-        wideDevice = null
-        ultraWideDevice = null
+    private fun clearConfiguredDevice() {
+        activeDevice = null
         zoomDevice = null
-        zoomBaseFactor = 1.0
+        zoomBaseFactor = DEFAULT_BASE_ZOOM_FACTOR
         captureConfigurationSummary = "QR scanner configuration: mode=unconfigured"
     }
 
@@ -358,76 +371,39 @@ private class IosQrScannerController : QrScannerController {
         }
     }
 
-    @OptIn(ExperimentalForeignApi::class)
-    private fun configureSessionIfNeeded() {
-        if (configured) return
+    private fun configureSessionIfNeeded(force: Boolean = false) {
+        if (configured && !force && configuredScanMode == desiredScanMode) return
+
+        val wasRunning = session.running
+        if (wasRunning) {
+            session.stopRunning()
+        }
 
         session.beginConfiguration()
         var success = false
-        var fallbackReason: String? = null
+        var selectedConfiguration: SelectedCameraConfiguration? = null
         try {
             removeAllInputsAndOutputs()
             removeSubjectAreaObserver()
-            clearConfiguredDevices()
+            clearConfiguredDevice()
 
-            val discovered = discoverBackCameras()
-            val wide = discovered.wide
-            val ultraWide = discovered.ultraWide
-
-            if (
-                wide != null &&
-                ultraWide != null &&
-                wide !== ultraWide &&
-                discovered.canUseWideUltraPair
-            ) {
-                success = configureMultiCameraSession(
-                    wide = wide,
-                    ultraWide = ultraWide
-                )
-                if (!success) {
-                    fallbackReason = FALLBACK_REASON_MULTI_CAM_PAIRING_FAILED
-                }
-            } else {
-                fallbackReason = when {
-                    wide == null && ultraWide == null -> "no back camera available"
-                    ultraWide == null -> "ultra-wide camera unavailable"
-                    wide == null -> "wide camera unavailable"
-                    !discovered.multiCamSessionSupported -> FALLBACK_REASON_MULTI_CAM_UNSUPPORTED
-                    !discovered.pairInSupportedSet -> FALLBACK_REASON_MULTI_CAM_PAIR_NOT_SUPPORTED
-                    else -> "wide and ultra-wide resolved to the same device"
-                }
-                NSLog("Skipping dual-camera configuration: $fallbackReason")
-            }
-
-            if (!success) {
-                removeAllInputsAndOutputs()
-                clearConfiguredDevices()
-                val fallbackDevice = when {
-                    wide != null &&
-                        ultraWide != null &&
-                        fallbackReason in DUAL_CAMERA_FALLBACK_REASONS -> ultraWide
-
-                    else ->
-                        wide
-                            ?: ultraWide
-                }
-                    ?: AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
-                success = configureSingleCameraSession(
-                    device = fallbackDevice,
-                    preferredWide = wide,
-                    preferredUltraWide = ultraWide,
-                    fallbackReason = fallbackReason
-                )
-            }
+            val configuration = selectCameraConfiguration(desiredScanMode)
+            selectedConfiguration = configuration
+            success = configureSingleCameraSession(configuration)
         } finally {
             session.commitConfiguration()
         }
 
         configured = success
+        configuredScanMode = if (success) desiredScanMode else null
         if (!success) {
-            clearConfiguredDevices()
+            clearConfiguredDevice()
             lastAppliedZoomFactor = null
-            captureConfigurationSummary = "QR scanner configuration failed"
+            captureConfigurationSummary = buildConfigurationFailureSummary(selectedConfiguration)
+        }
+
+        if (success && wasRunning && started && !paused) {
+            session.startRunning()
         }
         NSLog(captureConfigurationSummary)
     }
@@ -447,75 +423,91 @@ private class IosQrScannerController : QrScannerController {
         val ultraWide = devices.firstOrNull {
             it.deviceType == AVCaptureDeviceTypeBuiltInUltraWideCamera
         }
-        val pairInSupportedSet = if (wide != null && ultraWide != null && wide !== ultraWide) {
-            supportsMultiCamPair(
-                discoverySession = discoverySession,
-                wide = wide,
-                ultraWide = ultraWide
-            )
-        } else {
-            false
-        }
-
-        val result = BackCameraDiscoveryResult(
-            wide = wide,
-            ultraWide = ultraWide,
-            multiCamSessionSupported = AVCaptureMultiCamSession.isMultiCamSupported(),
-            pairInSupportedSet = pairInSupportedSet
-        )
         NSLog(
             "Back camera discovery: wide=${wide?.localizedName ?: "none"}, " +
-                "ultraWide=${ultraWide?.localizedName ?: "none"}, " +
-                "multiCamSupported=${result.multiCamSessionSupported}, " +
-                "wideUltraPairSupported=${result.pairInSupportedSet}"
+                "ultraWide=${ultraWide?.localizedName ?: "none"}"
         )
-        return result
+        return BackCameraDiscoveryResult(
+            wide = wide,
+            ultraWide = ultraWide
+        )
     }
 
-    private fun supportsMultiCamPair(
-        discoverySession: AVCaptureDeviceDiscoverySession,
-        wide: AVCaptureDevice,
-        ultraWide: AVCaptureDevice
-    ): Boolean {
-        @Suppress("UNCHECKED_CAST")
-        val supportedSets =
-            discoverySession.supportedMultiCamDeviceSets as? List<Set<AVCaptureDevice>>
-                ?: return false
-        if (supportedSets.isEmpty()) return false
+    private fun selectCameraConfiguration(mode: QrScannerMode): SelectedCameraConfiguration? {
+        val discovered = availableBackCameras
+        val fallbackDevice = discovered.wide
+            ?: discovered.ultraWide
+            ?: AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
+            ?: return null
 
-        val wideId = wide.uniqueID
-        val ultraWideId = ultraWide.uniqueID
-        return supportedSets.any { supportedSet ->
-            val ids = supportedSet.map { it.uniqueID }.toSet()
-            ids.contains(wideId) && ids.contains(ultraWideId)
+        return when (mode) {
+            QrScannerMode.Near -> when {
+                discovered.ultraWide != null -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = discovered.ultraWide,
+                    profileName = "ultra-wide-4:3",
+                    profile = ULTRA_WIDE_FORMAT_PROFILE,
+                    baseZoomFactor = DEFAULT_BASE_ZOOM_FACTOR
+                )
+
+                discovered.wide != null -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = discovered.wide,
+                    profileName = "wide-fallback",
+                    profile = WIDE_FORMAT_PROFILE,
+                    baseZoomFactor = DEFAULT_BASE_ZOOM_FACTOR,
+                    fallbackReason = "ultra-wide camera unavailable"
+                )
+
+                else -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = fallbackDevice,
+                    profileName = "default-fallback",
+                    profile = WIDE_FORMAT_PROFILE,
+                    baseZoomFactor = DEFAULT_BASE_ZOOM_FACTOR,
+                    fallbackReason = "no dedicated back camera discovered"
+                )
+            }
+
+            QrScannerMode.Far -> when {
+                discovered.wide != null -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = discovered.wide,
+                    profileName = "wide-16:9-2x",
+                    profile = WIDE_FORMAT_PROFILE,
+                    baseZoomFactor = FAR_MODE_BASE_ZOOM_FACTOR
+                )
+
+                discovered.ultraWide != null -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = discovered.ultraWide,
+                    profileName = "ultra-wide-fallback",
+                    profile = ULTRA_WIDE_FORMAT_PROFILE,
+                    baseZoomFactor = DEFAULT_BASE_ZOOM_FACTOR,
+                    fallbackReason = "wide camera unavailable"
+                )
+
+                else -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = fallbackDevice,
+                    profileName = "default-fallback",
+                    profile = WIDE_FORMAT_PROFILE,
+                    baseZoomFactor = FAR_MODE_BASE_ZOOM_FACTOR,
+                    fallbackReason = "no dedicated back camera discovered"
+                )
+            }
         }
     }
 
-    private fun configureSingleCameraSession(
-        device: AVCaptureDevice?,
-        preferredWide: AVCaptureDevice?,
-        preferredUltraWide: AVCaptureDevice?,
-        fallbackReason: String?
-    ): Boolean {
-        if (device == null) {
+    private fun configureSingleCameraSession(configuration: SelectedCameraConfiguration?): Boolean {
+        if (configuration == null) {
             session.sessionPreset = AVCaptureSessionPresetHigh
-            NSLog("Failed to acquire capture device for QR scanning")
             return false
         }
 
-        val (profileName, profile) = when {
-            preferredUltraWide != null && device === preferredUltraWide -> {
-                "ultra-wide-4:3-single" to ULTRA_WIDE_SINGLE_FORMAT_PROFILE
-            }
-
-            else -> {
-                "wide" to WIDE_FORMAT_PROFILE
-            }
-        }
         val selectedFormat = selectAndApplyFormat(
-            device = device,
-            profile = profile,
-            requireMultiCamSupport = false
+            device = configuration.device,
+            profile = configuration.profile
         )
         session.sessionPreset = if (selectedFormat != null) {
             AVCaptureSessionPresetInputPriority
@@ -523,7 +515,7 @@ private class IosQrScannerController : QrScannerController {
             AVCaptureSessionPresetHigh
         }
 
-        val input = createDeviceInput(device)
+        val input = createDeviceInput(configuration.device)
         if (input == null || !session.canAddInput(input)) {
             NSLog("Unable to add camera input to capture session")
             return false
@@ -538,177 +530,14 @@ private class IosQrScannerController : QrScannerController {
         session.addOutput(metadataOutput)
         configureMetadataOutput(metadataOutput)
 
-        wideDevice = preferredWide?.takeIf { it === device }
-        ultraWideDevice = preferredUltraWide?.takeIf { it === device }
-        zoomDevice = wideDevice ?: device
-        // In single-camera mode wide takes over full scanning duty, so we start at 1x.
-        zoomBaseFactor = DEFAULT_BASE_ZOOM_FACTOR
+        activeDevice = configuration.device
+        zoomDevice = configuration.device
+        zoomBaseFactor = configuration.baseZoomFactor
         zoomDevice?.let(::installSubjectAreaObserver)
         captureConfigurationSummary = buildSingleCameraSummary(
-            device = device,
-            profileName = profileName,
-            selectedFormat = selectedFormat,
-            fallbackReason = fallbackReason
+            configuration = configuration,
+            selectedFormat = selectedFormat
         )
-        return true
-    }
-
-    private fun configureMultiCameraSession(
-        wide: AVCaptureDevice,
-        ultraWide: AVCaptureDevice
-    ): Boolean {
-        session.sessionPreset = AVCaptureSessionPresetInputPriority
-
-        val ultraWideRawCandidates = collectFormatCandidates(ultraWide)
-            .filter { candidate ->
-                candidate.isMultiCamSupported &&
-                    candidate.maxFrameRate >= MIN_CAPTURE_FPS
-            }
-        val wideRawCandidates = collectFormatCandidates(wide)
-            .filter { candidate ->
-                candidate.isMultiCamSupported &&
-                    candidate.maxFrameRate >= MIN_CAPTURE_FPS
-            }
-        val ultraWideCandidates = rankFormatCandidates(
-            candidates = ultraWideRawCandidates,
-            profile = ULTRA_WIDE_MULTI_CAM_FORMAT_PROFILE,
-            minimumPixelHint = 0
-        ).take(MAX_FORMAT_CANDIDATES_PER_CAMERA)
-        val wideCandidates = rankFormatCandidates(
-            candidates = wideRawCandidates,
-            profile = WIDE_FORMAT_PROFILE,
-            minimumPixelHint = 0
-        ).take(MAX_FORMAT_CANDIDATES_PER_CAMERA)
-        val ultraWideRawCount = ultraWideRawCandidates.size
-        val wideRawCount = wideRawCandidates.size
-        NSLog(
-            "Multi-cam candidates (fps>=$MIN_CAPTURE_FPS): " +
-                "wideSelected=${wideCandidates.size}/$wideRawCount, " +
-                "ultraWideSelected=${ultraWideCandidates.size}/$ultraWideRawCount"
-        )
-        if (ultraWideCandidates.isEmpty() || wideCandidates.isEmpty()) {
-            NSLog("No multi-cam compatible formats available for dual camera QR scanning")
-            return false
-        }
-
-        var attemptedPairs = 0
-        var graphRejectedPairs = 0
-        for (ultraWideCandidate in ultraWideCandidates) {
-            if (!applyFormatCandidate(ultraWide, ultraWideCandidate)) continue
-
-            val prioritizedWide = rankFormatCandidates(
-                candidates = wideCandidates,
-                profile = WIDE_FORMAT_PROFILE,
-                minimumPixelHint = ultraWideCandidate.pixelCount + 1
-            )
-            val fallbackWide = rankFormatCandidates(
-                candidates = wideCandidates,
-                profile = WIDE_FORMAT_PROFILE,
-                minimumPixelHint = 0
-            )
-            val wideCandidatesForUltra = linkedSetOf<CameraFormatCandidate>().apply {
-                addAll(prioritizedWide)
-                addAll(fallbackWide)
-            }
-
-            for (wideCandidate in wideCandidatesForUltra) {
-                attemptedPairs += 1
-                if (!applyFormatCandidate(wide, wideCandidate)) continue
-                if (!configureMultiCameraGraph(wide, ultraWide)) {
-                    graphRejectedPairs += 1
-                    removeAllInputsAndOutputs()
-                    continue
-                }
-
-                wideDevice = wide
-                ultraWideDevice = ultraWide
-                zoomDevice = wide
-                zoomBaseFactor = WIDE_MULTI_CAM_BASE_ZOOM_FACTOR
-                installSubjectAreaObserver(wide)
-                captureConfigurationSummary = buildMultiCameraSummary(
-                    wide = wide,
-                    ultraWide = ultraWide,
-                    wideFormat = wideCandidate,
-                    ultraWideFormat = ultraWideCandidate
-                )
-                return true
-            }
-        }
-
-        NSLog(
-            "Failed to establish a compatible wide + ultra-wide pair " +
-                "(wideCandidates=${wideCandidates.size}, " +
-                "ultraWideCandidates=${ultraWideCandidates.size}, " +
-                "attemptedPairs=$attemptedPairs, graphRejectedPairs=$graphRejectedPairs)"
-        )
-        return false
-    }
-
-    private fun configureMultiCameraGraph(
-        wide: AVCaptureDevice,
-        ultraWide: AVCaptureDevice
-    ): Boolean {
-        val wideInput = createDeviceInput(wide) ?: return false
-        val ultraWideInput = createDeviceInput(ultraWide) ?: return false
-        if (!session.canAddInput(wideInput) || !session.canAddInput(ultraWideInput)) {
-            NSLog(
-                "Multi-cam graph rejected inputs: canAddWide=${session.canAddInput(wideInput)}, " +
-                    "canAddUltraWide=${session.canAddInput(ultraWideInput)}"
-            )
-            return false
-        }
-
-        // Add wide first so optional preview binds to wide as the first eligible video input.
-        session.addInputWithNoConnections(wideInput)
-        session.addInputWithNoConnections(ultraWideInput)
-
-        val wideOutput = AVCaptureMetadataOutput()
-        val ultraWideOutput = AVCaptureMetadataOutput()
-        if (!session.canAddOutput(wideOutput) || !session.canAddOutput(ultraWideOutput)) {
-            NSLog(
-                "Multi-cam graph rejected metadata outputs: " +
-                    "canAddWideOutput=${session.canAddOutput(wideOutput)}, " +
-                    "canAddUltraWideOutput=${session.canAddOutput(ultraWideOutput)}"
-            )
-            return false
-        }
-        session.addOutputWithNoConnections(wideOutput)
-        session.addOutputWithNoConnections(ultraWideOutput)
-
-        val widePort = firstMetadataObjectPort(wideInput)
-        val ultraWidePort = firstMetadataObjectPort(ultraWideInput)
-        if (widePort == null || ultraWidePort == null) {
-            NSLog(
-                "Multi-cam graph missing metadata-object ports: " +
-                    "widePort=$widePort, ultraWidePort=$ultraWidePort, " +
-                    "widePorts=${portsSummary(wideInput)}, " +
-                    "ultraWidePorts=${portsSummary(ultraWideInput)}"
-            )
-            return false
-        }
-
-        val wideConnection = AVCaptureConnection.connectionWithInputPorts(
-            ports = listOf(widePort),
-            output = wideOutput
-        )
-        if (!session.canAddConnection(wideConnection)) {
-            NSLog("Multi-cam graph rejected wide metadata connection")
-            return false
-        }
-        session.addConnection(wideConnection)
-
-        val ultraWideConnection = AVCaptureConnection.connectionWithInputPorts(
-            ports = listOf(ultraWidePort),
-            output = ultraWideOutput
-        )
-        if (!session.canAddConnection(ultraWideConnection)) {
-            NSLog("Multi-cam graph rejected ultra-wide metadata connection")
-            return false
-        }
-        session.addConnection(ultraWideConnection)
-
-        configureMetadataOutput(wideOutput)
-        configureMetadataOutput(ultraWideOutput)
         return true
     }
 
@@ -717,39 +546,18 @@ private class IosQrScannerController : QrScannerController {
         metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
     }
 
-    private fun firstMetadataObjectPort(input: AVCaptureDeviceInput): AVCaptureInputPort? {
-        @Suppress("UNCHECKED_CAST")
-        val ports = input.ports as? List<AVCaptureInputPort> ?: return null
-        return ports.firstOrNull { it.mediaType == AVMediaTypeMetadataObject }
-    }
-
-    private fun portsSummary(input: AVCaptureDeviceInput): String {
-        @Suppress("UNCHECKED_CAST")
-        val ports = input.ports as? List<AVCaptureInputPort> ?: return "none"
-        if (ports.isEmpty()) return "none"
-        return ports.joinToString(separator = ",") { it.mediaType ?: "unknown" }
-    }
-
     @OptIn(ExperimentalForeignApi::class)
     private fun selectAndApplyFormat(
         device: AVCaptureDevice,
-        profile: CameraFormatProfile,
-        requireMultiCamSupport: Boolean,
-        minimumPixelHint: Int = 0
+        profile: CameraFormatProfile
     ): CameraFormatCandidate? {
         val candidates = collectFormatCandidates(device)
-            .filter { candidate ->
-                if (requireMultiCamSupport && !candidate.isMultiCamSupported) return@filter false
-                candidate.maxFrameRate >= MIN_CAPTURE_FPS
-            }
-        if (candidates.isEmpty()) {
-            return null
-        }
+            .filter { candidate -> candidate.maxFrameRate >= MIN_CAPTURE_FPS }
+        if (candidates.isEmpty()) return null
 
         val ranked = rankFormatCandidates(
             candidates = candidates,
-            profile = profile,
-            minimumPixelHint = minimumPixelHint
+            profile = profile
         )
         for (candidate in ranked) {
             if (applyFormatCandidate(device, candidate)) {
@@ -782,8 +590,7 @@ private class IosQrScannerController : QrScannerController {
                     format = format,
                     width = width,
                     height = height,
-                    maxFrameRate = maxFrameRate,
-                    isMultiCamSupported = format.isMultiCamSupported()
+                    maxFrameRate = maxFrameRate
                 )
             )
         }
@@ -792,29 +599,17 @@ private class IosQrScannerController : QrScannerController {
 
     private fun rankFormatCandidates(
         candidates: List<CameraFormatCandidate>,
-        profile: CameraFormatProfile,
-        minimumPixelHint: Int
+        profile: CameraFormatProfile
     ): List<CameraFormatCandidate> {
-        val minimumPixels = maxOf(profile.minimumPixels, minimumPixelHint)
         val tiers = listOf(
             FormatSelectionTier(
-                minimumPixels = minimumPixels,
+                minimumPixels = profile.minimumPixels,
                 enforceAspect = true,
                 enforceMaximumPixels = true
             ),
             FormatSelectionTier(
-                minimumPixels = minimumPixels,
-                enforceAspect = true,
-                enforceMaximumPixels = false
-            ),
-            FormatSelectionTier(
                 minimumPixels = profile.minimumPixels,
                 enforceAspect = true,
-                enforceMaximumPixels = false
-            ),
-            FormatSelectionTier(
-                minimumPixels = profile.minimumPixels,
-                enforceAspect = false,
                 enforceMaximumPixels = false
             ),
             FormatSelectionTier(
@@ -874,7 +669,7 @@ private class IosQrScannerController : QrScannerController {
             device.activeFormat = candidate.format
             device.activeVideoMinFrameDuration = frameDuration
             device.activeVideoMaxFrameDuration = frameDuration
-            return@memScoped true
+            true
         } finally {
             device.unlockForConfiguration()
         }
@@ -981,45 +776,33 @@ private class IosQrScannerController : QrScannerController {
     }
 
     private fun buildSingleCameraSummary(
-        device: AVCaptureDevice,
-        profileName: String,
-        selectedFormat: CameraFormatCandidate?,
-        fallbackReason: String?
+        configuration: SelectedCameraConfiguration,
+        selectedFormat: CameraFormatCandidate?
     ): String {
         val formatSummary = selectedFormat?.let(::formatSummary) ?: "system-default (preset=high)"
-        val fallbackSuffix = fallbackReason?.let { "; fallback=$it" } ?: ""
-        return "QR scanner configuration: mode=single; profile=$profileName; " +
-            "device=${deviceSummary(device)}; format=$formatSummary; " +
-            "targetFps=$TARGET_CAPTURE_FPS; baseZoom=$zoomBaseFactor$fallbackSuffix"
+        val fallbackSuffix =
+            configuration.fallbackReason?.let { "; fallback=$it" }.orEmpty()
+        return "QR scanner configuration: mode=${configuration.mode.name.lowercase()}; " +
+            "profile=${configuration.profileName}; device=${deviceSummary(
+                configuration.device
+            )}; " +
+            "format=$formatSummary; targetFps=$TARGET_CAPTURE_FPS; " +
+            "baseZoom=${configuration.baseZoomFactor}$fallbackSuffix"
     }
 
-    private fun buildMultiCameraSummary(
-        wide: AVCaptureDevice,
-        ultraWide: AVCaptureDevice,
-        wideFormat: CameraFormatCandidate,
-        ultraWideFormat: CameraFormatCandidate
+    private fun buildConfigurationFailureSummary(
+        configuration: SelectedCameraConfiguration?
     ): String {
-        val wideDeviceSummary = deviceSummary(wide)
-        val wideFormatSummary = formatSummary(wideFormat)
-        val ultraWideDeviceSummary = deviceSummary(ultraWide)
-        val ultraWideFormatSummary = formatSummary(ultraWideFormat)
-        val wideSummary = "wide=$wideDeviceSummary; wideFormat=$wideFormatSummary"
-        val ultraWideSummary =
-            "ultraWide=$ultraWideDeviceSummary; " +
-                "ultraWideFormat=$ultraWideFormatSummary"
-        val zoomSummary = "targetFps=$TARGET_CAPTURE_FPS; zoomDevice=wide; baseZoom=$zoomBaseFactor"
-        val costSummary =
-            "hardwareCost=${session.hardwareCost}; " +
-                "systemPressureCost=${session.systemPressureCost}"
-        return "QR scanner configuration: mode=multi; ultraWideProfile=16:9-multicam; " +
-            "$wideSummary; $ultraWideSummary; $zoomSummary; $costSummary"
+        val modeSummary = configuration?.mode?.name?.lowercase() ?: "unknown"
+        val profileSummary = configuration?.profileName ?: "unconfigured"
+        return "QR scanner configuration failed: mode=$modeSummary; profile=$profileSummary"
     }
 
     private fun deviceSummary(device: AVCaptureDevice): String =
         "${device.localizedName}(${device.uniqueID})"
 
     private fun formatSummary(candidate: CameraFormatCandidate): String =
-        "${candidate.width}x${candidate.height}(maxFps=${candidate.maxFrameRate},multiCam=${candidate.isMultiCamSupported})"
+        "${candidate.width}x${candidate.height}(maxFps=${candidate.maxFrameRate})"
 }
 
 private class MetadataDelegate(
@@ -1092,8 +875,7 @@ private data class CameraFormatCandidate(
     val format: AVCaptureDeviceFormat,
     val width: Int,
     val height: Int,
-    val maxFrameRate: Double,
-    val isMultiCamSupported: Boolean
+    val maxFrameRate: Double
 ) {
     val pixelCount: Int
         get() = width * height
@@ -1109,29 +891,31 @@ private data class FormatSelectionTier(
 
 private data class BackCameraDiscoveryResult(
     val wide: AVCaptureDevice?,
-    val ultraWide: AVCaptureDevice?,
-    val multiCamSessionSupported: Boolean,
-    val pairInSupportedSet: Boolean
+    val ultraWide: AVCaptureDevice?
 ) {
-    val canUseWideUltraPair: Boolean
-        get() = multiCamSessionSupported && pairInSupportedSet
+    val supportsManualModeSelection: Boolean
+        get() = wide != null && ultraWide != null && wide !== ultraWide
 }
+
+private data class SelectedCameraConfiguration(
+    val mode: QrScannerMode,
+    val device: AVCaptureDevice,
+    val profileName: String,
+    val profile: CameraFormatProfile,
+    val baseZoomFactor: Double,
+    val fallbackReason: String? = null
+)
 
 private const val ZOOM_FACTOR_EPSILON = 0.01
 private const val ZOOM_PULSE_FROM_THRESHOLD = 0.12f
 private const val ZOOM_DEFAULT_THRESHOLD = 0.02f
-private const val FALLBACK_REASON_MULTI_CAM_UNSUPPORTED = "platform multi-cam unsupported"
-private const val FALLBACK_REASON_MULTI_CAM_PAIR_NOT_SUPPORTED =
-    "wide+ultra-wide pair not listed in supportedMultiCamDeviceSets"
-private const val FALLBACK_REASON_MULTI_CAM_PAIRING_FAILED = "multi-cam format pairing failed"
 private const val ZOOM_PULSE_DELTA_THRESHOLD = 0.2f
 
 private const val DEFAULT_BASE_ZOOM_FACTOR = 1.0
-private const val WIDE_MULTI_CAM_BASE_ZOOM_FACTOR = 2.0
+private const val FAR_MODE_BASE_ZOOM_FACTOR = 2.0
 
 private const val TARGET_CAPTURE_FPS = 30.0
 private const val MIN_CAPTURE_FPS = 30.0
-private const val MAX_FORMAT_CANDIDATES_PER_CAMERA = 18
 
 private const val ASPECT_RATIO_4_3 = 1.3333333333333333
 private const val ASPECT_RATIO_16_9 = 1.7777777777777777
@@ -1141,27 +925,15 @@ private const val ULTRA_WIDE_PREFERRED_PIXELS = 1920 * 1440
 private const val ULTRA_WIDE_MIN_PIXELS = 1440 * 1080
 private const val ULTRA_WIDE_MAX_PIXELS = 2304 * 1728
 
-private const val ULTRA_WIDE_MULTI_CAM_PREFERRED_PIXELS = 1920 * 1080
-private const val ULTRA_WIDE_MULTI_CAM_MIN_PIXELS = 1600 * 900
-private const val ULTRA_WIDE_MULTI_CAM_MAX_PIXELS = 2560 * 1440
-
 private const val WIDE_PREFERRED_PIXELS = 2560 * 1440
 private const val WIDE_MIN_PIXELS = 1920 * 1080
 private const val WIDE_MAX_PIXELS = 3072 * 1728
 
-private val ULTRA_WIDE_SINGLE_FORMAT_PROFILE = CameraFormatProfile(
+private val ULTRA_WIDE_FORMAT_PROFILE = CameraFormatProfile(
     targetAspectRatio = ASPECT_RATIO_4_3,
     preferredPixels = ULTRA_WIDE_PREFERRED_PIXELS,
     minimumPixels = ULTRA_WIDE_MIN_PIXELS,
     maximumPixels = ULTRA_WIDE_MAX_PIXELS,
-    maximumAspectDelta = DEFAULT_ASPECT_DELTA
-)
-
-private val ULTRA_WIDE_MULTI_CAM_FORMAT_PROFILE = CameraFormatProfile(
-    targetAspectRatio = ASPECT_RATIO_16_9,
-    preferredPixels = ULTRA_WIDE_MULTI_CAM_PREFERRED_PIXELS,
-    minimumPixels = ULTRA_WIDE_MULTI_CAM_MIN_PIXELS,
-    maximumPixels = ULTRA_WIDE_MULTI_CAM_MAX_PIXELS,
     maximumAspectDelta = DEFAULT_ASPECT_DELTA
 )
 
@@ -1178,10 +950,4 @@ private const val REFOCUS_RESTORE_DELAY_MS = 220L
 private val BACK_CAMERA_DEVICE_TYPES = listOf(
     AVCaptureDeviceTypeBuiltInWideAngleCamera,
     AVCaptureDeviceTypeBuiltInUltraWideCamera
-)
-
-private val DUAL_CAMERA_FALLBACK_REASONS = setOf(
-    FALLBACK_REASON_MULTI_CAM_UNSUPPORTED,
-    FALLBACK_REASON_MULTI_CAM_PAIR_NOT_SUPPORTED,
-    FALLBACK_REASON_MULTI_CAM_PAIRING_FAILED
 )

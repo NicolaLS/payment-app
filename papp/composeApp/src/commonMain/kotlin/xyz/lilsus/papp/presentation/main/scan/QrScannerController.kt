@@ -4,14 +4,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
 
+enum class QrScannerMode {
+    Near,
+    Far
+}
+
 @Stable
 interface QrScannerController {
+    val supportsManualModeSelection: Boolean
+
     fun start(onQrCodeScanned: (String) -> Unit)
     fun pause()
     fun resume()
     fun stop()
     fun bindPreview(surface: CameraPreviewSurface)
     fun unbindPreview()
+    fun setMode(mode: QrScannerMode)
     fun setZoom(zoomFraction: Float)
 }
 
@@ -33,5 +41,7 @@ expect fun rememberCameraPermissionState(): CameraPermissionState
 expect fun CameraPreviewHost(
     controller: QrScannerController,
     visible: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    preferCompatibleMode: Boolean = false,
+    onPreviewStreamingChanged: (Boolean) -> Unit = {}
 )

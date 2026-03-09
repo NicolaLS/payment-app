@@ -41,6 +41,7 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 import xyz.lilsus.papp.presentation.main.components.ResultLayout
 import xyz.lilsus.papp.presentation.main.components.SettingsFAB
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
+import xyz.lilsus.papp.presentation.main.scan.QrScannerMode
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @Composable
@@ -63,6 +64,9 @@ fun MainScreen(
     onScannerResume: () -> Unit,
     onScannerPause: () -> Unit,
     isCameraPermissionGranted: Boolean,
+    scannerMode: QrScannerMode = QrScannerMode.Near,
+    showScannerModeSelector: Boolean = false,
+    onToggleScannerMode: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var scannerInitialized by remember { mutableStateOf(false) }
@@ -117,7 +121,10 @@ fun MainScreen(
         ) {
             Hero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
-                uiState = uiState
+                uiState = uiState,
+                scannerMode = scannerMode,
+                showScannerModeSelector = showScannerModeSelector,
+                onToggleScannerMode = onToggleScannerMode
             )
             Crossfade(targetState = uiState) { state ->
                 when {

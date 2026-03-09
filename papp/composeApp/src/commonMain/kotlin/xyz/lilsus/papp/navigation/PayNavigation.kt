@@ -26,6 +26,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -43,6 +45,7 @@ import xyz.lilsus.papp.presentation.main.MainUiState
 import xyz.lilsus.papp.presentation.main.ToastMessage
 import xyz.lilsus.papp.presentation.main.rememberMainViewModel
 import xyz.lilsus.papp.presentation.main.scan.CameraPreviewHost
+import xyz.lilsus.papp.presentation.main.scan.QrScannerMode
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
 import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
 
@@ -52,6 +55,7 @@ object Pay
 /** Fraction of screen height needed to drag for full zoom range. */
 private const val ZOOM_DRAG_RANGE = 0.4f
 private const val ZOOM_STEP = 0.01f
+private const val PREVIEW_REVEAL_DELAY_MS = 220L
 
 /** Horizontal swipe threshold in pixels to trigger wallet switch. */
 private const val SWIPE_THRESHOLD = 100f
@@ -81,8 +85,13 @@ private fun MainScreenEntry(
 
     var hasRequestedPermission by remember { mutableStateOf(false) }
     var scannerStarted by remember { mutableStateOf(false) }
-    var previewVisible by remember { mutableStateOf(false) }
+    var previewPrepared by remember { mutableStateOf(false) }
+    var previewRevealRequested by remember { mutableStateOf(false) }
+    var previewStreaming by remember { mutableStateOf(false) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
+    var scannerMode by remember { mutableStateOf(QrScannerMode.Near) }
+    var modeBeforeZoomGesture by remember { mutableStateOf<QrScannerMode?>(null) }
+    var previewRevealJob by remember { mutableStateOf<Job?>(null) }
 
     // Use Animatable for zoom state synchronization with scanner controller
     val zoomFraction = remember { Animatable(0f) }
@@ -91,12 +100,27 @@ private fun MainScreenEntry(
     var dragStartPosition by remember { mutableStateOf(Offset.Zero) }
 
     fun hidePreview() {
-        if (previewVisible) {
-            previewVisible = false
+        previewRevealJob?.cancel()
+        previewRevealJob = null
+        previewRevealRequested = false
+        if (previewPrepared) {
+            previewPrepared = false
         }
         // Reset immediately so manual zoom never persists between presses.
         scope.launch { zoomFraction.snapTo(0f) }
         scannerController.setZoom(0f)
+    }
+
+    fun updateScannerMode(mode: QrScannerMode) {
+        if (scannerMode == mode) return
+        scannerMode = mode
+        scannerController.setMode(mode)
+    }
+
+    fun restoreScannerModeAfterZoomGesture() {
+        val originalMode = modeBeforeZoomGesture ?: return
+        modeBeforeZoomGesture = null
+        updateScannerMode(originalMode)
     }
 
     // Sync zoom changes to camera controller
@@ -111,7 +135,9 @@ private fun MainScreenEntry(
         onDispose {
             scannerController.stop()
             scannerStarted = false
-            previewVisible = false
+            previewPrepared = false
+            previewRevealRequested = false
+            previewStreaming = false
         }
     }
 
@@ -153,10 +179,49 @@ private fun MainScreenEntry(
     fun startScannerIfNeeded() {
         if (scannerStarted) return
         if (!cameraPermission.hasPermission) return
+        scannerController.setMode(scannerMode)
         scannerController.start { rawValue ->
             viewModel.dispatch(MainIntent.QrCodeScanned(rawValue))
         }
         scannerStarted = true
+    }
+
+    fun beginZoomGesture(startPosition: Offset) {
+        val originalMode = scannerMode
+        modeBeforeZoomGesture = originalMode
+        if (
+            scannerController.supportsManualModeSelection &&
+            originalMode == QrScannerMode.Near
+        ) {
+            updateScannerMode(QrScannerMode.Far)
+        }
+
+        previewPrepared = true
+        previewRevealRequested = false
+        startScannerIfNeeded()
+        dragStartPosition = startPosition
+        scope.launch { zoomFraction.snapTo(0f) }
+        scannerController.resume()
+
+        previewRevealJob?.cancel()
+        previewRevealJob = null
+        if (
+            scannerController.supportsManualModeSelection &&
+            originalMode == QrScannerMode.Near
+        ) {
+            previewRevealJob = scope.launch {
+                delay(PREVIEW_REVEAL_DELAY_MS)
+                previewRevealRequested = true
+                previewRevealJob = null
+            }
+        } else {
+            previewRevealRequested = true
+        }
+    }
+
+    fun endZoomGesture() {
+        hidePreview()
+        restoreScannerModeAfterZoomGesture()
     }
 
     LaunchedEffect(cameraPermission.hasPermission) {
@@ -167,7 +232,7 @@ private fun MainScreenEntry(
                 scannerController.stop()
                 scannerStarted = false
             }
-            hidePreview()
+            endZoomGesture()
             if (!hasRequestedPermission) {
                 hasRequestedPermission = true
                 cameraPermission.request()
@@ -178,10 +243,23 @@ private fun MainScreenEntry(
     val uiState by viewModel.uiState.collectAsState()
     val pendingPayments by viewModel.pendingPayments.collectAsState()
     val wallets by viewModel.wallets.collectAsState()
+    val keepPreviewWarm =
+        uiState == MainUiState.Active &&
+            scannerMode == QrScannerMode.Far &&
+            cameraPermission.hasPermission
+    val previewMounted = previewPrepared || keepPreviewWarm
+    val previewVisible = previewMounted && previewRevealRequested && previewStreaming
+
     LaunchedEffect(uiState) {
         if (uiState != MainUiState.Active) {
-            hidePreview()
+            endZoomGesture()
         }
+    }
+
+    LaunchedEffect(keepPreviewWarm) {
+        if (!keepPreviewWarm) return@LaunchedEffect
+        startScannerIfNeeded()
+        scannerController.resume()
     }
 
     // Track horizontal swipe for wallet switching
@@ -212,19 +290,9 @@ private fun MainScreenEntry(
         .pointerInput(cameraPermission.hasPermission) {
             if (!cameraPermission.hasPermission) return@pointerInput
             detectDragGesturesAfterLongPress(
-                onDragStart = { startPosition ->
-                    startScannerIfNeeded()
-                    previewVisible = true
-                    dragStartPosition = startPosition
-                    scope.launch { zoomFraction.snapTo(0f) }
-                    scannerController.resume()
-                },
-                onDragCancel = {
-                    hidePreview()
-                },
-                onDragEnd = {
-                    hidePreview()
-                },
+                onDragStart = ::beginZoomGesture,
+                onDragCancel = ::endZoomGesture,
+                onDragEnd = ::endZoomGesture,
                 onDrag = { change, _ ->
                     val height = containerSize.height.toFloat()
                         .takeIf { it > 0f }
@@ -288,14 +356,38 @@ private fun MainScreenEntry(
                 }
             },
             isCameraPermissionGranted = cameraPermission.hasPermission,
+            scannerMode = scannerMode,
+            showScannerModeSelector = scannerController.supportsManualModeSelection,
+            onToggleScannerMode = if (
+                scannerController.supportsManualModeSelection &&
+                uiState == MainUiState.Active
+            ) {
+                {
+                    updateScannerMode(
+                        if (scannerMode == QrScannerMode.Near) {
+                            QrScannerMode.Far
+                        } else {
+                            QrScannerMode.Near
+                        }
+                    )
+                }
+            } else {
+                null
+            },
             modifier = if (previewVisible) Modifier.alpha(0.05f) else Modifier
         )
 
-        if (previewVisible) {
+        if (previewMounted) {
             CameraPreviewHost(
                 controller = scannerController,
                 visible = true,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(if (previewVisible) 1f else 0f),
+                preferCompatibleMode = true,
+                onPreviewStreamingChanged = { isStreaming ->
+                    previewStreaming = isStreaming
+                }
             )
         }
     }
