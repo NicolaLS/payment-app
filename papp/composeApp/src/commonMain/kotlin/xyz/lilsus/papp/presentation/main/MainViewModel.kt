@@ -30,6 +30,7 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.Result
+import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
@@ -89,7 +90,7 @@ class MainViewModel internal constructor(
     private var vibrateOnScan: Boolean = true
     private var vibrateOnPayment: Boolean = true
     private val pendingCollectionJobs = mutableMapOf<String, Job>()
-    private var currentWalletUri: String? = null
+    private var currentWalletLookupContext: String? = null
     private var currentWalletType: WalletType? = null
 
     init {
@@ -97,7 +98,7 @@ class MainViewModel internal constructor(
 
         scope.launch {
             observeWalletConnection().collectLatest { connection ->
-                currentWalletUri = connection?.uri
+                currentWalletLookupContext = connection.toLookupContext()
                 currentWalletType = connection?.type
                 if (connection == null && _uiState.value is MainUiState.Success) {
                     _uiState.value = MainUiState.Active
@@ -281,7 +282,10 @@ class MainViewModel internal constructor(
      */
     private fun findPendingForCurrentWallet(invoice: String): PendingRecord? {
         val summary = parseBolt11Invoice(invoice) ?: return null
-        return pendingTracker.findByInvoiceAndWallet(summary.paymentRequest, currentWalletUri)
+        return pendingTracker.findByInvoiceAndWallet(
+            paymentRequest = summary.paymentRequest,
+            walletLookupContext = currentWalletLookupContext
+        )
     }
 
     private fun handleDonation(amountSats: Long, address: LightningAddress) {
@@ -336,7 +340,10 @@ class MainViewModel internal constructor(
         }
 
         // If this invoice is already pending for the current wallet, just ensure chip is visible
-        pendingTracker.findByInvoiceAndWallet(summary.paymentRequest, currentWalletUri)
+        pendingTracker.findByInvoiceAndWallet(
+            paymentRequest = summary.paymentRequest,
+            walletLookupContext = currentWalletLookupContext
+        )
             ?.let { existing ->
                 pendingTracker.makeVisible(existing.id)
                 return
@@ -704,7 +711,7 @@ class MainViewModel internal constructor(
             summary = summary,
             amountMsats = amountMsats,
             origin = origin,
-            walletUri = currentWalletUri,
+            walletLookupContext = currentWalletLookupContext,
             walletType = currentWalletType
         )
         cancelCollectionJob(pendingId)
@@ -1047,11 +1054,18 @@ class MainViewModel internal constructor(
         ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
 
     fun clear() {
-        pendingCollectionJobs.values.forEach { it.cancel() }
+        val jobsToCancel = pendingCollectionJobs.values.toList()
         pendingCollectionJobs.clear()
+        jobsToCancel.forEach { it.cancel() }
         pendingTracker.clear()
         scope.cancel()
     }
+}
+
+private fun WalletConnection?.toLookupContext(): String? = when (this?.type) {
+    WalletType.BLINK -> walletPublicKey
+    WalletType.NWC -> uri.ifBlank { null }
+    null -> null
 }
 
 private const val MSATS_PER_SAT = 1_000L

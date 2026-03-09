@@ -60,7 +60,7 @@ class PendingPaymentTracker(
         summary: Bolt11InvoiceSummary,
         amountMsats: Long,
         origin: PendingOrigin,
-        walletUri: String?,
+        walletLookupContext: String?,
         walletType: WalletType?
     ): String {
         val id = "pending-${currentTimeMillis()}-${records.value.size}"
@@ -70,7 +70,7 @@ class PendingPaymentTracker(
             amountMsats = amountMsats,
             origin = origin,
             createdAtMs = currentTimeMillis(),
-            walletUri = walletUri,
+            walletLookupContext = walletLookupContext,
             walletType = walletType,
             paymentHash = summary.paymentHash
         )
@@ -158,9 +158,14 @@ class PendingPaymentTracker(
     /**
      * Finds a pending record for a given invoice and wallet.
      */
-    fun findByInvoiceAndWallet(paymentRequest: String, walletUri: String?): PendingRecord? =
-        records.value.values.firstOrNull {
-            it.summary.paymentRequest == paymentRequest && it.walletUri == walletUri
+    fun findByInvoiceAndWallet(
+        paymentRequest: String,
+        walletLookupContext: String?
+    ): PendingRecord? = records.value
+        .values
+        .firstOrNull {
+            it.summary.paymentRequest == paymentRequest &&
+                it.walletLookupContext == walletLookupContext
         }
 
     /**
@@ -222,7 +227,7 @@ class PendingPaymentTracker(
 
         // Capture wallet context at verification start to ensure we look up on the correct wallet
         val record = records.value[id] ?: return
-        val walletUri = record.walletUri
+        val walletLookupContext = record.walletLookupContext
         val walletType = record.walletType
 
         val job = scope.launch {
@@ -237,7 +242,7 @@ class PendingPaymentTracker(
 
                 val attemptStart = TimeSource.Monotonic.markNow()
                 val result = withTimeoutOrNull(remaining) {
-                    lookupPayment(paymentHash, walletUri, walletType)
+                    lookupPayment(paymentHash, walletLookupContext, walletType)
                 } ?: break
 
                 when (result) {
@@ -262,9 +267,17 @@ class PendingPaymentTracker(
                     }
 
                     PaymentLookupResult.NotFound,
-                    PaymentLookupResult.Pending,
-                    is PaymentLookupResult.LookupError -> {
+                    PaymentLookupResult.Pending -> {
                         // Continue polling within the verification window.
+                    }
+
+                    is PaymentLookupResult.LookupError -> {
+                        if (isRetryableLookupError(result.error)) {
+                            continue
+                        }
+                        markFailure(id, result.error)
+                        _events.tryEmit(PendingEvent.Failed(id, result.error))
+                        return@launch
                     }
                 }
 
@@ -319,12 +332,17 @@ class PendingPaymentTracker(
      * Clears all pending records and cancels all jobs.
      */
     fun clear() {
-        verificationJobs.values.forEach { it.cancel() }
+        val verificationJobsToCancel = verificationJobs.values.toList()
+        val visibilityJobsToCancel = visibilityJobs.values.toList()
+        val requestsToCancel = requests.values.toList()
+
         verificationJobs.clear()
-        visibilityJobs.values.forEach { it.cancel() }
         visibilityJobs.clear()
-        requests.values.forEach { it.cancel() }
         requests.clear()
+
+        verificationJobsToCancel.forEach { it.cancel() }
+        visibilityJobsToCancel.forEach { it.cancel() }
+        requestsToCancel.forEach { it.cancel() }
         records.value = emptyMap()
         _displayItems.value = emptyList()
     }
@@ -337,6 +355,14 @@ class PendingPaymentTracker(
         is AppError.PaymentUnconfirmed -> error.message ?: "Unconfirmed"
         is AppError.Unexpected -> error.message ?: "Error"
         else -> "Error"
+    }
+
+    private fun isRetryableLookupError(error: AppError): Boolean = when (error) {
+        AppError.NetworkUnavailable,
+        AppError.Timeout,
+        is AppError.RelayConnectionFailed -> true
+
+        else -> false
     }
 
     companion object {
@@ -387,7 +413,7 @@ data class PendingRecord(
     val amountMsats: Long,
     val origin: PendingOrigin,
     val createdAtMs: Long,
-    val walletUri: String?,
+    val walletLookupContext: String?,
     val walletType: WalletType?,
     val paymentHash: String?,
     val status: PendingStatus = PendingStatus.Waiting,
