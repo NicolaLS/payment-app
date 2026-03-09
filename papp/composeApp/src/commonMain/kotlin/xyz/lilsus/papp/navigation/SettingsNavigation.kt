@@ -31,6 +31,7 @@ import xyz.lilsus.papp.domain.model.LanguageCatalog
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.model.ThemePreference
 import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.repository.OnboardingRepository
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
@@ -530,6 +531,7 @@ private fun ChooseWalletTypeEntry(navController: NavController) {
 @Composable
 private fun AddBlinkWalletEntry(navController: NavController) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val onboardingRepository = remember { koin.get<OnboardingRepository>() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<AddBlinkWalletViewModel>() },
         onDispose = { it.clear() }
@@ -547,10 +549,8 @@ private fun AddBlinkWalletEntry(navController: NavController) {
                         inclusive = false
                     )
                     if (!popped) {
-                        // Coming from onboarding - navigate to Pay
-                        navController.navigate(Pay) {
-                            popUpTo(Onboarding) { inclusive = true }
-                        }
+                        onboardingRepository.markOnboardingCompleted()
+                        navController.navigateFromOnboardingToPay()
                     }
                 }
 

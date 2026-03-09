@@ -9,7 +9,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import org.koin.mp.KoinPlatformTools
 import xyz.lilsus.papp.domain.model.ThemePreference
 import xyz.lilsus.papp.domain.usecases.ObserveOnboardingRequiredUseCase
@@ -18,7 +17,6 @@ import xyz.lilsus.papp.navigation.DeepLinkEvents
 import xyz.lilsus.papp.navigation.Onboarding
 import xyz.lilsus.papp.navigation.Pay
 import xyz.lilsus.papp.navigation.connectWalletDialog
-import xyz.lilsus.papp.navigation.navigateFromOnboardingToPay
 import xyz.lilsus.papp.navigation.navigateToAddBlinkWallet
 import xyz.lilsus.papp.navigation.navigateToAddWallet
 import xyz.lilsus.papp.navigation.navigateToConnectWallet
@@ -48,9 +46,13 @@ fun App() {
 
     // Determine if onboarding should be shown
     val onboardingRequiredFlow = remember {
-        koin?.let { k ->
-            runCatching { k.get<ObserveOnboardingRequiredUseCase>()() }.getOrNull()
-        } ?: flowOf(false)
+        if (shouldForceShowOnboarding) {
+            flowOf(true)
+        } else {
+            koin?.let { k ->
+                runCatching { k.get<ObserveOnboardingRequiredUseCase>()() }.getOrNull()
+            } ?: flowOf(false)
+        }
     }
     val onboardingRequired by onboardingRequiredFlow.collectAsState(initial = null)
 

@@ -191,7 +191,12 @@ val nwcModule = module {
     factory { ObserveThemePreferenceUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
     factory { GetWalletsUseCase(repository = get()) }
-    factory { ObserveOnboardingRequiredUseCase(onboardingRepository = get()) }
+    factory {
+        ObserveOnboardingRequiredUseCase(
+            onboardingRepository = get(),
+            walletSettingsRepository = get()
+        )
+    }
     factory { DiscoverWalletUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }

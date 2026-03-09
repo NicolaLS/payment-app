@@ -16,7 +16,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -47,7 +46,6 @@ import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step1
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step2
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step3
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_title
-import papp.composeapp.generated.resources.onboarding_add_wallet_skip
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
@@ -57,9 +55,7 @@ fun AddWalletInstructionsScreen(
     walletType: WalletType,
     onConnectWallet: () -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    showSkipButton: Boolean = false,
-    onSkip: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     OnboardingScaffold(
         currentStep = OnboardingStep.AddWallet,
@@ -83,15 +79,6 @@ fun AddWalletInstructionsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = stringResource(Res.string.onboarding_add_wallet_button))
-            }
-
-            if (showSkipButton) {
-                OutlinedButton(
-                    onClick = onSkip,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = stringResource(Res.string.onboarding_add_wallet_skip))
-                }
             }
         }
     }

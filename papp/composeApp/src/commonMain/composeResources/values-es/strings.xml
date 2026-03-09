@@ -203,7 +203,6 @@
     <string name="onboarding_agreement_continue">Continuar</string>
 
     <string name="onboarding_add_wallet_button">Conectar billetera</string>
-    <string name="onboarding_add_wallet_skip">Omitir - usar billetera existente</string>
 
     <string name="onboarding_add_wallet_blink_title">Conecta tu billetera Blink</string>
     <string name="onboarding_add_wallet_blink_intro">Te conectarás usando una clave API del panel de Blink.</string>

@@ -208,7 +208,6 @@
     <string name="onboarding_agreement_continue">Continue</string>
 
     <string name="onboarding_add_wallet_button">Connect Wallet</string>
-    <string name="onboarding_add_wallet_skip">Skip - use existing wallet</string>
 
     <string name="onboarding_add_wallet_blink_title">Connect your Blink wallet</string>
     <string name="onboarding_add_wallet_blink_intro">You'll connect using an API key from the Blink dashboard.</string>
