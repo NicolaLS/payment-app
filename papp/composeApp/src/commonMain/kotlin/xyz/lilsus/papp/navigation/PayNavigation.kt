@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlin.math.abs
@@ -383,7 +384,8 @@ private fun MainScreenEntry(
                 visible = true,
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(if (previewVisible) 1f else 0f),
+                    .alpha(if (previewVisible) 1f else 0f)
+                    .zIndex(if (previewVisible) 1f else -1f),
                 preferCompatibleMode = true,
                 onPreviewStreamingChanged = { isStreaming ->
                     previewStreaming = isStreaming

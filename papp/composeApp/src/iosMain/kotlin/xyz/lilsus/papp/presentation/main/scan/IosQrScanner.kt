@@ -37,6 +37,7 @@ actual fun rememberQrScannerController(): QrScannerController = remember {
 actual class CameraPreviewSurface internal constructor(val view: UIView) {
     init {
         view.clipsToBounds = true
+        view.userInteractionEnabled = false
     }
 }
 

@@ -103,6 +103,9 @@ actual fun CameraPreviewHost(
     val previewView = remember {
         PreviewView(context).apply {
             scaleType = PreviewView.ScaleType.FILL_CENTER
+            isClickable = false
+            isFocusable = false
+            isFocusableInTouchMode = false
         }
     }
     val surface = remember { CameraPreviewSurface(previewView) }
