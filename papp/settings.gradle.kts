@@ -36,7 +36,7 @@ dependencyResolutionManagement {
 include(":composeApp")
 
 // Include nwc-kmp for local development
-includeBuild("../../../../Nostr/nwc-kmp") {
+includeBuild("../../nwc-kmp") {
     dependencySubstitution {
         substitute(module("io.github.nicolals:nwc-kmp")).using(project(":nwc-kmp"))
     }
