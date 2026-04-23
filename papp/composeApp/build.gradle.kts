@@ -110,6 +110,10 @@ android {
         }
     }
     buildTypes {
+        getByName("debug") {
+            // Install debug separately so onboarding and wallet storage stay isolated from release.
+            applicationIdSuffix = ".dev"
+        }
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true

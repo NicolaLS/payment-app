@@ -10,10 +10,8 @@ private const val KEY_COMPLETED_ONBOARDING = "onboarding.completed"
 
 /**
  * Creates regular (non-encrypted) Settings for onboarding.
- * On Android, this data is deleted when the app is uninstalled.
- * On iOS, NSUserDefaults may persist after uninstall, but wallet
- * credentials (stored in Keychain) also persist, so the behavior
- * is consistent: testers need to clear app data to reset onboarding.
+ * The underlying store is scoped to the installed app variant so local debug installs can keep
+ * onboarding state separate from release installs.
  */
 expect fun createOnboardingSettings(): Settings
 

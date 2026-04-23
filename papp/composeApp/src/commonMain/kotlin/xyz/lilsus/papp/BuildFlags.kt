@@ -10,13 +10,9 @@ package xyz.lilsus.papp
 expect val isDebugBuild: Boolean
 
 /**
- * Local dev override for onboarding testing.
+ * Stable identifier for the currently installed app variant.
  *
- * Set this to `true` temporarily when you need to force onboarding in debug builds,
- * even if a wallet already exists. This is mainly useful on iOS, where Keychain-backed
- * wallet data survives reinstall.
+ * Settings storage derives from this so local debug installs can keep onboarding and wallet data
+ * isolated from release installs.
  */
-internal const val FORCE_SHOW_ONBOARDING_IN_DEBUG_BUILDS = false
-
-internal val shouldForceShowOnboarding: Boolean
-    get() = isDebugBuild && FORCE_SHOW_ONBOARDING_IN_DEBUG_BUILDS
+expect val appStorageNamespace: String

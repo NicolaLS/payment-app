@@ -4,13 +4,12 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Repository for persisting onboarding completion state.
- * Uses regular (non-encrypted) storage so that uninstalling the app
- * resets the onboarding state, making it easy for testers to test onboarding.
+ * Uses regular app settings rather than secure wallet storage.
  */
 interface OnboardingRepository {
     /**
      * Emits whether the user has completed onboarding.
-     * This is stored in regular settings (not Keychain) so it resets on app uninstall.
+     * This is stored in regular app settings rather than secure wallet storage.
      */
     val hasCompletedOnboarding: Flow<Boolean>
 

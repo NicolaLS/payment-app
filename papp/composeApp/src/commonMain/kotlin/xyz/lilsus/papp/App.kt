@@ -46,13 +46,9 @@ fun App() {
 
     // Determine if onboarding should be shown
     val onboardingRequiredFlow = remember {
-        if (shouldForceShowOnboarding) {
-            flowOf(true)
-        } else {
-            koin?.let { k ->
-                runCatching { k.get<ObserveOnboardingRequiredUseCase>()() }.getOrNull()
-            } ?: flowOf(false)
-        }
+        koin?.let { k ->
+            runCatching { k.get<ObserveOnboardingRequiredUseCase>()() }.getOrNull()
+        } ?: flowOf(false)
     }
     val onboardingRequired by onboardingRequiredFlow.collectAsState(initial = null)
 

@@ -8,8 +8,7 @@ import xyz.lilsus.papp.PappApplication
 private const val PREF_NAME = "onboarding_settings"
 
 /**
- * Creates regular (non-encrypted) Settings for onboarding using SharedPreferences.
- * This data will be deleted when the app is uninstalled.
+ * Creates regular (non-encrypted) Settings for onboarding using app-scoped SharedPreferences.
  */
 actual fun createOnboardingSettings(): Settings {
     val context = PappApplication.instance.applicationContext
