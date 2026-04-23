@@ -32,6 +32,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -48,6 +49,7 @@ import papp.composeapp.generated.resources.onboarding_features_page2_title
 import papp.composeapp.generated.resources.onboarding_features_page3_body
 import papp.composeapp.generated.resources.onboarding_features_page3_subtitle
 import papp.composeapp.generated.resources.onboarding_features_page3_title
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
 
@@ -152,7 +154,9 @@ fun FeaturesScreen(
         onBack = onBack
     ) {
         Column(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .testTag(MaestroTags.Onboarding.FEATURES_SCREEN),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             HorizontalPager(
@@ -182,7 +186,9 @@ fun FeaturesScreen(
                     onRequestCameraPermission()
                     onContinue()
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.Onboarding.FEATURES_CONTINUE_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.onboarding_features_continue))
             }

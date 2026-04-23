@@ -21,6 +21,7 @@ import papp.composeapp.generated.resources.onboarding_welcome_get_started
 import papp.composeapp.generated.resources.onboarding_welcome_subtitle_line1
 import papp.composeapp.generated.resources.onboarding_welcome_subtitle_line2
 import papp.composeapp.generated.resources.onboarding_welcome_title
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
 
@@ -31,7 +32,9 @@ fun WelcomeScreen(onGetStarted: () -> Unit, modifier: Modifier = Modifier) {
         showBackButton = false
     ) {
         Column(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .testTag(MaestroTags.Onboarding.WELCOME_SCREEN),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -67,7 +70,7 @@ fun WelcomeScreen(onGetStarted: () -> Unit, modifier: Modifier = Modifier) {
                 onClick = onGetStarted,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("get_started_button")
+                    .testTag(MaestroTags.Onboarding.WELCOME_CONTINUE_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.onboarding_welcome_get_started))
             }

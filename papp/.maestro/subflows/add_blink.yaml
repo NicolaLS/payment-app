@@ -1,0 +1,11 @@
+appId: xyz.lilsus.papp.dev
+---
+- tapOn:
+    id: "blink_wallet_alias_field"
+- inputText: ${NAME}
+- tapOn:
+    id: "blink_wallet_api_key_field"
+- inputText: ${KEY}
+- pressKey: enter
+- tapOn:
+    id: "blink_wallet_connect_button"

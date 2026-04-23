@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.app_name_long
 import papp.composeapp.generated.resources.point_camera_message_subtitle
 import papp.composeapp.generated.resources.tap_dismiss_pending
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.presentation.main.components.BottomLayout
@@ -97,7 +99,7 @@ fun MainScreen(
         isWatchingPending
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.testTag(MaestroTags.Payment.SCREEN),
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState) { data ->
                 Snackbar(

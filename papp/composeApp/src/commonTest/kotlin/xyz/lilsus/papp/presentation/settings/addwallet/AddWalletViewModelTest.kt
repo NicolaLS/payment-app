@@ -23,7 +23,7 @@ class AddWalletViewModelTest {
         try {
             viewModel.updateUri(VALID_URI)
             advanceUntilIdle()
-            assertTrue(viewModel.uiState.value.canContinue)
+            assertTrue(viewModel.uiState.value.isUriValid)
 
             val eventDeferred = async { viewModel.events.first() }
             viewModel.submit()
@@ -44,7 +44,7 @@ class AddWalletViewModelTest {
             viewModel.submit()
 
             assertNotNull(viewModel.uiState.value.error)
-            assertTrue(!viewModel.uiState.value.canContinue)
+            assertTrue(!viewModel.uiState.value.isUriValid)
         } finally {
             viewModel.clear()
         }
@@ -62,7 +62,7 @@ class AddWalletViewModelTest {
 
             val state = viewModel.uiState.value
             assertEquals(VALID_URI, state.uri)
-            assertTrue(state.canContinue)
+            assertTrue(state.isUriValid)
 
             val event = eventDeferred.await()
             assertTrue(event is AddWalletEvent.NavigateToConfirm)

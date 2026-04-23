@@ -1,7 +1,6 @@
 package xyz.lilsus.papp.presentation.onboarding.screens
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +8,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +21,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
@@ -28,6 +32,7 @@ import papp.composeapp.generated.resources.onboarding_wallet_choice_no_wallet
 import papp.composeapp.generated.resources.onboarding_wallet_choice_nwc_description
 import papp.composeapp.generated.resources.onboarding_wallet_choice_nwc_title
 import papp.composeapp.generated.resources.onboarding_wallet_choice_question
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
@@ -45,7 +50,9 @@ fun WalletTypeChoiceScreen(
         onBack = onBack
     ) {
         Column(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .testTag(MaestroTags.Onboarding.WALLET_CHOICE_SCREEN),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -55,25 +62,38 @@ fun WalletTypeChoiceScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            WalletOptionCard(
-                title = stringResource(Res.string.onboarding_wallet_choice_blink_title),
-                description = stringResource(Res.string.onboarding_wallet_choice_blink_description),
-                isSelected = selectedType == WalletType.BLINK,
-                onClick = { onSelectWalletType(WalletType.BLINK) }
-            )
+            Column(
+                modifier = Modifier.selectableGroup(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                WalletOptionCard(
+                    modifier = Modifier.testTag(MaestroTags.Onboarding.WALLET_CHOICE_BLINK_OPTION),
+                    title = stringResource(Res.string.onboarding_wallet_choice_blink_title),
+                    description = stringResource(
+                        Res.string.onboarding_wallet_choice_blink_description
+                    ),
+                    isSelected = selectedType == WalletType.BLINK,
+                    onClick = { onSelectWalletType(WalletType.BLINK) }
+                )
 
-            WalletOptionCard(
-                title = stringResource(Res.string.onboarding_wallet_choice_nwc_title),
-                description = stringResource(Res.string.onboarding_wallet_choice_nwc_description),
-                isSelected = selectedType == WalletType.NWC,
-                onClick = { onSelectWalletType(WalletType.NWC) }
-            )
+                WalletOptionCard(
+                    modifier = Modifier.testTag(MaestroTags.Onboarding.WALLET_CHOICE_NWC_OPTION),
+                    title = stringResource(Res.string.onboarding_wallet_choice_nwc_title),
+                    description = stringResource(
+                        Res.string.onboarding_wallet_choice_nwc_description
+                    ),
+                    isSelected = selectedType == WalletType.NWC,
+                    onClick = { onSelectWalletType(WalletType.NWC) }
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
             TextButton(
                 onClick = onSelectNoWallet,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .testTag(MaestroTags.Onboarding.WALLET_CHOICE_NO_WALLET_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.onboarding_wallet_choice_no_wallet))
             }
@@ -92,7 +112,12 @@ private fun WalletOptionCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .heightIn(min = 56.dp)
+            .selectable(
+                selected = isSelected,
+                onClick = onClick,
+                role = Role.RadioButton
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primaryContainer
@@ -114,7 +139,7 @@ private fun WalletOptionCard(
         ) {
             RadioButton(
                 selected = isSelected,
-                onClick = onClick
+                onClick = null
             )
             Column(
                 modifier = Modifier

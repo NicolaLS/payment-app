@@ -2,14 +2,12 @@ package xyz.lilsus.papp.presentation.settings.addwallet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -22,16 +20,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
-import papp.composeapp.generated.resources.add_wallet_continue
 import papp.composeapp.generated.resources.add_wallet_description
 import papp.composeapp.generated.resources.add_wallet_scan_instruction
 import papp.composeapp.generated.resources.add_wallet_scan_permission
 import papp.composeapp.generated.resources.add_wallet_title
 import papp.composeapp.generated.resources.add_wallet_uri_label
 import papp.composeapp.generated.resources.add_wallet_uri_placeholder
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 import xyz.lilsus.papp.presentation.main.scan.CameraPreviewHost
 import xyz.lilsus.papp.presentation.main.scan.QrScannerController
@@ -42,14 +41,13 @@ fun AddWalletScreen(
     state: AddWalletUiState,
     onBack: () -> Unit,
     onUriChange: (String) -> Unit,
-    onSubmit: () -> Unit,
     controller: QrScannerController,
     isCameraPermissionGranted: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.testTag(MaestroTags.NwcWallet.SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.add_wallet_title)) },
@@ -80,7 +78,9 @@ fun AddWalletScreen(
             OutlinedTextField(
                 value = state.uri,
                 onValueChange = onUriChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.NwcWallet.URI_FIELD),
                 singleLine = true,
                 label = { Text(text = stringResource(Res.string.add_wallet_uri_label)) },
                 placeholder = {
@@ -99,15 +99,6 @@ fun AddWalletScreen(
                 controller = controller,
                 hasPermission = isCameraPermissionGranted
             )
-            Spacer(modifier = Modifier.weight(1f, fill = true))
-
-            Button(
-                onClick = onSubmit,
-                enabled = state.canContinue,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = stringResource(Res.string.add_wallet_continue))
-            }
         }
     }
 }
@@ -117,7 +108,9 @@ private fun CameraCard(controller: QrScannerController, hasPermission: Boolean) 
     Surface(
         tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(MaestroTags.NwcWallet.CAMERA_CARD)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -134,6 +127,7 @@ private fun CameraCard(controller: QrScannerController, hasPermission: Boolean) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1.3f)
+                    .testTag(MaestroTags.NwcWallet.CAMERA_PREVIEW)
             )
             if (!hasPermission) {
                 Text(

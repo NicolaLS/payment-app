@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -46,6 +47,7 @@ import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step1
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step2
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_step3
 import papp.composeapp.generated.resources.onboarding_add_wallet_nwc_title
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
@@ -57,6 +59,15 @@ fun AddWalletInstructionsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val screenTag = when (walletType) {
+        WalletType.BLINK -> MaestroTags.Onboarding.ADD_BLINK_WALLET_SCREEN
+        WalletType.NWC -> MaestroTags.Onboarding.ADD_NWC_WALLET_SCREEN
+    }
+    val continueButtonTag = when (walletType) {
+        WalletType.BLINK -> MaestroTags.Onboarding.ADD_BLINK_WALLET_CONTINUE_BUTTON
+        WalletType.NWC -> MaestroTags.Onboarding.ADD_NWC_WALLET_CONTINUE_BUTTON
+    }
+
     OnboardingScaffold(
         currentStep = OnboardingStep.AddWallet,
         onBack = onBack
@@ -64,6 +75,7 @@ fun AddWalletInstructionsScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
+                .testTag(screenTag)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -76,7 +88,9 @@ fun AddWalletInstructionsScreen(
 
             Button(
                 onClick = onConnectWallet,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(continueButtonTag)
             ) {
                 Text(text = stringResource(Res.string.onboarding_add_wallet_button))
             }

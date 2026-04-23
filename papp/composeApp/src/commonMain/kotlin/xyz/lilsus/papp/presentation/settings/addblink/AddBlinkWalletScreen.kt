@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,6 +29,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -41,6 +47,7 @@ import papp.composeapp.generated.resources.add_blink_wallet_api_key_placeholder
 import papp.composeapp.generated.resources.add_blink_wallet_connect
 import papp.composeapp.generated.resources.add_blink_wallet_description
 import papp.composeapp.generated.resources.add_blink_wallet_title
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,7 +61,15 @@ fun AddBlinkWalletScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val focusManager = LocalFocusManager.current
+    val apiKeyFocusRequester = remember { FocusRequester() }
     var apiKeyVisible by remember { mutableStateOf(false) }
+    val submitOrClearFocus = {
+        focusManager.clearFocus(force = true)
+        if (state.canSubmit) {
+            onSubmit()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -77,7 +92,8 @@ fun AddBlinkWalletScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .testTag(MaestroTags.BlinkWallet.SCREEN),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
@@ -89,19 +105,28 @@ fun AddBlinkWalletScreen(
             OutlinedTextField(
                 value = state.alias,
                 onValueChange = onAliasChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.BlinkWallet.ALIAS_FIELD),
                 singleLine = true,
                 label = { Text(stringResource(Res.string.add_blink_wallet_alias_label)) },
                 placeholder = {
                     Text(stringResource(Res.string.add_blink_wallet_alias_placeholder))
                 },
-                enabled = !state.isSaving
+                enabled = !state.isSaving,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(
+                    onNext = { apiKeyFocusRequester.requestFocus() }
+                )
             )
 
             OutlinedTextField(
                 value = state.apiKey,
                 onValueChange = onApiKeyChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(apiKeyFocusRequester)
+                    .testTag(MaestroTags.BlinkWallet.API_KEY_FIELD),
                 singleLine = true,
                 label = { Text(stringResource(Res.string.add_blink_wallet_api_key_label)) },
                 placeholder = {
@@ -113,7 +138,14 @@ fun AddBlinkWalletScreen(
                 } else {
                     PasswordVisualTransformation()
                 },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Go
+                ),
+                keyboardActions = KeyboardActions(
+                    onGo = { submitOrClearFocus() },
+                    onDone = { submitOrClearFocus() }
+                ),
                 trailingIcon = {
                     IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
                         Icon(
@@ -141,7 +173,9 @@ fun AddBlinkWalletScreen(
             Button(
                 onClick = onSubmit,
                 enabled = state.canSubmit,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.BlinkWallet.CONNECT_BUTTON)
             ) {
                 if (state.isSaving) {
                     CircularProgressIndicator(

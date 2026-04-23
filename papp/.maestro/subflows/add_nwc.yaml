@@ -1,0 +1,11 @@
+appId: xyz.lilsus.papp.dev
+---
+- assertVisible: "Wallet Connect URI"
+- tapOn: "Wallet Connect URI"
+- inputText: ${URI}
+- waitForAnimationToEnd
+- tapOn:
+    text:  "Add Wallet"
+    # Othewise title of the dialog is tapped
+    rightOf: "Cancel"
+    retryTapIfNoChange: true

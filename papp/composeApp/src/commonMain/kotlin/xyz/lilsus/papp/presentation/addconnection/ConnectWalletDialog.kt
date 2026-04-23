@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,7 @@ import papp.composeapp.generated.resources.connect_wallet_warning_legacy_nip04
 import papp.composeapp.generated.resources.connect_wallet_warning_legacy_nip04_default
 import papp.composeapp.generated.resources.connect_wallet_warning_missing_nip44
 import papp.composeapp.generated.resources.connect_wallet_warning_missing_pay_invoice
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.WalletDiscovery
 import xyz.lilsus.papp.domain.model.activeEncryption
 import xyz.lilsus.papp.domain.model.supportsNip44
@@ -88,6 +90,7 @@ fun ConnectWalletDialog(
     val state by viewModel.uiState.collectAsState()
 
     AlertDialog(
+        modifier = Modifier.testTag(MaestroTags.NwcWallet.CONFIRM_DIALOG),
         onDismissRequest = {
             viewModel.cancel()
         },
@@ -103,7 +106,8 @@ fun ConnectWalletDialog(
         confirmButton = {
             TextButton(
                 onClick = { viewModel.confirm() },
-                enabled = state.discovery != null && !state.isSaving && !state.isDiscoveryLoading
+                enabled = state.discovery != null && !state.isSaving && !state.isDiscoveryLoading,
+                modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_CONFIRM_BUTTON)
             ) {
                 if (state.isSaving) {
                     CircularProgressIndicator(
@@ -117,7 +121,10 @@ fun ConnectWalletDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = { viewModel.cancel() }) {
+            TextButton(
+                onClick = { viewModel.cancel() },
+                modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_CANCEL_BUTTON)
+            ) {
                 Text(stringResource(Res.string.connect_wallet_cancel))
             }
         }
@@ -162,7 +169,10 @@ private fun ConnectWalletDialogContent(
                     color = MaterialTheme.colorScheme.error
                 )
                 if (!state.isDiscoveryLoading && state.discovery == null) {
-                    TextButton(onClick = onRetryDiscovery) {
+                    TextButton(
+                        onClick = onRetryDiscovery,
+                        modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_RETRY_BUTTON)
+                    ) {
                         Text(text = stringResource(Res.string.connect_wallet_retry))
                     }
                 }
@@ -174,7 +184,9 @@ private fun ConnectWalletDialogContent(
 @Composable
 private fun DiscoveryLoading() {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(MaestroTags.NwcWallet.DIALOG_LOADING),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -190,12 +202,17 @@ private fun DiscoveryDetails(
     onSetActiveChange: (Boolean) -> Unit
 ) {
     val discovery = state.discovery ?: return
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_DETAILS),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         OutlinedTextField(
             value = state.aliasInput,
             onValueChange = onAliasChange,
             label = { Text(stringResource(Res.string.connect_wallet_alias_label)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(MaestroTags.NwcWallet.DIALOG_ALIAS_FIELD),
             enabled = !state.isSaving
         )
 
@@ -206,7 +223,8 @@ private fun DiscoveryDetails(
             Checkbox(
                 checked = state.setActive,
                 onCheckedChange = { onSetActiveChange(it) },
-                enabled = !state.isSaving
+                enabled = !state.isSaving,
+                modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_SET_ACTIVE_CHECKBOX)
             )
             Text(text = stringResource(Res.string.connect_wallet_set_active))
         }
@@ -318,7 +336,9 @@ private fun WarningSection(discovery: WalletDiscovery) {
     Surface(
         color = MaterialTheme.colorScheme.errorContainer,
         shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(MaestroTags.NwcWallet.DIALOG_WARNING)
     ) {
         Column(
             modifier = Modifier.padding(12.dp),

@@ -1,0 +1,49 @@
+appId: xyz.lilsus.papp.dev
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible:
+    id: "onboarding_welcome_continue_button"
+- tapOn:
+    id: "onboarding_welcome_continue_button"
+- assertVisible:
+    id: "onboarding_features_continue_button"
+- tapOn:
+    id: "onboarding_features_continue_button"
+- assertVisible:
+    id: "onboarding_autopay_continue_button"
+- tapOn:
+    id: "onboarding_autopay_continue_button"
+- assertVisible:
+    id: "onboarding_wallet_choice_blink_option"
+- tapOn:
+    id: "onboarding_wallet_choice_blink_option"
+- assertVisible:
+    id: "onboarding_agreement_checkbox"
+- tapOn:
+    id: "onboarding_agreement_checkbox"
+- assertVisible:
+    id: "onboarding_agreement_continue_button"
+- tapOn:
+    id: "onboarding_agreement_continue_button"
+- assertVisible:
+    id: "onboarding_add_blink_wallet_continue_button"
+- tapOn:
+    id: "onboarding_add_blink_wallet_continue_button"
+- runFlow:
+    file: "subflows/add_blink.yaml"
+    env:
+        NAME: "Real Blink Wallet (valid)"
+        KEY: ${BLINK_KEY_ALL}
+- assertVisible:
+    id: "payment_screen"
+
+
+
+
+
+
+
+
+

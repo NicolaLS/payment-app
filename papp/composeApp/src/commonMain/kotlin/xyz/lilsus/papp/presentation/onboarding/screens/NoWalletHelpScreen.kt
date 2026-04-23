@@ -12,6 +12,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
@@ -19,6 +20,7 @@ import papp.composeapp.generated.resources.onboarding_no_wallet_body
 import papp.composeapp.generated.resources.onboarding_no_wallet_button
 import papp.composeapp.generated.resources.onboarding_no_wallet_start_again
 import papp.composeapp.generated.resources.onboarding_no_wallet_title
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
 
@@ -34,7 +36,9 @@ fun NoWalletHelpScreen(
         onBack = onBack
     ) {
         Column(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .testTag(MaestroTags.Onboarding.NO_WALLET_HELP_SCREEN),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -54,14 +58,18 @@ fun NoWalletHelpScreen(
 
             Button(
                 onClick = onHasWalletNow,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.Onboarding.NO_WALLET_HAS_WALLET_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.onboarding_no_wallet_button))
             }
 
             OutlinedButton(
                 onClick = onStartAgain,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.Onboarding.NO_WALLET_START_AGAIN_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.onboarding_no_wallet_start_again))
             }

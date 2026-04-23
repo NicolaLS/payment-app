@@ -80,10 +80,7 @@ data class AddWalletUiState(
     val uri: String = "",
     val error: AppError? = null,
     val isUriValid: Boolean = false
-) {
-    val canContinue: Boolean
-        get() = isUriValid
-}
+)
 
 sealed interface AddWalletEvent {
     data class NavigateToConfirm(val uri: String) : AddWalletEvent

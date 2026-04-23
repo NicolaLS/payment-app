@@ -1,0 +1,17 @@
+appId: xyz.lilsus.papp.dev
+---
+- assertVisible:
+    id: "onboarding_welcome_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_welcome_continue_button"
+- assertVisible:
+    id: "onboarding_features_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_features_continue_button"
+- assertVisible:
+    id: "onboarding_autopay_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_autopay_continue_button"

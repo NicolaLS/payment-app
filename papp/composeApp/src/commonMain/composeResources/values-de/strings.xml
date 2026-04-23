@@ -95,7 +95,6 @@
     <string name="pending_chip_success">Erfolg: %1$s %2$s</string>
     <string name="pending_chip_failure">Fehlgeschlagen %1$s</string>
     <string name="add_wallet_title">Wallet verbinden</string>
-    <string name="add_wallet_continue">Weiter</string>
     <string name="add_wallet_description">Kopiere eine NWC-URI und komme zurück, oder Scanne einen QR-Code.</string>
     <string name="add_wallet_uri_label">Wallet-Connect-URI</string>
     <string name="add_wallet_uri_placeholder">nostr+walletconnect://deine-wallet-public-key?relay=…</string>

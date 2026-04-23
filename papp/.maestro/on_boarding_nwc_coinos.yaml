@@ -1,0 +1,42 @@
+appId: xyz.lilsus.papp.dev
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow: "common/onboarding_select_wallet.yaml"
+- assertVisible:
+    id: "onboarding_wallet_choice_nwc_option"
+- tapOn:
+    id: "onboarding_wallet_choice_nwc_option"
+- assertVisible:
+    id: "onboarding_agreement_checkbox"
+- tapOn:
+    id: "onboarding_agreement_checkbox"
+- assertVisible:
+    id: "onboarding_agreement_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_agreement_continue_button"
+- assertVisible:
+    id: "onboarding_add_nwc_wallet_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_add_nwc_wallet_continue_button"
+- runFlow:
+    file: "subflows/add_nwc.yaml"
+    env:
+        URI: ${NWC_URI_COINOS}
+- assertVisible:
+    id: "payment_screen"
+
+
+# NOTE the continue button in add nwc is not necessary
+# NOTE: nwc uri should be hidden like password
+
+
+
+
+
+
+
+

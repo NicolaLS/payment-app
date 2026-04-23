@@ -334,7 +334,6 @@ private fun AddWalletEntry(navController: NavController) {
             state = state,
             onBack = { navController.popBackStack() },
             onUriChange = viewModel::updateUri,
-            onSubmit = viewModel::submit,
             controller = scannerController,
             isCameraPermissionGranted = cameraPermission.hasPermission
         )

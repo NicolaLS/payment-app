@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -17,6 +19,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
@@ -24,6 +28,7 @@ import papp.composeapp.generated.resources.onboarding_agreement_body
 import papp.composeapp.generated.resources.onboarding_agreement_checkbox
 import papp.composeapp.generated.resources.onboarding_agreement_continue
 import papp.composeapp.generated.resources.onboarding_agreement_title
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.OnboardingStep
 import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
 
@@ -40,7 +45,9 @@ fun AgreementScreen(
         onBack = onBack
     ) {
         Column(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .testTag(MaestroTags.Onboarding.AGREEMENT_SCREEN),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -66,12 +73,20 @@ fun AgreementScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .toggleable(
+                        value = hasAgreed,
+                        role = Role.Checkbox,
+                        onValueChange = onAgreementChanged
+                    )
+                    .testTag(MaestroTags.Onboarding.AGREEMENT_CHECKBOX),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
                     checked = hasAgreed,
-                    onCheckedChange = onAgreementChanged
+                    onCheckedChange = null
                 )
                 Text(
                     text = stringResource(Res.string.onboarding_agreement_checkbox),
@@ -85,7 +100,9 @@ fun AgreementScreen(
             Button(
                 onClick = onContinue,
                 enabled = hasAgreed,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.Onboarding.AGREEMENT_CONTINUE_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.onboarding_agreement_continue))
             }

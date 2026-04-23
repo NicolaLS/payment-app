@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
@@ -27,6 +28,7 @@ import papp.composeapp.generated.resources.onboarding_autopay_hint
 import papp.composeapp.generated.resources.onboarding_autopay_threshold
 import papp.composeapp.generated.resources.onboarding_autopay_threshold_label
 import papp.composeapp.generated.resources.onboarding_autopay_title
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
@@ -53,7 +55,9 @@ fun AutoPaySettingsScreen(
         onBack = onBack
     ) {
         Column(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .testTag(MaestroTags.Onboarding.AUTO_PAY_SCREEN),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -156,7 +160,9 @@ fun AutoPaySettingsScreen(
 
             Button(
                 onClick = onContinue,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.Onboarding.AUTO_PAY_CONTINUE_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.onboarding_autopay_continue))
             }
