@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -64,7 +65,9 @@ fun WelcomeScreen(onGetStarted: () -> Unit, modifier: Modifier = Modifier) {
 
             Button(
                 onClick = onGetStarted,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("get_started_button")
             ) {
                 Text(text = stringResource(Res.string.onboarding_welcome_get_started))
             }

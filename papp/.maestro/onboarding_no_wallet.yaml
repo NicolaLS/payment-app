@@ -1,0 +1,27 @@
+# ISSUE-001: This element should be selected using a stable `id` for better maintainability of this test.
+# NOTE: This test requires en locale
+appId: xyz.lilsus.papp.dev
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+# FIXME: ISSUE-001
+- tapOn: "Get Started"
+# FIXME: ISSUE-001
+- tapOn: "Continue"
+# FIXME: ISSUE-001
+- tapOn: "Continue"
+# FIXME: ISSUE-001
+- tapOn: "I don't have a wallet yet"
+- assertVisible: "You'll need a wallet"
+- assertVisible: "Lasr connects to your existing Lightning wallet - it doesn't hold funds itself.\n\nYou can download the Blink wallet for an easy start, or use any wallet that supports NWC like AlbyHub, Coinos, or Nostr clients like Damus or Primal."
+# FIXME: ISSUE-001
+- tapOn: "I have a wallet now"
+- assertVisible: "Blink"
+- assertVisible: "NWC Wallet"
+- assertVisible: "I don't have a wallet yet"
+
+
+
+
+

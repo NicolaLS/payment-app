@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
@@ -81,7 +82,11 @@ fun App() {
     }
 
     AppTheme(themePreference = themePreference) {
-        NavHost(navController, startDestination = startDestination) {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.enableMaestroTestTagsAsResourceId()
+        ) {
             onboardingScreen(
                 navController = navController,
                 onNavigateToAddNwcWallet = {
