@@ -34,7 +34,19 @@ class NwcWalletRepositoryImpl(
     private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS
 ) : NwcWalletRepository {
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+    suspend fun payInvoice(invoice: String, amountMsats: Long? = null): PaidInvoice = payInvoice(
+        invoice = invoice,
+        amountMsats = amountMsats,
+        walletUri = null,
+        walletType = null
+    )
+
+    override suspend fun payInvoice(
+        invoice: String,
+        amountMsats: Long?,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PaidInvoice {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
@@ -44,7 +56,7 @@ class NwcWalletRepositoryImpl(
             throw AppErrorException(AppError.NetworkUnavailable)
         }
 
-        val client = getClient()
+        val client = getClient(walletUri)
         val result = client.payInvoice(
             invoice = invoice,
             amount = amountMsats?.let { Amount.fromMsats(it) },
@@ -62,7 +74,20 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+    fun startPayInvoiceRequest(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
+        startPayInvoiceRequest(
+            invoice = invoice,
+            amountMsats = amountMsats,
+            walletUri = null,
+            walletType = null
+        )
+
+    override fun startPayInvoiceRequest(
+        invoice: String,
+        amountMsats: Long?,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PayInvoiceRequest {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
@@ -72,7 +97,12 @@ class NwcWalletRepositoryImpl(
 
         val job = scope.launch {
             try {
-                val paidInvoice = payInvoice(invoice, amountMsats)
+                val paidInvoice = payInvoice(
+                    invoice = invoice,
+                    amountMsats = amountMsats,
+                    walletUri = walletUri,
+                    walletType = walletType
+                )
                 stateFlow.value = PayInvoiceRequestState.Success(paidInvoice)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 stateFlow.value = PayInvoiceRequestState.Failure(

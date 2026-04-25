@@ -17,19 +17,37 @@ interface PaymentProvider {
      *
      * @param invoice The BOLT11 invoice to pay.
      * @param amountMsats Optional amount in millisatoshis (required for zero-amount invoices).
+     * @param walletUri Optional wallet URI/ID to pay from a specific wallet.
+     *                  For NWC: the connection URI. For Blink: the wallet public key.
+     *                  If null, uses the currently active wallet.
+     * @param walletType Optional wallet type for routing when walletUri is provided.
      * @return A [PayInvoiceRequest] that can be observed for completion.
      */
-    fun startPayInvoiceRequest(invoice: String, amountMsats: Long? = null): PayInvoiceRequest
+    fun startPayInvoiceRequest(
+        invoice: String,
+        amountMsats: Long? = null,
+        walletUri: String? = null,
+        walletType: WalletType? = null
+    ): PayInvoiceRequest
 
     /**
      * Pays an invoice and suspends until completion or failure.
      *
      * @param invoice The BOLT11 invoice to pay.
      * @param amountMsats Optional amount in millisatoshis (required for zero-amount invoices).
+     * @param walletUri Optional wallet URI/ID to pay from a specific wallet.
+     *                  For NWC: the connection URI. For Blink: the wallet public key.
+     *                  If null, uses the currently active wallet.
+     * @param walletType Optional wallet type for routing when walletUri is provided.
      * @return The [PaidInvoice] result on success.
      * @throws xyz.lilsus.papp.domain.model.AppErrorException on failure.
      */
-    suspend fun payInvoice(invoice: String, amountMsats: Long? = null): PaidInvoice
+    suspend fun payInvoice(
+        invoice: String,
+        amountMsats: Long? = null,
+        walletUri: String? = null,
+        walletType: WalletType? = null
+    ): PaidInvoice
 
     /**
      * Looks up the status of a payment by payment hash.

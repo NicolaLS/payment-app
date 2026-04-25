@@ -37,7 +37,20 @@ class BlinkPaymentRepository(
         activeWalletId = walletId
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+    fun startPayInvoiceRequest(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
+        startPayInvoiceRequest(
+            invoice = invoice,
+            amountMsats = amountMsats,
+            walletUri = null,
+            walletType = null
+        )
+
+    override fun startPayInvoiceRequest(
+        invoice: String,
+        amountMsats: Long?,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PayInvoiceRequest {
         require(invoice.isNotBlank()) { "Invoice must not be blank" }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero" }
@@ -46,11 +59,16 @@ class BlinkPaymentRepository(
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(PayInvoiceRequestState.Loading)
 
         // Capture wallet ID at request time to avoid race conditions if user switches wallets
-        val walletIdAtRequestTime = activeWalletId
+        val walletIdAtRequestTime = walletUri ?: activeWalletId
 
         val job = scope.launch {
             try {
-                val result = payInvoice(invoice, amountMsats)
+                val result = payInvoice(
+                    invoice = invoice,
+                    amountMsats = amountMsats,
+                    walletUri = walletIdAtRequestTime,
+                    walletType = walletType
+                )
                 stateFlow.value = PayInvoiceRequestState.Success(result)
             } catch (e: AppErrorException) {
                 val finalError = handlePotentialAuthError(e.error, walletIdAtRequestTime)
@@ -92,12 +110,24 @@ class BlinkPaymentRepository(
         return AppError.BlinkError(BlinkErrorType.InvalidApiKeyWalletRemoved)
     }
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+    suspend fun payInvoice(invoice: String, amountMsats: Long? = null): PaidInvoice = payInvoice(
+        invoice = invoice,
+        amountMsats = amountMsats,
+        walletUri = null,
+        walletType = null
+    )
+
+    override suspend fun payInvoice(
+        invoice: String,
+        amountMsats: Long?,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PaidInvoice {
         if (!networkConnectivity.isNetworkAvailable()) {
             throw AppErrorException(AppError.NetworkUnavailable)
         }
 
-        val walletId = activeWalletId
+        val walletId = walletUri ?: activeWalletId
             ?: throw AppErrorException(AppError.MissingWalletConnection)
 
         val apiKey = credentialStore.getApiKey(walletId)

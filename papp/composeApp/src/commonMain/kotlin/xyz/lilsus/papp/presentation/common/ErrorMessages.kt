@@ -1,6 +1,7 @@
 package xyz.lilsus.papp.presentation.common
 
 import androidx.compose.runtime.Composable
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.error_authentication_failure
@@ -143,5 +144,103 @@ fun errorMessageFor(error: AppError): String = when (error) {
 
         BlinkErrorType.InvalidApiKeyWalletRemoved ->
             stringResource(Res.string.error_blink_invalid_api_key_wallet_removed)
+    }
+}
+
+/**
+ * Resolves a human-readable message for [AppError] from a coroutine context.
+ */
+suspend fun getErrorMessageFor(error: AppError): String = when (error) {
+    AppError.MissingWalletConnection -> getString(Res.string.error_missing_wallet_connection)
+
+    is AppError.PaymentRejected -> {
+        val message = error.message?.takeUnless { it.isBlank() }
+        if (message != null) {
+            getString(Res.string.error_payment_rejected_message, message)
+        } else {
+            getString(Res.string.error_payment_rejected_generic)
+        }
+    }
+
+    AppError.NetworkUnavailable -> getString(Res.string.error_network_unavailable)
+
+    is AppError.RelayConnectionFailed -> getString(Res.string.error_relay_connection_failed)
+
+    AppError.Timeout -> getString(Res.string.error_timeout)
+
+    is AppError.PaymentUnconfirmed -> {
+        val details = error.message?.takeUnless { it.isBlank() }
+        if (details != null) {
+            getString(Res.string.error_payment_unconfirmed_message, details)
+        } else {
+            getString(Res.string.error_payment_unconfirmed)
+        }
+    }
+
+    is AppError.AuthenticationFailure -> {
+        val details = error.message?.takeUnless { it.isBlank() }
+        if (details != null) {
+            getString(Res.string.error_authentication_failure_message, details)
+        } else {
+            getString(Res.string.error_authentication_failure)
+        }
+    }
+
+    is AppError.InsufficientPermissions -> getString(Res.string.error_blink_permission_denied)
+
+    is AppError.InvalidWalletUri -> getString(Res.string.error_invalid_wallet_uri)
+
+    is AppError.UnrecognizedInput -> getString(Res.string.error_unrecognized_input)
+
+    is AppError.InvalidInvoice -> {
+        val details = error.reason?.takeUnless { it.isBlank() }
+        if (details != null) {
+            getString(Res.string.error_invalid_invoice_with_details, details)
+        } else {
+            getString(Res.string.error_invalid_invoice)
+        }
+    }
+
+    is AppError.LnurlError -> {
+        val details = error.reason?.takeUnless { it.isBlank() }
+        if (details != null) {
+            getString(Res.string.error_lnurl_with_details, details)
+        } else {
+            getString(Res.string.error_lnurl)
+        }
+    }
+
+    is AppError.Unexpected -> {
+        val details = error.message?.takeUnless { it.isBlank() }
+        if (details != null) {
+            getString(Res.string.error_unexpected_with_details, details)
+        } else {
+            getString(Res.string.error_unexpected_generic)
+        }
+    }
+
+    is AppError.BlinkError -> when (error.type) {
+        BlinkErrorType.PermissionDenied -> getString(Res.string.error_blink_permission_denied)
+
+        BlinkErrorType.InsufficientBalance -> getString(Res.string.error_blink_insufficient_balance)
+
+        BlinkErrorType.RouteNotFound -> getString(Res.string.error_blink_route_not_found)
+
+        BlinkErrorType.InvoiceExpired -> getString(Res.string.error_blink_invoice_expired)
+
+        BlinkErrorType.SelfPayment -> getString(Res.string.error_blink_self_payment)
+
+        BlinkErrorType.InvalidInvoice -> getString(Res.string.error_blink_invalid_invoice)
+
+        BlinkErrorType.AmountTooSmall -> getString(Res.string.error_blink_amount_too_small)
+
+        BlinkErrorType.LimitExceeded -> getString(Res.string.error_blink_limit_exceeded)
+
+        BlinkErrorType.RateLimited -> getString(Res.string.error_blink_rate_limited)
+
+        BlinkErrorType.InvalidApiKey -> getString(Res.string.error_blink_invalid_api_key)
+
+        BlinkErrorType.InvalidApiKeyWalletRemoved ->
+            getString(Res.string.error_blink_invalid_api_key_wallet_removed)
     }
 }

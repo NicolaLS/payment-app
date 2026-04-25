@@ -788,16 +788,21 @@ private class RecordingNwcWalletRepository(private val result: PaidInvoice = Pai
     var lastAmountMsats: Long? = null
         private set
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
         lastInvoice = invoice
         lastAmountMsats = amountMsats
-        val request = startPayInvoiceRequest(invoice, amountMsats)
+        val request = startPayInvoiceRequest(invoice, amountMsats, walletUri, walletType)
         val state = request.state.first { it is PayInvoiceRequestState.Success } as
             PayInvoiceRequestState.Success
         return state.invoice
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(
+        invoice: String,
+        amountMsats: Long?,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PayInvoiceRequest {
         lastInvoice = invoice
         lastAmountMsats = amountMsats
         return ImmediatePayInvoiceRequest(result)
@@ -812,14 +817,19 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
     private val recorded = mutableListOf<Pair<String, Long?>>()
     val invoices: List<Pair<String, Long?>> get() = recorded.toList()
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
-        val request = startPayInvoiceRequest(invoice, amountMsats)
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
+        val request = startPayInvoiceRequest(invoice, amountMsats, walletUri, walletType)
         val state = request.state.first { it is PayInvoiceRequestState.Success } as
             PayInvoiceRequestState.Success
         return state.invoice
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(
+        invoice: String,
+        amountMsats: Long?,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PayInvoiceRequest {
         recorded += invoice to amountMsats
         return DeferredPayInvoiceRequest(completion)
     }
@@ -846,11 +856,16 @@ private class UnconfirmedNwcWalletRepository(private val lookupResult: suspend (
     val startedInvoices: List<Pair<String, Long?>> get() = _startedInvoices.value
     val lookupCalls: List<LookupCall> get() = _lookupCalls.value
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
         error("payInvoice is not used by MainViewModel")
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(
+        invoice: String,
+        amountMsats: Long?,
+        walletUri: String?,
+        walletType: WalletType?
+    ): PayInvoiceRequest {
         _startedInvoices.update { it + (invoice to amountMsats) }
         return object : PayInvoiceRequest {
             private val mutable = MutableStateFlow<PayInvoiceRequestState>(

@@ -1,6 +1,7 @@
 package xyz.lilsus.papp.domain.usecases
 
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 
 /**
@@ -14,9 +15,15 @@ class PayInvoiceUseCase(private val paymentProvider: PaymentProvider) {
      * payment happens in the background. Callers should cancel the request when they no longer
      * need updates.
      */
-    operator fun invoke(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
-        paymentProvider.startPayInvoiceRequest(
-            invoice = invoice,
-            amountMsats = amountMsats
-        )
+    operator fun invoke(
+        invoice: String,
+        amountMsats: Long? = null,
+        walletUri: String? = null,
+        walletType: WalletType? = null
+    ): PayInvoiceRequest = paymentProvider.startPayInvoiceRequest(
+        invoice = invoice,
+        amountMsats = amountMsats,
+        walletUri = walletUri,
+        walletType = walletType
+    )
 }

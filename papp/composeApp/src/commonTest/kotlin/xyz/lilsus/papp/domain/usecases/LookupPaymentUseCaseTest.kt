@@ -98,11 +98,16 @@ class LookupPaymentUseCaseTest {
         var lastWalletUri: String? = null
         var lastWalletType: WalletType? = null
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
             error("Not implemented")
         }
 
-        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(
+            invoice: String,
+            amountMsats: Long?,
+            walletUri: String?,
+            walletType: WalletType?
+        ): PayInvoiceRequest {
             error("Not implemented")
         }
 
@@ -121,11 +126,16 @@ class LookupPaymentUseCaseTest {
         private val _lookupCalls = mutableListOf<LookupCall>()
         val lookupCalls: List<LookupCall> get() = _lookupCalls.toList()
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
             error("Not implemented")
         }
 
-        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(
+            invoice: String,
+            amountMsats: Long?,
+            walletUri: String?,
+            walletType: WalletType?
+        ): PayInvoiceRequest {
             error("Not implemented")
         }
 

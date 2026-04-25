@@ -39,6 +39,7 @@ import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.toast_bitcoin_address
 import papp.composeapp.generated.resources.toast_bolt12_not_supported
 import xyz.lilsus.papp.navigation.DonationNavigation.events
+import xyz.lilsus.papp.presentation.common.getErrorMessageFor
 import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
 import xyz.lilsus.papp.presentation.main.MainScreen
@@ -145,7 +146,9 @@ private fun MainScreenEntry(
     LaunchedEffect(viewModel) {
         viewModel.events.collectLatest { event ->
             when (event) {
-                is MainEvent.ShowError -> Unit
+                is MainEvent.ShowError -> {
+                    snackbarHostState.showSnackbar(getErrorMessageFor(event.error))
+                }
 
                 // Full-screen errors are shown via UI state
                 is MainEvent.ShowToast -> {

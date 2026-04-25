@@ -558,7 +558,10 @@ class MainViewModel internal constructor(
 
             is ManualEntryContext.Lnurl -> {
                 val params = context.session.params
-                if (amountMsats < params.minSendable || amountMsats > params.maxSendable) {
+                val roundedAmountMsats = roundToFullSatoshis(amountMsats)
+                if (roundedAmountMsats < params.minSendable ||
+                    roundedAmountMsats > params.maxSendable
+                ) {
                     _events.tryEmit(
                         MainEvent.ShowError(
                             AppError.InvalidInvoice("Amount is outside the allowed range")
@@ -566,7 +569,7 @@ class MainViewModel internal constructor(
                     )
                     return
                 }
-                payLnurlInvoice(context.session, amountMsats, isManualEntry = true)
+                payLnurlInvoice(context.session, roundedAmountMsats, isManualEntry = true)
             }
         }
     }
@@ -707,19 +710,23 @@ class MainViewModel internal constructor(
         origin: PendingOrigin
     ) {
         val amountMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
+        val walletLookupContext = currentWalletLookupContext
+        val walletType = currentWalletType
         val pendingId = pendingTracker.register(
             summary = summary,
             amountMsats = amountMsats,
             origin = origin,
-            walletLookupContext = currentWalletLookupContext,
-            walletType = currentWalletType
+            walletLookupContext = walletLookupContext,
+            walletType = walletType
         )
         cancelCollectionJob(pendingId)
         val job = scope.launch {
             val request = try {
                 payInvoice(
                     invoice = summary.paymentRequest,
-                    amountMsats = amountOverrideMsats
+                    amountMsats = amountOverrideMsats,
+                    walletUri = walletLookupContext,
+                    walletType = walletType
                 )
             } catch (error: AppErrorException) {
                 handlePaymentFailure(

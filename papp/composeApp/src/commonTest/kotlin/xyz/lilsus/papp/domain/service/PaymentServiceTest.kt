@@ -116,7 +116,12 @@ class PaymentServiceTest {
         var startCalls: Int = 0
         var payCalls: Int = 0
 
-        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(
+            invoice: String,
+            amountMsats: Long?,
+            walletUri: String?,
+            walletType: WalletType?
+        ): PayInvoiceRequest {
             startCalls += 1
             return object : PayInvoiceRequest {
                 override val state = MutableStateFlow<PayInvoiceRequestState>(
@@ -127,7 +132,7 @@ class PaymentServiceTest {
             }
         }
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
             payCalls += 1
             return PaidInvoice(preimage = null, feesPaidMsats = null)
         }
