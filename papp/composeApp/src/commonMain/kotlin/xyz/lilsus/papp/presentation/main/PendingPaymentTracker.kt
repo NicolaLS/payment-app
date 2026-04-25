@@ -61,7 +61,8 @@ class PendingPaymentTracker(
         amountMsats: Long,
         origin: PendingOrigin,
         walletLookupContext: String?,
-        walletType: WalletType?
+        walletType: WalletType?,
+        dynamicSourceKey: String? = null
     ): String {
         val id = "pending-${currentTimeMillis()}-${records.value.size}"
         val record = PendingRecord(
@@ -72,6 +73,7 @@ class PendingPaymentTracker(
             createdAtMs = currentTimeMillis(),
             walletLookupContext = walletLookupContext,
             walletType = walletType,
+            dynamicSourceKey = dynamicSourceKey,
             paymentHash = summary.paymentHash
         )
         records.update { it + (id to record) }
@@ -166,6 +168,20 @@ class PendingPaymentTracker(
         .firstOrNull {
             it.summary.paymentRequest == paymentRequest &&
                 it.walletLookupContext == walletLookupContext
+        }
+
+    fun findWaitingByPaymentRequest(paymentRequest: String): PendingRecord? = records.value
+        .values
+        .firstOrNull {
+            it.status == PendingStatus.Waiting &&
+                it.summary.paymentRequest == paymentRequest
+        }
+
+    fun findWaitingByDynamicSourceKey(dynamicSourceKey: String): PendingRecord? = records.value
+        .values
+        .firstOrNull {
+            it.status == PendingStatus.Waiting &&
+                it.dynamicSourceKey == dynamicSourceKey
         }
 
     /**
@@ -415,6 +431,7 @@ data class PendingRecord(
     val createdAtMs: Long,
     val walletLookupContext: String?,
     val walletType: WalletType?,
+    val dynamicSourceKey: String?,
     val paymentHash: String?,
     val status: PendingStatus = PendingStatus.Waiting,
     val error: AppError? = null,

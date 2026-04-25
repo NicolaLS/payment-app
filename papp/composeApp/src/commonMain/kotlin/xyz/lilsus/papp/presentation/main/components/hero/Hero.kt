@@ -60,6 +60,7 @@ fun Hero(
         MainUiState.Active -> MaterialTheme.colorScheme.onSurfaceVariant
 
         is MainUiState.Detected, is MainUiState.Confirm, is MainUiState.EnterAmount,
+        is MainUiState.PendingRetry,
         is MainUiState.Loading -> MaterialTheme.colorScheme.primary
 
         is MainUiState.Success -> MaterialTheme.colorScheme.tertiary

@@ -337,6 +337,16 @@ private fun MainScreenEntry(
             onManualAmountDismiss = { viewModel.dispatch(MainIntent.ManualAmountDismiss) },
             onConfirmPaymentSubmit = { viewModel.dispatch(MainIntent.ConfirmPaymentSubmit) },
             onConfirmPaymentDismiss = { viewModel.dispatch(MainIntent.ConfirmPaymentDismiss) },
+            onPendingRetrySameInvoice = {
+                viewModel.dispatch(MainIntent.PendingRetrySameInvoice)
+            },
+            onPendingRetryCreateNewInvoice = {
+                viewModel.dispatch(MainIntent.PendingRetryCreateNewInvoice)
+            },
+            onPendingRetryViewPending = {
+                viewModel.dispatch(MainIntent.PendingRetryViewPending)
+            },
+            onPendingRetryDismiss = { viewModel.dispatch(MainIntent.PendingRetryDismiss) },
             onResultDismiss = { viewModel.dispatch(MainIntent.DismissResult) },
             onPendingTap = { id -> viewModel.dispatch(MainIntent.TapPending(id)) },
             onRequestScannerStart = {

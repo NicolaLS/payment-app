@@ -50,6 +50,10 @@ sealed interface MainIntent {
     data object ManualAmountDismiss : MainIntent
     data object ConfirmPaymentSubmit : MainIntent
     data object ConfirmPaymentDismiss : MainIntent
+    data object PendingRetrySameInvoice : MainIntent
+    data object PendingRetryCreateNewInvoice : MainIntent
+    data object PendingRetryViewPending : MainIntent
+    data object PendingRetryDismiss : MainIntent
     data class StartDonation(val amountSats: Long, val address: LightningAddress) : MainIntent
 
     /** Tap a pending payment chip - shows result if ready, does nothing if still waiting */

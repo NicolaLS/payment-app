@@ -11,6 +11,13 @@
     <string name="confirm_payment_title">Confirm Payment</string>
     <string name="pay_button">Pay</string>
     <string name="dismiss_button">Dismiss</string>
+    <string name="pending_retry_bolt11_title">Invoice already pending</string>
+    <string name="pending_retry_bolt11_body">This invoice is already being paid with another wallet. You can safely try it with this wallet too. Only one payment can succeed.</string>
+    <string name="pending_retry_dynamic_title">Payment already pending</string>
+    <string name="pending_retry_dynamic_body">You already have a pending payment for this request. Retry the same invoice to avoid paying twice, or create a new invoice if you really want another payment.</string>
+    <string name="pending_retry_same_invoice">Retry same invoice</string>
+    <string name="pending_retry_create_new_invoice">Create new invoice</string>
+    <string name="pending_retry_view_pending">View pending payment</string>
     <string name="enter_amount_title">Enter amount</string>
     <string name="enter_amount_range_min">Min %1$s</string>
     <string name="enter_amount_range_max">Max %1$s</string>

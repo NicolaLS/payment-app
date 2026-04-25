@@ -476,7 +476,7 @@ class MainViewModelTest {
     }
 
     @Test
-    fun sameInvoiceOnDifferentBlinkWalletsStartsSeparatePendingPayments() = runTest {
+    fun sameInvoiceOnDifferentBlinkWalletsPromptsThenRetriesSameInvoice() = runTest {
         val parser = FakeBolt11InvoiceParser(
             mapOf(
                 AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
@@ -512,10 +512,91 @@ class MainViewModelTest {
             viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
             runCurrent()
 
+            assertEquals(1, repository.startedInvoices.size)
+            assertEquals(MainUiState.PendingRetry(PendingRetrySource.Bolt11), viewModel.uiState.value)
+
+            viewModel.dispatch(MainIntent.PendingRetrySameInvoice)
+            runCurrent()
+
             assertEquals(2, repository.startedInvoices.size)
             assertEquals(
                 listOf(wallet1.walletPublicKey, wallet2.walletPublicKey),
                 repository.lookupCalls.map { it.walletUri }
+            )
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun repeatedLnurlPromptCanRetryStoredInvoiceWithoutFetchingNewInvoice() = runTest {
+        val amountMsats = 50_000L
+        val lnurlInvoice = "lnbc1lnurlpending"
+        val params = LnurlPayParams(
+            callback = LNURL_CALLBACK,
+            minSendable = amountMsats,
+            maxSendable = amountMsats,
+            metadataRaw = LNURL_METADATA_RAW,
+            metadata = LNURL_METADATA,
+            commentAllowed = null,
+            domain = "example.com"
+        )
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
+            stubInvoice(LNURL_CALLBACK, amountMsats, Result.Success(lnurlInvoice))
+        }
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                lnurlInvoice to Bolt11InvoiceSummary(
+                    paymentRequest = lnurlInvoice,
+                    paymentHash = null,
+                    amountMsats = amountMsats,
+                    memo = Bolt11Memo.Text("Payment")
+                )
+            )
+        )
+        val repository = UnconfirmedNwcWalletRepository {
+            PaymentLookupResult.Pending
+        }
+        val wallet1 = blinkWallet("blink-wallet-1")
+        val wallet2 = blinkWallet("blink-wallet-2")
+        walletSettingsRepository.saveWalletConnection(wallet1, activate = true)
+        walletSettingsRepository.saveWalletConnection(wallet2, activate = false)
+
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            lnurlRepository = lnurlRepository,
+            dispatcherOverride = UnconfinedTestDispatcher(testScheduler)
+        )
+        try {
+            runCurrent()
+
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_INPUT))
+            runCurrent()
+
+            assertEquals(1, lnurlRepository.endpointFetchCount)
+            assertEquals(1, lnurlRepository.invoiceRequestCount)
+            assertEquals(listOf(lnurlInvoice to null), repository.startedInvoices)
+
+            walletSettingsRepository.setActiveWallet(wallet2.walletPublicKey)
+            runCurrent()
+
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_INPUT))
+            runCurrent()
+
+            assertEquals(MainUiState.PendingRetry(PendingRetrySource.Dynamic), viewModel.uiState.value)
+            assertEquals(1, lnurlRepository.endpointFetchCount)
+            assertEquals(1, lnurlRepository.invoiceRequestCount)
+
+            viewModel.dispatch(MainIntent.PendingRetrySameInvoice)
+            runCurrent()
+
+            assertEquals(1, lnurlRepository.endpointFetchCount)
+            assertEquals(1, lnurlRepository.invoiceRequestCount)
+            assertEquals(
+                listOf(lnurlInvoice to null, lnurlInvoice to null),
+                repository.startedInvoices
             )
         } finally {
             viewModel.clear()
@@ -962,6 +1043,12 @@ private class FakeLnurlRepository(
     private val addressResponses: MutableMap<String, Result<LnurlPayParams>> = mutableMapOf(),
     private val invoiceResponses: MutableMap<String, Result<String>> = mutableMapOf()
 ) : LnurlRepository {
+    var endpointFetchCount = 0
+        private set
+    var addressFetchCount = 0
+        private set
+    var invoiceRequestCount = 0
+        private set
 
     fun stubEndpoint(endpoint: String, result: Result<LnurlPayParams>) {
         endpointResponses[endpoint] = result
@@ -975,18 +1062,26 @@ private class FakeLnurlRepository(
         invoiceResponses["$callback:$amountMsats"] = result
     }
 
-    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> = endpointResponses[endpoint]
-        ?: Result.Error(AppError.LnurlError("LNURL not stubbed: $endpoint"))
+    override suspend fun fetchPayParams(endpoint: String): Result<LnurlPayParams> {
+        endpointFetchCount += 1
+        return endpointResponses[endpoint]
+            ?: Result.Error(AppError.LnurlError("LNURL not stubbed: $endpoint"))
+    }
 
-    override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> = addressResponses[address.full]
-        ?: Result.Error(
-            AppError.LnurlError("Lightning address not stubbed: ${address.full}")
-        )
+    override suspend fun fetchPayParams(address: LightningAddress): Result<LnurlPayParams> {
+        addressFetchCount += 1
+        return addressResponses[address.full]
+            ?: Result.Error(
+                AppError.LnurlError("Lightning address not stubbed: ${address.full}")
+            )
+    }
 
-    override suspend fun requestInvoice(callback: String, amountMsats: Long, comment: String?): Result<String> =
-        invoiceResponses["$callback:$amountMsats"]
+    override suspend fun requestInvoice(callback: String, amountMsats: Long, comment: String?): Result<String> {
+        invoiceRequestCount += 1
+        return invoiceResponses["$callback:$amountMsats"]
             ?: invoiceResponses[callback]
             ?: Result.Error(AppError.LnurlError("Invoice not stubbed"))
+    }
 }
 
 private class FakeExchangeRateRepository(private val result: Result<ExchangeRate>?) : ExchangeRateRepository {

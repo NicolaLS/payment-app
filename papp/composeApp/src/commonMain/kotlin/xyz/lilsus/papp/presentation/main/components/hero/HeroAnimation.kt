@@ -74,7 +74,8 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
 
                 is MainUiState.Detected,
                 is MainUiState.Confirm,
-                is MainUiState.EnterAmount -> animateToCompressed()
+                is MainUiState.EnterAmount,
+                is MainUiState.PendingRetry -> animateToCompressed()
 
                 is MainUiState.Loading -> animateToLoading()
 

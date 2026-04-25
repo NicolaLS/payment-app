@@ -40,6 +40,7 @@ import xyz.lilsus.papp.presentation.main.components.ConfirmationBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ManualAmountBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
+import xyz.lilsus.papp.presentation.main.components.PendingRetryBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ResultLayout
 import xyz.lilsus.papp.presentation.main.components.SettingsFAB
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
@@ -60,6 +61,10 @@ fun MainScreen(
     onManualAmountDismiss: () -> Unit = {},
     onConfirmPaymentSubmit: () -> Unit = {},
     onConfirmPaymentDismiss: () -> Unit = {},
+    onPendingRetrySameInvoice: () -> Unit = {},
+    onPendingRetryCreateNewInvoice: () -> Unit = {},
+    onPendingRetryViewPending: () -> Unit = {},
+    onPendingRetryDismiss: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
     onPendingTap: (String) -> Unit = {},
     onRequestScannerStart: () -> Unit,
@@ -178,6 +183,16 @@ fun MainScreen(
             confirmAmount = uiState.amount,
             onPay = onConfirmPaymentSubmit,
             onDismiss = onConfirmPaymentDismiss
+        )
+    }
+
+    if (uiState is MainUiState.PendingRetry) {
+        PendingRetryBottomSheet(
+            source = uiState.source,
+            onRetrySameInvoice = onPendingRetrySameInvoice,
+            onCreateNewInvoice = onPendingRetryCreateNewInvoice,
+            onViewPending = onPendingRetryViewPending,
+            onDismiss = onPendingRetryDismiss
         )
     }
 }

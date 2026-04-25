@@ -10,6 +10,7 @@ sealed class MainUiState {
     data class Loading(val isWatchingPending: Boolean = false) : MainUiState()
     data class EnterAmount(val entry: ManualAmountUiState) : MainUiState()
     data class Confirm(val amount: DisplayAmount) : MainUiState()
+    data class PendingRetry(val source: PendingRetrySource) : MainUiState()
     data class Success(
         val amountPaid: DisplayAmount,
         val feePaid: DisplayAmount,
@@ -18,6 +19,11 @@ sealed class MainUiState {
     ) : MainUiState()
 
     data class Error(val error: AppError) : MainUiState()
+}
+
+enum class PendingRetrySource {
+    Bolt11,
+    Dynamic
 }
 
 /**

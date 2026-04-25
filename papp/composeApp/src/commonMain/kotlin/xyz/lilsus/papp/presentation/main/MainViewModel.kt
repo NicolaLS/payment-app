@@ -85,6 +85,7 @@ class MainViewModel internal constructor(
     private var pendingInvoice: Bolt11InvoiceSummary? = null
     private var manualEntryContext: ManualEntryContext? = null
     private var pendingPayment: PendingPayment? = null
+    private var pendingRetry: PendingRetryChoice? = null
     private var lastPaymentResult: CompletedPayment? = null
     private var parsedInvoiceCache: Pair<String, Bolt11InvoiceSummary>? = null
     private var vibrateOnScan: Boolean = true
@@ -212,6 +213,10 @@ class MainViewModel internal constructor(
             is MainIntent.ManualAmountPreset -> handleManualAmountPreset(intent.amount)
             MainIntent.ConfirmPaymentDismiss -> handleConfirmPaymentDismiss()
             MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
+            MainIntent.PendingRetrySameInvoice -> handlePendingRetrySameInvoice()
+            MainIntent.PendingRetryCreateNewInvoice -> handlePendingRetryCreateNewInvoice()
+            MainIntent.PendingRetryViewPending -> handlePendingRetryViewPending()
+            MainIntent.PendingRetryDismiss -> handlePendingRetryDismiss()
             is MainIntent.StartDonation -> handleDonation(intent.amountSats, intent.address)
             is MainIntent.TapPending -> handlePendingTap(intent.id)
             MainIntent.SwipeWalletNext -> switchToNextWallet()
@@ -252,40 +257,80 @@ class MainViewModel internal constructor(
             is LightningInputParser.ParseResult.Success -> {
                 when (val target = parse.target) {
                     is LightningInputParser.Target.Bolt11Candidate -> {
-                        // Check if already pending for current wallet - if so, show its status
-                        val existingPending = findPendingForCurrentWallet(target.invoice)
-                        if (existingPending != null) {
-                            openPendingEntry(existingPending.id)
+                        val summary = parseBolt11Invoice(target.invoice)
+                        if (summary == null) {
+                            emitError(AppError.InvalidInvoice("Failed to parse BOLT11 invoice"))
                             return
                         }
+
+                        val existingForCurrentWallet = pendingTracker.findByInvoiceAndWallet(
+                            paymentRequest = summary.paymentRequest,
+                            walletLookupContext = currentWalletLookupContext
+                        )
+                        if (existingForCurrentWallet != null) {
+                            openPendingEntry(existingForCurrentWallet.id)
+                            return
+                        }
+
+                        val existingPending = pendingTracker.findWaitingByPaymentRequest(
+                            summary.paymentRequest
+                        )
+                        if (existingPending != null) {
+                            showPendingRetryPrompt(
+                                record = existingPending,
+                                source = PendingRetrySource.Bolt11,
+                                continuation = null
+                            )
+                            return
+                        }
+
                         if (vibrateOnScan) haptics.notifyScanSuccess()
                         processBoltInvoice(target.invoice)
                     }
 
                     is LightningInputParser.Target.Lnurl -> {
+                        val sourceKey = lnurlSourceKey(target.endpoint)
+                        val existingPending = pendingTracker.findWaitingByDynamicSourceKey(
+                            sourceKey
+                        )
+                        if (existingPending != null) {
+                            showPendingRetryPrompt(
+                                record = existingPending,
+                                source = PendingRetrySource.Dynamic,
+                                continuation = PendingRetryContinuation.Lnurl(
+                                    endpoint = target.endpoint,
+                                    source = LnurlSource.Lnurl,
+                                    sourceKey = sourceKey
+                                )
+                            )
+                            return
+                        }
                         if (vibrateOnScan) haptics.notifyScanSuccess()
-                        fetchLnurl(target.endpoint, LnurlSource.Lnurl)
+                        fetchLnurl(target.endpoint, LnurlSource.Lnurl, sourceKey)
                     }
 
                     is LightningInputParser.Target.LightningAddressTarget -> {
+                        val sourceKey = lightningAddressSourceKey(target.address)
+                        val existingPending = pendingTracker.findWaitingByDynamicSourceKey(
+                            sourceKey
+                        )
+                        if (existingPending != null) {
+                            showPendingRetryPrompt(
+                                record = existingPending,
+                                source = PendingRetrySource.Dynamic,
+                                continuation = PendingRetryContinuation.LightningAddress(
+                                    address = target.address,
+                                    sourceKey = sourceKey
+                                )
+                            )
+                            return
+                        }
                         if (vibrateOnScan) haptics.notifyScanSuccess()
-                        resolveLightningAddress(target.address)
+                        resolveLightningAddress(target.address, sourceKey)
                     }
                 }
             }
         }
-    }
-
-    /**
-     * Checks if invoice is already pending for the current wallet.
-     * Returns the pending record if found, null otherwise.
-     */
-    private fun findPendingForCurrentWallet(invoice: String): PendingRecord? {
-        val summary = parseBolt11Invoice(invoice) ?: return null
-        return pendingTracker.findByInvoiceAndWallet(
-            paymentRequest = summary.paymentRequest,
-            walletLookupContext = currentWalletLookupContext
-        )
     }
 
     private fun handleDonation(amountSats: Long, address: LightningAddress) {
@@ -304,7 +349,8 @@ class MainViewModel internal constructor(
                         source = LnurlSource.LightningAddress,
                         forceManualEntry = true,
                         prefillMsats = amountMsats,
-                        inputCurrencyOverride = satInfo
+                        inputCurrencyOverride = satInfo,
+                        sourceKey = lightningAddressSourceKey(address)
                     )
                 }
 
@@ -371,23 +417,29 @@ class MainViewModel internal constructor(
         }
     }
 
-    private fun fetchLnurl(endpoint: String, source: LnurlSource) {
+    private fun fetchLnurl(endpoint: String, source: LnurlSource, sourceKey: String?) {
         _uiState.value = MainUiState.Loading()
         scope.launch {
             when (val result = fetchLnurlPayParams(endpoint)) {
-                is Result.Success -> handleLnurlParams(result.data, source)
+                is Result.Success -> handleLnurlParams(result.data, source, sourceKey = sourceKey)
                 is Result.Error -> emitError(result.error)
                 Result.Loading -> Unit
             }
         }
     }
 
-    private fun resolveLightningAddress(address: LightningAddress) {
+    private fun resolveLightningAddress(address: LightningAddress, sourceKey: String?) {
         _uiState.value = MainUiState.Loading()
         scope.launch {
             when (val result = resolveLightningAddressUseCase(address)) {
-                is Result.Success -> handleLnurlParams(result.data, LnurlSource.LightningAddress)
+                is Result.Success -> handleLnurlParams(
+                    result.data,
+                    LnurlSource.LightningAddress,
+                    sourceKey = sourceKey
+                )
+
                 is Result.Error -> emitError(result.error)
+
                 Result.Loading -> Unit
             }
         }
@@ -398,13 +450,14 @@ class MainViewModel internal constructor(
         source: LnurlSource,
         forceManualEntry: Boolean = false,
         prefillMsats: Long? = null,
-        inputCurrencyOverride: CurrencyInfo? = null
+        inputCurrencyOverride: CurrencyInfo? = null,
+        sourceKey: String? = null
     ) {
         if (params.minSendable <= 0 || params.maxSendable < params.minSendable) {
             emitError(AppError.InvalidInvoice("LNURL amount range is invalid"))
             return
         }
-        val session = LnurlSession(params = params, source = source)
+        val session = LnurlSession(params = params, source = source, sourceKey = sourceKey)
         val currencyState = currencyManager.state.value
         val inputInfo = inputCurrencyOverride ?: currencyState.info
         val manualState = CurrencyState(
@@ -505,7 +558,8 @@ class MainViewModel internal constructor(
         requestPayment(
             summary = parsed,
             amountOverrideMsats = null,
-            origin = origin
+            origin = origin,
+            dynamicSourceKey = session.sourceKey
         )
     }
 
@@ -611,12 +665,79 @@ class MainViewModel internal constructor(
         startPayment(
             summary = pending.summary,
             amountOverrideMsats = pending.overrideAmountMsats,
-            origin = pending.origin
+            origin = pending.origin,
+            dynamicSourceKey = pending.dynamicSourceKey
         )
+    }
+
+    private fun handlePendingRetrySameInvoice() {
+        val choice = pendingRetry ?: return
+        val record = pendingTracker.get(choice.recordId) ?: run {
+            handlePendingRetryDismiss()
+            return
+        }
+        pendingRetry = null
+        val amountOverrideMsats = if (record.summary.amountMsats == null) {
+            record.amountMsats
+        } else {
+            null
+        }
+        requestPayment(
+            summary = record.summary,
+            amountOverrideMsats = amountOverrideMsats,
+            origin = record.origin,
+            dynamicSourceKey = record.dynamicSourceKey
+        )
+    }
+
+    private fun handlePendingRetryCreateNewInvoice() {
+        val continuation = pendingRetry?.continuation ?: return
+        pendingRetry = null
+        when (continuation) {
+            is PendingRetryContinuation.Lnurl -> {
+                if (vibrateOnScan) haptics.notifyScanSuccess()
+                fetchLnurl(
+                    endpoint = continuation.endpoint,
+                    source = continuation.source,
+                    sourceKey = continuation.sourceKey
+                )
+            }
+
+            is PendingRetryContinuation.LightningAddress -> {
+                if (vibrateOnScan) haptics.notifyScanSuccess()
+                resolveLightningAddress(
+                    address = continuation.address,
+                    sourceKey = continuation.sourceKey
+                )
+            }
+        }
+    }
+
+    private fun handlePendingRetryViewPending() {
+        val recordId = pendingRetry?.recordId ?: return
+        pendingRetry = null
+        openPendingEntry(recordId)
+    }
+
+    private fun handlePendingRetryDismiss() {
+        pendingRetry = null
+        _uiState.value = MainUiState.Active
     }
 
     private fun handlePendingTap(id: String) {
         openPendingEntry(id)
+    }
+
+    private fun showPendingRetryPrompt(
+        record: PendingRecord,
+        source: PendingRetrySource,
+        continuation: PendingRetryContinuation?
+    ) {
+        pendingRetry = PendingRetryChoice(
+            recordId = record.id,
+            continuation = continuation
+        )
+        _uiState.value = MainUiState.PendingRetry(source)
     }
 
     private fun openPendingEntry(id: String) {
@@ -667,7 +788,8 @@ class MainViewModel internal constructor(
     private fun requestPayment(
         summary: Bolt11InvoiceSummary,
         amountOverrideMsats: Long?,
-        origin: PendingOrigin
+        origin: PendingOrigin,
+        dynamicSourceKey: String? = null
     ) {
         scope.launch {
             if (currencyManager.needsExchangeRate()) {
@@ -686,14 +808,16 @@ class MainViewModel internal constructor(
                 pendingPayment = PendingPayment(
                     summary = summary,
                     overrideAmountMsats = amountOverrideMsats,
-                    origin = origin
+                    origin = origin,
+                    dynamicSourceKey = dynamicSourceKey
                 )
                 _uiState.value = MainUiState.Confirm(display)
             } else {
                 startPayment(
                     summary = summary,
                     amountOverrideMsats = amountOverrideMsats,
-                    origin = origin
+                    origin = origin,
+                    dynamicSourceKey = dynamicSourceKey
                 )
             }
         }
@@ -707,7 +831,8 @@ class MainViewModel internal constructor(
     private fun startPayment(
         summary: Bolt11InvoiceSummary,
         amountOverrideMsats: Long?,
-        origin: PendingOrigin
+        origin: PendingOrigin,
+        dynamicSourceKey: String? = null
     ) {
         val amountMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
         val walletLookupContext = currentWalletLookupContext
@@ -717,7 +842,8 @@ class MainViewModel internal constructor(
             amountMsats = amountMsats,
             origin = origin,
             walletLookupContext = walletLookupContext,
-            walletType = walletType
+            walletType = walletType,
+            dynamicSourceKey = dynamicSourceKey
         )
         cancelCollectionJob(pendingId)
         val job = scope.launch {
@@ -1004,6 +1130,7 @@ class MainViewModel internal constructor(
         pendingInvoice = null
         manualEntryContext = null
         pendingPayment = null
+        pendingRetry = null
         manualAmount.reset(
             ManualAmountConfig(info = state.info, exchangeRate = state.exchangeRate),
             clearInput = true
@@ -1080,7 +1207,13 @@ private const val MSATS_PER_SAT = 1_000L
 private data class PendingPayment(
     val summary: Bolt11InvoiceSummary,
     val overrideAmountMsats: Long?,
-    val origin: PendingOrigin
+    val origin: PendingOrigin,
+    val dynamicSourceKey: String?
+)
+
+private data class PendingRetryChoice(
+    val recordId: String,
+    val continuation: PendingRetryContinuation?
 )
 
 private data class CompletedPayment(
@@ -1090,7 +1223,11 @@ private data class CompletedPayment(
     val wasAlreadyPaid: Boolean
 )
 
-private data class LnurlSession(val params: LnurlPayParams, val source: LnurlSource)
+private data class LnurlSession(
+    val params: LnurlPayParams,
+    val source: LnurlSource,
+    val sourceKey: String?
+)
 
 private enum class LnurlSource {
     Lnurl,
@@ -1102,3 +1239,18 @@ private sealed class ManualEntryContext {
     data class Lnurl(val session: LnurlSession, val inputInfo: CurrencyInfo) :
         ManualEntryContext()
 }
+
+private sealed class PendingRetryContinuation {
+    data class Lnurl(val endpoint: String, val source: LnurlSource, val sourceKey: String) :
+        PendingRetryContinuation()
+
+    data class LightningAddress(
+        val address: xyz.lilsus.papp.domain.lnurl.LightningAddress,
+        val sourceKey: String
+    ) : PendingRetryContinuation()
+}
+
+private fun lnurlSourceKey(endpoint: String): String = "lnurl:${endpoint.trim().lowercase()}"
+
+private fun lightningAddressSourceKey(address: LightningAddress): String =
+    "lud16:${address.full.lowercase()}"
