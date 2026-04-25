@@ -21,6 +21,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import papp.composeapp.generated.resources.Res
@@ -85,7 +86,8 @@ fun AddWalletScreen(
                 label = { Text(text = stringResource(Res.string.add_wallet_uri_label)) },
                 placeholder = {
                     Text(text = stringResource(Res.string.add_wallet_uri_placeholder))
-                }
+                },
+                visualTransformation = PasswordVisualTransformation()
             )
             if (state.error != null) {
                 Text(
