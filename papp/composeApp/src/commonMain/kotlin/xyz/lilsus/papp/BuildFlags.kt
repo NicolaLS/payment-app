@@ -16,3 +16,11 @@ expect val isDebugBuild: Boolean
  * isolated from release installs.
  */
 expect val appStorageNamespace: String
+
+/**
+ * Compile-time switch for release-like end-to-end test artifacts.
+ *
+ * Production builds must keep this false because the enabled hooks intentionally
+ * bypass normal deep-link safety UX for automation.
+ */
+expect val allowE2eHooks: Boolean

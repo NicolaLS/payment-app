@@ -280,10 +280,14 @@ android {
         getByName("debug") {
             // Install debug separately so onboarding and wallet storage stay isolated from release.
             applicationIdSuffix = ".dev"
+            manifestPlaceholders["appLabel"] = "Lasr Dev"
+            buildConfigField("boolean", "ALLOW_E2E_HOOKS", "false")
         }
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            manifestPlaceholders["appLabel"] = "Lasr"
+            buildConfigField("boolean", "ALLOW_E2E_HOOKS", "false")
 
             proguardFiles(
                 // Default file with automatically generated optimization rules.
@@ -298,6 +302,13 @@ android {
             ndk {
                 debugSymbolLevel = "full"
             }
+        }
+        create("e2e") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".e2e"
+            matchingFallbacks += listOf("release")
+            manifestPlaceholders["appLabel"] = "Lasr E2E"
+            buildConfigField("boolean", "ALLOW_E2E_HOOKS", "true")
         }
     }
     buildFeatures {
