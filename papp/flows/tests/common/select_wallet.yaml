@@ -15,3 +15,7 @@ appId: xyz.lilsus.papp.dev
     enabled: true
 - tapOn:
     id: "onboarding_autopay_continue_button"
+- assertVisible:
+    id: ${ID}
+- tapOn:
+    id: ${ID}
