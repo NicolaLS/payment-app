@@ -2,6 +2,8 @@ package xyz.lilsus.papp.presentation.main.scan
 
 import android.Manifest
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,6 +43,7 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
 import kotlin.math.pow
@@ -48,6 +51,7 @@ import kotlin.math.pow
 private const val TAG = "QrScanner"
 private const val FAR_MODE_BASE_ZOOM_RATIO = 2f
 private const val ZOOM_RATIO_EPSILON = 0.001f
+private const val ANALYSIS_EXECUTOR_SHUTDOWN_DELAY_MILLIS = 2_000L
 
 actual class CameraPreviewSurface internal constructor(val previewView: PreviewView)
 
@@ -175,7 +179,7 @@ private class AndroidQrScannerController(
     private var analyzer: QrCodeAnalyzer? = null
     private var previewUseCase: Preview? = null
     private var previewSurface: CameraPreviewSurface? = null
-    private var analysisExecutor: ExecutorService? = null
+    private var analysisExecutor: DroppingExecutor? = null
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private val isActive = AtomicBoolean(false)
     private val isBound = AtomicBoolean(false)
@@ -218,7 +222,7 @@ private class AndroidQrScannerController(
         previewSurface = null
         camera = null
         lastAppliedZoomRatio = null
-        analysisExecutor?.shutdown()
+        analysisExecutor?.shutdownAfterDelay()
         analysisExecutor = null
         cameraProvider = null
         onQrCodeScanned = null
@@ -259,7 +263,7 @@ private class AndroidQrScannerController(
 
                     if (!isBound.get()) return@addListener
                     val analysisExecutor =
-                        analysisExecutor ?: Executors.newSingleThreadExecutor().also {
+                        analysisExecutor ?: DroppingExecutor().also {
                             analysisExecutor = it
                         }
                     val mainExecutor = ContextCompat.getMainExecutor(context)
@@ -370,6 +374,37 @@ private class AndroidQrScannerController(
     }
 }
 
+private class DroppingExecutor : Executor {
+    private val delegate: ExecutorService = Executors.newSingleThreadExecutor()
+    private val shutdownHandler = Handler(Looper.getMainLooper())
+
+    @Volatile
+    private var accepting = true
+
+    override fun execute(command: Runnable) {
+        if (!accepting) return
+        try {
+            delegate.execute {
+                if (accepting) {
+                    command.run()
+                }
+            }
+        } catch (error: RejectedExecutionException) {
+            Log.d(TAG, "Dropping scanner callback after executor shutdown", error)
+        }
+    }
+
+    fun shutdownAfterDelay() {
+        shutdownHandler.postDelayed(
+            {
+                accepting = false
+                delegate.shutdown()
+            },
+            ANALYSIS_EXECUTOR_SHUTDOWN_DELAY_MILLIS
+        )
+    }
+}
+
 private class QrCodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
     private val active: AtomicBoolean,
@@ -416,6 +451,7 @@ private class QrCodeAnalyzer(
             val input = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
             barcodeScanner.process(input)
                 .addOnSuccessListener(analysisExecutor) { barcodes ->
+                    if (!active.get()) return@addOnSuccessListener
                     val rotation = image.imageInfo.rotationDegrees
                     val frameWidth = if (rotation == 90 || rotation == 270) {
                         image.height.toFloat()
@@ -438,7 +474,9 @@ private class QrCodeAnalyzer(
                     }
                 }
                 .addOnFailureListener(analysisExecutor) { error ->
-                    Log.e(TAG, "Barcode scanning failed", error)
+                    if (active.get()) {
+                        Log.e(TAG, "Barcode scanning failed", error)
+                    }
                 }
                 .addOnCompleteListener(analysisExecutor) {
                     image.close()
