@@ -40,7 +40,7 @@ class ConnectWalletViewModel internal constructor(
 
     private var activeDiscoveryJob: Job? = null
 
-    fun load(uri: String) {
+    fun load(uri: String, autoConfirm: Boolean = false) {
         val trimmed = uri.trim()
         if (trimmed.isEmpty()) {
             _uiState.value = ConnectWalletUiState(uri = "", error = AppError.InvalidWalletUri())
@@ -72,6 +72,9 @@ class ConnectWalletViewModel internal constructor(
                                 current.setActive
                             }
                         )
+                    }
+                    if (autoConfirm) {
+                        confirm()
                     }
                 }
                 .onFailure { throwable ->

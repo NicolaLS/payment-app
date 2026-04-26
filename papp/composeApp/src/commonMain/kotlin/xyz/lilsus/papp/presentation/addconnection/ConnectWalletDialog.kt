@@ -64,6 +64,7 @@ import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 @Composable
 fun ConnectWalletDialog(
     initialUri: String? = null,
+    autoConfirm: Boolean = false,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit = onDismiss
 ) {
@@ -75,7 +76,7 @@ fun ConnectWalletDialog(
 
     LaunchedEffect(initialUri) {
         // Always call load - empty/null URIs will trigger InvalidWalletUri error
-        viewModel.load(initialUri ?: "")
+        viewModel.load(initialUri ?: "", autoConfirm = autoConfirm)
     }
 
     LaunchedEffect(viewModel) {

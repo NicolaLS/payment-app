@@ -97,6 +97,30 @@ class ConnectWalletViewModelTest {
         }
     }
 
+    @Test
+    fun autoConfirmSavesWalletAfterDiscovery() {
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            discoveryRepository.stub(VALID_URI, TEST_DISCOVERY)
+            val viewModel = createViewModel(dispatcher)
+            try {
+                val eventDeferred = async {
+                    viewModel.events.first { it is ConnectWalletEvent.Success }
+                }
+
+                viewModel.load(VALID_URI, autoConfirm = true)
+                advanceUntilIdle()
+
+                val event = eventDeferred.await() as ConnectWalletEvent.Success
+                assertEquals(TEST_DISCOVERY.aliasSuggestion, walletRepository.lastSavedAlias)
+                assertEquals(event.connection.alias, walletRepository.lastSavedAlias)
+                assertNotNull(walletRepository.getWalletConnection())
+            } finally {
+                viewModel.clear()
+            }
+        }
+    }
+
     private fun createViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Unconfined): ConnectWalletViewModel = ConnectWalletViewModel(
         discoverWallet = discoverWallet,
         setWalletConnection = setWalletConnection,

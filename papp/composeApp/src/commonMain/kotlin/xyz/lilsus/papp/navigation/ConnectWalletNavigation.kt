@@ -18,7 +18,8 @@ internal data class ConnectWallet(
     val pubKeyHex: String? = null,
     val relay: String? = null,
     val secretHex: String? = null,
-    val lud16: String? = null
+    val lud16: String? = null,
+    val autoConfirm: Boolean = false
 )
 
 fun NavGraphBuilder.connectWalletDialog(navController: NavController) {
@@ -30,6 +31,7 @@ fun NavGraphBuilder.connectWalletDialog(navController: NavController) {
 
         ConnectWalletDialog(
             initialUri = info.toUriOrNull(),
+            autoConfirm = info.autoConfirm,
             onDismiss = { navController.popBackStack() },
             onSuccess = {
                 // Try to pop back to settings manage wallets screen
@@ -56,7 +58,8 @@ fun NavController.navigateToConnectWallet(
     pubKeyHex: String? = null,
     relay: String? = null,
     secretHex: String? = null,
-    lud16: String? = null
+    lud16: String? = null,
+    autoConfirm: Boolean = false
 ) {
     navigate(
         route = ConnectWallet(
@@ -64,7 +67,8 @@ fun NavController.navigateToConnectWallet(
             pubKeyHex = pubKeyHex,
             relay = relay,
             secretHex = secretHex,
-            lud16 = lud16
+            lud16 = lud16,
+            autoConfirm = autoConfirm
         )
     ) {
         launchSingleTop = true
