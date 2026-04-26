@@ -20,6 +20,9 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>nostr+walletconnect</string>
+				<string>lightning</string>
+				<string>bitcoin</string>
+				<string>lnurl</string>
 			</array>
 		</dict>
 	</array>

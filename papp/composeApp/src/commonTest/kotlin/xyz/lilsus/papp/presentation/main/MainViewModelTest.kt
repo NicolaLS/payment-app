@@ -309,6 +309,183 @@ class MainViewModelTest {
     }
 
     @Test
+    fun invoiceAmountAutoPaysFromQrWhenBelowThreshold() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = 1_000
+            )
+        )
+        try {
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
+            assertEquals(AMOUNT_PAYMENT_REQUEST, repository.lastInvoice)
+            assertNull(repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun deepLinkedInvoiceRequiresConfirmationWhenBelowThreshold() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = 1_000
+            )
+        )
+        try {
+            viewModel.dispatch(MainIntent.PaymentDeepLinkReceived(AMOUNT_INVOICE_INPUT))
+
+            val confirm = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Confirm
+            } as MainUiState.Confirm
+            assertEquals(250L, confirm.amount.minor)
+            assertNull(repository.lastInvoice)
+
+            viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
+
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
+            assertEquals(AMOUNT_PAYMENT_REQUEST, repository.lastInvoice)
+            assertNull(repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun deepLinkedManualInvoiceRequiresConfirmationAfterAmountEntry() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = null,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = 1_000,
+                confirmManualEntry = false
+            )
+        )
+        try {
+            viewModel.dispatch(MainIntent.PaymentDeepLinkReceived(MANUAL_INVOICE_INPUT))
+            viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
+
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(2)))
+            viewModel.dispatch(MainIntent.ManualAmountSubmit)
+
+            val confirm = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Confirm
+            } as MainUiState.Confirm
+            assertEquals(2L, confirm.amount.minor)
+            assertNull(repository.lastInvoice)
+
+            viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
+
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
+            assertEquals(MANUAL_PAYMENT_REQUEST, repository.lastInvoice)
+            assertEquals(2_000L, repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun deepLinkedLightningAddressRequiresConfirmationAfterAmountEntry() = runBlocking {
+        val chosenMsats = 2_000L
+        val addressInvoice = "lnbc1addressinvoice"
+        val params = LnurlPayParams(
+            callback = LNURL_CALLBACK,
+            minSendable = 1_000L,
+            maxSendable = 5_000L,
+            metadataRaw = LNURL_METADATA_RAW,
+            metadata = LNURL_METADATA,
+            commentAllowed = null,
+            domain = "blink.sv"
+        )
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubAddress("pay@blink.sv", Result.Success(params))
+            stubInvoice(LNURL_CALLBACK, chosenMsats, Result.Success(addressInvoice))
+        }
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                addressInvoice to Bolt11InvoiceSummary(
+                    paymentRequest = addressInvoice,
+                    paymentHash = null,
+                    amountMsats = chosenMsats,
+                    memo = Bolt11Memo.Text("Payment")
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = 1_000
+            ),
+            lnurlRepository = lnurlRepository
+        )
+        try {
+            viewModel.dispatch(MainIntent.PaymentDeepLinkReceived("pay@blink.sv"))
+            viewModel.uiState.firstWithTimeout { it is MainUiState.EnterAmount }
+
+            viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(2)))
+            viewModel.dispatch(MainIntent.ManualAmountSubmit)
+
+            val confirm = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Confirm
+            } as MainUiState.Confirm
+            assertEquals(chosenMsats / MSATS_PER_SAT, confirm.amount.minor)
+            assertNull(repository.lastInvoice)
+
+            viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
+
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
+            assertEquals(addressInvoice, repository.lastInvoice)
+            assertNull(repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
     fun alreadyPaidResultShowsAlreadyPaidSuccessState() = runBlocking {
         val parser = FakeBolt11InvoiceParser(
             mapOf(
@@ -691,6 +868,62 @@ class MainViewModelTest {
             // LNURL invoices already have amount embedded, so we shouldn't pass amount parameter
             assertEquals(null, repository.lastAmountMsats)
             assertEquals(amountMsats / MSATS_PER_SAT, success.amountPaid.minor)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun deepLinkedFixedLnurlRequiresConfirmationWhenBelowThreshold() = runBlocking {
+        val amountMsats = 50_000L
+        val lnurlInvoice = "lnbc1lnurlfixeddeeplink"
+        val params = LnurlPayParams(
+            callback = LNURL_CALLBACK,
+            minSendable = amountMsats,
+            maxSendable = amountMsats,
+            metadataRaw = LNURL_METADATA_RAW,
+            metadata = LNURL_METADATA,
+            commentAllowed = null,
+            domain = "example.com"
+        )
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubEndpoint(LNURL_ENDPOINT, Result.Success(params))
+            stubInvoice(LNURL_CALLBACK, amountMsats, Result.Success(lnurlInvoice))
+        }
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                lnurlInvoice to Bolt11InvoiceSummary(
+                    paymentRequest = lnurlInvoice,
+                    paymentHash = null,
+                    amountMsats = amountMsats,
+                    memo = Bolt11Memo.Text("Payment")
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = 1_000
+            ),
+            lnurlRepository = lnurlRepository
+        )
+        try {
+            viewModel.dispatch(MainIntent.PaymentDeepLinkReceived(LNURL_INPUT))
+
+            val confirm = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Confirm
+            } as MainUiState.Confirm
+            assertEquals(amountMsats / MSATS_PER_SAT, confirm.amount.minor)
+            assertNull(repository.lastInvoice)
+
+            viewModel.dispatch(MainIntent.ConfirmPaymentSubmit)
+
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
+            assertEquals(lnurlInvoice, repository.lastInvoice)
+            assertNull(repository.lastAmountMsats)
         } finally {
             viewModel.clear()
         }

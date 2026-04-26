@@ -43,6 +43,7 @@ sealed interface ToastMessage {
  */
 sealed interface MainIntent {
     data class QrCodeScanned(val rawValue: String) : MainIntent
+    data class PaymentDeepLinkReceived(val rawValue: String) : MainIntent
     data object DismissResult : MainIntent
     data class ManualAmountKeyPress(val key: ManualAmountKey) : MainIntent
     data class ManualAmountPreset(val amount: DisplayAmount) : MainIntent

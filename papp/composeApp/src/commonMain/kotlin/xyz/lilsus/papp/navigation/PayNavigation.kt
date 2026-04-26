@@ -39,6 +39,7 @@ import papp.composeapp.generated.resources.Res
 import papp.composeapp.generated.resources.toast_bitcoin_address
 import papp.composeapp.generated.resources.toast_bolt12_not_supported
 import xyz.lilsus.papp.navigation.DonationNavigation.events
+import xyz.lilsus.papp.navigation.PaymentDeepLinkEvents.events as paymentDeepLinkEvents
 import xyz.lilsus.papp.presentation.common.getErrorMessageFor
 import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
@@ -177,6 +178,12 @@ private fun MainScreenEntry(
                     address = request.address
                 )
             )
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        paymentDeepLinkEvents.collectLatest { uri ->
+            viewModel.dispatch(MainIntent.PaymentDeepLinkReceived(uri))
         }
     }
 
