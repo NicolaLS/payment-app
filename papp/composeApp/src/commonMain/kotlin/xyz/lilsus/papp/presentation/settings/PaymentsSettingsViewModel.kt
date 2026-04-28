@@ -40,8 +40,6 @@ class PaymentsSettingsViewModel internal constructor(
     val uiState: StateFlow<PaymentsSettingsUiState> = _uiState.asStateFlow()
 
     init {
-        currencyManager.onStateChanged = { updateFiatEquivalent() }
-
         scope.launch {
             observePreferences().collectLatest { preferences ->
                 _uiState.value = _uiState.value.copy(
@@ -58,6 +56,12 @@ class PaymentsSettingsViewModel internal constructor(
         scope.launch {
             observeCurrencyPreference().collectLatest { currency ->
                 currencyManager.setPreferredCurrency(currency)
+            }
+        }
+
+        scope.launch {
+            currencyManager.state.collectLatest {
+                updateFiatEquivalent()
             }
         }
     }

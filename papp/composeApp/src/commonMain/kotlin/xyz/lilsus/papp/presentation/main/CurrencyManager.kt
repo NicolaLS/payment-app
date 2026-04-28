@@ -24,6 +24,10 @@ import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 /**
  * Manages currency state and exchange rate fetching for the payment flow.
  * Provides conversion utilities for displaying amounts in the user's preferred currency.
+ *
+ * This is app-scoped so payment screens, settings, and pending payment tracking all format
+ * amounts from the same currency preference and exchange-rate cache. Consumers should observe
+ * [state] instead of registering callbacks.
  */
 class CurrencyManager(
     private val getExchangeRate: GetExchangeRateUseCase,
@@ -44,22 +48,12 @@ class CurrencyManager(
     private var exchangeRateRequestId: Int = 0
     private var lastExchangeRateRefreshMs: Long? = null
 
-    /** Callback invoked when currency state changes and displays need refresh. */
-    var onStateChanged: (() -> Unit)? = null
-
     /**
      * Updates the preferred currency. Fetches exchange rate if needed for fiat currencies.
      */
     fun setPreferredCurrency(currency: DisplayCurrency) {
         val info = CurrencyCatalog.infoFor(currency)
-        if (info.currency is DisplayCurrency.Fiat) {
-            fetchExchangeRate(info)
-        } else {
-            invalidateExchangeRateJob()
-            _state.value = CurrencyState(info = info, exchangeRate = null)
-            lastExchangeRateRefreshMs = null
-            onStateChanged?.invoke()
-        }
+        ensureExchangeRateIfNeeded(info)
     }
 
     /**
@@ -71,7 +65,6 @@ class CurrencyManager(
             invalidateExchangeRateJob()
             _state.value = _state.value.copy(exchangeRate = null, info = info)
             lastExchangeRateRefreshMs = null
-            onStateChanged?.invoke()
             return
         }
         val current = _state.value
@@ -82,7 +75,6 @@ class CurrencyManager(
         ) {
             if (current.info != info) {
                 _state.value = current.copy(info = info)
-                onStateChanged?.invoke()
             }
             return
         }
@@ -144,7 +136,6 @@ class CurrencyManager(
                         exchangeRate = max(result.data.pricePerBitcoin, 0.0)
                     )
                     markExchangeRateFresh()
-                    onStateChanged?.invoke()
                 }
 
                 is Result.Error -> {
@@ -152,7 +143,6 @@ class CurrencyManager(
                     _state.value = CurrencyState(info = info, exchangeRate = null)
                     lastExchangeRateRefreshMs = null
                     _errors.tryEmit(result.error)
-                    onStateChanged?.invoke()
                 }
 
                 Result.Loading -> Unit

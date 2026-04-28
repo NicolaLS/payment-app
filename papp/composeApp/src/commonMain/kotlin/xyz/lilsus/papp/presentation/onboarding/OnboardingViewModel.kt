@@ -45,11 +45,15 @@ class OnboardingViewModel internal constructor(
     val uiState: StateFlow<OnboardingState> = _uiState.asStateFlow()
 
     init {
-        currencyManager.onStateChanged = { updateFiatEquivalent() }
-
         scope.launch {
             observeCurrencyPreference().collectLatest { currency ->
                 currencyManager.setPreferredCurrency(currency)
+            }
+        }
+
+        scope.launch {
+            currencyManager.state.collectLatest {
+                updateFiatEquivalent()
             }
         }
     }

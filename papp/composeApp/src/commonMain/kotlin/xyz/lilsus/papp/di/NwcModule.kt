@@ -222,7 +222,7 @@ val nwcModule = module {
     factory { ClearLanguageOverrideUseCase(repository = get()) }
     factory { RefreshLanguagePreferenceUseCase(repository = get()) }
     factory { GetExchangeRateUseCase(repository = get()) }
-    factory {
+    single {
         CurrencyManager(
             getExchangeRate = get(),
             scope = get()

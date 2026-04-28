@@ -95,8 +95,6 @@ class MainViewModel internal constructor(
     private var currentWalletType: WalletType? = null
 
     init {
-        currencyManager.onStateChanged = { refreshAllDisplays() }
-
         scope.launch {
             observeWalletConnection().collectLatest { connection ->
                 currentWalletLookupContext = connection.toLookupContext()
@@ -115,6 +113,11 @@ class MainViewModel internal constructor(
         scope.launch {
             observeCurrencyPreference().collectLatest { currency ->
                 currencyManager.setPreferredCurrency(currency)
+            }
+        }
+        scope.launch {
+            currencyManager.state.collectLatest {
+                refreshAllDisplays()
             }
         }
         scope.launch {
