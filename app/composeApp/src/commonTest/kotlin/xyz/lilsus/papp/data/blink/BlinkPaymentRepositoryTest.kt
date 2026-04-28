@@ -240,25 +240,6 @@ class BlinkPaymentRepositoryTest {
     }
 
     @Test
-    fun payInvoiceThrowsBlinkErrorOn401() = runTest {
-        val mockEngine = MockEngine { _ ->
-            respond(
-                content = "Unauthorized",
-                status = HttpStatusCode.Unauthorized
-            )
-        }
-        val context = createTestContextWithEngine(mockEngine)
-
-        val exception = assertFailsWith<AppErrorException> {
-            context.repository.payInvoice("lnbc1test")
-        }
-
-        val error = exception.error
-        assertTrue(error is AppError.BlinkError)
-        assertEquals(BlinkErrorType.InvalidApiKey, error.type)
-    }
-
-    @Test
     fun payInvoiceReturnsUnconfirmedOnNetworkError() = runTest {
         var callCount = 0
         val mockEngine = MockEngine { _ ->

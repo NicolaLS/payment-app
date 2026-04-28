@@ -52,52 +52,45 @@ class Bolt11InvoiceParserTest {
     }
 
     @Test
-    fun parsesInvoiceFromBitcoinUri() {
-        val uri = "bitcoin:bc1qexample?amount=0.001&foo=bar&lightning=$SAMPLE_WITH_AMOUNT_AND_MEMO"
-        val result = parser.parse(uri)
-        val invoice = result.expectSuccess()
+    fun parsesInvoicesFromSupportedWrappers() {
+        val cases = listOf(
+            ParseCase(
+                input = "bitcoin:bc1qexample?amount=0.001&foo=bar&lightning=$SAMPLE_WITH_AMOUNT_AND_MEMO",
+                expectedPaymentRequest = SAMPLE_WITH_AMOUNT_AND_MEMO,
+                expectedAmountMsats = 250_000_000L
+            ),
+            ParseCase(
+                input = SAMPLE_WITH_AMOUNT_AND_MEMO.uppercase(),
+                expectedPaymentRequest = SAMPLE_WITH_AMOUNT_AND_MEMO,
+                expectedAmountMsats = 250_000_000L
+            ),
+            ParseCase(
+                input = "bitcoin:bc1qexample?lightning=${encode(SAMPLE_WITHOUT_AMOUNT)}",
+                expectedPaymentRequest = SAMPLE_WITHOUT_AMOUNT,
+                expectedAmountMsats = null
+            ),
+            ParseCase(
+                input = "bitcoin:$SAMPLE_WITH_AMOUNT_AND_MEMO",
+                expectedPaymentRequest = SAMPLE_WITH_AMOUNT_AND_MEMO,
+                expectedAmountMsats = 250_000_000L
+            )
+        )
 
-        assertEquals(SAMPLE_WITH_AMOUNT_AND_MEMO, invoice.paymentRequest)
-        assertEquals(250_000_000L, invoice.amountMsats)
-        assertTrue(invoice.memo is Bolt11Memo.Text)
-    }
+        cases.forEach { case ->
+            val invoice = parser.parse(case.input).expectSuccess()
 
-    @Test
-    fun parsesUppercaseInvoice() {
-        val uppercase = SAMPLE_WITH_AMOUNT_AND_MEMO.uppercase()
-        val result = parser.parse(uppercase)
-        val invoice = result.expectSuccess()
-
-        assertEquals(SAMPLE_WITH_AMOUNT_AND_MEMO, invoice.paymentRequest)
-        assertEquals(250_000_000L, invoice.amountMsats)
-        assertTrue(invoice.memo is Bolt11Memo.Text)
-    }
-
-    @Test
-    fun parsesBitcoinUriWithEncodedLightning() {
-        val encoded = "bitcoin:bc1qexample?lightning=${encode(SAMPLE_WITHOUT_AMOUNT)}"
-        val result = parser.parse(encoded)
-        val invoice = result.expectSuccess()
-
-        assertEquals(SAMPLE_WITHOUT_AMOUNT, invoice.paymentRequest)
-        assertEquals(null, invoice.amountMsats)
-        assertTrue(invoice.memo is Bolt11Memo.Text)
-    }
-
-    @Test
-    fun parsesInvoiceAfterBitcoinPrefixWithoutQuery() {
-        val uri = "bitcoin:$SAMPLE_WITH_AMOUNT_AND_MEMO"
-        val result = parser.parse(uri)
-        val invoice = result.expectSuccess()
-
-        assertEquals(SAMPLE_WITH_AMOUNT_AND_MEMO, invoice.paymentRequest)
-        assertEquals(250_000_000L, invoice.amountMsats)
+            assertEquals(case.expectedPaymentRequest, invoice.paymentRequest)
+            assertEquals(case.expectedAmountMsats, invoice.amountMsats)
+            assertTrue(invoice.memo is Bolt11Memo.Text)
+        }
     }
 
     private fun Bolt11ParseResult.expectSuccess(): Bolt11InvoiceSummary = when (this) {
         is Bolt11ParseResult.Success -> this.invoice
         is Bolt11ParseResult.Failure -> fail("Expected success but got failure: $reason")
     }
+
+    private data class ParseCase(val input: String, val expectedPaymentRequest: String, val expectedAmountMsats: Long?)
 
     private fun encode(value: String): String = buildString(value.length * 2) {
         value.forEach { ch ->

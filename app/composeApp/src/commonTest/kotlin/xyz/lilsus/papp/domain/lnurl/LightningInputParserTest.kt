@@ -10,84 +10,76 @@ class LightningInputParserTest {
     private val parser = LightningInputParser()
 
     @Test
-    fun parsesPlainLightningAddress() {
-        val result = parser.parse("pay@lilsus.xyz")
+    fun parsesLightningAddressForms() {
+        val cases = listOf(
+            AddressCase(
+                input = "pay@lilsus.xyz",
+                username = "pay",
+                domain = "lilsus.xyz",
+                tag = null,
+                full = "pay@lilsus.xyz"
+            ),
+            AddressCase(
+                input = "lightning:LiLsUs+Tips@BliNk.sv",
+                username = "LiLsUs",
+                domain = "blink.sv",
+                tag = "Tips",
+                full = "LiLsUs+Tips@blink.sv"
+            ),
+            AddressCase(
+                input = "http://JuM@BliNk.sv/",
+                username = "JuM",
+                domain = "blink.sv",
+                tag = null,
+                full = "JuM@blink.sv"
+            )
+        )
 
-        val success = assertIs<LightningInputParser.ParseResult.Success>(result)
-        val target = assertIs<LightningInputParser.Target.LightningAddressTarget>(success.target)
-        assertEquals("pay", target.address.username)
-        assertEquals("lilsus.xyz", target.address.domain)
-        assertEquals(null, target.address.tag)
+        cases.forEach { case ->
+            val success = assertIs<LightningInputParser.ParseResult.Success>(
+                parser.parse(case.input)
+            )
+            val target = assertIs<LightningInputParser.Target.LightningAddressTarget>(
+                success.target
+            )
+            assertEquals(case.username, target.address.username)
+            assertEquals(case.domain, target.address.domain)
+            assertEquals(case.tag, target.address.tag)
+            assertEquals(case.full, target.address.full)
+        }
     }
 
     @Test
-    fun parsesLightningAddressWithPrefixAndTag() {
-        val result = parser.parse("lightning:LiLsUs+Tips@BliNk.sv")
+    fun parsesLnurlLikeHttpUrls() {
+        val cases = listOf(
+            "https://example.com/.well-known/lnurlp/pay",
+            "https://pay@lilsus.xyz/.well-known/lnurlp/pay"
+        )
 
-        val success = assertIs<LightningInputParser.ParseResult.Success>(result)
-        val target = assertIs<LightningInputParser.Target.LightningAddressTarget>(success.target)
-        assertEquals("LiLsUs", target.address.username)
-        assertEquals("blink.sv", target.address.domain)
-        assertEquals("Tips", target.address.tag)
-        assertEquals("LiLsUs+Tips@blink.sv", target.address.full)
+        cases.forEach { input ->
+            val success = assertIs<LightningInputParser.ParseResult.Success>(
+                parser.parse(input)
+            )
+            assertIs<LightningInputParser.Target.Lnurl>(success.target)
+        }
     }
 
     @Test
-    fun parsesUrlWrappedLightningAddress() {
-        val result = parser.parse("http://JuM@BliNk.sv/")
+    fun rejectsInputsThatOnlyLookLikeLightningAddresses() {
+        val cases = listOf(
+            "https://some.random.domain.com/some/resource",
+            "pay@lilsus.xyz/path",
+            "pay@localhost",
+            "golol.de"
+        )
 
-        val success = assertIs<LightningInputParser.ParseResult.Success>(result)
-        val target = assertIs<LightningInputParser.Target.LightningAddressTarget>(success.target)
-        assertEquals("JuM", target.address.username)
-        assertEquals("blink.sv", target.address.domain)
+        cases.forEach { input ->
+            val failure = assertIs<LightningInputParser.ParseResult.Failure>(
+                parser.parse(input)
+            )
+            assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)
+        }
     }
 
-    @Test
-    fun doesNotTreatHttpUrlWithPathAsLightningAddress() {
-        val result = parser.parse("https://some.random.domain.com/some/resource")
-
-        val failure = assertIs<LightningInputParser.ParseResult.Failure>(result)
-        assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)
-    }
-
-    @Test
-    fun parsesRawLnurlLikeHttpUrl() {
-        val result = parser.parse("https://example.com/.well-known/lnurlp/pay")
-
-        val success = assertIs<LightningInputParser.ParseResult.Success>(result)
-        assertTrue(success.target is LightningInputParser.Target.Lnurl)
-    }
-
-    @Test
-    fun doesNotExtractLightningAddressFromUrlUserInfo() {
-        val result = parser.parse("https://pay@lilsus.xyz/.well-known/lnurlp/pay")
-
-        val success = assertIs<LightningInputParser.ParseResult.Success>(result)
-        val target = success.target
-        assertIs<LightningInputParser.Target.Lnurl>(target)
-    }
-
-    @Test
-    fun rejectsAddressWithPathSegment() {
-        val result = parser.parse("pay@lilsus.xyz/path")
-
-        val failure = assertIs<LightningInputParser.ParseResult.Failure>(result)
-        assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)
-    }
-
-    @Test
-    fun rejectsAddressWithoutDomainSuffix() {
-        val result = parser.parse("pay@localhost")
-
-        val failure = assertIs<LightningInputParser.ParseResult.Failure>(result)
-        assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)
-    }
-
-    @Test
-    fun rejectsPlainDomainWithoutUserPart() {
-        val result = parser.parse("golol.de")
-
-        val failure = assertIs<LightningInputParser.ParseResult.Failure>(result)
-        assertTrue(failure.reason is LightningInputParser.FailureReason.Unrecognized)
-    }
+    private data class AddressCase(val input: String, val username: String, val domain: String, val tag: String?, val full: String)
 }

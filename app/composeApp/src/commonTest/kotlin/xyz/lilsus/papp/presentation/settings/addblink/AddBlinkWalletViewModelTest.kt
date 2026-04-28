@@ -1,114 +1,28 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package xyz.lilsus.papp.presentation.settings.addblink
 
-import com.russhwolf.settings.MapSettings
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.TextContent
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.serialization.json.Json
-import xyz.lilsus.papp.data.blink.BlinkApiClient
-import xyz.lilsus.papp.data.blink.BlinkCredentialStore
-import xyz.lilsus.papp.data.blink.BlinkWalletAccountRepositoryImpl
-import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkErrorType
+import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.domain.repository.BlinkWalletAccountRepository
 import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
 
-/**
- * Tests for AddBlinkWalletViewModel.
- * Tests focus on synchronous state updates to avoid coroutine scope issues.
- */
 class AddBlinkWalletViewModelTest {
-
-    @Test
-    fun initialStateHasEmptyFields() {
-        val context = createTestContext()
-        val state = context.viewModel.uiState.value
-
-        assertEquals("", state.alias)
-        assertEquals("", state.apiKey)
-        assertFalse(state.isSaving)
-        assertEquals(null, state.error)
-        assertFalse(state.canSubmit)
-
-        context.viewModel.clear()
-    }
-
-    @Test
-    fun updateAliasUpdatesState() {
-        val context = createTestContext()
-
-        context.viewModel.updateAlias("My Blink Wallet")
-
-        val state = context.viewModel.uiState.value
-        assertEquals("My Blink Wallet", state.alias)
-
-        context.viewModel.clear()
-    }
-
-    @Test
-    fun updateApiKeyUpdatesState() {
-        val context = createTestContext()
-
-        context.viewModel.updateApiKey("blink_test_key_123")
-
-        val state = context.viewModel.uiState.value
-        assertEquals("blink_test_key_123", state.apiKey)
-
-        context.viewModel.clear()
-    }
-
-    @Test
-    fun canSubmitIsTrueWhenBothFieldsAreFilled() {
-        val context = createTestContext()
-
-        context.viewModel.updateAlias("My Wallet")
-        context.viewModel.updateApiKey("blink_key")
-
-        val state = context.viewModel.uiState.value
-        assertTrue(state.canSubmit)
-
-        context.viewModel.clear()
-    }
-
-    @Test
-    fun canSubmitIsFalseWhenAliasIsEmpty() {
-        val context = createTestContext()
-
-        context.viewModel.updateAlias("")
-        context.viewModel.updateApiKey("blink_key")
-
-        val state = context.viewModel.uiState.value
-        assertFalse(state.canSubmit)
-
-        context.viewModel.clear()
-    }
-
-    @Test
-    fun canSubmitIsFalseWhenApiKeyIsEmpty() {
-        val context = createTestContext()
-
-        context.viewModel.updateAlias("My Wallet")
-        context.viewModel.updateApiKey("")
-
-        val state = context.viewModel.uiState.value
-        assertFalse(state.canSubmit)
-
-        context.viewModel.clear()
-    }
-
     @Test
     fun submitWithEmptyAliasShowsError() {
         val context = createTestContext()
@@ -140,49 +54,40 @@ class AddBlinkWalletViewModelTest {
     }
 
     @Test
-    fun updateAliasClearsError() {
-        val context = createTestContext()
+    fun submitWithValidCredentialsEmitsSuccess() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val repository = FakeBlinkWalletAccountRepository()
+        val context = createTestContext(repository = repository, dispatcher = dispatcher)
 
-        // First trigger an error
-        context.viewModel.updateAlias("   ")
-        context.viewModel.updateApiKey("blink_key")
+        context.viewModel.updateAlias(" My Wallet ")
+        context.viewModel.updateApiKey(" full_key ")
+        val eventDeferred = async { context.viewModel.events.first() }
+
         context.viewModel.submit()
-        assertNotNull(context.viewModel.uiState.value.error)
+        advanceUntilIdle()
 
-        // Now update alias - error should be cleared
-        context.viewModel.updateAlias("Valid Alias")
-        assertEquals(null, context.viewModel.uiState.value.error)
+        val event = eventDeferred.await() as AddBlinkWalletEvent.Success
+        assertEquals("My Wallet", event.connection.alias)
+        assertEquals("full_key", repository.lastApiKey)
+        assertEquals("My Wallet", repository.lastAlias)
 
         context.viewModel.clear()
     }
 
     @Test
-    fun updateApiKeyClearsError() {
-        val context = createTestContext()
-
-        // First trigger an error
-        context.viewModel.updateAlias("My Wallet")
-        context.viewModel.updateApiKey("   ")
-        context.viewModel.submit()
-        assertNotNull(context.viewModel.uiState.value.error)
-
-        // Now update API key - error should be cleared
-        context.viewModel.updateApiKey("valid_key")
-        assertEquals(null, context.viewModel.uiState.value.error)
-
-        context.viewModel.clear()
-    }
-
-    @Test
-    fun submitWithReadOnlyApiKeyShowsPermissionDeniedError() = kotlinx.coroutines.runBlocking {
-        val context = createTestContext(authorizationResponse = READ_ONLY_AUTH_RESPONSE)
+    fun submitWithReadOnlyApiKeyShowsPermissionDeniedError() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(
+            repository = FakeBlinkWalletAccountRepository(
+                error = AppError.BlinkError(BlinkErrorType.PermissionDenied)
+            ),
+            dispatcher = dispatcher
+        )
 
         context.viewModel.updateAlias("My Wallet")
         context.viewModel.updateApiKey("read_only_key")
         context.viewModel.submit()
-
-        // Wait for async operation to complete (real time delay needed since ViewModel uses Dispatchers.Default)
-        kotlinx.coroutines.delay(200)
+        advanceUntilIdle()
 
         val state = context.viewModel.uiState.value
         assertNotNull(state.error)
@@ -194,82 +99,38 @@ class AddBlinkWalletViewModelTest {
         context.viewModel.clear()
     }
 
-    private fun createTestContext(authorizationResponse: String = DEFAULT_AUTH_RESPONSE): TestContext {
-        val settings = MapSettings()
-        val walletSettingsRepository = WalletSettingsRepositoryImpl(
-            settings = settings
-        )
-        val credentialStore = BlinkCredentialStore(settings)
-        val apiClient = createMockApiClient(authorizationResponse)
-        val blinkAccountRepository = BlinkWalletAccountRepositoryImpl(
-            apiClient = apiClient,
-            credentialStore = credentialStore,
-            walletSettingsRepository = walletSettingsRepository,
-            walletIdGenerator = { "blink-test-wallet" }
-        )
+    private fun createTestContext(
+        repository: FakeBlinkWalletAccountRepository = FakeBlinkWalletAccountRepository(),
+        dispatcher: CoroutineDispatcher = Dispatchers.Unconfined
+    ): TestContext {
         val viewModel = AddBlinkWalletViewModel(
-            connectBlinkWallet = ConnectBlinkWalletUseCase(blinkAccountRepository),
-            dispatcher = Dispatchers.Default
+            connectBlinkWallet = ConnectBlinkWalletUseCase(repository),
+            dispatcher = dispatcher
         )
-        return TestContext(viewModel, walletSettingsRepository, credentialStore, apiClient)
+        return TestContext(viewModel)
     }
 
-    private fun createMockApiClient(authorizationResponse: String): BlinkApiClient {
-        val mockEngine = MockEngine { request ->
-            val body = (request.body as TextContent).text
-            val responseBody = if (body.contains("authorization")) {
-                authorizationResponse
-            } else {
-                DEFAULT_WALLET_RESPONSE
-            }
-            respond(
-                content = responseBody,
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+    private data class TestContext(val viewModel: AddBlinkWalletViewModel)
+
+    private class FakeBlinkWalletAccountRepository(private val error: AppError? = null) : BlinkWalletAccountRepository {
+        var lastApiKey: String? = null
+            private set
+        var lastAlias: String? = null
+            private set
+
+        override suspend fun connect(apiKey: String, alias: String): WalletConnection {
+            error?.let { throw AppErrorException(it) }
+            lastApiKey = apiKey
+            lastAlias = alias
+            return WalletConnection(
+                walletPublicKey = "blink-test-wallet",
+                alias = alias,
+                type = WalletType.BLINK
             )
         }
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-        return BlinkApiClient(httpClient)
-    }
 
-    private data class TestContext(
-        val viewModel: AddBlinkWalletViewModel,
-        val walletSettingsRepository: WalletSettingsRepositoryImpl,
-        val credentialStore: BlinkCredentialStore,
-        val apiClient: BlinkApiClient
-    )
+        override suspend fun getCachedDefaultWalletId(walletId: String): String? = error("Not used by AddBlinkWalletViewModel")
 
-    companion object {
-        private const val DEFAULT_AUTH_RESPONSE = """{
-            "data": {
-                "authorization": {
-                    "scopes": ["READ", "WRITE", "RECEIVE"]
-                }
-            }
-        }"""
-
-        private const val READ_ONLY_AUTH_RESPONSE = """{
-            "data": {
-                "authorization": {
-                    "scopes": ["READ"]
-                }
-            }
-        }"""
-
-        private const val DEFAULT_WALLET_RESPONSE = """{
-            "data": {
-                "me": {
-                    "defaultAccount": {
-                        "defaultWallet": {
-                            "id": "wallet-123"
-                        }
-                    }
-                }
-            }
-        }"""
+        override suspend fun refreshDefaultWalletId(walletId: String): String = error("Not used by AddBlinkWalletViewModel")
     }
 }

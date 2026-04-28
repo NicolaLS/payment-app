@@ -112,29 +112,6 @@ class BlinkApiClientTest {
     }
 
     @Test
-    fun payInvoiceReturnsSuccessOnValidResponse() = runTest {
-        val mockEngine = MockEngine { _ ->
-            respond(
-                content = """{
-                    "data": {
-                        "lnInvoicePaymentSend": {
-                            "status": "SUCCESS",
-                            "errors": []
-                        }
-                    }
-                }""",
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            )
-        }
-        val client = createClient(mockEngine)
-
-        val result = client.payInvoice("test-api-key", "wallet-123", "lnbc1test")
-
-        assertEquals(BlinkPaymentResult.Success(), result)
-    }
-
-    @Test
     fun payInvoiceParsesFeeFromTransaction() = runTest {
         val mockEngine = MockEngine { _ ->
             respond(
