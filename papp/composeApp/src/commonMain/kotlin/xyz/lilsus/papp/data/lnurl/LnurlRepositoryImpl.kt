@@ -247,7 +247,7 @@ class LnurlRepositoryImpl(
 
     private fun buildAddressUrl(address: LightningAddress): String = buildString {
         append("https://")
-        append(address.domain)
+        append(address.domain.lowercase())
         append("/.well-known/lnurlp/")
         append(address.username)
         address.tag?.let { tag ->

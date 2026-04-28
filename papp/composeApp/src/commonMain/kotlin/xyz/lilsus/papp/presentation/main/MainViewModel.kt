@@ -1329,5 +1329,10 @@ private sealed class PendingRetryContinuation {
 
 private fun lnurlSourceKey(endpoint: String): String = "lnurl:${endpoint.trim().lowercase()}"
 
-private fun lightningAddressSourceKey(address: LightningAddress): String =
-    "lud16:${address.full.lowercase()}"
+private fun lightningAddressSourceKey(address: LightningAddress): String = buildString {
+    append("lud16:")
+    append(address.username)
+    address.tag?.let { append('+').append(it) }
+    append('@')
+    append(address.domain.lowercase())
+}

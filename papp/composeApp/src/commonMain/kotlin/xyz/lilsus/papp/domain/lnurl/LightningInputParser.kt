@@ -305,10 +305,11 @@ class LightningInputParser {
 
     private fun toLightningAddress(raw: String): LightningAddress? {
         if (!looksLikeLightningAddress(raw)) return null
-        val parts = raw.trim().lowercase().split('@', limit = 2)
+        val parts = raw.trim().split('@', limit = 2)
         if (parts.size != 2) return null
-        val (userPart, domainPart) = parts
-        if (userPart.isEmpty() || domainPart.isEmpty()) return null
+        val (userPart, domainPartRaw) = parts
+        if (userPart.isEmpty() || domainPartRaw.isEmpty()) return null
+        val domainPart = domainPartRaw.lowercase()
         val tagIndex = userPart.indexOf('+')
         val (username, tag) = if (tagIndex >= 0) {
             userPart.substring(0, tagIndex) to userPart.substring(tagIndex + 1).ifEmpty { null }

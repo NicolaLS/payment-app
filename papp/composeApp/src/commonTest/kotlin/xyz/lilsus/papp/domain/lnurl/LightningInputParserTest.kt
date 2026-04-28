@@ -22,22 +22,23 @@ class LightningInputParserTest {
 
     @Test
     fun parsesLightningAddressWithPrefixAndTag() {
-        val result = parser.parse("lightning:LiLsUs+tips@BliNk.sv")
+        val result = parser.parse("lightning:LiLsUs+Tips@BliNk.sv")
 
         val success = assertIs<LightningInputParser.ParseResult.Success>(result)
         val target = assertIs<LightningInputParser.Target.LightningAddressTarget>(success.target)
-        assertEquals("lilsus", target.address.username)
+        assertEquals("LiLsUs", target.address.username)
         assertEquals("blink.sv", target.address.domain)
-        assertEquals("tips", target.address.tag)
+        assertEquals("Tips", target.address.tag)
+        assertEquals("LiLsUs+Tips@blink.sv", target.address.full)
     }
 
     @Test
     fun parsesUrlWrappedLightningAddress() {
-        val result = parser.parse("http://jum@blink.sv/")
+        val result = parser.parse("http://JuM@BliNk.sv/")
 
         val success = assertIs<LightningInputParser.ParseResult.Success>(result)
         val target = assertIs<LightningInputParser.Target.LightningAddressTarget>(success.target)
-        assertEquals("jum", target.address.username)
+        assertEquals("JuM", target.address.username)
         assertEquals("blink.sv", target.address.domain)
     }
 
