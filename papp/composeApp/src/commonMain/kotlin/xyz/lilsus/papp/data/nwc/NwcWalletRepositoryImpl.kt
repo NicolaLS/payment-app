@@ -205,7 +205,7 @@ class NwcWalletRepositoryImpl(
         val connection = if (specificWalletUri != null) {
             // Find wallet by URI
             walletSettingsRepository.getWallets()
-                .firstOrNull { it.uri == specificWalletUri }
+                .firstOrNull { it.isNwc && it.uri == specificWalletUri }
                 ?: throw AppErrorException(AppError.MissingWalletConnection)
         } else {
             null

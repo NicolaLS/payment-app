@@ -16,7 +16,7 @@ import xyz.lilsus.papp.platform.AppLifecycleObserver
 /**
  * Manages NWC client instances with caching and lifecycle awareness.
  *
- * Clients are cached by wallet URI and reused across operations. The active wallet's
+ * Clients are cached by wallet URI and reused across operations. The active NWC wallet's
  * client is proactively created on startup for faster first payment. Clients are
  * closed when the app goes to background to release resources.
  *
@@ -40,8 +40,8 @@ class NwcConnectionManager(
             ) { isForeground, activeConnection ->
                 isForeground to activeConnection
             }.collectLatest { (isForeground, activeConnection) ->
-                if (isForeground && activeConnection != null) {
-                    // Proactively create client for the active wallet (auto-connects on creation)
+                if (isForeground && activeConnection?.isNwc == true) {
+                    // Proactively create client for the active NWC wallet (auto-connects on creation)
                     // Best-effort: if this fails, client will be created on-demand
                     runCatching { getOrCreateClient(activeConnection) }
                 } else if (!isForeground) {
@@ -70,12 +70,14 @@ class NwcConnectionManager(
      * Gets an existing client from cache or creates a new one.
      * Client creation is synchronous, so we can safely do everything inside the mutex.
      */
-    private suspend fun getOrCreateClient(connection: WalletConnection): NwcClient =
-        mutex.withLock {
-            clients.getOrPut(connection.uri) {
+    private suspend fun getOrCreateClient(connection: WalletConnection): NwcClient {
+        val walletUri = connection.requireNwcUri()
+        return mutex.withLock {
+            clients.getOrPut(walletUri) {
                 clientFactory.create(connection)
             }
         }
+    }
 
     /**
      * Closes all cached clients and clears the cache.
@@ -93,4 +95,12 @@ class NwcConnectionManager(
             runCatching { client.close() }
         }
     }
+}
+
+private fun WalletConnection.requireNwcUri(): String {
+    if (!isNwc) {
+        throw AppErrorException(AppError.MissingWalletConnection)
+    }
+    return uri.takeIf { it.isNotBlank() }
+        ?: throw AppErrorException(AppError.InvalidWalletUri("NWC wallet URI is empty"))
 }

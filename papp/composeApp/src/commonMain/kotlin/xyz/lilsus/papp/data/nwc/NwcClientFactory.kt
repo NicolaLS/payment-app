@@ -8,6 +8,8 @@ import io.github.nicolals.nwc.NwcNotificationType
 import io.github.nicolals.nwc.WalletInfo
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
 
@@ -21,7 +23,7 @@ fun interface NwcClientFactory {
      * The client auto-connects on creation and handles reconnection internally.
      * Operations will wait for connection if needed.
      *
-     * @throws IllegalArgumentException if the connection URI is invalid.
+     * @throws AppErrorException if the connection URI is invalid.
      */
     fun create(connection: WalletConnection): NwcClient
 }
@@ -33,7 +35,7 @@ class RealNwcClientFactory(private val httpClient: HttpClient, private val scope
     NwcClientFactory {
     override fun create(connection: WalletConnection): NwcClient {
         val uri = NwcConnectionUri.parse(connection.uri)
-            ?: throw IllegalArgumentException("Invalid NWC URI: ${connection.uri}")
+            ?: throw AppErrorException(AppError.InvalidWalletUri("Invalid NWC URI"))
 
         val cachedWalletInfo = connection.metadata?.toWalletInfo()
 
