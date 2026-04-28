@@ -1,6 +1,4 @@
 rootProject.name = "papp"
-// Disabled due to naming conflict with nwc-kmp composite build
-// enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
@@ -11,8 +9,6 @@ pluginManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
-        mavenLocal()
-        // maven("https://central.sonatype.com/repository/maven-snapshots/")
         mavenCentral()
         gradlePluginPortal()
     }
@@ -20,7 +16,6 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
-        mavenLocal()
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -34,10 +29,3 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
-
-// Include nwc-kmp for local development
-includeBuild("../../nwc-kmp") {
-    dependencySubstitution {
-        substitute(module("io.github.nicolals:nwc-kmp")).using(project(":nwc-kmp"))
-    }
-}
