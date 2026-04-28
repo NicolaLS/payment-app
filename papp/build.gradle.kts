@@ -28,7 +28,7 @@ subprojects {
 tasks.register<Copy>("installGitHooks") {
     description = "Install git hooks for code quality checks"
     group = "git hooks"
-    // Hook source is at git root level: payment-app/scripts/hooks/
+    // Hook source is at git root level: lasr/scripts/hooks/
     from(file("../scripts/hooks/pre-commit"))
     into(file("../.git/hooks"))
     filePermissions {

@@ -244,5 +244,5 @@ private fun SettingsScreenPreview() {
 }
 
 private const val PRIVACY_POLICY_URL =
-    "https://github.com/NicolaLS/payment-app/blob/main/privacy-policy.md"
-private const val REPO_URL = "https://github.com/NicolaLS/payment-app"
+    "https://github.com/NicolaLS/lasr/blob/main/privacy-policy.md"
+private const val REPO_URL = "https://github.com/NicolaLS/lasr"

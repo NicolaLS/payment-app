@@ -18,3 +18,9 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 papp/kls_database.db
+
+# Generated app artifacts
+*.apk
+*.aab
+*.apks
+papp/composeApp/release/
