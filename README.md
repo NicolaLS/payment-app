@@ -32,10 +32,10 @@ payments.
 
 ## Development
 
-The app workspace lives in [`papp/`](papp/). Build, test, and IDE commands should be run
+The app workspace lives in [`app/`](app/). Build, test, and IDE commands should be run
 from that directory.
 
-- [Build and run the app](papp/README.md)
+- [Build and run the app](app/README.md)
 - [Release builds](docs/release.md)
 - [E2E and Maestro testing](docs/e2e.md)
 

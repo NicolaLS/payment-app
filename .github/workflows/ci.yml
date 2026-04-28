@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: papp
+        working-directory: app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: papp
+        working-directory: app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -82,14 +82,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lint-results
-          path: papp/composeApp/build/reports/lint-results-debug.html
+          path: app/composeApp/build/reports/lint-results-debug.html
 
   build:
     name: Build & Test (Android)
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: papp
+        working-directory: app
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -113,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk
-          path: papp/composeApp/build/outputs/apk/debug/*.apk
+          path: app/composeApp/build/outputs/apk/debug/*.apk
           retention-days: 14
 
       - name: Run Unit Tests
@@ -124,4 +124,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: papp/composeApp/build/reports/tests/
+          path: app/composeApp/build/reports/tests/

@@ -1,0 +1,262 @@
+package xyz.lilsus.papp.presentation.settings
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import lasr.composeapp.generated.resources.Res
+import lasr.composeapp.generated.resources.settings_payments
+import lasr.composeapp.generated.resources.settings_payments_confirm_label
+import lasr.composeapp.generated.resources.settings_payments_confirm_manual_entry
+import lasr.composeapp.generated.resources.settings_payments_confirm_threshold
+import lasr.composeapp.generated.resources.settings_payments_haptics_payment
+import lasr.composeapp.generated.resources.settings_payments_haptics_scan
+import lasr.composeapp.generated.resources.settings_payments_haptics_title
+import lasr.composeapp.generated.resources.settings_payments_option_above
+import lasr.composeapp.generated.resources.settings_payments_option_always
+import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.domain.format.rememberAmountFormatter
+import xyz.lilsus.papp.domain.model.DisplayAmount
+import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
+import xyz.lilsus.papp.domain.model.PaymentPreferences
+import xyz.lilsus.papp.presentation.common.ThresholdSlider
+import xyz.lilsus.papp.presentation.theme.AppTheme
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PaymentsSettingsScreen(
+    state: PaymentsSettingsUiState,
+    onBack: () -> Unit,
+    onModeSelected: (PaymentConfirmationMode) -> Unit,
+    onThresholdChanged: (Long) -> Unit,
+    onConfirmManualEntryChanged: (Boolean) -> Unit,
+    onVibrateOnScanChanged: (Boolean) -> Unit,
+    onVibrateOnPaymentChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val scrollState = rememberScrollState()
+    val formatter = rememberAmountFormatter()
+    val displayThreshold = DisplayAmount(state.thresholdSats, DisplayCurrency.Satoshi)
+    val fiatText = state.thresholdFiatEquivalent?.let { " (${formatter.format(it)})" } ?: ""
+    val thresholdText = when (state.confirmationMode) {
+        PaymentConfirmationMode.Above -> stringResource(
+            Res.string.settings_payments_confirm_threshold,
+            formatter.format(displayThreshold) + fiatText
+        )
+
+        PaymentConfirmationMode.Always -> stringResource(Res.string.settings_payments_option_always)
+    }
+
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(Res.string.settings_payments)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = null
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.Top
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_payments_confirm_label),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = thresholdText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    PaymentModeChips(selected = state.confirmationMode, onSelected = onModeSelected)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(
+                                Res.string.settings_payments_confirm_manual_entry
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.confirmManualEntry,
+                            onCheckedChange = onConfirmManualEntryChanged
+                        )
+                    }
+                    if (state.confirmationMode == PaymentConfirmationMode.Above) {
+                        ThresholdSlider(
+                            thresholdSats = state.thresholdSats,
+                            onThresholdChanged = onThresholdChanged
+                        )
+                    } else {
+                        // keep layout height consistent
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_payments_haptics_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.settings_payments_haptics_scan),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.vibrateOnScan,
+                            onCheckedChange = onVibrateOnScanChanged
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.settings_payments_haptics_payment),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.vibrateOnPayment,
+                            onCheckedChange = onVibrateOnPaymentChanged
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentModeChips(
+    selected: PaymentConfirmationMode,
+    onSelected: (PaymentConfirmationMode) -> Unit
+) {
+    val options = listOf(
+        PaymentConfirmationMode.Always to Res.string.settings_payments_option_always,
+        PaymentConfirmationMode.Above to Res.string.settings_payments_option_above
+    )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        options.forEach { (mode, labelRes) ->
+            FilterChip(
+                selected = selected == mode,
+                onClick = { onSelected(mode) },
+                label = { Text(stringResource(labelRes)) }
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun PaymentsSettingsScreenPreview() {
+    AppTheme {
+        PaymentsSettingsScreen(
+            state = PaymentsSettingsUiState(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
+                confirmManualEntry = true,
+                vibrateOnScan = true,
+                vibrateOnPayment = true
+            ),
+            onBack = {},
+            onModeSelected = {},
+            onThresholdChanged = {},
+            onConfirmManualEntryChanged = {},
+            onVibrateOnScanChanged = {},
+            onVibrateOnPaymentChanged = {}
+        )
+    }
+}

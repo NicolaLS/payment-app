@@ -1,6 +1,6 @@
 # Release Builds
 
-Run these commands from `papp/`.
+Run these commands from `app/`.
 
 ## Android Signing Setup
 
@@ -20,7 +20,7 @@ publish/upload bundle key: papp-publish-key
 local install APK key:   papp-signing-key
 ```
 
-The `papp/.envrc` file exports the required Gradle signing environment variables and
+The `app/.envrc` file exports the required Gradle signing environment variables and
 reads the password from:
 
 ```bash

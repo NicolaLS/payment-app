@@ -1,6 +1,6 @@
 # E2E and Maestro Testing
 
-Run these commands from `papp/`.
+Run these commands from `app/`.
 
 ## Reset Dev Install State
 
@@ -74,7 +74,7 @@ xcodebuild \
   -derivedDataPath build/ios-derived \
   build
 
-xcrun simctl install booted build/ios-derived/Build/Products/Debug-iphonesimulator/papp.app
+xcrun simctl install booted build/ios-derived/Build/Products/Debug-iphonesimulator/Lasr.app
 xcrun simctl launch booted xyz.lilsus.papp.dev
 ```
 
@@ -89,7 +89,7 @@ If you need to target a specific simulator, replace `booted` with its UDID in th
 
 ## Regtest NWC Stack
 
-The local Lightning/NWC stack lives in `papp/e2e/`.
+The local Lightning/NWC stack lives in `app/e2e/`.
 
 Start the stack:
 
@@ -104,7 +104,7 @@ e2e/bin/maestro-suite
 ```
 
 For stack details, helper scripts, relay URLs, and the test harness API, see
-[`papp/e2e/README.md`](../papp/e2e/README.md).
+[`app/e2e/README.md`](../app/e2e/README.md).
 
 ## Maestro Environment Variables
 

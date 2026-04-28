@@ -3,7 +3,7 @@
 # Pre-commit hook that runs ktlint on staged Kotlin files.
 # Aborts commit if formatting issues are found.
 #
-# Install: cd papp && ./gradlew installGitHooks
+# Install: cd app && ./gradlew installGitHooks
 # Or manually: cp scripts/hooks/pre-commit .git/hooks/ && chmod +x .git/hooks/pre-commit
 
 # Colors for output
@@ -29,8 +29,8 @@ GIT_ROOT="$(git rev-parse --show-toplevel)"
 # Look for gradlew in common locations
 if [ -f "$GIT_ROOT/gradlew" ] && { [ -f "$GIT_ROOT/settings.gradle.kts" ] || [ -f "$GIT_ROOT/settings.gradle" ]; }; then
     GRADLE_DIR="$GIT_ROOT"
-elif [ -f "$GIT_ROOT/papp/gradlew" ] && { [ -f "$GIT_ROOT/papp/settings.gradle.kts" ] || [ -f "$GIT_ROOT/papp/settings.gradle" ]; }; then
-    GRADLE_DIR="$GIT_ROOT/papp"
+elif [ -f "$GIT_ROOT/app/gradlew" ] && { [ -f "$GIT_ROOT/app/settings.gradle.kts" ] || [ -f "$GIT_ROOT/app/settings.gradle" ]; }; then
+    GRADLE_DIR="$GIT_ROOT/app"
 else
     echo -e "${YELLOW}Warning: gradlew not found, skipping ktlint check${NC}"
     exit 0
