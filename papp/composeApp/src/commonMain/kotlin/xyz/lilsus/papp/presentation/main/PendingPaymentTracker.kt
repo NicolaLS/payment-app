@@ -30,8 +30,8 @@ import xyz.lilsus.papp.presentation.main.PendingPaymentTracker.Companion.PENDING
  * Tracks pending payments and their verification status.
  * Emits events when payments are settled or fail, allowing the ViewModel to update UI accordingly.
  *
- * Thread-safety: Uses MutableStateFlow with atomic updates for the records map.
- * Jobs are tracked separately and accessed only from coroutines launched on [scope].
+ * Owned by MainViewModel and its presentation [scope]. Callers should use it only from that
+ * scope so pending records, jobs, and cancellable payment requests stay confined together.
  */
 class PendingPaymentTracker(
     private val lookupPayment: LookupPaymentUseCase,

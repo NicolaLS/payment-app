@@ -37,7 +37,7 @@ class OnboardingViewModel internal constructor(
     private val persistConfirmationThreshold: SetPaymentConfirmationThresholdUseCase,
     private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
     private val currencyManager: CurrencyManager,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default
+    dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 

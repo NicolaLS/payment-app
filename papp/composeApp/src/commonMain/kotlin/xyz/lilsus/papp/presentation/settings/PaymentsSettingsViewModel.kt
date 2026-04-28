@@ -32,7 +32,7 @@ class PaymentsSettingsViewModel internal constructor(
     private val setConfirmManualEntryPreference: SetConfirmManualEntryUseCase,
     private val setVibrateOnScanUseCase: SetVibrateOnScanUseCase,
     private val setVibrateOnPaymentUseCase: SetVibrateOnPaymentUseCase,
-    dispatcher: CoroutineDispatcher = Dispatchers.Default
+    dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 

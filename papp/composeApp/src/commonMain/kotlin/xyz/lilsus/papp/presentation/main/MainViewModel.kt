@@ -2,6 +2,7 @@ package xyz.lilsus.papp.presentation.main
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -33,6 +34,7 @@ import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
@@ -49,12 +51,12 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 
 class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
+    lookupPayment: LookupPaymentUseCase,
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
     private val observeWallets: ObserveWalletsUseCase,
     private val setActiveWallet: SetActiveWalletUseCase,
     private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
     private val currencyManager: CurrencyManager,
-    private val pendingTracker: PendingPaymentTracker,
     private val bolt11Parser: Bolt11InvoiceParser,
     private val manualAmount: ManualAmountController,
     private val shouldConfirmPayment: ShouldConfirmPaymentUseCase,
@@ -64,9 +66,14 @@ class MainViewModel internal constructor(
     private val requestLnurlInvoice: RequestLnurlInvoiceUseCase,
     private val observePaymentPreferences: ObservePaymentPreferencesUseCase,
     private val haptics: HapticFeedbackManager,
-    dispatcher: CoroutineDispatcher
+    dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val pendingTracker = PendingPaymentTracker(
+        lookupPayment = lookupPayment,
+        currencyManager = currencyManager,
+        scope = scope
+    )
 
     private val _uiState = MutableStateFlow<MainUiState>(MainUiState.Active)
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -207,6 +214,10 @@ class MainViewModel internal constructor(
     }
 
     fun dispatch(intent: MainIntent) {
+        scope.launch { handleIntent(intent) }
+    }
+
+    private fun handleIntent(intent: MainIntent) {
         when (intent) {
             MainIntent.DismissResult -> handleDismissResult()
             is MainIntent.QrCodeScanned -> handleQrCodeScanned(intent.rawValue)

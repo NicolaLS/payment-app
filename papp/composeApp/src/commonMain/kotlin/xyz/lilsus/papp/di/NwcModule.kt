@@ -77,7 +77,6 @@ import xyz.lilsus.papp.platform.createNetworkConnectivity
 import xyz.lilsus.papp.presentation.addconnection.ConnectWalletViewModel
 import xyz.lilsus.papp.presentation.main.CurrencyManager
 import xyz.lilsus.papp.presentation.main.MainViewModel
-import xyz.lilsus.papp.presentation.main.PendingPaymentTracker
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.onboarding.OnboardingViewModel
@@ -225,14 +224,7 @@ val nwcModule = module {
     single {
         CurrencyManager(
             getExchangeRate = get(),
-            scope = get()
-        )
-    }
-    factory {
-        PendingPaymentTracker(
-            lookupPayment = get(),
-            currencyManager = get(),
-            scope = get()
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         )
     }
     factory { FetchLnurlPayParamsUseCase(repository = get()) }
@@ -242,12 +234,12 @@ val nwcModule = module {
     factory {
         MainViewModel(
             payInvoice = get(),
+            lookupPayment = get(),
             observeWalletConnection = get(),
             observeWallets = get(),
             setActiveWallet = get(),
             observeCurrencyPreference = get(),
             currencyManager = get(),
-            pendingTracker = get(),
             bolt11Parser = get(),
             manualAmount = get(),
             shouldConfirmPayment = get(),
@@ -256,8 +248,7 @@ val nwcModule = module {
             resolveLightningAddressUseCase = get(),
             requestLnurlInvoice = get(),
             observePaymentPreferences = get(),
-            haptics = get(),
-            dispatcher = get()
+            haptics = get()
         )
     }
 
@@ -330,8 +321,7 @@ val nwcModule = module {
             persistConfirmationMode = get(),
             persistConfirmationThreshold = get(),
             observeCurrencyPreference = get(),
-            currencyManager = get(),
-            dispatcher = get()
+            currencyManager = get()
         )
     }
 }

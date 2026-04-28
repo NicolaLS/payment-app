@@ -1046,11 +1046,6 @@ class MainViewModelTest {
             getExchangeRate = getExchangeRate,
             scope = scope
         )
-        val pendingTracker = PendingPaymentTracker(
-            lookupPayment = lookupPayment,
-            currencyManager = currencyManager,
-            scope = scope
-        )
         val fetchLnurl = FetchLnurlPayParamsUseCase(lnurlRepository)
         val resolveLightningAddress = ResolveLightningAddressUseCase(lnurlRepository)
         val requestLnurlInvoice = RequestLnurlInvoiceUseCase(lnurlRepository)
@@ -1070,12 +1065,12 @@ class MainViewModelTest {
         val setActiveWallet = SetActiveWalletUseCase(walletSettingsRepository)
         return MainViewModel(
             payInvoice = payInvoice,
+            lookupPayment = lookupPayment,
             observeWalletConnection = walletConnection,
             observeWallets = observeWallets,
             setActiveWallet = setActiveWallet,
             observeCurrencyPreference = observeCurrencyPreference,
             currencyManager = currencyManager,
-            pendingTracker = pendingTracker,
             bolt11Parser = parser,
             manualAmount = manualAmount,
             shouldConfirmPayment = shouldConfirm,
