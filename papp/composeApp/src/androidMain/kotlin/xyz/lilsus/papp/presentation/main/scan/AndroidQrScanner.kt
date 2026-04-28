@@ -273,7 +273,6 @@ private class AndroidQrScannerController(
                         barcodeScanner = newBarcodeScanner(),
                         active = isActive,
                         mainExecutor = mainExecutor,
-                        analysisExecutor = analysisExecutor,
                         onQrCodeScanned = { value ->
                             onQrCodeScanned?.invoke(value)
                         }
@@ -409,7 +408,6 @@ private class QrCodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
     private val active: AtomicBoolean,
     private val mainExecutor: Executor,
-    private val analysisExecutor: Executor,
     private val onQrCodeScanned: (String) -> Unit
 ) : ImageAnalysis.Analyzer {
 
@@ -437,53 +435,68 @@ private class QrCodeAnalyzer(
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(image: ImageProxy) {
+        val imageClosed = AtomicBoolean(false)
+        fun closeImage() {
+            if (imageClosed.compareAndSet(false, true)) {
+                image.close()
+            }
+        }
+
         try {
             if (!active.get()) {
-                image.close()
+                closeImage()
                 return
             }
             val mediaImage = image.image
             if (mediaImage == null) {
-                image.close()
+                closeImage()
                 return
             }
 
             val input = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
             barcodeScanner.process(input)
-                .addOnSuccessListener(analysisExecutor) { barcodes ->
-                    if (!active.get()) return@addOnSuccessListener
-                    val rotation = image.imageInfo.rotationDegrees
-                    val frameWidth = if (rotation == 90 || rotation == 270) {
-                        image.height.toFloat()
-                    } else {
-                        image.width.toFloat()
+                .addOnCompleteListener(DirectExecutor) { task ->
+                    try {
+                        if (!task.isSuccessful) {
+                            if (active.get()) {
+                                Log.e(TAG, "Barcode scanning failed", task.exception)
+                            }
+                            return@addOnCompleteListener
+                        }
+                        if (!active.get()) return@addOnCompleteListener
+                        val rotation = image.imageInfo.rotationDegrees
+                        val frameWidth = if (rotation == 90 || rotation == 270) {
+                            image.height.toFloat()
+                        } else {
+                            image.width.toFloat()
+                        }
+                        val frameHeight = if (rotation == 90 || rotation == 270) {
+                            image.width.toFloat()
+                        } else {
+                            image.height.toFloat()
+                        }
+                        val value = selectPreferredBarcodeValue(
+                            barcodes = task.result.orEmpty(),
+                            frameWidth = frameWidth,
+                            frameHeight = frameHeight
+                        )
+                        if (value != null && value != lastEmittedValue) {
+                            lastEmittedValue = value
+                            mainExecutor.execute { onQrCodeScanned(value) }
+                        }
+                    } finally {
+                        closeImage()
                     }
-                    val frameHeight = if (rotation == 90 || rotation == 270) {
-                        image.width.toFloat()
-                    } else {
-                        image.height.toFloat()
-                    }
-                    val value = selectPreferredBarcodeValue(
-                        barcodes = barcodes,
-                        frameWidth = frameWidth,
-                        frameHeight = frameHeight
-                    )
-                    if (value != null && value != lastEmittedValue) {
-                        lastEmittedValue = value
-                        mainExecutor.execute { onQrCodeScanned(value) }
-                    }
-                }
-                .addOnFailureListener(analysisExecutor) { error ->
-                    if (active.get()) {
-                        Log.e(TAG, "Barcode scanning failed", error)
-                    }
-                }
-                .addOnCompleteListener(analysisExecutor) {
-                    image.close()
                 }
         } catch (failure: Throwable) {
-            image.close()
+            closeImage()
             Log.e(TAG, "Unexpected failure while analyzing image", failure)
+        }
+    }
+
+    private object DirectExecutor : Executor {
+        override fun execute(command: Runnable) {
+            command.run()
         }
     }
 }
