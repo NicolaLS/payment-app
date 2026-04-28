@@ -12,7 +12,6 @@ enum class WalletType {
 
     /**
      * Blink wallet connected via API key.
-     * This is a temporary bridge until Blink supports NWC natively.
      */
     BLINK
 }

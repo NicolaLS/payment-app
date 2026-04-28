@@ -22,7 +22,7 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
-import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.presentation.main.PendingPaymentTracker.Companion.PENDING_NOTICE_DELAY_MS
 
@@ -60,8 +60,7 @@ class PendingPaymentTracker(
         summary: Bolt11InvoiceSummary,
         amountMsats: Long,
         origin: PendingOrigin,
-        walletLookupContext: String?,
-        walletType: WalletType?,
+        walletTarget: WalletPaymentTarget?,
         dynamicSourceKey: String? = null
     ): String {
         val id = "pending-${currentTimeMillis()}-${records.value.size}"
@@ -71,8 +70,7 @@ class PendingPaymentTracker(
             amountMsats = amountMsats,
             origin = origin,
             createdAtMs = currentTimeMillis(),
-            walletLookupContext = walletLookupContext,
-            walletType = walletType,
+            walletTarget = walletTarget,
             dynamicSourceKey = dynamicSourceKey,
             paymentHash = summary.paymentHash
         )
@@ -162,12 +160,12 @@ class PendingPaymentTracker(
      */
     fun findByInvoiceAndWallet(
         paymentRequest: String,
-        walletLookupContext: String?
+        walletTarget: WalletPaymentTarget?
     ): PendingRecord? = records.value
         .values
         .firstOrNull {
             it.summary.paymentRequest == paymentRequest &&
-                it.walletLookupContext == walletLookupContext
+                it.walletTarget == walletTarget
         }
 
     fun findWaitingByPaymentRequest(paymentRequest: String): PendingRecord? = records.value
@@ -243,8 +241,7 @@ class PendingPaymentTracker(
 
         // Capture wallet context at verification start to ensure we look up on the correct wallet
         val record = records.value[id] ?: return
-        val walletLookupContext = record.walletLookupContext
-        val walletType = record.walletType
+        val walletTarget = record.walletTarget
 
         val job = scope.launch {
             val startedAt = TimeSource.Monotonic.markNow()
@@ -258,7 +255,7 @@ class PendingPaymentTracker(
 
                 val attemptStart = TimeSource.Monotonic.markNow()
                 val result = withTimeoutOrNull(remaining) {
-                    lookupPayment(paymentHash, walletLookupContext, walletType)
+                    lookupPayment(paymentHash, walletTarget)
                 } ?: break
 
                 when (result) {
@@ -429,8 +426,7 @@ data class PendingRecord(
     val amountMsats: Long,
     val origin: PendingOrigin,
     val createdAtMs: Long,
-    val walletLookupContext: String?,
-    val walletType: WalletType?,
+    val walletTarget: WalletPaymentTarget?,
     val dynamicSourceKey: String?,
     val paymentHash: String?,
     val status: PendingStatus = PendingStatus.Waiting,

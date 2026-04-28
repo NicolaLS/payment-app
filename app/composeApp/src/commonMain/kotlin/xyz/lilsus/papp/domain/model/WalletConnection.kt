@@ -5,7 +5,12 @@ package xyz.lilsus.papp.domain.model
  * Supports both NWC (Nostr Wallet Connect) and Blink API key connections.
  */
 data class WalletConnection(
-    /** Unique identifier for this wallet (NWC pubkey or generated ID for Blink). */
+    /**
+     * Stable app identifier for this wallet.
+     *
+     * For NWC this is the wallet pubkey. For Blink this is a generated local ID that maps
+     * to API credentials in secure storage.
+     */
     val walletPublicKey: String,
     /** User-provided alias for display. */
     val alias: String?,
@@ -18,7 +23,7 @@ data class WalletConnection(
     val relayUrl: String? = null,
     /** Lightning address from NWC info. */
     val lud16: String? = null,
-    /** NWC wallet metadata snapshot. */
+    /** Optional wallet metadata snapshot. Currently populated for NWC discovery. */
     val metadata: WalletMetadataSnapshot? = null
 ) {
     /** Returns true if this is an NWC wallet. */

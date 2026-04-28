@@ -29,6 +29,7 @@ import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
@@ -116,12 +117,7 @@ class PaymentServiceTest {
         var startCalls: Int = 0
         var payCalls: Int = 0
 
-        override fun startPayInvoiceRequest(
-            invoice: String,
-            amountMsats: Long?,
-            walletUri: String?,
-            walletType: WalletType?
-        ): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest {
             startCalls += 1
             return object : PayInvoiceRequest {
                 override val state = MutableStateFlow<PayInvoiceRequestState>(
@@ -132,12 +128,12 @@ class PaymentServiceTest {
             }
         }
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
+        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
             payCalls += 1
             return PaidInvoice(preimage = null, feesPaidMsats = null)
         }
 
-        override suspend fun lookupPayment(paymentHash: String, walletUri: String?, walletType: WalletType?): PaymentLookupResult =
+        override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult =
             PaymentLookupResult.LookupError(AppError.Unexpected("unused"))
     }
 }

@@ -20,9 +20,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import xyz.lilsus.papp.data.blink.BlinkApiClient
 import xyz.lilsus.papp.data.blink.BlinkCredentialStore
+import xyz.lilsus.papp.data.blink.BlinkWalletAccountRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.BlinkErrorType
+import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
 
 /**
  * Tests for AddBlinkWalletViewModel.
@@ -199,10 +201,14 @@ class AddBlinkWalletViewModelTest {
         )
         val credentialStore = BlinkCredentialStore(settings)
         val apiClient = createMockApiClient(authorizationResponse)
-        val viewModel = AddBlinkWalletViewModel(
-            walletSettingsRepository = walletSettingsRepository,
-            credentialStore = credentialStore,
+        val blinkAccountRepository = BlinkWalletAccountRepositoryImpl(
             apiClient = apiClient,
+            credentialStore = credentialStore,
+            walletSettingsRepository = walletSettingsRepository,
+            walletIdGenerator = { "blink-test-wallet" }
+        )
+        val viewModel = AddBlinkWalletViewModel(
+            connectBlinkWallet = ConnectBlinkWalletUseCase(blinkAccountRepository),
             dispatcher = Dispatchers.Default
         )
         return TestContext(viewModel, walletSettingsRepository, credentialStore, apiClient)

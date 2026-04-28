@@ -1,6 +1,5 @@
 package xyz.lilsus.papp.presentation.settings.addblink
 
-import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,22 +13,16 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import xyz.lilsus.papp.data.blink.BlinkApiClient
-import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
-import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletType
-import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
 
 /**
  * ViewModel for adding a Blink wallet via API key.
  */
 class AddBlinkWalletViewModel internal constructor(
-    private val walletSettingsRepository: WalletSettingsRepository,
-    private val credentialStore: BlinkCredentialStore,
-    private val apiClient: BlinkApiClient,
+    private val connectBlinkWallet: ConnectBlinkWalletUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -69,35 +62,7 @@ class AddBlinkWalletViewModel internal constructor(
             _uiState.update { it.copy(isSaving = true, error = null) }
 
             try {
-                // Check that the API key has the required permissions
-                val scopes = apiClient.fetchAuthorizationScopes(apiKey)
-                if (!scopes.contains(REQUIRED_SCOPE)) {
-                    _uiState.update {
-                        it.copy(
-                            isSaving = false,
-                            error = AppError.BlinkError(BlinkErrorType.PermissionDenied)
-                        )
-                    }
-                    return@launch
-                }
-
-                val defaultWalletId = apiClient.fetchDefaultWalletId(apiKey)
-
-                // Generate a unique wallet ID for this Blink wallet
-                val walletId = generateWalletId()
-
-                // Store the API key securely
-                credentialStore.storeApiKey(walletId, apiKey)
-                credentialStore.storeDefaultWalletId(walletId, defaultWalletId)
-
-                // Create and save the wallet connection
-                val connection = WalletConnection(
-                    walletPublicKey = walletId,
-                    alias = alias,
-                    type = WalletType.BLINK
-                )
-
-                walletSettingsRepository.saveWalletConnection(connection, activate = true)
+                val connection = connectBlinkWallet(apiKey = apiKey, alias = alias)
 
                 _uiState.update { it.copy(isSaving = false) }
                 _events.emit(AddBlinkWalletEvent.Success(connection))
@@ -124,21 +89,6 @@ class AddBlinkWalletViewModel internal constructor(
 
     fun clear() {
         scope.cancel()
-    }
-
-    private fun generateWalletId(): String {
-        // Generate a unique ID prefixed with "blink-" for easy identification
-        val randomPart = buildString {
-            repeat(32) {
-                append(HEX_CHARS[Random.nextInt(HEX_CHARS.length)])
-            }
-        }
-        return "blink-$randomPart"
-    }
-
-    companion object {
-        private const val HEX_CHARS = "0123456789abcdef"
-        private const val REQUIRED_SCOPE = "WRITE"
     }
 }
 

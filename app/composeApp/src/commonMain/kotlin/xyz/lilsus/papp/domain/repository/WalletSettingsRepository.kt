@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import xyz.lilsus.papp.domain.model.WalletConnection
 
 /**
- * Abstraction for persisting the active Nostr Wallet Connect credential.
+ * Abstraction for persisting wallet connections and the active wallet selection.
  */
 interface WalletSettingsRepository {
     /**

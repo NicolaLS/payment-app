@@ -253,8 +253,8 @@ private fun WalletDetailsEntry(navController: NavController, walletId: String) {
             WalletDetailsViewModel(
                 walletId = walletId,
                 walletSettingsRepository = koin.get(),
-                credentialStore = koin.get(),
-                apiClient = koin.get(),
+                getBlinkDefaultWalletId = koin.get(),
+                refreshBlinkDefaultWalletId = koin.get(),
                 dispatcher = koin.get()
             )
         },

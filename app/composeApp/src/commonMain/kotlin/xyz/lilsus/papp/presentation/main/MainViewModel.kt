@@ -31,8 +31,9 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.Result
-import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.domain.model.toPaymentTarget
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
@@ -98,14 +99,12 @@ class MainViewModel internal constructor(
     private var vibrateOnScan: Boolean = true
     private var vibrateOnPayment: Boolean = true
     private val pendingCollectionJobs = mutableMapOf<String, Job>()
-    private var currentWalletLookupContext: String? = null
-    private var currentWalletType: WalletType? = null
+    private var currentWalletTarget: WalletPaymentTarget? = null
 
     init {
         scope.launch {
             observeWalletConnection().collectLatest { connection ->
-                currentWalletLookupContext = connection.toLookupContext()
-                currentWalletType = connection?.type
+                currentWalletTarget = connection?.toPaymentTarget()
                 if (connection == null && _uiState.value is MainUiState.Success) {
                     _uiState.value = MainUiState.Active
                 }
@@ -199,7 +198,7 @@ class MainViewModel internal constructor(
                             currencyState
                         ),
                         showBlinkFeeHint =
-                            pendingTracker.get(event.id)?.walletType == WalletType.BLINK
+                            pendingTracker.get(event.id)?.walletTarget?.type == WalletType.BLINK
                     )
                 }
             }
@@ -288,7 +287,7 @@ class MainViewModel internal constructor(
 
                         val existingForCurrentWallet = pendingTracker.findByInvoiceAndWallet(
                             paymentRequest = summary.paymentRequest,
-                            walletLookupContext = currentWalletLookupContext
+                            walletTarget = currentWalletTarget
                         )
                         if (existingForCurrentWallet != null) {
                             openPendingEntry(existingForCurrentWallet.id)
@@ -416,7 +415,7 @@ class MainViewModel internal constructor(
         // If this invoice is already pending for the current wallet, just ensure chip is visible
         pendingTracker.findByInvoiceAndWallet(
             paymentRequest = summary.paymentRequest,
-            walletLookupContext = currentWalletLookupContext
+            walletTarget = currentWalletTarget
         )
             ?.let { existing ->
                 pendingTracker.makeVisible(existing.id)
@@ -830,7 +829,7 @@ class MainViewModel internal constructor(
     private fun showSuccessForPending(record: PendingRecord, currencyState: CurrencyState) {
         val paid = record.paidMsats ?: record.amountMsats
         val fee = record.feeMsats ?: 0L
-        val showBlinkFeeHint = record.walletType == WalletType.BLINK
+        val showBlinkFeeHint = record.walletTarget?.type == WalletType.BLINK
         lastPaymentResult = CompletedPayment(
             amountMsats = paid,
             feeMsats = fee,
@@ -897,14 +896,12 @@ class MainViewModel internal constructor(
         dynamicSourceKey: String? = null
     ) {
         val amountMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
-        val walletLookupContext = currentWalletLookupContext
-        val walletType = currentWalletType
+        val walletTarget = currentWalletTarget
         val pendingId = pendingTracker.register(
             summary = summary,
             amountMsats = amountMsats,
             origin = origin,
-            walletLookupContext = walletLookupContext,
-            walletType = walletType,
+            walletTarget = walletTarget,
             dynamicSourceKey = dynamicSourceKey
         )
         cancelCollectionJob(pendingId)
@@ -913,8 +910,7 @@ class MainViewModel internal constructor(
                 payInvoice(
                     invoice = summary.paymentRequest,
                     amountMsats = amountOverrideMsats,
-                    walletUri = walletLookupContext,
-                    walletType = walletType
+                    walletTarget = walletTarget
                 )
             } catch (error: AppErrorException) {
                 handlePaymentFailure(
@@ -1024,7 +1020,7 @@ class MainViewModel internal constructor(
             feeMsats,
             currencyManager.state.value
         )
-        val showBlinkFeeHint = !wasAlreadyPaid && record?.walletType == WalletType.BLINK
+        val showBlinkFeeHint = !wasAlreadyPaid && record?.walletTarget?.type == WalletType.BLINK
         _uiState.value = MainUiState.Success(
             amountPaid = paidDisplay,
             feePaid = feeDisplay,
@@ -1256,12 +1252,6 @@ class MainViewModel internal constructor(
         pendingTracker.clear()
         scope.cancel()
     }
-}
-
-private fun WalletConnection?.toLookupContext(): String? = when (this?.type) {
-    WalletType.BLINK -> walletPublicKey
-    WalletType.NWC -> uri.ifBlank { null }
-    null -> null
 }
 
 private const val MSATS_PER_SAT = 1_000L

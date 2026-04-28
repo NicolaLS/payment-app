@@ -1,7 +1,7 @@
 package xyz.lilsus.papp.domain.usecases
 
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
-import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 
 /**
@@ -18,12 +18,10 @@ class PayInvoiceUseCase(private val paymentProvider: PaymentProvider) {
     operator fun invoke(
         invoice: String,
         amountMsats: Long? = null,
-        walletUri: String? = null,
-        walletType: WalletType? = null
+        walletTarget: WalletPaymentTarget? = null
     ): PayInvoiceRequest = paymentProvider.startPayInvoiceRequest(
         invoice = invoice,
         amountMsats = amountMsats,
-        walletUri = walletUri,
-        walletType = walletType
+        walletTarget = walletTarget
     )
 }

@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import xyz.lilsus.papp.data.blink.BlinkPaymentRepository
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.PaidInvoice
@@ -14,7 +13,9 @@ import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.domain.model.WalletPaymentTarget
+import xyz.lilsus.papp.domain.model.toPaymentTarget
+import xyz.lilsus.papp.domain.repository.BlinkWalletRepository
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
@@ -29,7 +30,7 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 class PaymentService(
     private val walletSettingsRepository: WalletSettingsRepository,
     private val nwcRepository: NwcWalletRepository,
-    private val blinkRepository: BlinkPaymentRepository,
+    private val blinkRepository: BlinkWalletRepository,
     scope: CoroutineScope
 ) : PaymentProvider {
 
@@ -40,18 +41,9 @@ class PaymentService(
     )
 
     init {
-        val initialBlinkWalletPublicKey = currentConnection.value
-            ?.takeIf { connection -> connection.isBlink }
-            ?.walletPublicKey
-        blinkRepository.setActiveWallet(initialBlinkWalletPublicKey)
         scope.launch(start = CoroutineStart.UNDISPATCHED) {
             walletSettingsRepository.walletConnection.collectLatest { connection ->
                 currentConnection.value = connection
-                if (connection?.isBlink == true) {
-                    blinkRepository.setActiveWallet(connection.walletPublicKey)
-                } else {
-                    blinkRepository.setActiveWallet(null)
-                }
             }
         }
     }
@@ -60,31 +52,26 @@ class PaymentService(
         startPayInvoiceRequest(
             invoice = invoice,
             amountMsats = amountMsats,
-            walletUri = null,
-            walletType = null
+            walletTarget = null
         )
 
     override fun startPayInvoiceRequest(
         invoice: String,
         amountMsats: Long?,
-        walletUri: String?,
-        walletType: WalletType?
+        walletTarget: WalletPaymentTarget?
     ): PayInvoiceRequest {
         val connection = currentConnection.value
-        val targetWalletUri = walletUri ?: connection.toPaymentWalletUri()
-        return when (walletType ?: connection?.type) {
-            WalletType.NWC -> nwcRepository.startPayInvoiceRequest(
+        return when (val target = walletTarget ?: connection?.toPaymentTarget()) {
+            is WalletPaymentTarget.Nwc -> nwcRepository.startPayInvoiceRequest(
                 invoice = invoice,
                 amountMsats = amountMsats,
-                walletUri = targetWalletUri,
-                walletType = WalletType.NWC
+                walletTarget = target
             )
 
-            WalletType.BLINK -> blinkRepository.startPayInvoiceRequest(
+            is WalletPaymentTarget.Blink -> blinkRepository.startPayInvoiceRequest(
                 invoice = invoice,
                 amountMsats = amountMsats,
-                walletUri = targetWalletUri,
-                walletType = WalletType.BLINK
+                walletTarget = target
             )
 
             null -> createMissingWalletRequest()
@@ -94,31 +81,26 @@ class PaymentService(
     suspend fun payInvoice(invoice: String, amountMsats: Long? = null): PaidInvoice = payInvoice(
         invoice = invoice,
         amountMsats = amountMsats,
-        walletUri = null,
-        walletType = null
+        walletTarget = null
     )
 
     override suspend fun payInvoice(
         invoice: String,
         amountMsats: Long?,
-        walletUri: String?,
-        walletType: WalletType?
+        walletTarget: WalletPaymentTarget?
     ): PaidInvoice {
         val connection = currentConnection.value
-        val targetWalletUri = walletUri ?: connection.toPaymentWalletUri()
-        return when (walletType ?: connection?.type) {
-            WalletType.NWC -> nwcRepository.payInvoice(
+        return when (val target = walletTarget ?: connection?.toPaymentTarget()) {
+            is WalletPaymentTarget.Nwc -> nwcRepository.payInvoice(
                 invoice = invoice,
                 amountMsats = amountMsats,
-                walletUri = targetWalletUri,
-                walletType = WalletType.NWC
+                walletTarget = target
             )
 
-            WalletType.BLINK -> blinkRepository.payInvoice(
+            is WalletPaymentTarget.Blink -> blinkRepository.payInvoice(
                 invoice = invoice,
                 amountMsats = amountMsats,
-                walletUri = targetWalletUri,
-                walletType = WalletType.BLINK
+                walletTarget = target
             )
 
             null -> throw AppErrorException(AppError.MissingWalletConnection)
@@ -127,17 +109,13 @@ class PaymentService(
 
     override suspend fun lookupPayment(
         paymentHash: String,
-        walletUri: String?,
-        walletType: WalletType?
-    ): PaymentLookupResult {
-        // Use provided wallet type for routing, or fall back to current wallet type
-        val effectiveType = walletType ?: currentConnection.value?.type
-        return when (effectiveType) {
-            WalletType.NWC -> nwcRepository.lookupPayment(paymentHash, walletUri, walletType)
-            WalletType.BLINK -> blinkRepository.lookupPayment(paymentHash, walletUri, walletType)
+        walletTarget: WalletPaymentTarget?
+    ): PaymentLookupResult =
+        when (val target = walletTarget ?: currentConnection.value?.toPaymentTarget()) {
+            is WalletPaymentTarget.Nwc -> nwcRepository.lookupPayment(paymentHash, target)
+            is WalletPaymentTarget.Blink -> blinkRepository.lookupPayment(paymentHash, target)
             null -> PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
         }
-    }
 
     private fun createMissingWalletRequest(): PayInvoiceRequest {
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(
@@ -148,10 +126,4 @@ class PaymentService(
             override fun cancel() { /* No-op */ }
         }
     }
-}
-
-private fun WalletConnection?.toPaymentWalletUri(): String? = when (this?.type) {
-    WalletType.BLINK -> walletPublicKey
-    WalletType.NWC -> uri.ifBlank { null }
-    null -> null
 }

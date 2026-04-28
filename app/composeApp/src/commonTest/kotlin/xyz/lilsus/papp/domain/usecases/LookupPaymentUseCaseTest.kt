@@ -9,7 +9,7 @@ import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
-import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 
 /**
@@ -25,14 +25,12 @@ class LookupPaymentUseCaseTest {
         val useCase = LookupPaymentUseCase(provider)
 
         val expectedHash = "test-payment-hash"
-        val expectedUri = "nostr+walletconnect://test-wallet"
-        val expectedType = WalletType.NWC
+        val expectedTarget = WalletPaymentTarget.Nwc("nostr+walletconnect://test-wallet")
 
-        useCase(expectedHash, expectedUri, expectedType)
+        useCase(expectedHash, expectedTarget)
 
         assertEquals(expectedHash, provider.lastPaymentHash)
-        assertEquals(expectedUri, provider.lastWalletUri)
-        assertEquals(expectedType, provider.lastWalletType)
+        assertEquals(expectedTarget, provider.lastWalletTarget)
     }
 
     @Test
@@ -43,8 +41,7 @@ class LookupPaymentUseCaseTest {
         useCase("test-hash")
 
         assertEquals("test-hash", provider.lastPaymentHash)
-        assertEquals(null, provider.lastWalletUri)
-        assertEquals(null, provider.lastWalletType)
+        assertEquals(null, provider.lastWalletTarget)
     }
 
     @Test
@@ -63,15 +60,15 @@ class LookupPaymentUseCaseTest {
         val provider = ConcurrentRecordingPaymentProvider()
         val useCase = LookupPaymentUseCase(provider)
 
-        val nwcWalletUri = "nostr+walletconnect://wallet-1"
-        val blinkWalletUri = "blink-wallet-2"
+        val nwcTarget = WalletPaymentTarget.Nwc("nostr+walletconnect://wallet-1")
+        val blinkTarget = WalletPaymentTarget.Blink("blink-wallet-2")
 
         // Launch two concurrent lookups on different wallets
         val lookup1 = async {
-            useCase("hash-1", nwcWalletUri, WalletType.NWC)
+            useCase("hash-1", nwcTarget)
         }
         val lookup2 = async {
-            useCase("hash-2", blinkWalletUri, WalletType.BLINK)
+            useCase("hash-2", blinkTarget)
         }
 
         // Wait for both
@@ -85,62 +82,48 @@ class LookupPaymentUseCaseTest {
         val call2 = provider.lookupCalls.find { it.paymentHash == "hash-2" }
 
         assertTrue(call1 != null, "Expected lookup call for hash-1")
-        assertEquals(nwcWalletUri, call1.walletUri)
-        assertEquals(WalletType.NWC, call1.walletType)
+        assertEquals(nwcTarget, call1.walletTarget)
 
         assertTrue(call2 != null, "Expected lookup call for hash-2")
-        assertEquals(blinkWalletUri, call2.walletUri)
-        assertEquals(WalletType.BLINK, call2.walletType)
+        assertEquals(blinkTarget, call2.walletTarget)
     }
 
     private class RecordingPaymentProvider(private val result: PaymentLookupResult = PaymentLookupResult.NotFound) : PaymentProvider {
         var lastPaymentHash: String? = null
-        var lastWalletUri: String? = null
-        var lastWalletType: WalletType? = null
+        var lastWalletTarget: WalletPaymentTarget? = null
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
+        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
             error("Not implemented")
         }
 
-        override fun startPayInvoiceRequest(
-            invoice: String,
-            amountMsats: Long?,
-            walletUri: String?,
-            walletType: WalletType?
-        ): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest {
             error("Not implemented")
         }
 
-        override suspend fun lookupPayment(paymentHash: String, walletUri: String?, walletType: WalletType?): PaymentLookupResult {
+        override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult {
             lastPaymentHash = paymentHash
-            lastWalletUri = walletUri
-            lastWalletType = walletType
+            lastWalletTarget = walletTarget
             return result
         }
     }
 
     /** Thread-safe provider that records all lookup calls for concurrent testing. */
     private class ConcurrentRecordingPaymentProvider : PaymentProvider {
-        data class LookupCall(val paymentHash: String, val walletUri: String?, val walletType: WalletType?)
+        data class LookupCall(val paymentHash: String, val walletTarget: WalletPaymentTarget?)
 
         private val _lookupCalls = mutableListOf<LookupCall>()
         val lookupCalls: List<LookupCall> get() = _lookupCalls.toList()
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletUri: String?, walletType: WalletType?): PaidInvoice {
+        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
             error("Not implemented")
         }
 
-        override fun startPayInvoiceRequest(
-            invoice: String,
-            amountMsats: Long?,
-            walletUri: String?,
-            walletType: WalletType?
-        ): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest {
             error("Not implemented")
         }
 
-        override suspend fun lookupPayment(paymentHash: String, walletUri: String?, walletType: WalletType?): PaymentLookupResult {
-            _lookupCalls.add(LookupCall(paymentHash, walletUri, walletType))
+        override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult {
+            _lookupCalls.add(LookupCall(paymentHash, walletTarget))
             return PaymentLookupResult.NotFound
         }
     }

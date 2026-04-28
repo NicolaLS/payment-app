@@ -10,18 +10,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import xyz.lilsus.papp.data.blink.BlinkApiClient
-import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.usecases.GetBlinkDefaultWalletIdUseCase
+import xyz.lilsus.papp.domain.usecases.RefreshBlinkDefaultWalletIdUseCase
 
 class WalletDetailsViewModel internal constructor(
     private val walletId: String,
     private val walletSettingsRepository: WalletSettingsRepository,
-    private val credentialStore: BlinkCredentialStore,
-    private val apiClient: BlinkApiClient,
+    private val getBlinkDefaultWalletId: GetBlinkDefaultWalletIdUseCase,
+    private val refreshBlinkDefaultWalletId: RefreshBlinkDefaultWalletIdUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -47,7 +47,11 @@ class WalletDetailsViewModel internal constructor(
                 it.copy(
                     alias = wallet.alias,
                     walletType = wallet.type,
-                    blinkDefaultWalletId = credentialStore.getDefaultWalletId(walletId)
+                    blinkDefaultWalletId = if (wallet.type == WalletType.BLINK) {
+                        getBlinkDefaultWalletId(walletId)
+                    } else {
+                        null
+                    }
                 )
             }
         }
@@ -58,20 +62,8 @@ class WalletDetailsViewModel internal constructor(
 
         scope.launch {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
-            val apiKey = credentialStore.getApiKey(walletId)
-            if (apiKey == null) {
-                _uiState.update {
-                    it.copy(
-                        isRefreshing = false,
-                        error = AppError.AuthenticationFailure("API key not found")
-                    )
-                }
-                return@launch
-            }
-
             try {
-                val defaultWalletId = apiClient.fetchDefaultWalletId(apiKey)
-                credentialStore.storeDefaultWalletId(walletId, defaultWalletId)
+                val defaultWalletId = refreshBlinkDefaultWalletId(walletId)
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,

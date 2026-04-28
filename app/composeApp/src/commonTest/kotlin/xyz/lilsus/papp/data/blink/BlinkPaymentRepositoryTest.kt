@@ -33,6 +33,7 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.WalletConnection
+import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
 
@@ -500,8 +501,7 @@ class BlinkPaymentRepositoryTest {
         // Look up payment on wallet2 (not the active wallet)
         repository.lookupPayment(
             paymentHash = "test-payment-hash",
-            walletUri = wallet2Id, // Provide specific wallet
-            walletType = null
+            walletTarget = WalletPaymentTarget.Blink(wallet2Id)
         )
 
         // Verify wallet2's API key was used, not wallet1's
@@ -538,8 +538,7 @@ class BlinkPaymentRepositoryTest {
         // Look up without specifying wallet - should use active wallet
         context.repository.lookupPayment(
             paymentHash = "test-payment-hash",
-            walletUri = null,
-            walletType = null
+            walletTarget = null
         )
 
         // Verify the active wallet's API key was used
@@ -609,15 +608,13 @@ class BlinkPaymentRepositoryTest {
         val lookup1 = async {
             repository.lookupPayment(
                 paymentHash = "hash-1",
-                walletUri = wallet1Id,
-                walletType = null
+                walletTarget = WalletPaymentTarget.Blink(wallet1Id)
             )
         }
         val lookup2 = async {
             repository.lookupPayment(
                 paymentHash = "hash-2",
-                walletUri = wallet2Id,
-                walletType = null
+                walletTarget = WalletPaymentTarget.Blink(wallet2Id)
             )
         }
 

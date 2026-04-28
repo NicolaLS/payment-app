@@ -8,6 +8,7 @@ import org.koin.dsl.module
 import xyz.lilsus.papp.data.blink.BlinkApiClient
 import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.data.blink.BlinkPaymentRepository
+import xyz.lilsus.papp.data.blink.BlinkWalletAccountRepositoryImpl
 import xyz.lilsus.papp.data.exchange.CoinGeckoExchangeRateRepository
 import xyz.lilsus.papp.data.lnurl.LnurlRepositoryImpl
 import xyz.lilsus.papp.data.network.createNwcHttpClient
@@ -28,6 +29,8 @@ import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.domain.repository.BlinkWalletAccountRepository
+import xyz.lilsus.papp.domain.repository.BlinkWalletRepository
 import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.LanguageRepository
@@ -42,8 +45,10 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.service.PaymentService
 import xyz.lilsus.papp.domain.usecases.ClearLanguageOverrideUseCase
 import xyz.lilsus.papp.domain.usecases.ClearWalletConnectionUseCase
+import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.usecases.GetBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
@@ -55,6 +60,7 @@ import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.usecases.RefreshBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.RefreshLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
@@ -154,16 +160,23 @@ val nwcModule = module {
     // Metadata can change over time (encryption/capabilities/policy), but metadata-only refreshes
     // must never reactivate removed/inactive wallets; implement timestamped refresh + guarded writes.
 
-    // Blink wallet support (temporary bridge)
+    // Blink wallet support
     single { BlinkCredentialStore(secureSettings = get()) }
     single { BlinkApiClient(httpClient = get()) }
-    single {
+    single<BlinkWalletRepository> {
         BlinkPaymentRepository(
             apiClient = get(),
             credentialStore = get(),
             walletSettingsRepository = get(),
             networkConnectivity = get(),
             scope = get()
+        )
+    }
+    single<BlinkWalletAccountRepository> {
+        BlinkWalletAccountRepositoryImpl(
+            apiClient = get(),
+            credentialStore = get(),
+            walletSettingsRepository = get()
         )
     }
 
@@ -183,6 +196,9 @@ val nwcModule = module {
 
     factory { PayInvoiceUseCase(paymentProvider = get()) }
     factory { LookupPaymentUseCase(paymentProvider = get()) }
+    factory { ConnectBlinkWalletUseCase(repository = get()) }
+    factory { GetBlinkDefaultWalletIdUseCase(repository = get()) }
+    factory { RefreshBlinkDefaultWalletIdUseCase(repository = get()) }
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
@@ -265,9 +281,7 @@ val nwcModule = module {
 
     factory {
         AddBlinkWalletViewModel(
-            walletSettingsRepository = get(),
-            credentialStore = get(),
-            apiClient = get(),
+            connectBlinkWallet = get(),
             dispatcher = get()
         )
     }
