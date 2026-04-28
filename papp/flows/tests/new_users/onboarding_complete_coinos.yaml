@@ -1,4 +1,4 @@
-appId: xyz.lilsus.papp.dev
+appId: xyz.lilsus.papp.e2e
 ---
 - launchApp:
     clearState: true
@@ -21,10 +21,11 @@ appId: xyz.lilsus.papp.dev
     enabled: true
 - tapOn:
     id: "onboarding_add_nwc_wallet_continue_button"
+- runScript: "../../utils/get_nwc_uri.js"
 - runFlow:
     file: "../common/add_nwc.yaml"
     env:
-        URI: ${NWC_URI_COINOS}
+        URI: ${output.nwcUri}
 - assertVisible:
     id: "payment_screen"
 

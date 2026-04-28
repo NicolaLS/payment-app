@@ -1,0 +1,22 @@
+FROM elementsproject/lightningd:v25.12.1
+
+ARG CLN_NIP47_VERSION=v0.1.9
+ARG TARGETARCH
+
+USER root
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl tar; \
+    case "${TARGETARCH}" in \
+      amd64) asset_arch="x86_64-linux-gnu" ;; \
+      arm64) asset_arch="aarch64-linux-gnu" ;; \
+      arm) asset_arch="armv7-linux-gnueabihf" ;; \
+      *) echo "Unsupported TARGETARCH=${TARGETARCH}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL \
+      "https://github.com/daywalker90/cln-nip47/releases/download/${CLN_NIP47_VERSION}/cln-nip47-${CLN_NIP47_VERSION}-${asset_arch}.tar.gz" \
+      -o /tmp/cln-nip47.tar.gz; \
+    tar -xzf /tmp/cln-nip47.tar.gz -C /tmp; \
+    install -m 0755 /tmp/cln-nip47 /usr/local/bin/cln-nip47; \
+    rm -rf /tmp/cln-nip47 /tmp/cln-nip47.tar.gz /var/lib/apt/lists/*

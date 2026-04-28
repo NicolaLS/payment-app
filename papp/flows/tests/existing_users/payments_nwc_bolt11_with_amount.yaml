@@ -1,0 +1,28 @@
+appId: xyz.lilsus.papp.e2e
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+- setPermissions:
+    permissions:
+      all: allow
+
+- runScript: ../../utils/get_nwc_uri.js
+
+- runFlow:
+    file: ../common/open_deep_link.yaml
+    env: 
+      LINK: ${output.nwcUri}
+
+- assertVisible:
+    id: "payment_screen"
+
+- runScript: ../../utils/create_invoice.js
+
+- runFlow:
+    file: ../common/open_deep_link.yaml
+    env: 
+      LINK: "bitcoin:?lightning=${output.bolt11}&source=camera"
+
+- runScript: ../../utils/assert_invoice_paid.js

@@ -1,4 +1,4 @@
-appId: xyz.lilsus.papp.dev
+appId: xyz.lilsus.papp.e2e
 ---
 - tapOn:
     id: "blink_wallet_alias_field"

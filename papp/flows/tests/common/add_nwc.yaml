@@ -1,11 +1,13 @@
-appId: xyz.lilsus.papp.dev
+appId: xyz.lilsus.papp.e2e
 ---
 - assertVisible: "Wallet Connect URI"
 - tapOn: "Wallet Connect URI"
 - inputText: ${URI}
-- waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible: "Wallet public key"
+    timeout: 5000
 - tapOn:
-    text:  "Add Wallet"
-    # Othewise title of the dialog is tapped
-    rightOf: "Cancel"
+    text: "Add Wallet"
+    index: 1
     retryTapIfNoChange: true

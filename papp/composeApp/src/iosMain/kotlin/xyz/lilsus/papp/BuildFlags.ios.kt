@@ -10,4 +10,4 @@ actual val isDebugBuild: Boolean = Platform.isDebugBinary
 actual val appStorageNamespace: String =
     NSBundle.mainBundle.bundleIdentifier ?: "xyz.lilsus.papp"
 
-actual val allowE2eHooks: Boolean = false
+actual val allowE2eHooks: Boolean = appStorageNamespace.endsWith(".e2e")

@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+env_file="${E2E_ENV_FILE:-e2e/.env.local}"
+service_url="${TEST_WALLET_SERVICE_URL:-http://127.0.0.1:3021}"
+health_timeout_sec="${E2E_HEALTH_TIMEOUT_SEC:-180}"
+
+env_names=()
+
+if [[ -f "$env_file" ]]; then
+  while IFS= read -r line; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    line="${line#export }"
+    if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      env_names+=("${line%%=*}")
+    fi
+  done < "$env_file"
+
+  set -a
+  # shellcheck disable=SC1090
+  source "$env_file"
+  set +a
+
+  service_url="${TEST_WALLET_SERVICE_URL:-$service_url}"
+  health_timeout_sec="${E2E_HEALTH_TIMEOUT_SEC:-$health_timeout_sec}"
+fi
+
+service_url="${service_url%/}"
+deadline=$((SECONDS + health_timeout_sec))
+
+echo "Waiting for e2e harness at ${service_url}/health..."
+while (( SECONDS < deadline )); do
+  body="$(curl --fail --silent --show-error "${service_url}/health" 2>/dev/null || true)"
+  if BODY="$body" python3 -c 'import json, os, sys; sys.exit(0 if json.loads(os.environ["BODY"]).get("ready") is True else 1)' 2>/dev/null; then
+    echo "E2E harness is ready."
+    break
+  fi
+  sleep 2
+done
+
+if (( SECONDS >= deadline )); then
+  echo "Timed out waiting for e2e harness at ${service_url}/health" >&2
+  curl --silent --show-error "${service_url}/health" >&2 || true
+  echo >&2
+  exit 1
+fi
+
+maestro_args=()
+seen_env_names=" "
+for name in "${env_names[@]}"; do
+  if [[ "$seen_env_names" == *" $name "* ]]; then
+    continue
+  fi
+  seen_env_names+="$name "
+  if [[ -v "$name" ]]; then
+    maestro_args+=("-e" "${name}=${!name}")
+  fi
+done
+
+exec maestro test "${maestro_args[@]}" flows "$@"

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+sats="${1:-21}"
+description="${2:-Papp E2E invoice}"
+payload="$(
+  python3 -c 'import json, sys; print(json.dumps({"sats": int(sys.argv[1]), "description": sys.argv[2]}))' \
+    "$sats" \
+    "$description"
+)"
+
+curl --fail --silent --show-error \
+  --header "content-type: application/json" \
+  --data "$payload" \
+  http://127.0.0.1:3021/invoice
+echo

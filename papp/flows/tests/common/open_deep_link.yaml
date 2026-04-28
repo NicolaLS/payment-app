@@ -1,0 +1,22 @@
+appId: xyz.lilsus.papp.e2e
+---
+- openLink: ${LINK}
+
+# Android
+- runFlow:
+    when:
+        platform: Android
+    commands:
+        - tapOn:
+            text: "Open with Lasr E2E"
+            optional: true
+        - tapOn:
+            text: "Just once"
+            optional: true
+
+# IOS
+- runFlow:
+    when:
+      visible: "*.Lasr E2E.*"
+    commands:
+      - tapOn: Open

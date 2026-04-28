@@ -1,0 +1,3 @@
+flows:
+    - "tests/existing_users/*.yaml"
+    - "tests/new_users/*.yaml"

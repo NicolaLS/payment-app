@@ -248,6 +248,7 @@ android {
         targetSdk = 36
         versionCode = 9
         versionName = "1.2"
+        manifestPlaceholders["usesCleartextTraffic"] = "false"
         ndk {
             //noinspection ChromeOsAbiSupport
             // FIXME: Support 32bit once ML Kit & acinq-secp256k1 ship 16KB-aligned natives
@@ -308,6 +309,7 @@ android {
             applicationIdSuffix = ".e2e"
             matchingFallbacks += listOf("release")
             manifestPlaceholders["appLabel"] = "Lasr E2E"
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
             buildConfigField("boolean", "ALLOW_E2E_HOOKS", "true")
         }
     }

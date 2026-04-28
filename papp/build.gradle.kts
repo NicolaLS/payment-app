@@ -51,3 +51,59 @@ tasks.register<Copy>("installGitHooks") {
 tasks.named("prepareKotlinBuildScriptModel") {
     dependsOn("installGitHooks")
 }
+
+val iosE2eDerivedDataPath = layout.buildDirectory.dir("ios-e2e-derived")
+val iosE2eAppPath = iosE2eDerivedDataPath.map {
+    it.file("Build/Products/Debug-iphonesimulator/papp.app").asFile
+}
+
+tasks.register<Exec>("buildE2eIos") {
+    group = "e2e"
+    description = "Builds the iOS simulator app with the e2e bundle id and e2e hooks enabled."
+    notCompatibleWithConfigurationCache("Wraps local xcodebuild with dynamic derived-data paths.")
+
+    doFirst {
+        iosE2eDerivedDataPath.get().asFile.mkdirs()
+    }
+
+    executable = "xcodebuild"
+    args(
+        "-project",
+        "iosApp/iosApp.xcodeproj",
+        "-scheme",
+        "iosApp",
+        "-configuration",
+        "Debug",
+        "-sdk",
+        "iphonesimulator",
+        "-destination",
+        "generic/platform=iOS Simulator",
+        "-derivedDataPath",
+        iosE2eDerivedDataPath.get().asFile.path,
+        "PRODUCT_BUNDLE_IDENTIFIER=xyz.lilsus.papp.e2e",
+        "INFOPLIST_KEY_CFBundleDisplayName=Lasr E2E",
+        "build"
+    )
+}
+
+tasks.register<Exec>("installE2eIos") {
+    group = "e2e"
+    description = "Builds and installs the iOS e2e app on the booted simulator."
+    notCompatibleWithConfigurationCache("Wraps local simctl installation.")
+    dependsOn("buildE2eIos")
+
+    doFirst {
+        val app = iosE2eAppPath.get()
+        require(app.exists()) {
+            "Expected iOS e2e app at ${app.path}; run buildE2eIos first."
+        }
+    }
+
+    executable = "xcrun"
+    args(
+        "simctl",
+        "install",
+        providers.gradleProperty("papp.ios.simulator").orElse("booted").get(),
+        iosE2eAppPath.get().path
+    )
+}

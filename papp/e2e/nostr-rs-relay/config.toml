@@ -1,0 +1,16 @@
+[info]
+relay_url = "ws://127.0.0.1:7777"
+name = "papp-e2e"
+description = "Private local relay for Papp E2E tests"
+
+[database]
+data_directory = "/usr/src/app/db"
+
+[network]
+address = "0.0.0.0"
+port = 8080
+
+[limits]
+messages_per_sec = 0
+subscriptions_per_min = 0
+max_event_bytes = 262144

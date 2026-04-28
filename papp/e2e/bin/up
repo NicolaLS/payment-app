@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+# Every `up` is a cold boot. The harness contract is "no state between runs": wipe
+# volumes first so bitcoind/lightningd/relay/nostr DBs all start empty. This trades
+# a slower bootstrap (~30s) for fully deterministic state.
+docker compose -f e2e/docker-compose.yml down -v --remove-orphans
+docker compose -f e2e/docker-compose.yml up --build -d
