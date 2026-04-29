@@ -1,0 +1,33 @@
+name: Validate Gradle wrapper
+description: Validate the checked-in Gradle wrapper jar without network access.
+
+runs:
+  using: composite
+  steps:
+    - name: Check wrapper jar
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+
+        wrapper="app/gradle/wrapper/gradle-wrapper.jar"
+        wrappers="$(find . -path '*/gradle-wrapper.jar' -type f | sort)"
+        if [ "$wrappers" != "./$wrapper" ]; then
+          echo "Unexpected Gradle wrapper jars:"
+          echo "$wrappers"
+          exit 1
+        fi
+
+        if command -v sha256sum >/dev/null 2>&1; then
+          actual="$(sha256sum "$wrapper" | awk '{ print $1 }')"
+        else
+          actual="$(shasum -a 256 "$wrapper" | awk '{ print $1 }')"
+        fi
+
+        expected="7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172"
+        if [ "$actual" != "$expected" ]; then
+          echo "Gradle wrapper checksum mismatch"
+          echo "expected: $expected"
+          echo "actual:   $actual"
+          exit 1
+        fi
