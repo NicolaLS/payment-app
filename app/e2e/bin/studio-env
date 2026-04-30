@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+# shellcheck source=_reglab-common
+source e2e/bin/_reglab-common
+
+env_file="${E2E_ENV_FILE:-e2e/.env.local}"
+remote_env_file="${REGLAB_REMOTE_ENV_FILE:-e2e/.remote.env}"
+force_local=0
+use_remote_env=0
+
+usage() {
+  cat <<'EOF'
+Usage: e2e/bin/studio-env [options]
+
+Print the current ReGLab values for Maestro Studio Desktop's Environment
+Manager. Run e2e/bin/up first. Local Studio should normally use
+"No environment"; this helper is mainly for remote Studio environments.
+
+Options:
+  --local              Print local defaults.
+  --env-file <path>    Generated env file. Default: e2e/.env.local.
+  --remote-env <path>  Remote env file. Default: e2e/.remote.env.
+  -h, --help           Show this help.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --local)
+      force_local=1
+      shift
+      ;;
+    --env-file)
+      if [[ $# -lt 2 ]]; then
+        echo "--env-file requires a path." >&2
+        exit 2
+      fi
+      env_file="$2"
+      shift 2
+      ;;
+    --remote-env)
+      if [[ $# -lt 2 ]]; then
+        echo "--remote-env requires a path." >&2
+        exit 2
+      fi
+      remote_env_file="$2"
+      use_remote_env=1
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+is_local_url() {
+  case "${1%/}" in
+    https://reglab.localhost | https://localhost | http://localhost | http://localhost:* | http://127.0.0.1 | http://127.0.0.1:* | http://10.0.2.2 | http://10.0.2.2:*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+if is_truthy "$force_local"; then
+  unset REGLAB_URL REGLAB_RUNNER_TOKEN RUNNER_TOKEN
+elif is_truthy "$use_remote_env"; then
+  # shellcheck disable=SC1090
+  source "$remote_env_file"
+elif [[ -f "$env_file" ]]; then
+  # shellcheck disable=SC1090
+  source "$env_file"
+elif [[ -f "$remote_env_file" ]]; then
+  # shellcheck disable=SC1090
+  source "$remote_env_file"
+fi
+REGLAB_RUNNER_TOKEN="${REGLAB_RUNNER_TOKEN:-${RUNNER_TOKEN:-}}"
+
+if [[ "$REGLAB_RUNNER_TOKEN" == "replace-with-runner-token" ]]; then
+  echo "Edit ${remote_env_file} and replace REGLAB_RUNNER_TOKEN before using remote ReGLab, or use local Studio with No environment." >&2
+  exit 2
+fi
+
+if [[ -z "${REGLAB_URL:-}" && -z "${REGLAB_RUNNER_TOKEN:-}" ]]; then
+  REGLAB_URL="https://reglab.localhost"
+  REGLAB_RUNNER_TOKEN="dev-runner"
+  REGLAB_LOCAL="1"
+elif [[ -z "${REGLAB_URL:-}" || -z "${REGLAB_RUNNER_TOKEN:-}" ]]; then
+  echo "REGLAB_URL and REGLAB_RUNNER_TOKEN must both be set, or both omitted for local defaults." >&2
+  exit 2
+fi
+
+if is_local_url "$REGLAB_URL"; then
+  REGLAB_LOCAL="1"
+else
+  REGLAB_LOCAL="0"
+fi
+
+REGLAB_LEASE_WAIT="${REGLAB_LEASE_WAIT:-${MAESTRO_REGLAB_LEASE_WAIT:-${REGLAB_LEASE_CLAIM_TIMEOUT_SEC}s}}"
+
+cat <<EOF
+REGLAB_URL=${REGLAB_URL}
+REGLAB_RUNNER_TOKEN=${REGLAB_RUNNER_TOKEN}
+REGLAB_TEMPLATE=${REGLAB_TEMPLATE}
+REGLAB_SNAPSHOT=${REGLAB_SNAPSHOT}
+REGLAB_LOCAL=${REGLAB_LOCAL}
+REGLAB_LEASE_TTL_SECONDS=${REGLAB_LEASE_TTL_SECONDS}
+REGLAB_LEASE_WAIT=${REGLAB_LEASE_WAIT}
+EOF
+
+if [[ -n "${REGLAB_DEVICE_URL:-}" ]]; then
+  printf 'REGLAB_DEVICE_URL=%s\n' "$REGLAB_DEVICE_URL"
+fi

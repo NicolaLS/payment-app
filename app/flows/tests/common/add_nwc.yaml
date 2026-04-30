@@ -1,9 +1,11 @@
 appId: xyz.lilsus.papp.e2e
 ---
-- assertVisible: "Wallet Connect URI"
-- tapOn: "Wallet Connect URI"
-- inputText: ${URI}
-
+- assertVisible:
+    id: "nwc_wallet_screen"
+- tapOn:
+    id: "nwc_wallet_uri_field"
+- setClipboard: ${URI}
+- pasteText
 - extendedWaitUntil:
     visible: "Wallet public key"
     timeout: 5000
@@ -11,3 +13,5 @@ appId: xyz.lilsus.papp.e2e
     text: "Add Wallet"
     index: 1
     retryTapIfNoChange: true
+- assertVisible:
+    id: "payment_screen"

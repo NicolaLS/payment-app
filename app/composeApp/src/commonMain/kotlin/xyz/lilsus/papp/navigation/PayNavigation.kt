@@ -40,7 +40,6 @@ import lasr.composeapp.generated.resources.toast_bolt12_not_supported
 import org.jetbrains.compose.resources.getString
 import xyz.lilsus.papp.navigation.DonationNavigation.events
 import xyz.lilsus.papp.navigation.PaymentDeepLinkEvents.events as paymentDeepLinkEvents
-import xyz.lilsus.papp.navigation.PaymentDeepLinkSource
 import xyz.lilsus.papp.presentation.common.getErrorMessageFor
 import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
@@ -184,13 +183,7 @@ private fun MainScreenEntry(
 
     LaunchedEffect(viewModel) {
         paymentDeepLinkEvents.collectLatest { request ->
-            val intent = when (request.source) {
-                PaymentDeepLinkSource.Camera -> MainIntent.QrCodeScanned(request.input)
-
-                PaymentDeepLinkSource.DeepLink ->
-                    MainIntent.PaymentDeepLinkReceived(request.input)
-            }
-            viewModel.dispatch(intent)
+            viewModel.dispatch(MainIntent.PaymentDeepLinkReceived(request.input))
         }
     }
 

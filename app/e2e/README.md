@@ -1,128 +1,218 @@
-# Regtest NWC E2E Stack
+# LASR E2E
 
-This directory contains a lightweight local stack for app E2E tests against real regtest
-Lightning payments.
-
-## Services
-
-- `bitcoind`: Bitcoin regtest chain.
-- `cln-payer`: Core Lightning node with `cln-nip47`; the app pays through this wallet.
-- `cln-receiver`: Core Lightning node that creates BOLT11 invoices.
-- `nostr-relay`: Private local relay for NWC request/response events.
-- `test-harness`: HTTP API used by Maestro and local scripts.
-
-## Local Usage
-
-Start the stack:
+LASR's Maestro flows can run against either local or remote ReGLab. Local is the
+default. The normal contributor workflow is:
 
 ```bash
 e2e/bin/up
 ```
 
-Every `up` is a cold boot: the script wipes all volumes (bitcoind/lightningd/relay/nostr
-DBs) before bringing the services back up. This makes each session deterministic and
-removes any need to clean up between runs, at the cost of a slower bootstrap (~30s while
-the chain is mined and the channel is opened).
+Then use Maestro Studio Desktop or `maestro test` directly.
 
-Wait until the harness reports ready:
+## Requirements
+
+Install these once:
+
+- Docker Desktop or OrbStack, with Docker running
+- Maestro CLI
+- ReGLab CLI available as `reglab`
+- Maestro Studio Desktop, if you use the visual editor
+
+The root `.envrc` intentionally does not load E2E variables. E2E env is loaded
+only when you explicitly source the generated file for Maestro CLI.
+
+## Local Workflow
+
+Start local ReGLab:
 
 ```bash
-curl http://127.0.0.1:3021/health
+e2e/bin/up
 ```
 
-Fetch an NWC URI:
+This starts ReGLab, writes `e2e/.env.local`, and prints the next steps.
+
+Install the E2E app on the target device or simulator:
 
 ```bash
+./gradlew :composeApp:installE2e      # Android
+./gradlew installE2eIos              # booted iOS simulator
+```
+
+For Maestro Studio Desktop:
+
+1. Open the desktop app, not `maestro studio`.
+2. Choose workspace `app/flows`.
+3. Select `No environment`.
+4. Run a flow.
+
+Local Studio works with `No environment` because the ReGLab hook has local
+defaults:
+
+```text
+REGLAB_URL=https://reglab.localhost
+REGLAB_RUNNER_TOKEN=dev-runner
+REGLAB_TEMPLATE=payments-basic
+REGLAB_SNAPSHOT=default
+```
+
+If `e2e/bin/up` says Studio does not trust the local ReGLab CA, or a Studio flow
+fails with a Java `PKIX path` error, run this once and then fully quit and
+reopen Studio:
+
+```bash
+e2e/bin/trust-maestro-studio
+```
+
+For Maestro CLI:
+
+```bash
+source e2e/.env.local
+
+maestro test flows/tests/new_users/onboarding_complete_nwc.yaml
+maestro test flows
+```
+
+For parallel CLI runs, start enough local slots and use Maestro sharding:
+
+```bash
+e2e/bin/up --slots 4
+source e2e/.env.local
+maestro test --shard-split 2 --device "emulator-5554,emulator-5556" flows
+```
+
+The top-level NWC flows claim and release their own ReGLab leases in Maestro
+hooks. If every warm slot is busy, the hook retries with backoff until a slot is
+available or `REGLAB_LEASE_CLAIM_TIMEOUT_SEC` expires.
+
+Stop local ReGLab when you are done:
+
+```bash
+e2e/bin/down
+```
+
+## Remote Workflow
+
+Trusted contributors can ask for a remote runner token. Put remote credentials
+in the ignored `e2e/.remote.env` file:
+
+```bash
+cp e2e/remote.env.example e2e/.remote.env
+$EDITOR e2e/.remote.env
+```
+
+Required values:
+
+```bash
+export REGLAB_URL=https://reglab.nicolasusca.com
+export REGLAB_RUNNER_TOKEN=replace-with-runner-token
+```
+
+Then use the same setup command:
+
+```bash
+e2e/bin/up
+```
+
+If `e2e/.remote.env` exists, or `REGLAB_URL` and `REGLAB_RUNNER_TOKEN` are set
+in the current shell, `e2e/bin/up` writes remote mode into `e2e/.env.local` and
+does not start local ReGLab.
+
+For remote Maestro Studio Desktop, create/select a Studio environment and paste
+the values printed by:
+
+```bash
+e2e/bin/studio-env
+```
+
+For remote Maestro CLI:
+
+```bash
+source e2e/.env.local
+maestro test flows
+```
+
+To force local while keeping `e2e/.remote.env` around:
+
+```bash
+e2e/bin/up --local
+```
+
+## Device URLs
+
+Host-side ReGLab always uses `REGLAB_URL`. Device-side relay URLs sometimes need
+a different host address:
+
+- Android emulator: the hook uses `http://10.0.2.2` by default.
+- iOS simulator: the hook keeps `https://reglab.localhost`.
+- Physical devices: set `REGLAB_DEVICE_URL` to a URL the device can reach.
+
+## Commands
+
+Daily commands:
+
+- `e2e/bin/up`: configure E2E and start local ReGLab unless remote is configured.
+- `e2e/bin/down`: stop the local ReGLab stack.
+- `maestro test ...`: run one flow, the whole suite, or sharded runs.
+
+Occasional helpers:
+
+- `e2e/bin/studio-env`: print values for Maestro Studio remote environments.
+- `e2e/bin/trust-maestro-studio`: trust local HTTPS in Studio's bundled JVM.
+- `e2e/bin/maestro-suite`: compatibility wrapper around `maestro test`.
+
+Manual lease debugging:
+
+```bash
+eval "$(e2e/bin/claim-lease)"
 e2e/bin/nwc-uri
-```
-
-Create an invoice:
-
-```bash
 e2e/bin/invoice 21
+e2e/bin/release-lease "$REGLAB_LEASE_ID"
 ```
 
-Reset all regtest state:
+These helpers source `e2e/.env.local`, so run `e2e/bin/up` first.
+
+## Flow Contract
+
+ReGLab-backed flows use these hooks:
+
+```yaml
+onFlowStart:
+  - runScript: "../../utils/reglab_claim_lease.js"
+onFlowComplete:
+  - runScript: "../../utils/reglab_release_lease.js"
+```
+
+Lease-scoped values are passed through Maestro `output.reglab`. Flow helper
+scripts call the lease ops endpoint with `X-Reglab-Lease-Token`.
+
+The default suite covers ReGLab-backed NWC onboarding and the NWC+BOLT11 happy
+path. Blink flows remain checked in for manual provider-specific testing.
+
+## App Contract
+
+The default Maestro suite targets the E2E app id `xyz.lilsus.papp.e2e`.
+
+E2E setup uses `launchApp.arguments`, not public deep links:
+
+```text
+e2eProfile       new_user | nwc_user | blink_user | multi_user | slow_internet_user
+e2eReset         true clears E2E wallet storage before applying fixtures
+e2eFixtureJson   JSON fixture data with concrete values from host scripts
+e2ePaymentInput  payment input to inject for a payment test run
+```
+
+Public deep-link tests should live in a separate release-oriented suite.
+
+## Admin Reference
+
+Use this only when setting up or repairing a ReGLab server for LASR:
 
 ```bash
-e2e/bin/reset
+cd /Users/sus/src/personal/github.com/NicolaLS/lasr/app
+export REGLAB_ADMIN_TOKEN=<admin-token>
+e2e/admin/setup-reglab
 ```
 
-Optional local Maestro environment variables can be stored in `e2e/.env.local`. This file is
-gitignored and is sourced by `e2e/bin/maestro-suite` before running the CLI suite:
-
-```bash
-export INVOICE_SATS=21
-export TEST_NOSTR_RELAY_URL=ws://127.0.0.1:7777
-```
-
-## Local Device Scope
-
-This stack is scoped to local Android emulators and iOS simulators. Physical devices are
-intentionally out of scope for now, so there is no `adb reverse`, tunnel, or public staging
-infra in the default workflow.
-
-Running against a physical Android device would require a different host-reachability setup,
-such as `adb reverse tcp:7777 tcp:7777` plus a device-appropriate relay URL, or a tunnel.
-
-The CLN plugin talks to the relay through Docker DNS, but the app must use a relay URL that is
-reachable from the emulator or simulator.
-
-The relay binds host port `7777` (not the more conventional `7000`): macOS Monterey+ silently
-claims port `7000` for AirPlay Receiver, and AirPlay answers `127.0.0.1:7000` before Docker's
-forward gets a chance. Keep the host port off `7000` to avoid that trap.
-
-The Maestro `get_nwc_uri.js` helper rewrites the NWC URI relay parameter to
-`TEST_NOSTR_RELAY_URL`. When that variable is not set, it chooses the local route from
-Maestro's platform:
-
-- Android emulator: `ws://10.0.2.2:7777`
-- iOS simulator: `ws://127.0.0.1:7777`
-
-The Android e2e build allows cleartext traffic because the local relay is served as `ws://`.
-Release builds keep cleartext disabled.
-
-For Android emulator flows:
-
-```bash
-e2e/bin/up
-maestro test \
-  flows/tests/existing_users/payments_nwc_bolt11_with_amount.yaml
-```
-
-For iOS simulator flows:
-
-```bash
-e2e/bin/up
-maestro test \
-  flows/tests/existing_users/payments_nwc_bolt11_with_amount.yaml
-```
-
-To run all local flows included by `flows/config.yaml`:
-
-```bash
-e2e/bin/up
-e2e/bin/maestro-suite
-```
-
-The suite runner sources `e2e/.env.local` if present, waits for `GET /health` to report ready,
-then runs `maestro test flows/`. Maestro Studio is useful for developing individual flows, but
-local Studio runs do not currently honor `config.yaml` flow discovery. Use the CLI command above
-for the full local suite.
-
-For host-side manual checks, `e2e/bin/nwc-uri` shows the harness URI directly.
-
-## HTTP API
-
-- `GET /health`
-- `GET /nwc-uri`
-- `POST /invoice`
-- `POST /invoice/wait-paid`
-- `POST /mine/{blocks}`
-
-The existing Maestro helper scripts under `flows/utils/` already target this API shape.
-
-## Current Scope
-
-The first milestone is the NWC + BOLT11 happy path only. Blink and LNURL are intentionally
-out of scope for this stack.
+The admin script applies `e2e/admin/config.yaml`, applies the built-in
+`payments-basic` template, and prints pool status. It does not run Maestro or
+claim runner leases.

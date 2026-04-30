@@ -18,7 +18,7 @@
         android:usesCleartextTraffic="${usesCleartextTraffic}"
         android:theme="@style/Theme.Papp">
         <activity
-            android:name=".MainActivity"
+            android:name="${mainActivityName}"
             android:exported="true"
             android:launchMode="singleTop">
             <intent-filter>

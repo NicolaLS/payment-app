@@ -19,7 +19,6 @@ import xyz.lilsus.papp.navigation.DeepLinkEvents
 import xyz.lilsus.papp.navigation.Onboarding
 import xyz.lilsus.papp.navigation.Pay
 import xyz.lilsus.papp.navigation.PaymentDeepLinkEvents
-import xyz.lilsus.papp.navigation.PaymentDeepLinkSource
 import xyz.lilsus.papp.navigation.connectWalletDialog
 import xyz.lilsus.papp.navigation.navigateToAddBlinkWallet
 import xyz.lilsus.papp.navigation.navigateToAddWallet
@@ -86,8 +85,7 @@ fun App() {
                     "$NWC_SCHEME://$afterScheme"
                 }
                 navController.navigateToConnectWallet(
-                    uri = normalizedUri,
-                    autoConfirm = allowE2eHooks
+                    uri = normalizedUri
                 )
                 return@collect
             }
@@ -98,10 +96,7 @@ fun App() {
             navController.navigate(Pay) {
                 launchSingleTop = true
             }
-            PaymentDeepLinkEvents.emit(
-                input = paymentInput,
-                source = paymentDeepLinkSource(normalized)
-            )
+            PaymentDeepLinkEvents.emit(input = paymentInput)
         }
     }
 
@@ -173,35 +168,4 @@ private fun extractBitcoinLightningParameter(uri: String): String? {
             key == "lightning" && value.isNotBlank()
         }
         ?.second
-}
-
-internal fun paymentDeepLinkSource(
-    uri: String,
-    e2eHooksAllowed: Boolean = allowE2eHooks
-): PaymentDeepLinkSource {
-    if (!e2eHooksAllowed) return PaymentDeepLinkSource.DeepLink
-    val normalized = uri.trim()
-    val scheme = normalized.substringBefore(":", missingDelimiterValue = "")
-    if (!scheme.equals(BITCOIN_SCHEME, ignoreCase = true)) {
-        return PaymentDeepLinkSource.DeepLink
-    }
-
-    return if (queryParameter(normalized, "source").equals("camera", ignoreCase = true)) {
-        PaymentDeepLinkSource.Camera
-    } else {
-        PaymentDeepLinkSource.DeepLink
-    }
-}
-
-private fun queryParameter(uri: String, parameterName: String): String? {
-    val query = uri.substringAfter('?', missingDelimiterValue = "")
-    if (query.isEmpty()) return null
-
-    return query.split('&')
-        .firstNotNullOfOrNull { pair ->
-            val parts = pair.split('=', limit = 2)
-            val key = decodeUrlComponent(parts[0])
-            if (!key.equals(parameterName, ignoreCase = true)) return@firstNotNullOfOrNull null
-            parts.getOrNull(1)?.let(::decodeUrlComponent)
-        }
 }

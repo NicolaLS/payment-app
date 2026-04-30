@@ -1,4 +1,8 @@
 appId: xyz.lilsus.papp.e2e
+onFlowStart:
+  - runScript: "../../utils/reglab_claim_lease.js"
+onFlowComplete:
+  - runScript: "../../utils/reglab_release_lease.js"
 ---
 - launchApp:
     clearState: true
@@ -28,15 +32,3 @@ appId: xyz.lilsus.papp.e2e
         URI: ${output.nwcUri}
 - assertVisible:
     id: "payment_screen"
-
-
-# NOTE the continue button in add nwc is not necessary
-# NOTE: nwc uri should be hidden like password
-
-
-
-
-
-
-
-

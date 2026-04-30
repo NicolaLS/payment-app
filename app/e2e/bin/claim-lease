@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+# shellcheck source=_reglab-common
+source e2e/bin/_reglab-common
+load_e2e_env
+
+lease="$(claim_reglab_lease)"
+lease_id="$(printf '%s' "$lease" | jq -r '.lease_id')"
+lease_token="$(printf '%s' "$lease" | jq -r '.lease_token')"
+lease_ops_url="$(printf '%s' "$lease" | jq -r '.ops_url')"
+lease_evidence_url="$(printf '%s' "$lease" | jq -r '.evidence_url')"
+lease_nostr_relay="$(printf '%s' "$lease" | jq -r '.nostr_relay')"
+nwc_uri="$(printf '%s' "$lease" | jq -r '.endpoints.nwc_uri // empty')"
+
+if [[ -z "$lease_id" || "$lease_id" == "null" || -z "$lease_token" || "$lease_token" == "null" || -z "$lease_ops_url" || "$lease_ops_url" == "null" ]]; then
+  echo "Lease response did not contain lease_id, lease_token, and ops_url: $lease" >&2
+  exit 1
+fi
+
+printf 'export REGLAB_LEASE_ID=%q\n' "$lease_id"
+printf 'export REGLAB_LEASE_TOKEN=%q\n' "$lease_token"
+printf 'export REGLAB_LEASE_OPS_URL=%q\n' "$lease_ops_url"
+printf 'export REGLAB_EVIDENCE_URL=%q\n' "$lease_evidence_url"
+printf 'export TEST_REGLAB_EVIDENCE_URL=%q\n' "$lease_evidence_url"
+printf 'export TEST_NOSTR_RELAY=%q\n' "$lease_nostr_relay"
+[[ -n "$nwc_uri" ]] && printf 'export TEST_NWC_URI=%q\n' "$nwc_uri"
+printf 'export TEST_WALLET_SERVICE_URL=%q\n' "$lease_ops_url"
+printf 'export TEST_WALLET_TOKEN=%q\n' "$lease_token"

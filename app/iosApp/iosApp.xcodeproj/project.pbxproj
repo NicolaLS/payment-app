@@ -7,12 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
+	D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
+	E2E000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		3E2F28A87C1CC1A08DDA1A6F /* Lasr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lasr.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+	3E2F28A87C1CC1A08DDA1A6F /* Lasr.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lasr.app; sourceTree = BUILT_PRODUCTS_DIR; };
+	D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+	E2E000000000000000000001 /* Lasr E2E.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Lasr E2E.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -22,6 +24,14 @@
 				Info.plist,
 			);
 			target = E1875B14D964B50BA6C5EEC6 /* iosApp */;
+		};
+		E2E000000000000000000003 /* Exceptions for "iosApp" folder in "iosAppE2E" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				iOSApp.swift,
+			);
+			target = E2E000000000000000000009 /* iosAppE2E */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -35,14 +45,27 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B45EC08CC7C8057D05939062 /* Exceptions for "iosApp" folder in "iosApp" target */,
+				E2E000000000000000000003 /* Exceptions for "iosApp" folder in "iosAppE2E" target */,
 			);
 			path = iosApp;
+			sourceTree = "<group>";
+		};
+		E2E000000000000000000002 /* iosAppE2E */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = iosAppE2E;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C6283A14B200CDFBA78995C0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2E000000000000000000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -58,6 +81,7 @@
 				D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */,
 				6672ACEE09FDB18D319237F0 /* Configuration */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
+				E2E000000000000000000002 /* iosAppE2E */,
 				E073F01B7BAFD6FD252567F6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -66,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				3E2F28A87C1CC1A08DDA1A6F /* Lasr.app */,
+				E2E000000000000000000001 /* Lasr E2E.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -96,6 +121,30 @@
 			productReference = 3E2F28A87C1CC1A08DDA1A6F /* Lasr.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E2E000000000000000000009 /* iosAppE2E */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E2E000000000000000000013 /* Build configuration list for PBXNativeTarget "iosAppE2E" */;
+			buildPhases = (
+				E2E000000000000000000007 /* Compile Kotlin Framework */,
+				E2E000000000000000000004 /* Sources */,
+				E2E000000000000000000005 /* Frameworks */,
+				E2E000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
+				E2E000000000000000000002 /* iosAppE2E */,
+			);
+			name = iosAppE2E;
+			packageProductDependencies = (
+			);
+			productName = "Lasr E2E";
+			productReference = E2E000000000000000000001 /* Lasr E2E.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -107,6 +156,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					E1875B14D964B50BA6C5EEC6 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					E2E000000000000000000009 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -126,6 +178,7 @@
 			projectRoot = "";
 			targets = (
 				E1875B14D964B50BA6C5EEC6 /* iosApp */,
+				E2E000000000000000000009 /* iosAppE2E */,
 			);
 		};
 /* End PBXProject section */
@@ -136,6 +189,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2E000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E2E000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -161,10 +222,36 @@
 			shellPath = /bin/sh;
 			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n\n# ---- Java setup ----\n\nif [ \"${CI_XCODE_CLOUD:-}\" = \"TRUE\" ]; then\n  echo \"Xcode Cloud: using Homebrew OpenJDK 17\"\n  # This path is printed by brew's caveats for openjdk@17 on Cloud\n  export JAVA_HOME=\"/usr/local/opt/openjdk@17\"\n  export PATH=\"$JAVA_HOME/bin:$PATH\"\nelse\n  echo \"Local build: using SDKMAN JDK (if available)\"\n  if [ -z \"${JAVA_HOME:-}\" ] && [ -d \"$HOME/.sdkman/candidates/java/current\" ]; then\n    export JAVA_HOME=\"$HOME/.sdkman/candidates/java/current\"\n    export PATH=\"$JAVA_HOME/bin:$PATH\"\n  fi\nfi\n\necho \"JAVA_HOME=${JAVA_HOME:-<not set>}\"\njava -version || echo \"⚠️ java -version failed; Gradle will likely fail too\"\n \n./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\n";
 		};
+		E2E000000000000000000007 /* Compile Kotlin Framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Compile Kotlin Framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n\n# ---- Java setup ----\n\nif [ \"${CI_XCODE_CLOUD:-}\" = \"TRUE\" ]; then\n  echo \"Xcode Cloud: using Homebrew OpenJDK 17\"\n  # This path is printed by brew's caveats for openjdk@17 on Cloud\n  export JAVA_HOME=\"/usr/local/opt/openjdk@17\"\n  export PATH=\"$JAVA_HOME/bin:$PATH\"\nelse\n  echo \"Local build: using SDKMAN JDK (if available)\"\n  if [ -z \"${JAVA_HOME:-}\" ] && [ -d \"$HOME/.sdkman/candidates/java/current\" ]; then\n    export JAVA_HOME=\"$HOME/.sdkman/candidates/java/current\"\n    export PATH=\"$JAVA_HOME/bin:$PATH\"\n  fi\nfi\n\necho \"JAVA_HOME=${JAVA_HOME:-<not set>}\"\njava -version || echo \"⚠️ java -version failed; Gradle will likely fail too\"\n \n./gradlew :composeApp:embedAndSignAppleFrameworkForXcode\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		13DEFE5A6795EA046BCA3349 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E2E000000000000000000004 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -479,6 +566,124 @@
 			};
 			name = DebugFast;
 		};
+		E2E000000000000000000010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Lasr E2E";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.lilsus.papp.e2e";
+				PRODUCT_MODULE_NAME = LasrE2E;
+				PRODUCT_NAME = "Lasr E2E";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E2E000000000000000000011 /* DebugFast */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Lasr E2E";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				KOTLIN_FRAMEWORK_BUILD_TYPE = Release;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.lilsus.papp.e2e";
+				PRODUCT_MODULE_NAME = LasrE2E;
+				PRODUCT_NAME = "Lasr E2E";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = DebugFast;
+		};
+		E2E000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Lasr E2E";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "xyz.lilsus.papp.e2e";
+				PRODUCT_MODULE_NAME = LasrE2E;
+				PRODUCT_NAME = "Lasr E2E";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -501,6 +706,16 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
+		};
+		E2E000000000000000000013 /* Build configuration list for PBXNativeTarget "iosAppE2E" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E2E000000000000000000010 /* Debug */,
+				E2E000000000000000000011 /* DebugFast */,
+				E2E000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

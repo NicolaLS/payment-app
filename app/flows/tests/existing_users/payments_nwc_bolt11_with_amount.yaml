@@ -1,28 +1,29 @@
 appId: xyz.lilsus.papp.e2e
+onFlowStart:
+  - runScript: "../../utils/reglab_claim_lease.js"
+onFlowComplete:
+  - runScript: "../../utils/reglab_release_lease.js"
 ---
+- runScript: ../../utils/get_nwc_uri.js
 - launchApp:
     clearState: true
     clearKeychain: true
-
-- setPermissions:
     permissions:
       all: allow
-
-- runScript: ../../utils/get_nwc_uri.js
-
-- runFlow:
-    file: ../common/open_deep_link.yaml
-    env: 
-      LINK: ${output.nwcUri}
+    arguments:
+      e2eProfile: "nwc_user"
+      e2eReset: true
+      e2eFixtureJson: "${output.nwcFixtureJson}"
 
 - assertVisible:
     id: "payment_screen"
 
 - runScript: ../../utils/create_invoice.js
-
-- runFlow:
-    file: ../common/open_deep_link.yaml
-    env: 
-      LINK: "bitcoin:?lightning=${output.bolt11}&source=camera"
+- launchApp:
+    arguments:
+      e2ePaymentInput: "${output.bolt11}"
+- tapOn:
+    text: "Pay"
+    optional: true
 
 - runScript: ../../utils/assert_invoice_paid.js

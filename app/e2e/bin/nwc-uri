@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-curl --fail --silent --show-error http://127.0.0.1:3021/nwc-uri
+cd "$(dirname "$0")/../.."
+
+# shellcheck source=_reglab-common
+source e2e/bin/_reglab-common
+load_e2e_env
+derive_test_wallet_env
+require_test_wallet_env
+
+curl --fail --silent --show-error \
+  --header "X-Reglab-Lease-Token: ${TEST_WALLET_TOKEN}" \
+  "${TEST_WALLET_SERVICE_URL%/}/get-nwc-uri"
 echo

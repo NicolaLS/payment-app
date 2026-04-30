@@ -1,6 +1,7 @@
 package xyz.lilsus.papp
 
 import android.app.Application
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraXConfig
@@ -28,11 +29,11 @@ class PappApplication :
         }
     }
 
-    fun registerActivity(activity: MainActivity) {
+    fun registerActivity(activity: AppCompatActivity) {
         currentActivity = WeakReference(activity)
     }
 
-    fun unregisterActivity(activity: MainActivity) {
+    fun unregisterActivity(activity: AppCompatActivity) {
         currentActivity?.get()?.let {
             if (it === activity) {
                 currentActivity = null
@@ -50,6 +51,6 @@ class PappApplication :
         lateinit var instance: PappApplication
             private set
 
-        private var currentActivity: WeakReference<MainActivity>? = null
+        private var currentActivity: WeakReference<AppCompatActivity>? = null
     }
 }

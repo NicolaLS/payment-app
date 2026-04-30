@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+check_only=0
+quiet=0
+studio_app="${MAESTRO_STUDIO_APP:-/Applications/Maestro Studio.app}"
+ca_file="${REGLAB_LOCAL_CA_FILE:-}"
+alias_name="${REGLAB_MAESTRO_STUDIO_CA_ALIAS:-reglab-local-mkcert-ca}"
+
+usage() {
+  cat <<'EOF'
+Usage: e2e/bin/trust-maestro-studio [options]
+
+Import the mkcert local CA into Maestro Studio Desktop's bundled JVM trust
+stores. This is needed for local HTTPS at https://reglab.localhost.
+
+Options:
+  --check            Only check whether the CA was imported.
+  --quiet            Suppress status output.
+  --app <path>       Maestro Studio.app path. Default: /Applications/Maestro Studio.app.
+  --ca-file <path>   CA certificate path. Default: $(mkcert -CAROOT)/rootCA.pem.
+  -h, --help         Show this help.
+EOF
+}
+
+log() {
+  if [[ "$quiet" != "1" ]]; then
+    printf '%s\n' "$*"
+  fi
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --check)
+      check_only=1
+      shift
+      ;;
+    --quiet)
+      quiet=1
+      shift
+      ;;
+    --app)
+      if [[ $# -lt 2 ]]; then
+        echo "--app requires a path." >&2
+        exit 2
+      fi
+      studio_app="$2"
+      shift 2
+      ;;
+    --ca-file)
+      if [[ $# -lt 2 ]]; then
+        echo "--ca-file requires a path." >&2
+        exit 2
+      fi
+      ca_file="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -z "$ca_file" ]]; then
+  if ! command -v mkcert >/dev/null 2>&1; then
+    echo "mkcert is required, or pass --ca-file." >&2
+    exit 127
+  fi
+  ca_file="$(mkcert -CAROOT)/rootCA.pem"
+fi
+
+if [[ ! -f "$ca_file" ]]; then
+  echo "Local CA file was not found: ${ca_file}" >&2
+  exit 1
+fi
+
+bundle_root="${studio_app}/Contents/Resources/app.asar.unpacked/bundled-jvm"
+if [[ ! -d "$bundle_root" ]]; then
+  if [[ "$check_only" == "1" && "$quiet" == "1" ]]; then
+    exit 0
+  fi
+  echo "Maestro Studio bundled JVM was not found under: ${bundle_root}" >&2
+  exit 1
+fi
+
+shopt -s nullglob
+cacerts_files=("${bundle_root}"/*/Contents/Home/lib/security/cacerts)
+shopt -u nullglob
+
+if [[ "${#cacerts_files[@]}" -eq 0 ]]; then
+  echo "No Maestro Studio bundled JVM trust stores were found under: ${bundle_root}" >&2
+  exit 1
+fi
+
+status=0
+for cacerts in "${cacerts_files[@]}"; do
+  java_home="${cacerts%/lib/security/cacerts}"
+  keytool="${java_home}/bin/keytool"
+  if [[ ! -x "$keytool" ]]; then
+    keytool="$(command -v keytool || true)"
+  fi
+  if [[ -z "$keytool" ]]; then
+    echo "keytool was not found for ${java_home}." >&2
+    status=2
+    continue
+  fi
+
+  jvm_name="${java_home#"${bundle_root}/"}"
+  jvm_name="${jvm_name%%/*}"
+
+  if "$keytool" -list -keystore "$cacerts" -storepass changeit -alias "$alias_name" >/dev/null 2>&1; then
+    log "Maestro Studio ${jvm_name}: local ReGLab CA already trusted."
+    continue
+  fi
+
+  if [[ "$check_only" == "1" ]]; then
+    log "Maestro Studio ${jvm_name}: local ReGLab CA is not trusted."
+    status=1
+    continue
+  fi
+
+  if [[ ! -w "$cacerts" ]]; then
+    echo "Cannot write Maestro Studio trust store: ${cacerts}" >&2
+    echo "Move Maestro Studio to a user-writable location or run this import with sufficient permissions." >&2
+    status=2
+    continue
+  fi
+
+  "$keytool" \
+    -importcert \
+    -noprompt \
+    -trustcacerts \
+    -alias "$alias_name" \
+    -file "$ca_file" \
+    -keystore "$cacerts" \
+    -storepass changeit >/dev/null
+
+  log "Maestro Studio ${jvm_name}: imported local ReGLab CA."
+done
+
+if [[ "$status" == "0" && "$check_only" != "1" ]]; then
+  log "Fully quit and reopen Maestro Studio Desktop before running a flow."
+fi
+
+exit "$status"

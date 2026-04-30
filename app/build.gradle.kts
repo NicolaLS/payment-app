@@ -52,26 +52,22 @@ tasks.named("prepareKotlinBuildScriptModel") {
     dependsOn("installGitHooks")
 }
 
-val iosE2eDerivedDataPath = layout.buildDirectory.dir("ios-e2e-derived")
-val iosE2eAppPath = iosE2eDerivedDataPath.map {
-    it.file("Build/Products/Debug-iphonesimulator/Lasr.app").asFile
-}
+val iosE2eDerivedDataPath = "ios-e2e-derived"
+val iosE2eAppPath = "$iosE2eDerivedDataPath/Build/Products/Debug-iphonesimulator/Lasr E2E.app"
 
 tasks.register<Exec>("buildE2eIos") {
     group = "e2e"
-    description = "Builds the iOS simulator app with the e2e bundle id and e2e hooks enabled."
+    description = "Builds the dedicated iOS simulator e2e app."
     notCompatibleWithConfigurationCache("Wraps local xcodebuild with dynamic derived-data paths.")
 
-    doFirst {
-        iosE2eDerivedDataPath.get().asFile.mkdirs()
-    }
+    val derivedDataPath = layout.buildDirectory.dir(iosE2eDerivedDataPath).get().asFile
 
     executable = "xcodebuild"
     args(
         "-project",
         "iosApp/iosApp.xcodeproj",
         "-scheme",
-        "iosApp",
+        "iosAppE2E",
         "-configuration",
         "Debug",
         "-sdk",
@@ -79,9 +75,7 @@ tasks.register<Exec>("buildE2eIos") {
         "-destination",
         "generic/platform=iOS Simulator",
         "-derivedDataPath",
-        iosE2eDerivedDataPath.get().asFile.path,
-        "PRODUCT_BUNDLE_IDENTIFIER=xyz.lilsus.papp.e2e",
-        "INFOPLIST_KEY_CFBundleDisplayName=Lasr E2E",
+        derivedDataPath.path,
         "build"
     )
 }
@@ -92,10 +86,11 @@ tasks.register<Exec>("installE2eIos") {
     notCompatibleWithConfigurationCache("Wraps local simctl installation.")
     dependsOn("buildE2eIos")
 
+    val appPath = layout.buildDirectory.file(iosE2eAppPath).get().asFile
+
     doFirst {
-        val app = iosE2eAppPath.get()
-        require(app.exists()) {
-            "Expected iOS e2e app at ${app.path}; run buildE2eIos first."
+        require(appPath.exists()) {
+            "Expected iOS e2e app at ${appPath.path}; run buildE2eIos first."
         }
     }
 
@@ -104,6 +99,6 @@ tasks.register<Exec>("installE2eIos") {
         "simctl",
         "install",
         providers.gradleProperty("lasr.ios.simulator").orElse("booted").get(),
-        iosE2eAppPath.get().path
+        appPath.path
     )
 }

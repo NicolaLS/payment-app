@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+CONFIG_FILE="${1:-e2e/admin/config.yaml}"
+TEMPLATE="${2:-payments-basic}"
+ENV_FILE="${E2E_ENV_FILE:-e2e/.env.local}"
+
+if [[ -f "$ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+fi
+
+REGLAB_CLI="${REGLAB_CLI:-reglab}"
+REGLAB_ADMIN_TOKEN="${REGLAB_ADMIN_TOKEN:-${SANDBOX_ADMIN_TOKEN:-}}"
+
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "Config file not found: $CONFIG_FILE" >&2
+  exit 2
+fi
+
+REGLAB_SERVER_URL="${REGLAB_SERVER_URL:-$(awk '/^public_base_url:/ { sub(/^public_base_url:[[:space:]]*/, ""); print; exit }' "$CONFIG_FILE")}"
+
+if [[ -z "$REGLAB_ADMIN_TOKEN" ]]; then
+  echo "REGLAB_ADMIN_TOKEN is required." >&2
+  exit 2
+fi
+
+if [[ -z "$REGLAB_SERVER_URL" ]]; then
+  echo "REGLAB_SERVER_URL is required, or set public_base_url in $CONFIG_FILE." >&2
+  exit 2
+fi
+
+if ! command -v "$REGLAB_CLI" >/dev/null 2>&1; then
+  echo "reglab CLI is required. Install it from ReGLab with: mise run install-cli" >&2
+  exit 127
+fi
+
+admin() {
+  "$REGLAB_CLI" --server "$REGLAB_SERVER_URL" --admin-token "$REGLAB_ADMIN_TOKEN" admin "$@"
+}
+
+echo "Applying ReGLab config: $CONFIG_FILE"
+admin config apply "$CONFIG_FILE"
+
+echo "Applying ReGLab template: $TEMPLATE"
+admin templates apply "$TEMPLATE"
+
+echo "Current ReGLab pools:"
+admin pools status

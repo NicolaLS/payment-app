@@ -189,6 +189,42 @@ kotlin {
     }
 
     sourceSets {
+        val commonMain by getting
+        val commonTest by getting
+        val androidMain by getting {
+            dependsOn(commonMain)
+        }
+        val androidUnitTest by getting {
+            dependsOn(commonTest)
+        }
+        val androidE2e by creating {
+            dependsOn(androidMain)
+        }
+        val iosMain by creating {
+            dependsOn(commonMain)
+        }
+        val iosTest by creating {
+            dependsOn(commonTest)
+        }
+        val iosX64Main by getting {
+            dependsOn(iosMain)
+        }
+        val iosX64Test by getting {
+            dependsOn(iosTest)
+        }
+        val iosArm64Main by getting {
+            dependsOn(iosMain)
+        }
+        val iosArm64Test by getting {
+            dependsOn(iosTest)
+        }
+        val iosSimulatorArm64Main by getting {
+            dependsOn(iosMain)
+        }
+        val iosSimulatorArm64Test by getting {
+            dependsOn(iosTest)
+        }
+
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
@@ -248,6 +284,7 @@ android {
         targetSdk = 36
         versionCode = 9
         versionName = "1.2"
+        manifestPlaceholders["mainActivityName"] = "xyz.lilsus.papp.MainActivity"
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         ndk {
             //noinspection ChromeOsAbiSupport
@@ -282,13 +319,11 @@ android {
             // Install debug separately so onboarding and wallet storage stay isolated from release.
             applicationIdSuffix = ".dev"
             manifestPlaceholders["appLabel"] = "Lasr Dev"
-            buildConfigField("boolean", "ALLOW_E2E_HOOKS", "false")
         }
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
             manifestPlaceholders["appLabel"] = "Lasr"
-            buildConfigField("boolean", "ALLOW_E2E_HOOKS", "false")
 
             proguardFiles(
                 // Default file with automatically generated optimization rules.
@@ -309,8 +344,9 @@ android {
             applicationIdSuffix = ".e2e"
             matchingFallbacks += listOf("release")
             manifestPlaceholders["appLabel"] = "Lasr E2E"
+            manifestPlaceholders["mainActivityName"] = "xyz.lilsus.papp.E2eMainActivity"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
-            buildConfigField("boolean", "ALLOW_E2E_HOOKS", "true")
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     buildFeatures {

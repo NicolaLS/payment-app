@@ -1,16 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+cd "$(dirname "$0")/../.."
+
+# shellcheck source=_reglab-common
+source e2e/bin/_reglab-common
+load_e2e_env
+derive_test_wallet_env
+require_test_wallet_env
+require_command jq
+
 sats="${1:-21}"
 description="${2:-Papp E2E invoice}"
-payload="$(
-  python3 -c 'import json, sys; print(json.dumps({"sats": int(sys.argv[1]), "description": sys.argv[2]}))' \
-    "$sats" \
-    "$description"
-)"
+label="${3:-papp-e2e-$(date +%s)-$$}"
+
+if [[ ! "$sats" =~ ^[0-9]+$ || "$sats" -le 0 ]]; then
+  echo "sats must be a positive integer" >&2
+  exit 2
+fi
+
+payload="$(jq -n \
+  --arg amount_msat "$((sats * 1000))msat" \
+  --arg description "$description" \
+  --arg label "$label" \
+  '{amount_msat: $amount_msat, description: $description, label: $label}')"
 
 curl --fail --silent --show-error \
+  --header "X-Reglab-Lease-Token: ${TEST_WALLET_TOKEN}" \
   --header "content-type: application/json" \
   --data "$payload" \
-  http://127.0.0.1:3021/invoice
+  "${TEST_WALLET_SERVICE_URL%/}/create-invoice"
 echo

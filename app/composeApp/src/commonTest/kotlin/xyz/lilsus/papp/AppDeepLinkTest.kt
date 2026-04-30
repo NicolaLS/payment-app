@@ -2,7 +2,6 @@ package xyz.lilsus.papp
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import xyz.lilsus.papp.navigation.PaymentDeepLinkSource
 
 class AppDeepLinkTest {
     @Test
@@ -20,37 +19,4 @@ class AppDeepLinkTest {
             assertEquals(expected, paymentInputFromDeepLink(uri))
         }
     }
-
-    @Test
-    fun classifiesCameraSourceOnlyForBitcoinE2eLinks() {
-        val cases = listOf(
-            SourceCase(
-                uri = "bitcoin:?lightning=lnbc1amountinvoice&source=camera",
-                e2eHooksAllowed = false,
-                expected = PaymentDeepLinkSource.DeepLink
-            ),
-            SourceCase(
-                uri = "lightning:lnbc1amountinvoice?source=camera",
-                e2eHooksAllowed = true,
-                expected = PaymentDeepLinkSource.DeepLink
-            ),
-            SourceCase(
-                uri = "bitcoin:?lightning=lnbc1amountinvoice&source=camera",
-                e2eHooksAllowed = true,
-                expected = PaymentDeepLinkSource.Camera
-            )
-        )
-
-        cases.forEach { case ->
-            assertEquals(
-                case.expected,
-                paymentDeepLinkSource(
-                    uri = case.uri,
-                    e2eHooksAllowed = case.e2eHooksAllowed
-                )
-            )
-        }
-    }
-
-    private data class SourceCase(val uri: String, val e2eHooksAllowed: Boolean, val expected: PaymentDeepLinkSource)
 }

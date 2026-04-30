@@ -3,8 +3,313 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-# Every `up` is a cold boot. The harness contract is "no state between runs": wipe
-# volumes first so bitcoind/lightningd/relay/nostr DBs all start empty. This trades
-# a slower bootstrap (~30s) for fully deterministic state.
-docker compose -f e2e/docker-compose.yml down -v --remove-orphans
-docker compose -f e2e/docker-compose.yml up --build -d
+# shellcheck source=_reglab-common
+source e2e/bin/_reglab-common
+
+env_file="${E2E_ENV_FILE:-e2e/.env.local}"
+remote_env_file="${REGLAB_REMOTE_ENV_FILE:-e2e/.remote.env}"
+local_slots="${REGLAB_LOCAL_SLOTS:-2}"
+local_from_source="${REGLAB_LOCAL_FROM_SOURCE:-0}"
+local_source_dir="${REGLAB_SOURCE_DIR:-}"
+force_local=0
+
+usage() {
+  cat <<'EOF'
+Usage: e2e/bin/up [options]
+
+Default mode starts local ReGLab and writes e2e/.env.local for Maestro.
+Remote mode is selected by setting REGLAB_URL and REGLAB_RUNNER_TOKEN, or by
+creating e2e/.remote.env from e2e/remote.env.example.
+
+Options:
+  --local              Force local ReGLab, ignoring remote env values.
+  --remote-env <path>  Remote env file. Default: e2e/.remote.env.
+  --slots <n>          Local ReGLab warm slots. Default: REGLAB_LOCAL_SLOTS or 2.
+  --from-source        Build the local ReGLab container from REGLAB_SOURCE_DIR.
+  --source-dir <path>  ReGLab source checkout for --from-source.
+  -h, --help           Show this help.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --local)
+      force_local=1
+      shift
+      ;;
+    --remote-env)
+      if [[ $# -lt 2 ]]; then
+        echo "--remote-env requires a path." >&2
+        exit 2
+      fi
+      remote_env_file="${2:-}"
+      shift 2
+      ;;
+    --slots)
+      if [[ $# -lt 2 ]]; then
+        echo "--slots requires a value." >&2
+        exit 2
+      fi
+      local_slots="${2:-}"
+      shift 2
+      ;;
+    --from-source)
+      local_from_source=1
+      shift
+      ;;
+    --source-dir)
+      if [[ $# -lt 2 ]]; then
+        echo "--source-dir requires a path." >&2
+        exit 2
+      fi
+      local_source_dir="${2:-}"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if is_truthy "$force_local"; then
+  unset REGLAB_URL REGLAB_RUNNER_TOKEN RUNNER_TOKEN
+  unset MAESTRO_REGLAB_URL MAESTRO_REGLAB_RUNNER_TOKEN
+elif [[ -f "$remote_env_file" ]]; then
+  # shellcheck disable=SC1090
+  source "$remote_env_file"
+fi
+
+caller_reglab_url="${REGLAB_URL:-}"
+caller_runner_token="${REGLAB_RUNNER_TOKEN:-${RUNNER_TOKEN:-}}"
+
+if [[ "$caller_runner_token" == "replace-with-runner-token" ]]; then
+  echo "Edit ${remote_env_file} and replace REGLAB_RUNNER_TOKEN before using remote ReGLab, or run e2e/bin/up --local." >&2
+  exit 2
+fi
+
+if [[ ! "$local_slots" =~ ^[0-9]+$ || "$local_slots" -le 0 ]]; then
+  echo "--slots must be a positive integer, got '${local_slots}'." >&2
+  exit 2
+fi
+
+is_reglab_source_dir() {
+  local dir="$1"
+  [[ -f "${dir}/go.mod" && -d "${dir}/cmd/reglab" && -d "${dir}/cmd/reglabd" ]]
+}
+
+detect_reglab_source_dir() {
+  local candidates=()
+
+  if [[ -n "$local_source_dir" ]]; then
+    candidates+=("$local_source_dir")
+  fi
+  candidates+=(
+    "${APP_ROOT}/../reglab"
+    "${APP_ROOT}/../../reglab"
+    "${APP_ROOT}/../../../reglab"
+    "${HOME}/src/consulting/github.com/NicolaLS/reglab"
+    "${HOME}/src/personal/github.com/NicolaLS/reglab"
+  )
+
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if is_reglab_source_dir "$candidate"; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+is_local_setup_url() {
+  case "$1" in
+    https://reglab.localhost | https://localhost | http://localhost | http://localhost:* | http://127.0.0.1 | http://127.0.0.1:* | http://10.0.2.2 | http://10.0.2.2:*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+normalized_caller_url="${caller_reglab_url%/}"
+mode="local"
+if [[ -n "$caller_reglab_url" || -n "$caller_runner_token" ]]; then
+  if [[ -z "$caller_reglab_url" || -z "$caller_runner_token" ]]; then
+    echo "Set both REGLAB_URL and REGLAB_RUNNER_TOKEN for remote mode, or neither for local mode." >&2
+    exit 2
+  fi
+
+  if ! is_local_setup_url "$normalized_caller_url"; then
+    mode="remote"
+  fi
+fi
+
+write_export() {
+  local name="$1"
+  local value="$2"
+  printf 'export %s=%q\n' "$name" "$value"
+}
+
+write_common_env() {
+  local local_flag="$1"
+
+  write_export REGLAB_LOCAL "$local_flag"
+  write_export REGLAB_URL "$REGLAB_URL"
+  write_export REGLAB_RUNNER_TOKEN "$REGLAB_RUNNER_TOKEN"
+  write_export REGLAB_TEMPLATE "$REGLAB_TEMPLATE"
+  write_export REGLAB_SNAPSHOT "$REGLAB_SNAPSHOT"
+  write_export REGLAB_LEASE_TTL_SECONDS "$REGLAB_LEASE_TTL_SECONDS"
+  write_export REGLAB_LEASE_CLAIM_TIMEOUT_SEC "$REGLAB_LEASE_CLAIM_TIMEOUT_SEC"
+
+  write_export MAESTRO_REGLAB_LOCAL "$local_flag"
+  write_export MAESTRO_REGLAB_URL "$REGLAB_URL"
+  write_export MAESTRO_REGLAB_RUNNER_TOKEN "$REGLAB_RUNNER_TOKEN"
+  write_export MAESTRO_REGLAB_TEMPLATE "$REGLAB_TEMPLATE"
+  write_export MAESTRO_REGLAB_SNAPSHOT "$REGLAB_SNAPSHOT"
+  write_export MAESTRO_REGLAB_LEASE_TTL_SECONDS "$REGLAB_LEASE_TTL_SECONDS"
+  write_export MAESTRO_REGLAB_LEASE_WAIT "${REGLAB_LEASE_CLAIM_TIMEOUT_SEC}s"
+}
+
+write_env_file() {
+  local local_flag="$1"
+  local tmp
+  tmp="$(mktemp "${env_file}.tmp.XXXXXX")"
+  {
+    printf '# Generated by e2e/bin/up. Do not edit or commit.\n'
+    printf '# Remote input belongs in e2e/.remote.env. Local mode is the default.\n'
+    write_export REGLAB_MODE "$mode"
+    write_common_env "$local_flag"
+
+    if [[ "$local_flag" == "1" ]]; then
+      write_export REGLAB_ANDROID_EMULATOR_URL "${REGLAB_ANDROID_EMULATOR_URL:-http://10.0.2.2}"
+      write_export MAESTRO_REGLAB_ANDROID_EMULATOR_URL "${MAESTRO_REGLAB_ANDROID_EMULATOR_URL:-${REGLAB_ANDROID_EMULATOR_URL:-http://10.0.2.2}}"
+    fi
+
+    if [[ -n "${REGLAB_DEVICE_URL:-}" ]]; then
+      write_export REGLAB_DEVICE_URL "$REGLAB_DEVICE_URL"
+      write_export MAESTRO_REGLAB_DEVICE_URL "${MAESTRO_REGLAB_DEVICE_URL:-$REGLAB_DEVICE_URL}"
+    fi
+  } >"$tmp"
+  mv "$tmp" "$env_file"
+}
+
+warn_if_maestro_studio_needs_trust() {
+  if [[ ! -x e2e/bin/trust-maestro-studio ]]; then
+    return 0
+  fi
+
+  if e2e/bin/trust-maestro-studio --check --quiet >/dev/null 2>&1; then
+    return 0
+  fi
+
+  cat <<'EOF'
+
+Maestro Studio Desktop's bundled JVM does not trust the local ReGLab CA yet.
+Run this once, then fully quit and reopen Maestro Studio:
+  e2e/bin/trust-maestro-studio
+EOF
+}
+
+print_next_steps() {
+  local label="$1"
+
+  echo "Configured LASR e2e for ${label} ReGLab."
+  echo "Wrote ${env_file}."
+  echo
+  echo "For Maestro CLI, load the generated env in this shell:"
+  echo "  source ${env_file}"
+  echo
+  echo "Run a single flow:"
+  echo "  maestro test flows/tests/new_users/onboarding_complete_nwc.yaml"
+  echo
+  echo "Run the suite:"
+  echo "  maestro test flows"
+  echo
+  echo "Use Maestro Studio Desktop:"
+  echo "  Workspace: ${APP_ROOT}/flows"
+  if [[ "$label" == "local" ]]; then
+    echo "  Environment: No environment"
+  else
+    echo "  Environment: create/select a remote environment with values from:"
+    echo "    e2e/bin/studio-env"
+  fi
+  echo
+  echo "Avoid 'maestro studio'; it opens the deprecated browser Studio."
+}
+
+if [[ "$mode" == "remote" ]]; then
+  REGLAB_URL="$caller_reglab_url"
+  REGLAB_RUNNER_TOKEN="$caller_runner_token"
+  REGLAB_TEMPLATE="${REGLAB_TEMPLATE:-payments-basic}"
+  REGLAB_SNAPSHOT="${REGLAB_SNAPSHOT:-default}"
+
+  write_env_file 0
+  print_next_steps "remote"
+  exit 0
+fi
+
+require_command docker
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker or OrbStack must be running before starting local ReGLab." >&2
+  exit 1
+fi
+
+if ! is_truthy "$local_from_source"; then
+  detected_source_dir="$(detect_reglab_source_dir || true)"
+  if [[ -n "$detected_source_dir" ]]; then
+    local_from_source=1
+    local_source_dir="$detected_source_dir"
+    echo "Using local ReGLab source checkout: ${local_source_dir}"
+  fi
+fi
+
+local_up_args=(local up --slots "$local_slots")
+if is_truthy "$local_from_source"; then
+  if [[ -z "$local_source_dir" ]]; then
+    echo "REGLAB_SOURCE_DIR or --source-dir is required with --from-source." >&2
+    exit 2
+  fi
+  local_up_args+=(--from-source --source-dir "$local_source_dir")
+fi
+
+if run_reglab_cli "${local_up_args[@]}"; then
+  :
+else
+  status=$?
+  cat >&2 <<'EOF'
+
+Failed to start local ReGLab.
+
+If the published ReGLab image is unavailable, install or check out ReGLab
+locally and rerun one of:
+
+  e2e/bin/up --local --from-source --source-dir /path/to/reglab
+  REGLAB_SOURCE_DIR=/path/to/reglab e2e/bin/up --local
+
+Trusted contributors can also use remote ReGLab by creating e2e/.remote.env.
+EOF
+  exit "$status"
+fi
+
+local_env_file="${HOME}/.reglab/local/local.env"
+if [[ ! -f "$local_env_file" ]]; then
+  echo "Expected local ReGLab env file at ${local_env_file}, but it was not created." >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$local_env_file"
+set +a
+
+require_env REGLAB_URL
+require_env REGLAB_RUNNER_TOKEN
+REGLAB_TEMPLATE="${REGLAB_TEMPLATE:-payments-basic}"
+REGLAB_SNAPSHOT="${REGLAB_SNAPSHOT:-default}"
+
+write_env_file 1
+warn_if_maestro_studio_needs_trust
+print_next_steps "local"

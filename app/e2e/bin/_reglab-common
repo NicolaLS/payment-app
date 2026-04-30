@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+
+APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+E2E_DIR="${APP_ROOT}/e2e"
+
+REGLAB_RUNNER_TOKEN="${REGLAB_RUNNER_TOKEN:-${RUNNER_TOKEN:-}}"
+REGLAB_TEMPLATE="${REGLAB_TEMPLATE:-payments-basic}"
+REGLAB_SNAPSHOT="${REGLAB_SNAPSHOT:-default}"
+REGLAB_CLI="${REGLAB_CLI:-reglab}"
+REGLAB_LEASE_TTL_SECONDS="${REGLAB_LEASE_TTL_SECONDS:-900}"
+REGLAB_LEASE_CLAIM_TIMEOUT_SEC="${REGLAB_LEASE_CLAIM_TIMEOUT_SEC:-180}"
+
+require_command() {
+  local name="$1"
+  if ! command -v "$name" >/dev/null 2>&1; then
+    echo "$name is required" >&2
+    exit 127
+  fi
+}
+
+require_env() {
+  local name="$1"
+  if [[ -z "${!name:-}" ]]; then
+    echo "$name is required" >&2
+    exit 2
+  fi
+}
+
+require_positive_integer() {
+  local name="$1"
+  local value="${!name:-}"
+  if [[ ! "$value" =~ ^[0-9]+$ || "$value" -le 0 ]]; then
+    echo "$name must be a positive integer, got '${value}'." >&2
+    exit 2
+  fi
+}
+
+require_identifier() {
+  local name="$1"
+  local value="${!name:-}"
+  if [[ ! "$value" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
+    echo "$name must contain only letters, digits, dots, underscores, or dashes." >&2
+    exit 2
+  fi
+}
+
+run_reglab_cli() {
+  if ! command -v "$REGLAB_CLI" >/dev/null 2>&1; then
+    cat >&2 <<'EOF'
+reglab CLI is required for the e2e harness.
+
+Install it from the ReGLab checkout:
+  just install-cli
+
+Or directly with Go:
+  GOBIN="$HOME/.local/bin" go install ./cmd/reglab
+
+If it is installed outside PATH, set REGLAB_CLI=/path/to/reglab.
+EOF
+    exit 127
+  fi
+  "$REGLAB_CLI" "$@"
+}
+
+load_e2e_env() {
+  local env_file="${E2E_ENV_FILE:-${E2E_DIR}/.env.local}"
+
+  if [[ -f "$env_file" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$env_file"
+    set +a
+  fi
+
+  if [[ -z "$REGLAB_RUNNER_TOKEN" && -n "${RUNNER_TOKEN:-}" ]]; then
+    REGLAB_RUNNER_TOKEN="$RUNNER_TOKEN"
+  fi
+  REGLAB_TEMPLATE="${REGLAB_TEMPLATE:-payments-basic}"
+  REGLAB_SNAPSHOT="${REGLAB_SNAPSHOT:-default}"
+  REGLAB_LEASE_TTL_SECONDS="${REGLAB_LEASE_TTL_SECONDS:-900}"
+  REGLAB_LEASE_CLAIM_TIMEOUT_SEC="${REGLAB_LEASE_CLAIM_TIMEOUT_SEC:-180}"
+}
+
+is_truthy() {
+  case "${1:-}" in
+    1 | true | TRUE | yes | YES | on | ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+export_maestro_reglab_env() {
+  require_env REGLAB_URL
+  require_env REGLAB_RUNNER_TOKEN
+
+  export MAESTRO_REGLAB_URL="${REGLAB_URL}"
+  export MAESTRO_REGLAB_RUNNER_TOKEN="${REGLAB_RUNNER_TOKEN}"
+  export MAESTRO_REGLAB_TEMPLATE="${REGLAB_TEMPLATE}"
+  export MAESTRO_REGLAB_SNAPSHOT="${REGLAB_SNAPSHOT}"
+  export MAESTRO_REGLAB_LEASE_TTL_SECONDS="${REGLAB_LEASE_TTL_SECONDS}"
+  export MAESTRO_REGLAB_LEASE_WAIT="${REGLAB_LEASE_CLAIM_TIMEOUT_SEC}s"
+
+  if [[ -n "${REGLAB_LOCAL:-}" ]]; then
+    export MAESTRO_REGLAB_LOCAL="${REGLAB_LOCAL}"
+  fi
+  if [[ -n "${REGLAB_DEVICE_URL:-}" ]]; then
+    export MAESTRO_REGLAB_DEVICE_URL="${REGLAB_DEVICE_URL}"
+  fi
+  if [[ -n "${REGLAB_ANDROID_EMULATOR_URL:-}" ]]; then
+    export MAESTRO_REGLAB_ANDROID_EMULATOR_URL="${REGLAB_ANDROID_EMULATOR_URL}"
+  fi
+}
+
+derive_test_wallet_env() {
+  if [[ -z "${TEST_WALLET_TOKEN:-}" && -n "${REGLAB_LEASE_TOKEN:-}" ]]; then
+    export TEST_WALLET_TOKEN="$REGLAB_LEASE_TOKEN"
+  fi
+
+  if [[ -z "${TEST_WALLET_SERVICE_URL:-}" && -n "${REGLAB_LEASE_OPS_URL:-}" ]]; then
+    export TEST_WALLET_SERVICE_URL="$REGLAB_LEASE_OPS_URL"
+  fi
+
+  if [[ -z "${TEST_WALLET_SERVICE_URL:-}" && -n "${REGLAB_LEASE_ID:-}" ]]; then
+    export TEST_WALLET_SERVICE_URL="${REGLAB_URL%/}/leases/${REGLAB_LEASE_ID}/ops"
+  fi
+}
+
+require_test_wallet_env() {
+  if [[ -z "${TEST_WALLET_SERVICE_URL:-}" || -z "${TEST_WALLET_TOKEN:-}" ]]; then
+    echo "TEST_WALLET_SERVICE_URL and TEST_WALLET_TOKEN are required." >&2
+    echo "Run: eval \"\$(e2e/bin/claim-lease)\"" >&2
+    exit 2
+  fi
+}
+
+claim_reglab_lease() {
+  require_command jq
+  require_env REGLAB_URL
+  require_env REGLAB_RUNNER_TOKEN
+  require_identifier REGLAB_TEMPLATE
+  require_identifier REGLAB_SNAPSHOT
+  require_positive_integer REGLAB_LEASE_TTL_SECONDS
+  require_positive_integer REGLAB_LEASE_CLAIM_TIMEOUT_SEC
+
+  local deadline=$((SECONDS + REGLAB_LEASE_CLAIM_TIMEOUT_SEC))
+  local delay=1
+  local cli_body cli_err error
+
+  while (( SECONDS < deadline )); do
+    cli_err="$(mktemp)"
+    if cli_body="$(run_reglab_cli \
+      --server "$REGLAB_URL" \
+      --runner-token "$REGLAB_RUNNER_TOKEN" \
+      lease claim \
+      --template "$REGLAB_TEMPLATE" \
+      --ttl "$REGLAB_LEASE_TTL_SECONDS" \
+      "$REGLAB_SNAPSHOT" 2>"$cli_err")"; then
+      rm -f "$cli_err"
+      printf '%s\n' "$cli_body"
+      return 0
+    fi
+
+    error="$(cat "$cli_err")"
+    rm -f "$cli_err"
+    if printf '%s' "$error" | grep -q 'pool_exhausted\|capacity is exhausted'; then
+      sleep "$delay"
+      delay=$(( delay < 5 ? delay + 1 : 5 ))
+      continue
+    fi
+
+    echo "Failed to claim ReGLab lease from ${REGLAB_URL%/} with ${REGLAB_CLI}:" >&2
+    [[ -n "$error" ]] && echo "$error" >&2
+    return 1
+  done
+
+  echo "Timed out claiming ReGLab lease after ${REGLAB_LEASE_CLAIM_TIMEOUT_SEC}s" >&2
+  return 1
+}
+
+release_reglab_lease() {
+  local lease_id="$1"
+  require_env REGLAB_URL
+  require_env REGLAB_RUNNER_TOKEN
+
+  run_reglab_cli \
+    --server "$REGLAB_URL" \
+    --runner-token "$REGLAB_RUNNER_TOKEN" \
+    lease release "$lease_id" >/dev/null
+}

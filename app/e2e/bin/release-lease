@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+# shellcheck source=_reglab-common
+source e2e/bin/_reglab-common
+load_e2e_env
+
+lease_id="${1:-${REGLAB_LEASE_ID:-}}"
+
+if [[ -z "$lease_id" ]]; then
+  echo "No lease id supplied. Pass one as an argument or set REGLAB_LEASE_ID." >&2
+  exit 2
+fi
+
+release_reglab_lease "$lease_id"
+echo "Released ReGLab lease ${lease_id}."
