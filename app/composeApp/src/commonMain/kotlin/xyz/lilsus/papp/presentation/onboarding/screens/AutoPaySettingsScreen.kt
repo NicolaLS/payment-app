@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -90,14 +91,15 @@ fun AutoPaySettingsScreen(
                     // Always confirm option
                     Row(
                         modifier = Modifier
+                            .heightIn(48.dp)
+                            .fillMaxWidth()
                             .selectable(
                                 selected = confirmationMode == PaymentConfirmationMode.Always,
                                 role = Role.RadioButton,
                                 onClick = {
                                     onConfirmationModeChanged(PaymentConfirmationMode.Always)
                                 }
-                            )
-                            .fillMaxWidth(),
+                            ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
@@ -114,14 +116,15 @@ fun AutoPaySettingsScreen(
                     // Auto-pay below threshold option
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(48.dp)
                             .selectable(
                                 selected = confirmationMode == PaymentConfirmationMode.Above,
                                 role = Role.RadioButton,
                                 onClick = {
                                     onConfirmationModeChanged(PaymentConfirmationMode.Above)
                                 }
-                            )
-                            .fillMaxWidth(),
+                            ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -220,6 +221,7 @@ private fun DiscoveryDetails(
 
         Row(
             modifier = Modifier
+                .heightIn(48.dp)
                 .toggleable(
                     value = state.setActive,
                     role = Role.Checkbox,

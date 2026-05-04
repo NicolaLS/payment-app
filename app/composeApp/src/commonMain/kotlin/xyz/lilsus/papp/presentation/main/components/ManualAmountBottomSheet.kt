@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -291,7 +292,9 @@ private fun RangePill(label: String, onClick: () -> Unit) {
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier
+            .heightIn(48.dp)
+            .clickable(onClick = onClick)
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

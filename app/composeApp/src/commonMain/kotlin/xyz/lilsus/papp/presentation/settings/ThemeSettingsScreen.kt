@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -103,6 +104,7 @@ fun ThemeSettingsScreen(
 private fun ThemeRow(title: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
+            .heightIn(48.dp)
             .fillMaxWidth()
             .clickable(onClick = onClick),
         tonalElevation = if (selected) 6.dp else 2.dp,

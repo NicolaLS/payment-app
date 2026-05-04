@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -129,12 +130,13 @@ fun PaymentsSettingsScreen(
                     PaymentModeChips(selected = state.confirmationMode, onSelected = onModeSelected)
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(48.dp)
                             .toggleable(
                                 value = state.confirmManualEntry,
                                 role = Role.Switch,
                                 onValueChange = onConfirmManualEntryChanged
-                            )
-                            .fillMaxWidth(),
+                            ),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -185,12 +187,13 @@ fun PaymentsSettingsScreen(
                     )
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(48.dp)
                             .toggleable(
                                 value = state.vibrateOnScan,
                                 role = Role.Switch,
                                 onValueChange = onVibrateOnScanChanged
-                            )
-                            .fillMaxWidth(),
+                            ),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -209,12 +212,13 @@ fun PaymentsSettingsScreen(
                     }
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(48.dp)
                             .toggleable(
                                 value = state.vibrateOnPayment,
                                 role = Role.Switch,
                                 onValueChange = onVibrateOnPaymentChanged
-                            )
-                            .fillMaxWidth(),
+                            ),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
