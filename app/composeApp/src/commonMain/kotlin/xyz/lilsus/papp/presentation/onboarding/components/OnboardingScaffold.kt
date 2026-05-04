@@ -15,10 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -27,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import xyz.lilsus.papp.domain.model.OnboardingStep
+import xyz.lilsus.papp.presentation.common.BackIconButton
 
 private val MAIN_STEPS = listOf(
     OnboardingStep.Welcome,
@@ -64,12 +61,7 @@ fun OnboardingScaffold(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (showBackButton && currentStep != OnboardingStep.Welcome) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BackIconButton(onClick = onBack)
                 } else {
                     Spacer(modifier = Modifier.size(48.dp))
                 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Einstellungen</string>
+    <string name="action_back">Zurück</string>
     <string name="tap_continue">Zum Fortfahren tippen…</string>
     <string name="tap_dismiss_pending">Tippen zum Schließen. Zahlung läuft im Hintergrund weiter.</string>
     <string name="point_camera_message_subtitle">Richte die Kamera auf eine Rechnung.</string>
@@ -145,6 +146,8 @@
     <string name="add_blink_wallet_alias_placeholder">Meine Blink-Wallet</string>
     <string name="add_blink_wallet_api_key_label">API-Schlüssel</string>
     <string name="add_blink_wallet_api_key_placeholder">blink_...</string>
+    <string name="add_blink_wallet_show_api_key">API-Schlüssel anzeigen</string>
+    <string name="add_blink_wallet_hide_api_key">API-Schlüssel ausblenden</string>
     <string name="add_blink_wallet_connect">Verbinden</string>
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>

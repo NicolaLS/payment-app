@@ -15,13 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -50,6 +46,7 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
+import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.ThresholdSlider
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -85,12 +82,7 @@ fun PaymentsSettingsScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.settings_payments)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )

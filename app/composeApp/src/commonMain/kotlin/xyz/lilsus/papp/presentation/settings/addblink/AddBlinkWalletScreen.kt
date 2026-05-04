@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -45,9 +44,12 @@ import lasr.composeapp.generated.resources.add_blink_wallet_api_key_label
 import lasr.composeapp.generated.resources.add_blink_wallet_api_key_placeholder
 import lasr.composeapp.generated.resources.add_blink_wallet_connect
 import lasr.composeapp.generated.resources.add_blink_wallet_description
+import lasr.composeapp.generated.resources.add_blink_wallet_hide_api_key
+import lasr.composeapp.generated.resources.add_blink_wallet_show_api_key
 import lasr.composeapp.generated.resources.add_blink_wallet_title
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
+import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,12 +79,7 @@ fun AddBlinkWalletScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.add_blink_wallet_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )
@@ -147,6 +144,13 @@ fun AddBlinkWalletScreen(
                     onDone = { submitOrClearFocus() }
                 ),
                 trailingIcon = {
+                    val visibilityDescription = stringResource(
+                        if (apiKeyVisible) {
+                            Res.string.add_blink_wallet_hide_api_key
+                        } else {
+                            Res.string.add_blink_wallet_show_api_key
+                        }
+                    )
                     IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
                         Icon(
                             imageVector = if (apiKeyVisible) {
@@ -154,7 +158,7 @@ fun AddBlinkWalletScreen(
                             } else {
                                 Icons.Default.Visibility
                             },
-                            contentDescription = null
+                            contentDescription = visibilityDescription
                         )
                     }
                 }

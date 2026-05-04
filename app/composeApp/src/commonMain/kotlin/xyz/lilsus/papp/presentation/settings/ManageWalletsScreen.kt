@@ -11,14 +11,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -41,6 +37,7 @@ import lasr.composeapp.generated.resources.settings_manage_wallets_set_active
 import lasr.composeapp.generated.resources.settings_manage_wallets_title
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.settings.wallet.WalletDisplay
 import xyz.lilsus.papp.presentation.settings.wallet.WalletRow
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsUiState
@@ -64,12 +61,7 @@ fun ManageWalletsScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.settings_manage_wallets_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )

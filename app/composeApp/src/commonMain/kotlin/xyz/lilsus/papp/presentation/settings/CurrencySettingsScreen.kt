@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -41,6 +39,7 @@ import lasr.composeapp.generated.resources.settings_currency_jpy
 import lasr.composeapp.generated.resources.settings_currency_satoshi
 import lasr.composeapp.generated.resources.settings_currency_usd
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,12 +63,7 @@ fun CurrencySettingsScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.settings_currency)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )

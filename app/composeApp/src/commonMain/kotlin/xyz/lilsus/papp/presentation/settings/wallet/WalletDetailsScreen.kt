@@ -5,14 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -35,6 +31,7 @@ import lasr.composeapp.generated.resources.wallet_type_blink
 import lasr.composeapp.generated.resources.wallet_type_nwc
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.domain.model.WalletType
+import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -61,12 +58,7 @@ fun WalletDetailsScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )

@@ -8,14 +8,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -30,6 +28,7 @@ import lasr.composeapp.generated.resources.add_wallet_choose_type
 import lasr.composeapp.generated.resources.wallet_type_blink
 import lasr.composeapp.generated.resources.wallet_type_nwc
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.presentation.common.BackIconButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,12 +46,7 @@ fun ChooseWalletTypeScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.add_wallet_choose_type)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )
