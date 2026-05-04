@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -217,13 +219,19 @@ private fun DiscoveryDetails(
         )
 
         Row(
+            modifier = Modifier
+                .toggleable(
+                    value = state.setActive,
+                    role = Role.Checkbox,
+                    onValueChange = { onSetActiveChange(it) },
+                    enabled = !state.isSaving
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Checkbox(
                 checked = state.setActive,
-                onCheckedChange = { onSetActiveChange(it) },
-                enabled = !state.isSaving,
+                onCheckedChange = null,
                 modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_SET_ACTIVE_CHECKBOX)
             )
             Text(text = stringResource(Res.string.connect_wallet_set_active))
