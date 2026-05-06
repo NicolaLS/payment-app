@@ -9,6 +9,36 @@ package xyz.lilsus.papp
 object MaestroTags {
     object Payment {
         const val SCREEN = "payment_screen"
+        const val ACTIVE_CONTENT = "payment_active_content"
+        const val SETTINGS_BUTTON = "payment_settings_button"
+        const val ACTIVE_WALLET_NAME = "payment_active_wallet_name"
+        const val PENDING_CHIP = "payment_pending_chip"
+        const val WATCHING_PENDING = "payment_watching_pending"
+
+        const val CONFIRMATION_SHEET = "payment_confirmation_sheet"
+        const val CONFIRMATION_PAY_BUTTON = "payment_confirmation_pay_button"
+        const val CONFIRMATION_DISMISS_BUTTON = "payment_confirmation_dismiss_button"
+
+        const val MANUAL_AMOUNT_SHEET = "payment_manual_amount_sheet"
+        const val MANUAL_AMOUNT_DISPLAY = "payment_manual_amount_display"
+        const val MANUAL_AMOUNT_PAY_BUTTON = "payment_manual_amount_pay_button"
+        const val MANUAL_AMOUNT_DECIMAL_KEY = "payment_manual_amount_key_decimal"
+        const val MANUAL_AMOUNT_BACKSPACE_KEY = "payment_manual_amount_key_backspace"
+
+        const val PENDING_RETRY_SHEET = "payment_pending_retry_sheet"
+        const val PENDING_RETRY_SAME_INVOICE_BUTTON =
+            "payment_pending_retry_same_invoice_button"
+        const val PENDING_RETRY_CREATE_NEW_INVOICE_BUTTON =
+            "payment_pending_retry_create_new_invoice_button"
+        const val PENDING_RETRY_VIEW_PENDING_BUTTON =
+            "payment_pending_retry_view_pending_button"
+
+        const val RESULT = "payment_result"
+        const val RESULT_SUCCESS = "payment_result_success"
+        const val RESULT_ALREADY_PAID = "payment_result_already_paid"
+        const val RESULT_ERROR = "payment_result_error"
+
+        fun manualAmountDigitKey(value: Int): String = "payment_manual_amount_key_$value"
     }
 
     object Onboarding {
@@ -63,4 +93,43 @@ object MaestroTags {
         const val DIALOG_CONFIRM_BUTTON = "nwc_wallet_dialog_confirm_button"
         const val DIALOG_CANCEL_BUTTON = "nwc_wallet_dialog_cancel_button"
     }
+
+    object Settings {
+        const val BACK_BUTTON = "settings_back_button"
+
+        const val SCREEN = "settings_screen"
+        const val MANAGE_WALLETS_ROW = "settings_manage_wallets_row"
+        const val PAYMENTS_ROW = "settings_payments_row"
+        const val CURRENCY_ROW = "settings_currency_row"
+        const val LANGUAGE_ROW = "settings_language_row"
+        const val THEME_ROW = "settings_theme_row"
+
+        const val PAYMENTS_SCREEN = "settings_payments_screen"
+        const val PAYMENTS_CONFIRMATION_MODE_ALWAYS =
+            "settings_payments_confirmation_mode_always"
+        const val PAYMENTS_CONFIRMATION_MODE_ABOVE =
+            "settings_payments_confirmation_mode_above"
+        const val PAYMENTS_CONFIRM_MANUAL_ENTRY =
+            "settings_payments_confirm_manual_entry"
+
+        const val MANAGE_WALLETS_SCREEN = "settings_manage_wallets_screen"
+        const val MANAGE_WALLETS_ADD_BUTTON = "settings_manage_wallets_add_button"
+        const val MANAGE_WALLETS_EMPTY = "settings_manage_wallets_empty"
+
+        fun walletRow(label: String): String = "settings_wallet_row_${label.stableTagToken()}"
+        fun walletActiveBadge(label: String): String =
+            "settings_wallet_active_${label.stableTagToken()}"
+
+        fun walletRemoveButton(label: String): String =
+            "settings_wallet_remove_${label.stableTagToken()}"
+
+        fun walletSetActiveButton(label: String): String =
+            "settings_wallet_set_active_${label.stableTagToken()}"
+    }
 }
+
+private fun String.stableTagToken(): String = lowercase()
+    .map { char -> if (char.isLetterOrDigit()) char else '-' }
+    .joinToString(separator = "")
+    .trim('-')
+    .ifBlank { "wallet" }

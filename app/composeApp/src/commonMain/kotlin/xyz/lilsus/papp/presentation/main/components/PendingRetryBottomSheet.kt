@@ -16,6 +16,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,8 @@ import lasr.composeapp.generated.resources.pending_retry_dynamic_title
 import lasr.composeapp.generated.resources.pending_retry_same_invoice
 import lasr.composeapp.generated.resources.pending_retry_view_pending
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
+import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
 import xyz.lilsus.papp.presentation.main.PendingRetrySource
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -44,12 +47,14 @@ fun PendingRetryBottomSheet(
     val isDynamic = source == PendingRetrySource.Dynamic
 
     ModalBottomSheet(
+        modifier = Modifier.enableMaestroTestTagsAsResourceId(),
         sheetState = sheetState,
         onDismissRequest = onDismiss
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag(MaestroTags.Payment.PENDING_RETRY_SHEET)
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -88,7 +93,9 @@ fun PendingRetryBottomSheet(
             ) {
                 Button(
                     onClick = onRetrySameInvoice,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(MaestroTags.Payment.PENDING_RETRY_SAME_INVOICE_BUTTON)
                 ) {
                     Text(stringResource(Res.string.pending_retry_same_invoice))
                 }
@@ -96,7 +103,11 @@ fun PendingRetryBottomSheet(
                 if (isDynamic) {
                     OutlinedButton(
                         onClick = onCreateNewInvoice,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(
+                                MaestroTags.Payment.PENDING_RETRY_CREATE_NEW_INVOICE_BUTTON
+                            )
                     ) {
                         Text(stringResource(Res.string.pending_retry_create_new_invoice))
                     }
@@ -104,7 +115,9 @@ fun PendingRetryBottomSheet(
 
                 OutlinedButton(
                     onClick = onViewPending,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(MaestroTags.Payment.PENDING_RETRY_VIEW_PENDING_BUTTON)
                 ) {
                     Text(stringResource(Res.string.pending_retry_view_pending))
                 }

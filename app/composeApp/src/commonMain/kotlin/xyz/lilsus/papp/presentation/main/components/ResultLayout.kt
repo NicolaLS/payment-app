@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,6 +27,7 @@ import lasr.composeapp.generated.resources.result_paid_fee_blink_hint
 import lasr.composeapp.generated.resources.result_paid_title
 import lasr.composeapp.generated.resources.tap_continue
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.DisplayAmount
@@ -38,13 +40,14 @@ import xyz.lilsus.papp.presentation.theme.AppTheme
 fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
     val formatter = rememberAmountFormatter()
     Column(
-        modifier = modifier,
+        modifier = modifier.testTag(MaestroTags.Payment.RESULT),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when (result) {
             is MainUiState.Success -> {
                 if (result.wasAlreadyPaid) {
                     Text(
+                        modifier = Modifier.testTag(MaestroTags.Payment.RESULT_ALREADY_PAID),
                         text = stringResource(Res.string.result_already_paid_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.tertiary
@@ -58,6 +61,7 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
                     )
                 } else {
                     Text(
+                        modifier = Modifier.testTag(MaestroTags.Payment.RESULT_SUCCESS),
                         text = stringResource(Res.string.result_paid_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.tertiary
@@ -90,6 +94,7 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
 
             is MainUiState.Error -> {
                 Text(
+                    modifier = Modifier.testTag(MaestroTags.Payment.RESULT_ERROR),
                     text = stringResource(Res.string.result_error_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.error

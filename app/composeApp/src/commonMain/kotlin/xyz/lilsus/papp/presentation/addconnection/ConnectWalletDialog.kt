@@ -60,6 +60,7 @@ import xyz.lilsus.papp.domain.model.activeEncryption
 import xyz.lilsus.papp.domain.model.supportsNip44
 import xyz.lilsus.papp.domain.model.supportsPayInvoice
 import xyz.lilsus.papp.domain.model.usesLegacyEncryption
+import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 
@@ -93,7 +94,9 @@ fun ConnectWalletDialog(
     val state by viewModel.uiState.collectAsState()
 
     AlertDialog(
-        modifier = Modifier.testTag(MaestroTags.NwcWallet.CONFIRM_DIALOG),
+        modifier = Modifier
+            .enableMaestroTestTagsAsResourceId()
+            .testTag(MaestroTags.NwcWallet.CONFIRM_DIALOG),
         onDismissRequest = {
             viewModel.cancel()
         },

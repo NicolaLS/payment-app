@@ -31,12 +31,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.pending_chip_failure
 import lasr.composeapp.generated.resources.pending_chip_success
 import lasr.composeapp.generated.resources.pending_chip_waiting
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.presentation.main.PendingPaymentItem
 import xyz.lilsus.papp.presentation.main.PendingStatus
@@ -54,7 +56,7 @@ fun BottomLayout(
 ) {
     val formatter = rememberAmountFormatter()
     Column(
-        modifier = modifier,
+        modifier = modifier.testTag(MaestroTags.Payment.ACTIVE_CONTENT),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -107,6 +109,7 @@ private fun WalletIndicator(wallets: List<WalletInfo>) {
             transitionSpec = { fadeIn() togetherWith fadeOut() }
         ) { name ->
             Text(
+                modifier = Modifier.testTag(MaestroTags.Payment.ACTIVE_WALLET_NAME),
                 text = name,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -163,6 +166,7 @@ private fun PendingChip(
     Surface(
         modifier = Modifier
             .clip(MaterialTheme.shapes.small)
+            .testTag(MaestroTags.Payment.PENDING_CHIP)
             .clickable(onClick = onTap),
         shape = MaterialTheme.shapes.small,
         color = containerColor,

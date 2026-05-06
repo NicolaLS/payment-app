@@ -27,6 +27,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import lasr.composeapp.generated.resources.settings_payments_haptics_title
 import lasr.composeapp.generated.resources.settings_payments_option_above
 import lasr.composeapp.generated.resources.settings_payments_option_always
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
@@ -77,7 +79,7 @@ fun PaymentsSettingsScreen(
     }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.testTag(MaestroTags.Settings.PAYMENTS_SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.settings_payments)) },
@@ -123,6 +125,7 @@ fun PaymentsSettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .testTag(MaestroTags.Settings.PAYMENTS_CONFIRM_MANUAL_ENTRY)
                             .heightIn(48.dp)
                             .toggleable(
                                 value = state.confirmManualEntry,
@@ -249,10 +252,16 @@ private fun PaymentModeChips(
             FilterChip(
                 selected = selected == mode,
                 onClick = { onSelected(mode) },
+                modifier = Modifier.testTag(mode.testTag()),
                 label = { Text(stringResource(labelRes)) }
             )
         }
     }
+}
+
+private fun PaymentConfirmationMode.testTag(): String = when (this) {
+    PaymentConfirmationMode.Always -> MaestroTags.Settings.PAYMENTS_CONFIRMATION_MODE_ALWAYS
+    PaymentConfirmationMode.Above -> MaestroTags.Settings.PAYMENTS_CONFIRMATION_MODE_ABOVE
 }
 
 @Preview

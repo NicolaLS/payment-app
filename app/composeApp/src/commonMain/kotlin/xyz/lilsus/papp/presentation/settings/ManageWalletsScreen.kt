@@ -24,6 +24,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,6 +37,7 @@ import lasr.composeapp.generated.resources.settings_manage_wallets_remove
 import lasr.composeapp.generated.resources.settings_manage_wallets_set_active
 import lasr.composeapp.generated.resources.settings_manage_wallets_title
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.settings.wallet.WalletDisplay
@@ -56,7 +58,7 @@ fun ManageWalletsScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.testTag(MaestroTags.Settings.MANAGE_WALLETS_SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.settings_manage_wallets_title)) },
@@ -77,7 +79,9 @@ fun ManageWalletsScreen(
         ) {
             if (state.hasWallets) {
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(MaestroTags.Settings.MANAGE_WALLETS_ADD_BUTTON),
                     onClick = onAddWallet
                 ) {
                     Text(text = stringResource(Res.string.settings_manage_wallets_add))
@@ -115,6 +119,7 @@ private fun WalletCard(
         modifier = Modifier
             .heightIn(48.dp)
             .fillMaxWidth()
+            .testTag(MaestroTags.Settings.walletRow(wallet.testLabel()))
             .clickable(onClick = onDetails),
         tonalElevation = if (isActive) 8.dp else 4.dp,
         shape = MaterialTheme.shapes.large
@@ -156,6 +161,9 @@ private fun WalletCard(
                 }
                 if (isActive) {
                     Text(
+                        modifier = Modifier.testTag(
+                            MaestroTags.Settings.walletActiveBadge(wallet.testLabel())
+                        ),
                         text = stringResource(Res.string.settings_manage_wallets_active),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
@@ -185,10 +193,18 @@ private fun WalletCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedButton(onClick = onRemoveWallet) {
+                OutlinedButton(
+                    modifier = Modifier.testTag(
+                        MaestroTags.Settings.walletRemoveButton(wallet.testLabel())
+                    ),
+                    onClick = onRemoveWallet
+                ) {
                     Text(text = stringResource(Res.string.settings_manage_wallets_remove))
                 }
                 Button(
+                    modifier = Modifier.testTag(
+                        MaestroTags.Settings.walletSetActiveButton(wallet.testLabel())
+                    ),
                     onClick = onSetActive,
                     enabled = !isActive
                 ) {
@@ -202,7 +218,9 @@ private fun WalletCard(
 @Composable
 private fun EmptyWalletState(onAddWallet: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(MaestroTags.Settings.MANAGE_WALLETS_EMPTY),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -216,7 +234,10 @@ private fun EmptyWalletState(onAddWallet: () -> Unit) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
             )
-            Button(onClick = onAddWallet) {
+            Button(
+                modifier = Modifier.testTag(MaestroTags.Settings.MANAGE_WALLETS_ADD_BUTTON),
+                onClick = onAddWallet
+            ) {
                 Text(text = stringResource(Res.string.settings_manage_wallets_add))
             }
         }
@@ -266,3 +287,5 @@ private fun abbreviateKey(value: String): String = if (value.length <=
 } else {
     value.take(8) + "…" + value.takeLast(4)
 }
+
+private fun WalletDisplay.testLabel(): String = alias?.takeIf { it.isNotBlank() } ?: pubKey

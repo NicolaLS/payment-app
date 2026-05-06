@@ -144,6 +144,7 @@ fun MainScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
+                                .testTag(MaestroTags.Payment.WATCHING_PENDING)
                                 .padding(top = 24.dp, start = 24.dp, end = 24.dp),
                             contentAlignment = Alignment.TopCenter
                         ) {

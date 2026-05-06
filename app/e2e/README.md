@@ -199,9 +199,14 @@ e2eProfile       new_user | nwc_user | blink_user | multi_user | slow_internet_u
 e2eReset         true clears E2E wallet storage before applying fixtures
 e2eFixtureJson   JSON fixture data with concrete values from host scripts
 e2ePaymentInput  payment input to inject for a payment test run
+e2ePaymentInputSource  deep_link (default) | camera
 ```
 
 Public deep-link tests should live in a separate release-oriented suite.
+
+`e2eFixtureJson` also supports optional `paymentPreferences` and `network`
+objects for deterministic Maestro setup. The checked-in helpers in `flows/utils`
+emit the fixture JSON used by the default P0 suite.
 
 ## Admin Reference
 

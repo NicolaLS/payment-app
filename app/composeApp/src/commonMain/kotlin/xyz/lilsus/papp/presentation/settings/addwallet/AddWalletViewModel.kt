@@ -31,9 +31,6 @@ class AddWalletViewModel internal constructor(
         val trimmed = uri.trim()
         val isValid = isValid(trimmed)
         _uiState.update { it.copy(uri = uri, error = null, isUriValid = isValid) }
-        if (isValid) {
-            submit()
-        }
     }
 
     fun prefillUriIfValid(candidate: String?) {
@@ -41,7 +38,6 @@ class AddWalletViewModel internal constructor(
         val trimmed = candidate.trim()
         if (!isValid(trimmed)) return
         _uiState.update { it.copy(uri = trimmed, error = null, isUriValid = true) }
-        submit()
     }
 
     fun submit() {

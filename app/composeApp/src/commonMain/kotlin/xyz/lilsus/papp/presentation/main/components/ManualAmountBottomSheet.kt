@@ -27,6 +27,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -42,9 +43,11 @@ import lasr.composeapp.generated.resources.enter_amount_range_min
 import lasr.composeapp.generated.resources.enter_amount_title
 import lasr.composeapp.generated.resources.pay_button
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 /**
@@ -86,12 +89,14 @@ fun ManualAmountBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
+        modifier = Modifier.enableMaestroTestTagsAsResourceId(),
         sheetState = sheetState,
         onDismissRequest = onDismiss
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag(MaestroTags.Payment.MANUAL_AMOUNT_SHEET)
                 .padding(horizontal = 24.dp, vertical = 16.dp)
                 .navigationBarsPadding(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -126,7 +131,9 @@ fun ManualAmountBottomSheet(
                 onClick = onSubmit,
                 enabled = state.amount?.minor?.let { it > 0 } == true &&
                     state.rangeStatus == RangeStatus.InRange,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(MaestroTags.Payment.MANUAL_AMOUNT_PAY_BUTTON)
             ) {
                 Text(text = stringResource(Res.string.pay_button))
             }
@@ -158,7 +165,9 @@ private fun AmountInputDisplay(state: ManualAmountUiState) {
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(MaestroTags.Payment.MANUAL_AMOUNT_DISPLAY),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -368,6 +377,7 @@ private fun AmountKeyButton(key: ManualAmountKey, enabled: Boolean, onClick: () 
         enabled = enabled,
         modifier = Modifier
             .size(size)
+            .testTag(key.testTag())
             .defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
     ) {
         Text(
@@ -379,6 +389,12 @@ private fun AmountKeyButton(key: ManualAmountKey, enabled: Boolean, onClick: () 
             fontSize = 20.sp
         )
     }
+}
+
+private fun ManualAmountKey.testTag(): String = when (this) {
+    is ManualAmountKey.Digit -> MaestroTags.Payment.manualAmountDigitKey(value)
+    ManualAmountKey.Decimal -> MaestroTags.Payment.MANUAL_AMOUNT_DECIMAL_KEY
+    ManualAmountKey.Backspace -> MaestroTags.Payment.MANUAL_AMOUNT_BACKSPACE_KEY
 }
 
 @Preview

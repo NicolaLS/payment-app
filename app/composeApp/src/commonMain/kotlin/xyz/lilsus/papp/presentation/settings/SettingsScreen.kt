@@ -27,6 +27,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,7 @@ import lasr.composeapp.generated.resources.settings_theme
 import lasr.composeapp.generated.resources.settings_theme_subtitle
 import lasr.composeapp.generated.resources.settings_title
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.appVersionName
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.LanguageCatalog
@@ -74,31 +76,36 @@ fun SettingsScreen(
             subtitle = walletSubtitle ?: stringResource(
                 Res.string.settings_manage_wallets_subtitle
             ),
+            testTag = MaestroTags.Settings.MANAGE_WALLETS_ROW,
             onClick = onManageWallets
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_payments),
+            testTag = MaestroTags.Settings.PAYMENTS_ROW,
             onClick = onPayments
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_currency),
             subtitle = currencySubtitle ?: stringResource(Res.string.settings_currency_subtitle),
+            testTag = MaestroTags.Settings.CURRENCY_ROW,
             onClick = onCurrency
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_language),
             subtitle = languageSubtitle ?: stringResource(Res.string.settings_language_subtitle),
+            testTag = MaestroTags.Settings.LANGUAGE_ROW,
             onClick = onLanguage
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_theme),
             subtitle = themeSubtitle ?: stringResource(Res.string.settings_theme_subtitle),
+            testTag = MaestroTags.Settings.THEME_ROW,
             onClick = onTheme
         )
     )
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.testTag(MaestroTags.Settings.SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.settings_title)) },
@@ -137,13 +144,16 @@ fun SettingsScreen(
 private data class SettingsEntry(
     val title: String,
     val subtitle: String? = null,
+    val testTag: String,
     val onClick: () -> Unit
 )
 
 @Composable
 private fun SettingsListItem(entry: SettingsEntry) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(entry.testTag),
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.medium

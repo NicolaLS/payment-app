@@ -16,6 +16,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,9 +27,11 @@ import lasr.composeapp.generated.resources.confirm_payment_title
 import lasr.composeapp.generated.resources.dismiss_button
 import lasr.composeapp.generated.resources.pay_button
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
+import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @Composable
@@ -43,6 +46,7 @@ fun ConfirmationBottomSheet(
     )
 
     ModalBottomSheet(
+        modifier = Modifier.enableMaestroTestTagsAsResourceId(),
         sheetState = sheetState,
         onDismissRequest = onDismiss
     ) {
@@ -50,6 +54,7 @@ fun ConfirmationBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag(MaestroTags.Payment.CONFIRMATION_SHEET)
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -75,13 +80,17 @@ fun ConfirmationBottomSheet(
             ) {
                 Button(
                     onClick = onPay,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(MaestroTags.Payment.CONFIRMATION_PAY_BUTTON)
                 ) {
                     Text(stringResource(Res.string.pay_button))
                 }
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(MaestroTags.Payment.CONFIRMATION_DISMISS_BUTTON)
                 ) {
                     Text(stringResource(Res.string.dismiss_button))
                 }

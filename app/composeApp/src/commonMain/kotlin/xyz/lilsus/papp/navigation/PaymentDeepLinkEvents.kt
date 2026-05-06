@@ -9,7 +9,15 @@ import kotlinx.coroutines.flow.receiveAsFlow
  * Payment deep links are emitted here after the app-level router has identified
  * them as payment requests rather than wallet connection requests.
  */
-data class PaymentDeepLinkRequest(val input: String)
+data class PaymentDeepLinkRequest(
+    val input: String,
+    val source: PaymentInputSource = PaymentInputSource.DeepLink
+)
+
+enum class PaymentInputSource {
+    Camera,
+    DeepLink
+}
 
 object PaymentDeepLinkEvents {
     private val eventsChannel = Channel<PaymentDeepLinkRequest>(
@@ -18,8 +26,8 @@ object PaymentDeepLinkEvents {
     )
     val events: Flow<PaymentDeepLinkRequest> = eventsChannel.receiveAsFlow()
 
-    fun emit(input: String) {
+    fun emit(input: String, source: PaymentInputSource = PaymentInputSource.DeepLink) {
         if (input.isBlank()) return
-        eventsChannel.trySend(PaymentDeepLinkRequest(input = input))
+        eventsChannel.trySend(PaymentDeepLinkRequest(input = input, source = source))
     }
 }

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -16,7 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
@@ -39,11 +43,17 @@ fun AddWalletScreen(
     state: AddWalletUiState,
     onBack: () -> Unit,
     onUriChange: (String) -> Unit,
+    onSubmit: () -> Unit,
     controller: QrScannerController,
     isCameraPermissionGranted: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val focusManager = LocalFocusManager.current
+    val submitOrClearFocus = {
+        focusManager.clearFocus(force = true)
+        onSubmit()
+    }
     Scaffold(
         modifier = modifier.testTag(MaestroTags.NwcWallet.SCREEN),
         topBar = {
@@ -79,7 +89,11 @@ fun AddWalletScreen(
                 placeholder = {
                     Text(text = stringResource(Res.string.add_wallet_uri_placeholder))
                 },
-                visualTransformation = PasswordVisualTransformation()
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = { submitOrClearFocus() }
+                )
             )
             if (state.error != null) {
                 Text(
