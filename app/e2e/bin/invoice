@@ -3,16 +3,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-# shellcheck source=_reglab-common
-source e2e/bin/_reglab-common
+# shellcheck source=_papp-e2e-common
+source e2e/bin/_papp-e2e-common
 load_e2e_env
-derive_test_wallet_env
-require_test_wallet_env
 require_command jq
 
 sats="${1:-21}"
 description="${2:-Papp E2E invoice}"
 label="${3:-papp-e2e-$(date +%s)-$$}"
+node="${4:-receiver}"
 
 if [[ ! "$sats" =~ ^[0-9]+$ || "$sats" -le 0 ]]; then
   echo "sats must be a positive integer" >&2
@@ -20,14 +19,14 @@ if [[ ! "$sats" =~ ^[0-9]+$ || "$sats" -le 0 ]]; then
 fi
 
 payload="$(jq -n \
+  --arg node "$node" \
   --arg amount_msat "$((sats * 1000))msat" \
   --arg description "$description" \
   --arg label "$label" \
-  '{amount_msat: $amount_msat, description: $description, label: $label}')"
+  '{node: $node, amount_msat: $amount_msat, description: $description, label: $label}')"
 
 curl --fail --silent --show-error \
-  --header "X-Reglab-Lease-Token: ${TEST_WALLET_TOKEN}" \
   --header "content-type: application/json" \
   --data "$payload" \
-  "${TEST_WALLET_SERVICE_URL%/}/create-invoice"
+  "$(helper_url)/create-invoice"
 echo

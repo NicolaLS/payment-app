@@ -3,36 +3,32 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-# shellcheck source=_reglab-common
-source e2e/bin/_reglab-common
+# shellcheck source=_papp-e2e-common
+source e2e/bin/_papp-e2e-common
 
-if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  slot_containers="$(docker ps -aq \
-    --filter label=reglab.managed=true \
-    --filter name=reglab_slt_ || true)"
-  slot_networks="$(docker network ls -q \
-    --filter label=reglab.managed=true \
-    --filter name=reglab_slt_ || true)"
+clean=0
+
+if [[ "${1:-}" == "--clean" ]]; then
+  clean=1
+elif [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage: e2e/bin/down [--clean]
+
+Stops the local e2e Docker Compose stack.
+
+Options:
+  --clean  Also remove the local Docker volumes.
+EOF
+  exit 0
+elif [[ $# -gt 0 ]]; then
+  echo "Unknown option: $1" >&2
+  exit 2
+fi
+
+if [[ "$clean" == "1" ]]; then
+  compose down --remove-orphans --volumes
 else
-  slot_containers=""
-  slot_networks=""
+  compose down --remove-orphans
 fi
 
-run_reglab_cli local down || {
-  status=$?
-  echo "Failed to stop local ReGLab compose stack." >&2
-  exit "$status"
-}
-
-if [[ -n "$slot_containers" ]]; then
-  docker rm -f $slot_containers >/dev/null
-fi
-
-if [[ -n "$slot_networks" ]]; then
-  docker network rm $slot_networks >/dev/null 2>&1 || true
-fi
-
-echo "Stopped local ReGLab."
-if [[ -n "$slot_containers" ]]; then
-  echo "Removed local ReGLab slot runtime containers."
-fi
+echo "Stopped local LASR e2e stack."

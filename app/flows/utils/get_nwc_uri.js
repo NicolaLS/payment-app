@@ -1,46 +1,53 @@
-const serviceUrl = requiredLeaseValue("opsUrl", "TEST_WALLET_SERVICE_URL").replace(/\/$/, "");
+const serviceUrl = readEnv("TEST_WALLET_SERVICE_URL", "http://127.0.0.1:8082").replace(/\/$/, "");
+const node = readEnv("NWC_NODE", "payer");
+const label = readEnv("NWC_LABEL", `papp-e2e-${node}`);
+const nodes = readEnv("NWC_NODES", "").trim();
 
-const response = http.get(`${serviceUrl}/get-nwc-uri`, {
-  headers: requestHeaders(),
-});
+const response = nodes
+  ? http.get(`${serviceUrl}/wallets?nodes=${encodeURIComponent(nodes)}`)
+  : http.get(`${serviceUrl}/get-nwc-uri?node=${encodeURIComponent(node)}&label=${encodeURIComponent(label)}`);
 
 const body = json(response.body);
 if (response.status !== 200) {
   throw new Error(
-    body.error || body.bootstrapError || `NWC URI lookup failed with HTTP ${response.status}`
+    body.error || `NWC URI lookup failed with HTTP ${response.status}`
   );
 }
 
-if (!body.uri) {
-  throw new Error("NWC URI lookup did not return a uri.");
+const wallets = nodes ? walletFixtures(body.wallets || []) : walletFixtures([body]);
+if (wallets.length === 0) {
+  throw new Error("NWC URI lookup did not return any wallets.");
 }
 
-output.nwcUri = rewriteRelayForDevice(body.uri);
+output.nwcUri = wallets[0].uri;
+output.nwcWallets = JSON.stringify(wallets);
 output.nwcFixtureJson = JSON.stringify({
-  wallets: [
-    {
-      type: "nwc",
-      uri: output.nwcUri,
-      alias: "ReGLab NWC",
-    },
-  ],
+  wallets,
 });
 
-function requestHeaders() {
-  return {
-    "x-reglab-lease-token": requiredLeaseValue("leaseToken", "TEST_WALLET_TOKEN"),
-  };
+function walletFixtures(items) {
+  const activeNode = readEnv("NWC_ACTIVE_NODE", "").trim();
+  return items
+    .filter((item) => item && item.uri)
+    .map((item, index) => {
+      const itemNode = item.node || node;
+      const wallet = {
+        type: "nwc",
+        uri: rewriteRelayForDevice(item.uri),
+        alias: `${itemNode} NWC`,
+      };
+      if (activeNode && activeNode === itemNode) {
+        wallet.active = true;
+      } else if (!activeNode && index === 0 && items.length > 1) {
+        wallet.active = true;
+      }
+      return wallet;
+    });
 }
 
 function rewriteRelayForDevice(uri) {
-  const deviceBase = (
-    (output.reglab && output.reglab.deviceBaseUrl) ||
-    readEnv(
-      "REGLAB_DEVICE_URL",
-      readEnv("MAESTRO_REGLAB_DEVICE_URL", readEnv("TEST_REGLAB_DEVICE_URL", ""))
-    )
-  ).replace(/\/$/, "");
-  if (!deviceBase) {
+  const relay = resolveDeviceRelay();
+  if (!relay) {
     return uri;
   }
 
@@ -58,34 +65,39 @@ function rewriteRelayForDevice(uri) {
     if (key !== "relay") {
       return part;
     }
-    const value = separator < 0 ? "" : part.slice(separator + 1);
-    const relay = decodeURIComponent(value);
     changed = true;
-    return `relay=${encodeURIComponent(rewriteRelayBase(relay, deviceBase))}`;
+    return `relay=${encodeURIComponent(relay)}`;
   });
 
   return changed ? `${prefix}?${rewritten.join("&")}` : uri;
 }
 
-function rewriteRelayBase(relay, deviceBase) {
-  const match = deviceBase.match(/^(https?):\/\/([^/]+)/);
-  if (!match) {
-    throw new Error(`REGLAB_DEVICE_URL must be an http(s) URL, got ${deviceBase}`);
+function resolveDeviceRelay() {
+  const explicit = readEnv(
+    "TEST_NWC_RELAY_DEVICE_URL",
+    readEnv("PAPP_E2E_DEVICE_RELAY_URL", "")
+  ).replace(/\/$/, "");
+  if (explicit) {
+    return explicit;
   }
-  const relayScheme = match[1] === "https" ? "wss" : "ws";
-  return relay.replace(/^wss?:\/\/[^/]+/, `${relayScheme}://${match[2]}`);
+
+  const platform = maestroPlatform();
+  if (platform === "android") {
+    return readEnv("TEST_NWC_RELAY_ANDROID_URL", "ws://10.0.2.2:8081").replace(/\/$/, "");
+  }
+  if (platform === "ios") {
+    return readEnv("TEST_NWC_RELAY_IOS_URL", "").replace(/\/$/, "");
+  }
+  return "";
+}
+
+function maestroPlatform() {
+  if (typeof maestro === "undefined" || typeof maestro.platform === "undefined") {
+    return "";
+  }
+  return String(maestro.platform).toLowerCase();
 }
 
 function readEnv(name, fallback) {
   return typeof globalThis[name] === "undefined" ? fallback : String(globalThis[name]);
-}
-
-function requiredLeaseValue(outputKey, envName) {
-  const value = output.reglab && output.reglab[outputKey]
-    ? String(output.reglab[outputKey])
-    : readEnv(envName, "");
-  if (!value) {
-    throw new Error(`${envName} is required.`);
-  }
-  return value;
 }

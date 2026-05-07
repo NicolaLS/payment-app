@@ -3,11 +3,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-# shellcheck source=_reglab-common
-source e2e/bin/_reglab-common
+# shellcheck source=_papp-e2e-common
+source e2e/bin/_papp-e2e-common
 
 load_e2e_env
-export_maestro_reglab_env
+export_maestro_env
 
 if [[ $# -eq 0 ]]; then
   set -- flows

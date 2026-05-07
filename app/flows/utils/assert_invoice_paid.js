@@ -1,7 +1,8 @@
-const serviceUrl = requiredLeaseValue("opsUrl", "TEST_WALLET_SERVICE_URL").replace(/\/$/, "");
+const serviceUrl = readEnv("TEST_WALLET_SERVICE_URL", "http://127.0.0.1:8082").replace(/\/$/, "");
 const timeoutMs = Number(readEnv("INVOICE_TIMEOUT_MS", "120000"));
 const intervalMs = Number(readEnv("INVOICE_INTERVAL_MS", "2000"));
 const paymentHash = readEnv("INVOICE_PAYMENT_HASH", "") || output.paymentHash;
+const node = readEnv("INVOICE_NODE", "") || output.invoiceNode || "receiver";
 
 if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
   throw new Error("INVOICE_TIMEOUT_MS must be a positive integer.");
@@ -16,8 +17,10 @@ if (!paymentHash) {
 }
 
 const response = http.post(`${serviceUrl}/wait-invoice-paid`, {
-  headers: requestHeaders(),
-  body: JSON.stringify({ paymentHash, timeoutMs, intervalMs }),
+  headers: {
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({ node, paymentHash, timeoutMs, intervalMs }),
 });
 
 const body = json(response.body);
@@ -29,23 +32,6 @@ output.invoiceSettled = true;
 output.paymentHash = body.paymentHash || output.paymentHash;
 output.preimage = body.preimage;
 
-function requestHeaders() {
-  return {
-    "x-reglab-lease-token": requiredLeaseValue("leaseToken", "TEST_WALLET_TOKEN"),
-    "content-type": "application/json",
-  };
-}
-
 function readEnv(name, fallback) {
   return typeof globalThis[name] === "undefined" ? fallback : String(globalThis[name]);
-}
-
-function requiredLeaseValue(outputKey, envName) {
-  const value = output.reglab && output.reglab[outputKey]
-    ? String(output.reglab[outputKey])
-    : readEnv(envName, "");
-  if (!value) {
-    throw new Error(`${envName} is required.`);
-  }
-  return value;
 }

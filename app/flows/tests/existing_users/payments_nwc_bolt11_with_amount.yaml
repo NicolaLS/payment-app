@@ -1,8 +1,4 @@
 appId: xyz.lilsus.papp.e2e
-onFlowStart:
-  - runScript: "../../utils/reglab_claim_lease.js"
-onFlowComplete:
-  - runScript: "../../utils/reglab_release_lease.js"
 ---
 - runScript: ../../utils/get_nwc_uri.js
 - launchApp:

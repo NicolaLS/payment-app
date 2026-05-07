@@ -7,7 +7,7 @@ iOS, and local test commands from here.
 
 - `composeApp/`: shared Compose Multiplatform app module
 - `iosApp/`: iOS host app and Xcode project
-- `e2e/`: ReGLab-backed Maestro e2e harness and lease helpers
+- `e2e/`: local Docker Compose regtest Lightning/NWC harness for Maestro
 - `flows/`: Maestro flows and helper scripts
 - `gradle/`: Gradle wrapper and version catalog
 
@@ -139,4 +139,4 @@ the iOS app build.
 
 - [Release builds](../docs/release.md)
 - [E2E and Maestro testing](../docs/e2e.md)
-- [ReGLab-backed Maestro testing](e2e/README.md)
+- [Local Lightning/NWC Maestro testing](e2e/README.md)

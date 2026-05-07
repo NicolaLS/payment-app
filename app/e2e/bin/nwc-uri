@@ -3,13 +3,12 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-# shellcheck source=_reglab-common
-source e2e/bin/_reglab-common
+# shellcheck source=_papp-e2e-common
+source e2e/bin/_papp-e2e-common
 load_e2e_env
-derive_test_wallet_env
-require_test_wallet_env
+
+node="${1:-payer}"
 
 curl --fail --silent --show-error \
-  --header "X-Reglab-Lease-Token: ${TEST_WALLET_TOKEN}" \
-  "${TEST_WALLET_SERVICE_URL%/}/get-nwc-uri"
+  "$(helper_url)/get-nwc-uri?node=${node}"
 echo
