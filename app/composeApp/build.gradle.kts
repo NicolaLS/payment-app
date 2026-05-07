@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.apollo)
 }
 
 val releaseSigningPropertiesFile = providers.gradleProperty("papp.release.signing.properties")
@@ -260,6 +261,7 @@ kotlin {
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.websockets)
+            implementation(libs.apollo.runtime)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -270,6 +272,28 @@ kotlin {
 
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+        }
+    }
+}
+
+apollo {
+    service("blink") {
+        val blinkSchemaFile = file(
+            "src/commonMain/graphql/xyz/lilsus/papp/data/blink/graphql/schema.graphqls"
+        )
+
+        packageName.set("xyz.lilsus.papp.data.blink.graphql")
+        schemaFile.set(blinkSchemaFile)
+        generateAsInternal.set(true)
+        mapScalar("LnPaymentRequest", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
+        mapScalar("WalletId", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
+        mapScalar("PaymentHash", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
+        mapScalar("Memo", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
+        mapScalar("SatAmount", "kotlin.Long", "com.apollographql.apollo.api.LongAdapter")
+        mapScalar("SignedAmount", "kotlin.Long", "com.apollographql.apollo.api.LongAdapter")
+        introspection {
+            endpointUrl.set("https://api.blink.sv/graphql")
+            schemaFile.set(blinkSchemaFile)
         }
     }
 }

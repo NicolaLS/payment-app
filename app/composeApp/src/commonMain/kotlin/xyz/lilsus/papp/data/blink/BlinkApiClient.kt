@@ -1,25 +1,24 @@
 package xyz.lilsus.papp.data.blink
 
-import io.ktor.client.HttpClient
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.network.sockets.SocketTimeoutException
-import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.client.request.header
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
+import com.apollographql.apollo.ApolloCall
+import com.apollographql.apollo.ApolloClient
+import com.apollographql.apollo.api.ApolloResponse
+import com.apollographql.apollo.api.Error as ApolloGraphQlError
+import com.apollographql.apollo.api.Operation
+import com.apollographql.apollo.exception.ApolloException
+import com.apollographql.apollo.exception.ApolloHttpException
 import kotlin.math.absoluteValue
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
+import xyz.lilsus.papp.data.blink.graphql.AuthorizationQuery
+import xyz.lilsus.papp.data.blink.graphql.DefaultWalletIdQuery
+import xyz.lilsus.papp.data.blink.graphql.LnInvoicePaymentSendMutation
+import xyz.lilsus.papp.data.blink.graphql.LnNoAmountInvoicePaymentSendMutation
+import xyz.lilsus.papp.data.blink.graphql.TransactionsByPaymentHashQuery
+import xyz.lilsus.papp.data.blink.graphql.type.LnInvoicePaymentInput
+import xyz.lilsus.papp.data.blink.graphql.type.LnNoAmountInvoicePaymentInput
+import xyz.lilsus.papp.data.blink.graphql.type.PaymentSendResult
+import xyz.lilsus.papp.data.blink.graphql.type.TxDirection
+import xyz.lilsus.papp.data.blink.graphql.type.TxStatus
+import xyz.lilsus.papp.data.blink.graphql.type.WalletCurrency
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkErrorType
@@ -29,12 +28,9 @@ import xyz.lilsus.papp.isDebugBuild
  * Client for Blink's GraphQL API.
  * Handles Lightning invoice payments using API key authentication.
  *
- * API Reference: https://dev.blink.sv/api/llm-api-reference
+ * API Reference: https://dev.blink.sv/public-api-reference.html
  */
-class BlinkApiClient(
-    private val httpClient: HttpClient,
-    private val json: Json = Json { ignoreUnknownKeys = true }
-) {
+class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloClient()) {
     /**
      * Translates Blink API errors into user-friendly messages.
      * Returns a translated message or null if no specific translation applies.
@@ -178,78 +174,33 @@ class BlinkApiClient(
      * @throws [AppErrorException] on failure.
      */
     suspend fun lookupPaymentStatus(apiKey: String, paymentHash: String): BlinkPaymentStatusResult {
-        val query = """
-            query TransactionsByPaymentHash(${'$'}paymentHash: PaymentHash!) {
-                me {
-                    defaultAccount {
-                        wallets {
-                            __typename
-                            ... on BTCWallet {
-                                transactionsByPaymentHash(paymentHash: ${'$'}paymentHash) {
-                                    status
-                                    direction
-                                }
-                            }
-                            ... on UsdWallet {
-                                transactionsByPaymentHash(paymentHash: ${'$'}paymentHash) {
-                                    status
-                                    direction
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val requestBody = buildJsonObject {
-            put("query", query)
-            put(
-                "variables",
-                buildJsonObject {
-                    put("paymentHash", paymentHash)
-                }
-            )
-        }
-
-        val response = executeGraphQlRequest(
+        val data = executeGraphQlRequest(
             apiKey = apiKey,
-            requestBody = requestBody,
-            logLabel = "TransactionsByPaymentHash"
+            logLabel = "TransactionsByPaymentHash",
+            call = apolloClient.query(TransactionsByPaymentHashQuery(paymentHash))
         )
 
-        val data = response["data"]?.jsonObject
-            ?: throw AppErrorException(AppError.Unexpected("Missing data in response"))
-
-        val wallets = data["me"]?.jsonObject
-            ?.get("defaultAccount")?.jsonObject
-            ?.get("wallets")?.jsonArray
+        val wallets = data.me?.defaultAccount?.wallets
             ?: return BlinkPaymentStatusResult.NotFound
 
         val sendStatuses = wallets.flatMap { wallet ->
-            wallet.jsonObject["transactionsByPaymentHash"]
-                ?.jsonArray
-                ?.mapNotNull { transaction ->
-                    val direction = transaction.jsonObject["direction"]?.jsonPrimitive?.content
-                    val status = transaction.jsonObject["status"]?.jsonPrimitive?.content
-                    status?.takeIf { direction == "SEND" }
-                }
+            val btcTransactions = wallet.onBTCWallet?.transactionsByPaymentHash
+                ?.filter { it.direction == TxDirection.SEND }
+                ?.map { it.status }
                 ?: emptyList()
+            val usdTransactions = wallet.onUsdWallet?.transactionsByPaymentHash
+                ?.filter { it.direction == TxDirection.SEND }
+                ?.map { it.status }
+                ?: emptyList()
+
+            btcTransactions + usdTransactions
         }
 
         return when {
-            sendStatuses.any { it == "SUCCESS" } -> BlinkPaymentStatusResult.Paid
-
-            sendStatuses.any { it == "PENDING" } -> BlinkPaymentStatusResult.Pending
-
-            sendStatuses.any {
-                it == "FAILURE" ||
-                    it == "FAILED" ||
-                    it == "EXPIRED"
-            } -> BlinkPaymentStatusResult.Failed
-
+            sendStatuses.any { it == TxStatus.SUCCESS } -> BlinkPaymentStatusResult.Paid
+            sendStatuses.any { it == TxStatus.PENDING } -> BlinkPaymentStatusResult.Pending
+            sendStatuses.any { it == TxStatus.FAILURE } -> BlinkPaymentStatusResult.Failed
             sendStatuses.isEmpty() -> BlinkPaymentStatusResult.NotFound
-
             else -> BlinkPaymentStatusResult.NotFound
         }
     }
@@ -262,34 +213,14 @@ class BlinkApiClient(
      * @throws [AppErrorException] on failure.
      */
     suspend fun fetchAuthorizationScopes(apiKey: String): List<String> {
-        val query = """
-            query Authorization {
-                authorization {
-                    scopes
-                }
-            }
-        """.trimIndent()
-
-        val requestBody = buildJsonObject {
-            put("query", query)
-            put("variables", buildJsonObject { })
-        }
-
-        val response = executeGraphQlRequest(
+        val data = executeGraphQlRequest(
             apiKey = apiKey,
-            requestBody = requestBody,
-            logLabel = "Authorization"
+            logLabel = "Authorization",
+            call = apolloClient.query(AuthorizationQuery())
         )
 
-        val data = response["data"]?.jsonObject
-            ?: throw AppErrorException(AppError.Unexpected("Missing data in response"))
-
-        val scopes = data["authorization"]?.jsonObject
-            ?.get("scopes")?.jsonArray
-            ?.mapNotNull { it.jsonPrimitive.content.trim().takeIf { s -> s.isNotEmpty() } }
-            ?: emptyList()
-
-        return scopes
+        return data.authorization.scopes
+            .mapNotNull { scope -> scope.rawValue.trim().takeIf { it.isNotEmpty() } }
     }
 
     /**
@@ -299,37 +230,13 @@ class BlinkApiClient(
      * default wallet context without asking them for account/wallet identifiers.
      */
     suspend fun fetchDefaultWalletId(apiKey: String): String {
-        val query = """
-            query DefaultWalletId {
-                me {
-                    defaultAccount {
-                        defaultWallet {
-                            id
-                        }
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val requestBody = buildJsonObject {
-            put("query", query)
-            put("variables", buildJsonObject { })
-        }
-
-        val response = executeGraphQlRequest(
+        val data = executeGraphQlRequest(
             apiKey = apiKey,
-            requestBody = requestBody,
-            logLabel = "DefaultWalletId"
+            logLabel = "DefaultWalletId",
+            call = apolloClient.query(DefaultWalletIdQuery())
         )
 
-        val data = response["data"]?.jsonObject
-            ?: throw AppErrorException(AppError.Unexpected("Missing data in response"))
-
-        val walletId = data["me"]?.jsonObject
-            ?.get("defaultAccount")?.jsonObject
-            ?.get("defaultWallet")?.jsonObject
-            ?.get("id")?.jsonPrimitive
-            ?.content
+        val walletId = data.me?.defaultAccount?.defaultWallet?.id
             ?.trim()
             .orEmpty()
 
@@ -350,33 +257,28 @@ class BlinkApiClient(
      * @throws [AppErrorException] on failure.
      */
     suspend fun payInvoice(apiKey: String, walletId: String, invoice: String): BlinkPaymentResult {
-        val query = """
-            mutation LnInvoicePaymentSend(${'$'}input: LnInvoicePaymentInput!) {
-                lnInvoicePaymentSend(input: ${'$'}input) {
-                    status
-                    errors {
-                        message
-                        code
-                    }
-                    transaction {
-                        settlementFee
-                        settlementCurrency
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val variables = buildJsonObject {
-            put(
-                "input",
-                buildJsonObject {
-                    put("paymentRequest", invoice)
-                    put("walletId", walletId)
-                }
+        val data = executeGraphQlRequest(
+            apiKey = apiKey,
+            logLabel = "lnInvoicePaymentSend",
+            call = apolloClient.mutation(
+                LnInvoicePaymentSendMutation(
+                    LnInvoicePaymentInput(
+                        paymentRequest = invoice,
+                        walletId = walletId
+                    )
+                )
             )
-        }
+        )
 
-        return executePaymentMutation(apiKey, query, variables, "lnInvoicePaymentSend")
+        return parsePaymentResponse(
+            PaymentPayload(
+                status = data.lnInvoicePaymentSend.status,
+                errors = data.lnInvoicePaymentSend.errors.map {
+                    PaymentPayloadError(it.code, it.message)
+                },
+                feesPaidMsats = data.lnInvoicePaymentSend.transaction?.feesPaidMsats()
+            )
+        )
     }
 
     /**
@@ -395,201 +297,167 @@ class BlinkApiClient(
         invoice: String,
         amountSats: Long
     ): BlinkPaymentResult {
-        val query = """
-            mutation LnNoAmountInvoicePaymentSend(${'$'}input: LnNoAmountInvoicePaymentInput!) {
-                lnNoAmountInvoicePaymentSend(input: ${'$'}input) {
-                    status
-                    errors {
-                        message
-                        code
-                    }
-                    transaction {
-                        settlementFee
-                        settlementCurrency
-                    }
-                }
-            }
-        """.trimIndent()
-
-        val variables = buildJsonObject {
-            put(
-                "input",
-                buildJsonObject {
-                    put("paymentRequest", invoice)
-                    put("amount", amountSats)
-                    put("walletId", walletId)
-                }
-            )
-        }
-
-        return executePaymentMutation(apiKey, query, variables, "lnNoAmountInvoicePaymentSend")
-    }
-
-    private suspend fun executePaymentMutation(
-        apiKey: String,
-        query: String,
-        variables: JsonObject,
-        operationName: String
-    ): BlinkPaymentResult {
-        val requestBody = buildJsonObject {
-            put("query", query)
-            put("variables", variables)
-        }
-
-        val response = executeGraphQlRequest(
+        val data = executeGraphQlRequest(
             apiKey = apiKey,
-            requestBody = requestBody,
-            logLabel = operationName
+            logLabel = "lnNoAmountInvoicePaymentSend",
+            call = apolloClient.mutation(
+                LnNoAmountInvoicePaymentSendMutation(
+                    LnNoAmountInvoicePaymentInput(
+                        amount = amountSats,
+                        paymentRequest = invoice,
+                        walletId = walletId
+                    )
+                )
+            )
         )
 
-        return parsePaymentResponse(response, operationName)
+        return parsePaymentResponse(
+            PaymentPayload(
+                status = data.lnNoAmountInvoicePaymentSend.status,
+                errors = data.lnNoAmountInvoicePaymentSend.errors.map {
+                    PaymentPayloadError(it.code, it.message)
+                },
+                feesPaidMsats = data.lnNoAmountInvoicePaymentSend.transaction?.feesPaidMsats()
+            )
+        )
     }
 
-    private fun parsePaymentResponse(
-        jsonResponse: JsonObject,
-        operationName: String
-    ): BlinkPaymentResult {
-        val data = jsonResponse["data"]?.jsonObject
+    private suspend fun <D : Operation.Data> executeGraphQlRequest(
+        apiKey: String,
+        logLabel: String,
+        call: ApolloCall<D>
+    ): D {
+        val response = try {
+            call
+                .addHttpHeader(API_KEY_HEADER, apiKey)
+                .execute()
+        } catch (e: ApolloException) {
+            throw mapApolloException(e)
+        }
+
+        logGraphQlResponse(logLabel, response)
+
+        response.exception?.let { exception ->
+            throw mapApolloException(exception)
+        }
+
+        response.errors?.firstOrNull()?.let { error ->
+            throw AppErrorException(mapGraphQlError(error))
+        }
+
+        return response.data
             ?: throw AppErrorException(AppError.Unexpected("Missing data in response"))
+    }
 
-        val result = data[operationName]?.jsonObject
-            ?: throw AppErrorException(AppError.Unexpected("Missing $operationName in response"))
+    private fun mapApolloException(exception: ApolloException): AppErrorException {
+        if (exception is ApolloHttpException) {
+            val error = when (exception.statusCode) {
+                HTTP_UNAUTHORIZED -> AppError.BlinkError(BlinkErrorType.InvalidApiKey)
+                HTTP_TOO_MANY_REQUESTS -> AppError.BlinkError(BlinkErrorType.RateLimited)
+                else -> AppError.NetworkUnavailable
+            }
+            return AppErrorException(error, exception)
+        }
 
-        // Check for operation-level errors
-        result["errors"]?.jsonArray?.let { errors ->
-            if (errors.isNotEmpty()) {
-                val firstError = errors[0].jsonObject
-                val message = firstError["message"]?.jsonPrimitive?.content
-                val code = firstError["code"]?.jsonPrimitive?.content
-                throw AppErrorException(createUserFriendlyError(code, message))
+        return AppErrorException(
+            if (exception.isTimeout()) AppError.Timeout else AppError.NetworkUnavailable,
+            exception
+        )
+    }
+
+    private fun mapGraphQlError(error: ApolloGraphQlError): AppError {
+        val code = error.extensionCode()
+        val isAuthError = code == "UNAUTHENTICATED" || code == "FORBIDDEN"
+        return createUserFriendlyError(code, error.message, isAuthError)
+    }
+
+    private fun parsePaymentResponse(payload: PaymentPayload): BlinkPaymentResult {
+        payload.errors.firstOrNull()?.let { error ->
+            throw AppErrorException(createUserFriendlyError(error.code, error.message))
+        }
+
+        return when (payload.status) {
+            PaymentSendResult.SUCCESS -> BlinkPaymentResult.Success(
+                feesPaidMsats = payload.feesPaidMsats
+            )
+
+            PaymentSendResult.PENDING -> BlinkPaymentResult.Pending(
+                feesPaidMsats = payload.feesPaidMsats
+            )
+
+            PaymentSendResult.ALREADY_PAID -> BlinkPaymentResult.AlreadyPaid(
+                feesPaidMsats = payload.feesPaidMsats
+            )
+
+            PaymentSendResult.FAILURE -> throw AppErrorException(AppError.PaymentRejected())
+
+            PaymentSendResult.UNKNOWN__ -> throw AppErrorException(
+                AppError.Unexpected("Unknown payment status: ${payload.status.rawValue}")
+            )
+
+            null -> throw AppErrorException(AppError.Unexpected("Missing status in response"))
+        }
+    }
+
+    private fun ApolloGraphQlError.extensionCode(): String? =
+        extensions?.get("code")?.let { value ->
+            when (value) {
+                is String -> value
+                else -> value.toString()
             }
         }
 
-        val status = result["status"]?.jsonPrimitive?.content
-            ?: throw AppErrorException(AppError.Unexpected("Missing status in response"))
-
-        val feePaidMsats = result["transaction"]?.jsonObject?.let { transaction ->
-            parseFeesPaidMsats(transaction)
-        }
-
-        return when (status) {
-            "SUCCESS" -> BlinkPaymentResult.Success(feesPaidMsats = feePaidMsats)
-
-            "PENDING" -> BlinkPaymentResult.Pending(feesPaidMsats = feePaidMsats)
-
-            "ALREADY_PAID" -> BlinkPaymentResult.AlreadyPaid(feesPaidMsats = feePaidMsats)
-
-            "FAILURE" -> throw AppErrorException(
-                AppError.PaymentRejected()
-            )
-
-            else -> throw AppErrorException(AppError.Unexpected("Unknown status: $status"))
-        }
+    private fun Throwable.isTimeout(): Boolean {
+        val text = message?.lowercase().orEmpty()
+        return text.contains("timeout") ||
+            text.contains("timed out") ||
+            cause?.isTimeout() == true
     }
 
-    private fun HttpStatusCode.isSuccess(): Boolean = value in 200..299
+    private fun LnInvoicePaymentSendMutation.Transaction.feesPaidMsats(): Long? =
+        settlementFee.feesPaidMsats(settlementCurrency)
 
-    private fun parseFeesPaidMsats(transaction: JsonObject): Long? {
-        val settlementCurrency = transaction["settlementCurrency"]?.jsonPrimitive?.content
-            ?.trim()
-            .orEmpty()
+    private fun LnNoAmountInvoicePaymentSendMutation.Transaction.feesPaidMsats(): Long? =
+        settlementFee.feesPaidMsats(settlementCurrency)
 
-        if (settlementCurrency != "BTC") return null
+    private fun Long.feesPaidMsats(settlementCurrency: WalletCurrency): Long? {
+        if (settlementCurrency != WalletCurrency.BTC) return null
 
-        val feeSats = transaction["settlementFee"]?.jsonPrimitive?.content
-            ?.toLongOrNull()
-            ?.absoluteValue
-            ?: return null
-
-        return feeSats
+        return absoluteValue
             .takeIf { it <= Long.MAX_VALUE / 1000L }
             ?.times(1000L)
     }
 
-    private suspend fun executeGraphQlRequest(
-        apiKey: String,
-        requestBody: JsonObject,
-        logLabel: String
-    ): JsonObject {
-        val response: HttpResponse = try {
-            httpClient.post(BLINK_API_URL) {
-                contentType(ContentType.Application.Json)
-                header("X-API-KEY", apiKey)
-                setBody(json.encodeToString(JsonObject.serializer(), requestBody))
-            }
-        } catch (e: HttpRequestTimeoutException) {
-            throw AppErrorException(AppError.Timeout, e)
-        } catch (e: SocketTimeoutException) {
-            throw AppErrorException(AppError.Timeout, e)
-        } catch (e: ConnectTimeoutException) {
-            throw AppErrorException(AppError.Timeout, e)
-        } catch (e: Exception) {
-            throw AppErrorException(AppError.NetworkUnavailable, e)
-        }
-
-        val status = response.status
-        val responseBody = runCatching { response.bodyAsText() }
-            .getOrElse { error -> "<failed to read response body: ${error.message}>" }
-
-        logHttpResponse(logLabel = logLabel, status = status, body = responseBody)
-
-        if (status == HttpStatusCode.Unauthorized) {
-            throw AppErrorException(
-                AppError.BlinkError(BlinkErrorType.InvalidApiKey)
-            )
-        }
-
-        if (status == HttpStatusCode.TooManyRequests) {
-            throw AppErrorException(
-                AppError.BlinkError(BlinkErrorType.RateLimited)
-            )
-        }
-
-        val jsonResponse = runCatching {
-            json.parseToJsonElement(responseBody).jsonObject
-        }.getOrNull()
-
-        if (jsonResponse != null) {
-            throwOnGraphQlErrors(jsonResponse)
-        }
-
-        if (!status.isSuccess()) {
-            throw AppErrorException(
-                AppError.NetworkUnavailable,
-                Exception("HTTP ${status.value}")
-            )
-        }
-
-        return jsonResponse
-            ?: throw AppErrorException(AppError.Unexpected("Invalid response format"))
-    }
-
-    private fun throwOnGraphQlErrors(jsonResponse: JsonObject) {
-        jsonResponse["errors"]?.jsonArray?.let { errors ->
-            if (errors.isEmpty()) return
-
-            val firstError = errors[0].jsonObject
-            val message = firstError["message"]?.jsonPrimitive?.content
-            val extensions = firstError["extensions"]?.jsonObject
-            val code = extensions?.get("code")?.jsonPrimitive?.content
-
-            val isAuthError = code == "UNAUTHENTICATED" || code == "FORBIDDEN"
-            throw AppErrorException(createUserFriendlyError(code, message, isAuthError))
-        }
-    }
-
-    private fun logHttpResponse(logLabel: String, status: HttpStatusCode, body: String) {
+    private fun <D : Operation.Data> logGraphQlResponse(
+        logLabel: String,
+        response: ApolloResponse<D>
+    ) {
         if (!isDebugBuild) return
         println(
-            buildString {
-                append("Blink HTTP [$logLabel] status=${status.value}\n")
-                append(body)
-            }
+            "Blink GraphQL [$logLabel] " +
+                "data=${response.data != null} " +
+                "errors=${response.errors?.size ?: 0} " +
+                "exception=${response.exception?.message.orEmpty()}"
         )
     }
 
+    private data class PaymentPayload(
+        val status: PaymentSendResult?,
+        val errors: List<PaymentPayloadError>,
+        val feesPaidMsats: Long?
+    )
+
+    private data class PaymentPayloadError(val code: String?, val message: String?)
+
     companion object {
         private const val BLINK_API_URL = "https://api.blink.sv/graphql"
+        private const val API_KEY_HEADER = "X-API-KEY"
+        private const val HTTP_UNAUTHORIZED = 401
+        private const val HTTP_TOO_MANY_REQUESTS = 429
+
+        fun createBlinkApolloClient(): ApolloClient = ApolloClient.Builder()
+            .serverUrl(BLINK_API_URL)
+            .build()
     }
 }
 

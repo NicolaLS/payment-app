@@ -162,7 +162,7 @@ val nwcModule = module {
 
     // Blink wallet support
     single { BlinkCredentialStore(secureSettings = get()) }
-    single { BlinkApiClient(httpClient = get()) }
+    single { BlinkApiClient() }
     single<BlinkWalletRepository> {
         BlinkPaymentRepository(
             apiClient = get(),

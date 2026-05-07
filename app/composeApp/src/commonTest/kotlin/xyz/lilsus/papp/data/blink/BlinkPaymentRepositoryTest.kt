@@ -1,16 +1,8 @@
 package xyz.lilsus.papp.data.blink
 
+import com.apollographql.apollo.api.ApolloRequest
+import com.apollographql.apollo.api.ApolloResponse
 import com.russhwolf.settings.MapSettings
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.TextContent
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -23,15 +15,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import xyz.lilsus.papp.data.blink.graphql.DefaultWalletIdQuery
+import xyz.lilsus.papp.data.blink.graphql.LnInvoicePaymentSendMutation
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkErrorType
+import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
@@ -47,7 +40,7 @@ class BlinkPaymentRepositoryTest {
     @Test
     fun payInvoiceWithAmountSucceeds() = runTest {
         val context = createTestContext(
-            responseBody = """{
+            paymentResponseJson = """{
                 "data": {
                     "lnInvoicePaymentSend": {
                         "status": "SUCCESS",
@@ -71,7 +64,7 @@ class BlinkPaymentRepositoryTest {
     @Test
     fun payInvoiceReturnsAlreadyPaidResultWithoutFees() = runTest {
         val context = createTestContext(
-            responseBody = """{
+            paymentResponseJson = """{
                 "data": {
                     "lnInvoicePaymentSend": {
                         "status": "ALREADY_PAID",
@@ -94,99 +87,56 @@ class BlinkPaymentRepositoryTest {
 
     @Test
     fun payInvoiceUsesDefaultWalletIdFromApi() = runTest {
-        var paymentRequestBody: String? = null
-        var callCount = 0
-        val mockEngine = MockEngine { request ->
-            callCount += 1
-            if (callCount == 1) {
-                respond(
-                    content = defaultWalletResponseBody(),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(
-                        HttpHeaders.ContentType,
-                        ContentType.Application.Json.toString()
-                    )
-                )
-            } else {
-                paymentRequestBody = (request.body as TextContent).text
-                respond(
-                    content = """{
-                        "data": {
-                            "lnInvoicePaymentSend": {
-                                "status": "SUCCESS",
-                                "errors": []
-                            }
-                        }
-                    }""",
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(
-                        HttpHeaders.ContentType,
-                        ContentType.Application.Json.toString()
-                    )
-                )
+        var capturedBlinkWalletId: String? = null
+        val context = createTestContextWithHandler { request ->
+            when (val operation = request.operation) {
+                is DefaultWalletIdQuery -> request.responseFromJson(defaultWalletResponseJson())
+
+                is LnInvoicePaymentSendMutation -> {
+                    capturedBlinkWalletId = operation.input.walletId
+                    request.responseFromJson(paymentSuccessResponseJson())
+                }
+
+                else -> error("Unexpected Blink operation: ${operation.name()}")
             }
         }
-        val context = createTestContextWithEngine(mockEngine)
 
         context.repository.payInvoice("lnbc1000n1test")
 
-        val body = paymentRequestBody ?: error("Expected payment request body to be captured")
-        val jsonBody = Json.parseToJsonElement(body).jsonObject
-        val input = jsonBody["variables"]!!.jsonObject["input"]!!.jsonObject
-        assertEquals(TEST_BLINK_DEFAULT_WALLET_ID, input["walletId"]!!.jsonPrimitive.content)
+        assertEquals(TEST_BLINK_DEFAULT_WALLET_ID, capturedBlinkWalletId)
     }
 
     @Test
     fun payInvoiceUsesStoredDefaultWalletIdWhenAvailable() = runTest {
-        var paymentRequestBody: String? = null
+        var capturedBlinkWalletId: String? = null
         var defaultWalletQuerySeen = false
-        val mockEngine = MockEngine { request ->
-            val body = (request.body as TextContent).text
-            if (body.contains("DefaultWalletId")) {
-                defaultWalletQuerySeen = true
-                respond(
-                    content = defaultWalletResponseBody(),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(
-                        HttpHeaders.ContentType,
-                        ContentType.Application.Json.toString()
-                    )
-                )
-            } else {
-                paymentRequestBody = body
-                respond(
-                    content = """{
-                        "data": {
-                            "lnInvoicePaymentSend": {
-                                "status": "SUCCESS",
-                                "errors": []
-                            }
-                        }
-                    }""",
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(
-                        HttpHeaders.ContentType,
-                        ContentType.Application.Json.toString()
-                    )
-                )
+        val context = createTestContextWithHandler { request ->
+            when (val operation = request.operation) {
+                is DefaultWalletIdQuery -> {
+                    defaultWalletQuerySeen = true
+                    request.responseFromJson(defaultWalletResponseJson())
+                }
+
+                is LnInvoicePaymentSendMutation -> {
+                    capturedBlinkWalletId = operation.input.walletId
+                    request.responseFromJson(paymentSuccessResponseJson())
+                }
+
+                else -> error("Unexpected Blink operation: ${operation.name()}")
             }
         }
-        val context = createTestContextWithEngine(mockEngine)
         context.credentialStore.storeDefaultWalletId(TEST_WALLET_ID, TEST_BLINK_DEFAULT_WALLET_ID)
 
         context.repository.payInvoice("lnbc1000n1test")
 
-        val body = paymentRequestBody ?: error("Expected payment request body to be captured")
-        val jsonBody = Json.parseToJsonElement(body).jsonObject
-        val input = jsonBody["variables"]!!.jsonObject["input"]!!.jsonObject
-        assertEquals(TEST_BLINK_DEFAULT_WALLET_ID, input["walletId"]!!.jsonPrimitive.content)
+        assertEquals(TEST_BLINK_DEFAULT_WALLET_ID, capturedBlinkWalletId)
         assertFalse(defaultWalletQuerySeen)
     }
 
     @Test
     fun payNoAmountInvoiceWithUserProvidedAmountSucceeds() = runTest {
         val context = createTestContext(
-            responseBody = """{
+            paymentResponseJson = """{
                 "data": {
                     "lnNoAmountInvoicePaymentSend": {
                         "status": "SUCCESS",
@@ -210,10 +160,7 @@ class BlinkPaymentRepositoryTest {
 
     @Test
     fun payInvoiceThrowsMissingWalletConnectionWhenNoActiveWallet() = runTest {
-        val context = createTestContext(
-            responseBody = """{"data": {}}"""
-        )
-        // Don't set active wallet
+        val context = createTestContext(paymentResponseJson = """{"data": {}}""")
         context.repository.setActiveWallet(null)
 
         val exception = assertFailsWith<AppErrorException> {
@@ -225,10 +172,7 @@ class BlinkPaymentRepositoryTest {
 
     @Test
     fun payInvoiceThrowsAuthenticationFailureWhenApiKeyNotFound() = runTest {
-        val context = createTestContext(
-            responseBody = """{"data": {}}"""
-        )
-        // Set active wallet but don't store API key
+        val context = createTestContext(paymentResponseJson = """{"data": {}}""")
         context.credentialStore.removeApiKey(TEST_WALLET_ID)
         context.repository.setActiveWallet(TEST_WALLET_ID)
 
@@ -241,26 +185,13 @@ class BlinkPaymentRepositoryTest {
 
     @Test
     fun payInvoiceReturnsUnconfirmedOnNetworkError() = runTest {
-        var callCount = 0
-        val mockEngine = MockEngine { _ ->
-            callCount += 1
-            if (callCount == 1) {
-                respond(
-                    content = defaultWalletResponseBody(),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(
-                        HttpHeaders.ContentType,
-                        ContentType.Application.Json.toString()
-                    )
-                )
-            } else {
-                respond(
-                    content = "Service Unavailable",
-                    status = HttpStatusCode.ServiceUnavailable
-                )
+        val context = createTestContextWithHandler { request ->
+            when (val operation = request.operation) {
+                is DefaultWalletIdQuery -> request.responseFromJson(defaultWalletResponseJson())
+                is LnInvoicePaymentSendMutation -> request.httpErrorResponse(503, "Service Unavailable")
+                else -> error("Unexpected Blink operation: ${operation.name()}")
             }
         }
-        val context = createTestContextWithEngine(mockEngine)
 
         val exception = assertFailsWith<AppErrorException> {
             context.repository.payInvoice("lnbc1test")
@@ -272,14 +203,15 @@ class BlinkPaymentRepositoryTest {
     @Test
     fun payInvoiceThrowsBlinkErrorOnInsufficientBalance() = runTest {
         val context = createTestContext(
-            responseBody = """{
+            paymentResponseJson = """{
                 "data": {
                     "lnInvoicePaymentSend": {
                         "status": "FAILURE",
                         "errors": [{
                             "message": "Insufficient balance",
                             "code": "INSUFFICIENT_BALANCE"
-                        }]
+                        }],
+                        "transaction": null
                     }
                 }
             }"""
@@ -296,61 +228,123 @@ class BlinkPaymentRepositoryTest {
 
     @Test
     fun startPayInvoiceRemovesWalletOnInvalidApiKey() = runTest {
-        val mockEngine = MockEngine { _ ->
-            respond(
-                content = "Unauthorized",
-                status = HttpStatusCode.Unauthorized
-            )
+        val context = createTestContextWithHandler { request ->
+            request.httpErrorResponse(401, "Unauthorized")
         }
-        val context = createTestContextWithEngine(mockEngine)
 
-        // Verify wallet and API key exist before payment
         assertTrue(context.credentialStore.hasApiKey(TEST_WALLET_ID))
         context.credentialStore.storeDefaultWalletId(TEST_WALLET_ID, TEST_BLINK_DEFAULT_WALLET_ID)
         assertTrue(context.walletSettingsRepository.removedWallets.isEmpty())
 
         val request = context.repository.startPayInvoiceRequest("lnbc1test", null)
 
-        // Wait for the request to complete
-        while (request.state.value is xyz.lilsus.papp.domain.model.PayInvoiceRequestState.Loading) {
-            kotlinx.coroutines.delay(10)
+        while (request.state.value is PayInvoiceRequestState.Loading) {
+            delay(10)
         }
 
         val state = request.state.value
-        assertTrue(state is xyz.lilsus.papp.domain.model.PayInvoiceRequestState.Failure)
+        assertTrue(state is PayInvoiceRequestState.Failure)
         val error = state.error
         assertTrue(error is AppError.BlinkError)
         assertEquals(BlinkErrorType.InvalidApiKeyWalletRemoved, error.type)
 
-        // Verify wallet and API key were removed
         assertFalse(context.credentialStore.hasApiKey(TEST_WALLET_ID))
         assertNull(context.credentialStore.getDefaultWalletId(TEST_WALLET_ID))
         assertTrue(context.walletSettingsRepository.removedWallets.contains(TEST_WALLET_ID))
     }
 
-    private fun createTestContext(responseBody: String): TestContext {
-        var callCount = 0
-        val mockEngine = MockEngine { _ ->
-            callCount += 1
-            val body = if (callCount == 1) defaultWalletResponseBody() else responseBody
-            respond(
-                content = body,
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            )
+    @Test
+    fun lookupPaymentUsesProvidedWalletIdInsteadOfActiveWallet() = runTest {
+        val wallet1Id = "wallet-1"
+        val wallet2Id = "wallet-2"
+        val wallet1ApiKey = "api-key-1"
+        val wallet2ApiKey = "api-key-2"
+
+        var capturedApiKey: String? = null
+        val context = createTestContextWithHandler { request ->
+            capturedApiKey = request.apiKeyHeader()
+            request.responseFromJson(transactionsSuccessResponseJson())
         }
-        return createTestContextWithEngine(mockEngine)
+
+        context.credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)
+        context.credentialStore.storeApiKey(wallet2Id, wallet2ApiKey)
+        context.repository.setActiveWallet(wallet1Id)
+
+        context.repository.lookupPayment(
+            paymentHash = "test-payment-hash",
+            walletTarget = WalletPaymentTarget.Blink(wallet2Id)
+        )
+
+        assertEquals(wallet2ApiKey, capturedApiKey)
     }
 
-    private fun createTestContextWithEngine(engine: MockEngine): TestContext {
-        val httpClient = HttpClient(engine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
+    @Test
+    fun lookupPaymentUsesActiveWalletWhenNoWalletUriProvided() = runTest {
+        var capturedApiKey: String? = null
+        val context = createTestContextWithHandler { request ->
+            capturedApiKey = request.apiKeyHeader()
+            request.responseFromJson(transactionsSuccessResponseJson())
         }
+
+        context.repository.lookupPayment(
+            paymentHash = "test-payment-hash",
+            walletTarget = null
+        )
+
+        assertEquals(TEST_API_KEY, capturedApiKey)
+    }
+
+    @Test
+    fun concurrentLookupsOnDifferentWalletsUsesCorrectApiKeys() = runTest {
+        val wallet1Id = "wallet-1"
+        val wallet2Id = "wallet-2"
+        val wallet1ApiKey = "api-key-1"
+        val wallet2ApiKey = "api-key-2"
+
+        val capturedApiKeys = mutableListOf<String>()
+        val context = createTestContextWithHandler { request ->
+            capturedApiKeys.add(request.apiKeyHeader() ?: "missing")
+            request.responseFromJson(transactionsSuccessResponseJson())
+        }
+
+        context.credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)
+        context.credentialStore.storeApiKey(wallet2Id, wallet2ApiKey)
+        context.repository.setActiveWallet(wallet1Id)
+
+        val lookup1 = async {
+            context.repository.lookupPayment(
+                paymentHash = "hash-1",
+                walletTarget = WalletPaymentTarget.Blink(wallet1Id)
+            )
+        }
+        val lookup2 = async {
+            context.repository.lookupPayment(
+                paymentHash = "hash-2",
+                walletTarget = WalletPaymentTarget.Blink(wallet2Id)
+            )
+        }
+
+        lookup1.await()
+        lookup2.await()
+
+        assertEquals(2, capturedApiKeys.size)
+        assertTrue(capturedApiKeys.contains(wallet1ApiKey))
+        assertTrue(capturedApiKeys.contains(wallet2ApiKey))
+    }
+
+    private fun createTestContext(paymentResponseJson: String): TestContext = createTestContextWithHandler { request ->
+        if (request.operation is DefaultWalletIdQuery) {
+            request.responseFromJson(defaultWalletResponseJson())
+        } else {
+            request.responseFromJson(paymentResponseJson)
+        }
+    }
+
+    private fun createTestContextWithHandler(handler: (ApolloRequest<*>) -> ApolloResponse<*>): TestContext {
         val settings = MapSettings()
         val credentialStore = BlinkCredentialStore(settings)
-        val apiClient = BlinkApiClient(httpClient)
+        val transport = BlinkApolloTestTransport(handler)
+        val apiClient = BlinkApiClient(createBlinkApolloTestClient(transport))
         val walletSettingsRepository = FakeWalletSettingsRepository()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val networkConnectivity = AlwaysOnlineNetworkConnectivity()
@@ -362,17 +356,19 @@ class BlinkPaymentRepositoryTest {
             scope
         )
 
-        // Set up default test wallet
         credentialStore.storeApiKey(TEST_WALLET_ID, TEST_API_KEY)
         repository.setActiveWallet(TEST_WALLET_ID)
 
-        return TestContext(repository, credentialStore, apiClient, walletSettingsRepository)
+        return TestContext(
+            repository = repository,
+            credentialStore = credentialStore,
+            walletSettingsRepository = walletSettingsRepository
+        )
     }
 
     private data class TestContext(
         val repository: BlinkPaymentRepository,
         val credentialStore: BlinkCredentialStore,
-        val apiClient: BlinkApiClient,
         val walletSettingsRepository: FakeWalletSettingsRepository
     )
 
@@ -392,14 +388,18 @@ class BlinkPaymentRepositoryTest {
         override val walletConnection: Flow<WalletConnection?> = activeWalletState
 
         override suspend fun getWalletConnection(): WalletConnection? = activeWalletState.value
+
         override suspend fun getWallets(): List<WalletConnection> = walletsState.value
+
         override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
             walletsState.value = walletsState.value + connection
             if (activate) activeWalletState.value = connection
         }
+
         override suspend fun setActiveWallet(walletPublicKey: String) {
             activeWalletState.value = walletsState.value.find { it.walletPublicKey == walletPublicKey }
         }
+
         override suspend fun removeWallet(walletPublicKey: String) {
             removedWallets.add(walletPublicKey)
             walletsState.value = walletsState.value.filterNot { it.walletPublicKey == walletPublicKey }
@@ -407,6 +407,7 @@ class BlinkPaymentRepositoryTest {
                 activeWalletState.value = walletsState.value.firstOrNull()
             }
         }
+
         override suspend fun clearWalletConnection() {
             walletsState.value = emptyList()
             activeWalletState.value = null
@@ -417,205 +418,41 @@ class BlinkPaymentRepositoryTest {
         private const val TEST_WALLET_ID = "blink-test-wallet-123"
         private const val TEST_API_KEY = "blink_test_api_key"
         private const val TEST_BLINK_DEFAULT_WALLET_ID = "wallet-123"
-    }
 
-    @Test
-    fun lookupPaymentUsesProvidedWalletIdInsteadOfActiveWallet() = runTest {
-        // Set up two wallets with different API keys
-        val wallet1Id = "wallet-1"
-        val wallet2Id = "wallet-2"
-        val wallet1ApiKey = "api-key-1"
-        val wallet2ApiKey = "api-key-2"
-
-        var capturedApiKey: String? = null
-        val mockEngine = MockEngine { request ->
-            val body = (request.body as TextContent).text
-            // Capture the API key from the request header
-            capturedApiKey = request.headers["X-API-KEY"]
-            respond(
-                content = """{
-                    "data": {
-                        "me": {
-                            "defaultAccount": {
-                                "wallets": [{
-                                    "__typename": "BTCWallet",
-                                    "transactionsByPaymentHash": [{
-                                        "status": "SUCCESS",
-                                        "direction": "SEND"
-                                    }]
-                                }]
-                            }
-                        }
+        private fun defaultWalletResponseJson(): String = """{
+            "data": {
+                "me": {
+                    "defaultAccount": {
+                        "defaultWallet": { "id": "$TEST_BLINK_DEFAULT_WALLET_ID" }
                     }
-                }""",
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-        val settings = MapSettings()
-        val credentialStore = BlinkCredentialStore(settings)
-        val apiClient = BlinkApiClient(httpClient)
-        val walletSettingsRepository = FakeWalletSettingsRepository()
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val networkConnectivity = AlwaysOnlineNetworkConnectivity()
-        val repository = BlinkPaymentRepository(
-            apiClient,
-            credentialStore,
-            walletSettingsRepository,
-            networkConnectivity,
-            scope
-        )
-
-        // Store API keys for both wallets
-        credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)
-        credentialStore.storeApiKey(wallet2Id, wallet2ApiKey)
-
-        // Set wallet1 as active
-        repository.setActiveWallet(wallet1Id)
-
-        // Look up payment on wallet2 (not the active wallet)
-        repository.lookupPayment(
-            paymentHash = "test-payment-hash",
-            walletTarget = WalletPaymentTarget.Blink(wallet2Id)
-        )
-
-        // Verify wallet2's API key was used, not wallet1's
-        assertEquals(wallet2ApiKey, capturedApiKey)
-    }
-
-    @Test
-    fun lookupPaymentUsesActiveWalletWhenNoWalletUriProvided() = runTest {
-        var capturedApiKey: String? = null
-        val mockEngine = MockEngine { request ->
-            capturedApiKey = request.headers["X-API-KEY"]
-            respond(
-                content = """{
-                    "data": {
-                        "me": {
-                            "defaultAccount": {
-                                "wallets": [{
-                                    "__typename": "BTCWallet",
-                                    "transactionsByPaymentHash": [{
-                                        "status": "SUCCESS",
-                                        "direction": "SEND"
-                                    }]
-                                }]
-                            }
-                        }
-                    }
-                }""",
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            )
-        }
-        val context = createTestContextWithEngine(mockEngine)
-
-        // Look up without specifying wallet - should use active wallet
-        context.repository.lookupPayment(
-            paymentHash = "test-payment-hash",
-            walletTarget = null
-        )
-
-        // Verify the active wallet's API key was used
-        assertEquals(TEST_API_KEY, capturedApiKey)
-    }
-
-    @Test
-    fun concurrentLookupsOnDifferentWalletsUsesCorrectApiKeys() = runTest {
-        // Set up two wallets with different API keys
-        val wallet1Id = "wallet-1"
-        val wallet2Id = "wallet-2"
-        val wallet1ApiKey = "api-key-1"
-        val wallet2ApiKey = "api-key-2"
-
-        val capturedApiKeys = mutableListOf<String>()
-        val mockEngine = MockEngine { request ->
-            // Capture the API key from each request
-            capturedApiKeys.add(request.headers["X-API-KEY"] ?: "missing")
-            respond(
-                content = """{
-                    "data": {
-                        "me": {
-                            "defaultAccount": {
-                                "wallets": [{
-                                    "__typename": "BTCWallet",
-                                    "transactionsByPaymentHash": [{
-                                        "status": "SUCCESS",
-                                        "direction": "SEND"
-                                    }]
-                                }]
-                            }
-                        }
-                    }
-                }""",
-                status = HttpStatusCode.OK,
-                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-            )
-        }
-
-        val httpClient = HttpClient(mockEngine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
-        }
-        val settings = MapSettings()
-        val credentialStore = BlinkCredentialStore(settings)
-        val apiClient = BlinkApiClient(httpClient)
-        val walletSettingsRepository = FakeWalletSettingsRepository()
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val networkConnectivity = AlwaysOnlineNetworkConnectivity()
-        val repository = BlinkPaymentRepository(
-            apiClient,
-            credentialStore,
-            walletSettingsRepository,
-            networkConnectivity,
-            scope
-        )
-
-        // Store API keys for both wallets
-        credentialStore.storeApiKey(wallet1Id, wallet1ApiKey)
-        credentialStore.storeApiKey(wallet2Id, wallet2ApiKey)
-
-        // Set wallet1 as active (but we'll look up on both)
-        repository.setActiveWallet(wallet1Id)
-
-        // Run two lookups concurrently on different wallets
-        val lookup1 = async {
-            repository.lookupPayment(
-                paymentHash = "hash-1",
-                walletTarget = WalletPaymentTarget.Blink(wallet1Id)
-            )
-        }
-        val lookup2 = async {
-            repository.lookupPayment(
-                paymentHash = "hash-2",
-                walletTarget = WalletPaymentTarget.Blink(wallet2Id)
-            )
-        }
-
-        // Wait for both to complete
-        lookup1.await()
-        lookup2.await()
-
-        // Verify both API keys were used (order may vary due to concurrency)
-        assertEquals(2, capturedApiKeys.size)
-        assertTrue(capturedApiKeys.contains(wallet1ApiKey))
-        assertTrue(capturedApiKeys.contains(wallet2ApiKey))
-    }
-
-    private fun defaultWalletResponseBody(): String = """{
-        "data": {
-            "me": {
-                "defaultAccount": {
-                    "defaultWallet": { "id": "$TEST_BLINK_DEFAULT_WALLET_ID" }
                 }
             }
-        }
-    }"""
+        }"""
+
+        private fun paymentSuccessResponseJson(): String = """{
+            "data": {
+                "lnInvoicePaymentSend": {
+                    "status": "SUCCESS",
+                    "errors": [],
+                    "transaction": null
+                }
+            }
+        }"""
+
+        private fun transactionsSuccessResponseJson(): String = """{
+            "data": {
+                "me": {
+                    "defaultAccount": {
+                        "wallets": [{
+                            "__typename": "BTCWallet",
+                            "transactionsByPaymentHash": [{
+                                "status": "SUCCESS",
+                                "direction": "SEND"
+                            }]
+                        }]
+                    }
+                }
+            }
+        }"""
+    }
 }

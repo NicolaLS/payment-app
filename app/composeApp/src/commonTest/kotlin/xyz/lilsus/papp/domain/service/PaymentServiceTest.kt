@@ -3,25 +3,17 @@
 package xyz.lilsus.papp.domain.service
 
 import com.russhwolf.settings.MapSettings
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
-import io.ktor.serialization.kotlinx.json.json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
 import xyz.lilsus.papp.data.blink.BlinkApiClient
+import xyz.lilsus.papp.data.blink.BlinkApolloTestTransport
 import xyz.lilsus.papp.data.blink.BlinkCredentialStore
 import xyz.lilsus.papp.data.blink.BlinkPaymentRepository
+import xyz.lilsus.papp.data.blink.createBlinkApolloTestClient
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.PaidInvoice
@@ -87,23 +79,11 @@ class PaymentServiceTest {
         walletSettingsRepository: WalletSettingsRepositoryImpl,
         scope: CoroutineScope
     ): BlinkPaymentRepository {
-        val engine = MockEngine { _ ->
-            respond(
-                content = """{"data":{}}""",
-                status = HttpStatusCode.OK,
-                headers = headersOf(
-                    HttpHeaders.ContentType,
-                    ContentType.Application.Json.toString()
-                )
-            )
-        }
-        val httpClient = HttpClient(engine) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
+        val transport = BlinkApolloTestTransport {
+            error("Blink repository should not be called by NWC routing tests")
         }
         return BlinkPaymentRepository(
-            apiClient = BlinkApiClient(httpClient),
+            apiClient = BlinkApiClient(createBlinkApolloTestClient(transport)),
             credentialStore = BlinkCredentialStore(MapSettings()),
             walletSettingsRepository = walletSettingsRepository,
             networkConnectivity = object : NetworkConnectivity {

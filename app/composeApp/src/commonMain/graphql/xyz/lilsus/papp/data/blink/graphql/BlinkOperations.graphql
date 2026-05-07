@@ -1,0 +1,64 @@
+query Authorization {
+  authorization {
+    scopes
+  }
+}
+
+query DefaultWalletId {
+  me {
+    defaultAccount {
+      defaultWallet {
+        id
+      }
+    }
+  }
+}
+
+query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
+  me {
+    defaultAccount {
+      wallets {
+        ... on BTCWallet {
+          transactionsByPaymentHash(paymentHash: $paymentHash) {
+            status
+            direction
+          }
+        }
+        ... on UsdWallet {
+          transactionsByPaymentHash(paymentHash: $paymentHash) {
+            status
+            direction
+          }
+        }
+      }
+    }
+  }
+}
+
+mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+  lnInvoicePaymentSend(input: $input) {
+    status
+    errors {
+      message
+      code
+    }
+    transaction {
+      settlementFee
+      settlementCurrency
+    }
+  }
+}
+
+mutation LnNoAmountInvoicePaymentSend($input: LnNoAmountInvoicePaymentInput!) {
+  lnNoAmountInvoicePaymentSend(input: $input) {
+    status
+    errors {
+      message
+      code
+    }
+    transaction {
+      settlementFee
+      settlementCurrency
+    }
+  }
+}
