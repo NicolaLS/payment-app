@@ -32,6 +32,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
+import lasr.composeapp.generated.resources.settings_contacts
+import lasr.composeapp.generated.resources.settings_contacts_subtitle
 import lasr.composeapp.generated.resources.settings_currency
 import lasr.composeapp.generated.resources.settings_currency_subtitle
 import lasr.composeapp.generated.resources.settings_footer_privacy
@@ -59,6 +61,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onManageWallets: () -> Unit,
     onPayments: () -> Unit,
+    onContacts: () -> Unit,
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
     onTheme: () -> Unit,
@@ -83,6 +86,12 @@ fun SettingsScreen(
             title = stringResource(Res.string.settings_payments),
             testTag = MaestroTags.Settings.PAYMENTS_ROW,
             onClick = onPayments
+        ),
+        SettingsEntry(
+            title = stringResource(Res.string.settings_contacts),
+            subtitle = stringResource(Res.string.settings_contacts_subtitle),
+            testTag = MaestroTags.Settings.CONTACTS_ROW,
+            onClick = onContacts
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_currency),
@@ -238,6 +247,7 @@ private fun SettingsScreenPreview() {
             onBack = {},
             onManageWallets = {},
             onPayments = {},
+            onContacts = {},
             onCurrency = {},
             onLanguage = {},
             onTheme = {},

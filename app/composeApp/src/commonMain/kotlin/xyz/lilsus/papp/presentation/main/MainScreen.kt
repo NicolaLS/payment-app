@@ -33,6 +33,7 @@ import lasr.composeapp.generated.resources.point_camera_message_subtitle
 import lasr.composeapp.generated.resources.tap_dismiss_pending
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
+import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.presentation.main.components.BottomLayout
@@ -44,6 +45,10 @@ import xyz.lilsus.papp.presentation.main.components.PendingRetryBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ResultLayout
 import xyz.lilsus.papp.presentation.main.components.SettingsFAB
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
+import xyz.lilsus.papp.presentation.main.contacts.ContactsBottomSheet
+import xyz.lilsus.papp.presentation.main.contacts.ContactsUiState
+import xyz.lilsus.papp.presentation.main.contacts.PaySheetTab
+import xyz.lilsus.papp.presentation.main.contacts.SaveContactBottomSheet
 import xyz.lilsus.papp.presentation.main.scan.QrScannerMode
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -54,6 +59,7 @@ fun MainScreen(
     uiState: MainUiState,
     wallets: List<WalletInfo> = emptyList(),
     pendingPayments: List<PendingPaymentItem>,
+    contactsState: ContactsUiState = ContactsUiState(),
     snackbarHostState: SnackbarHostState,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountPreset: (DisplayAmount) -> Unit = {},
@@ -67,6 +73,25 @@ fun MainScreen(
     onPendingRetryDismiss: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
     onPendingTap: (String) -> Unit = {},
+    onContactsOpen: () -> Unit = {},
+    onContactsDismiss: () -> Unit = {},
+    onPaySheetTabSelected: (PaySheetTab) -> Unit = {},
+    onContactsQueryChange: (String) -> Unit = {},
+    onContactsRoleSelected: (ContactRole?) -> Unit = {},
+    onContactsAddCandidate: () -> Unit = {},
+    onShortcutSelected: (String) -> Unit = {},
+    onContactSelected: (String) -> Unit = {},
+    onContactEdit: (String) -> Unit = {},
+    onContactEditorAliasChange: (String) -> Unit = {},
+    onContactEditorAddressChange: (String) -> Unit = {},
+    onContactEditorRoleSelected: (ContactRole?) -> Unit = {},
+    onContactEditorSave: () -> Unit = {},
+    onContactEditorDelete: () -> Unit = {},
+    onContactEditorDismiss: () -> Unit = {},
+    onSaveContactPromptAliasChange: (String) -> Unit = {},
+    onSaveContactPromptRoleSelected: (ContactRole?) -> Unit = {},
+    onSaveContactPromptSave: () -> Unit = {},
+    onSaveContactPromptDismiss: () -> Unit = {},
     onRequestScannerStart: () -> Unit,
     onScannerResume: () -> Unit,
     onScannerPause: () -> Unit,
@@ -135,7 +160,8 @@ fun MainScreen(
             )
             Crossfade(targetState = uiState) { state ->
                 when {
-                    state is MainUiState.Success || state is MainUiState.Error -> ResultLayout(
+                    state is MainUiState.Success ||
+                        state is MainUiState.Error -> ResultLayout(
                         modifier = Modifier.fillMaxSize(),
                         result = state
                     )
@@ -162,7 +188,8 @@ fun MainScreen(
                         subtitle = stringResource(Res.string.point_camera_message_subtitle),
                         wallets = wallets,
                         pendingPayments = pendingPayments,
-                        onPendingTap = onPendingTap
+                        onPendingTap = onPendingTap,
+                        onContactsClick = onContactsOpen
                     )
                 }
             }
@@ -194,6 +221,36 @@ fun MainScreen(
             onCreateNewInvoice = onPendingRetryCreateNewInvoice,
             onViewPending = onPendingRetryViewPending,
             onDismiss = onPendingRetryDismiss
+        )
+    }
+
+    if (contactsState.isOpen) {
+        ContactsBottomSheet(
+            state = contactsState,
+            onDismiss = onContactsDismiss,
+            onTabSelected = onPaySheetTabSelected,
+            onQueryChange = onContactsQueryChange,
+            onRoleSelected = onContactsRoleSelected,
+            onAddCandidate = onContactsAddCandidate,
+            onContactSelected = onContactSelected,
+            onShortcutSelected = onShortcutSelected,
+            onEditContact = onContactEdit,
+            onEditorAliasChange = onContactEditorAliasChange,
+            onEditorAddressChange = onContactEditorAddressChange,
+            onEditorRoleSelected = onContactEditorRoleSelected,
+            onEditorSave = onContactEditorSave,
+            onEditorDelete = onContactEditorDelete,
+            onEditorDismiss = onContactEditorDismiss
+        )
+    }
+
+    contactsState.savePrompt?.let { prompt ->
+        SaveContactBottomSheet(
+            state = prompt,
+            onAliasChange = onSaveContactPromptAliasChange,
+            onRoleSelected = onSaveContactPromptRoleSelected,
+            onSave = onSaveContactPromptSave,
+            onDismiss = onSaveContactPromptDismiss
         )
     }
 }

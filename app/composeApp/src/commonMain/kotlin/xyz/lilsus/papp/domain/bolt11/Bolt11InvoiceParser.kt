@@ -26,8 +26,8 @@ open class Bolt11InvoiceParser {
             is AmountResult.Failure -> return Bolt11ParseResult.Failure(amountResult.reason)
         }
 
-        val (memo, paymentHash) = when (val result = parseTaggedFields(data)) {
-            is TaggedFieldsResult.Success -> result.memo to result.paymentHash
+        val fields = when (val result = parseTaggedFields(data)) {
+            is TaggedFieldsResult.Success -> result
             is TaggedFieldsResult.Failure -> return Bolt11ParseResult.Failure(result.reason)
         }
 
@@ -36,9 +36,10 @@ open class Bolt11InvoiceParser {
         return Bolt11ParseResult.Success(
             Bolt11InvoiceSummary(
                 paymentRequest = canonicalInvoice,
-                paymentHash = paymentHash,
+                paymentHash = fields.paymentHash,
                 amountMsats = amount,
-                memo = memo
+                memo = fields.memo,
+                payeeNodePubKey = fields.payeeNodePubKey
             )
         )
     }
@@ -109,7 +110,11 @@ open class Bolt11InvoiceParser {
     }
 
     private sealed class TaggedFieldsResult {
-        data class Success(val memo: Bolt11Memo, val paymentHash: String?) : TaggedFieldsResult()
+        data class Success(
+            val memo: Bolt11Memo,
+            val paymentHash: String?,
+            val payeeNodePubKey: String?
+        ) : TaggedFieldsResult()
         data class Failure(val reason: String) : TaggedFieldsResult()
     }
 
@@ -131,6 +136,7 @@ open class Bolt11InvoiceParser {
         var descriptionText: String? = null
         var descriptionHash: ByteArray? = null
         var paymentHash: ByteArray? = null
+        var payeeNodePubKey: ByteArray? = null
 
         while (index < payload.size) {
             if (index + 2 >= payload.size) {
@@ -168,6 +174,15 @@ open class Bolt11InvoiceParser {
                     }
                     descriptionHash = bytes
                 }
+
+                TYPE_PAYEE_NODE -> if (payeeNodePubKey == null) {
+                    val bytes = fiveBitWordsToBytes(fieldWords)
+                        ?: return TaggedFieldsResult.Failure("Payee node padding is invalid")
+                    if (bytes.size != 33) {
+                        return TaggedFieldsResult.Failure("Payee node must be 33 bytes")
+                    }
+                    payeeNodePubKey = bytes
+                }
             }
             index += dataLength
         }
@@ -179,8 +194,9 @@ open class Bolt11InvoiceParser {
         }
 
         val paymentHashHex = paymentHash?.toHexString()
+        val payeeNodePubKeyHex = payeeNodePubKey?.toHexString()
 
-        return TaggedFieldsResult.Success(memo, paymentHashHex)
+        return TaggedFieldsResult.Success(memo, paymentHashHex, payeeNodePubKeyHex)
     }
 
     private fun ByteArray.toHexString(): String = buildString {
@@ -280,6 +296,7 @@ open class Bolt11InvoiceParser {
 
         private const val TYPE_PAYMENT_HASH = 1
         private const val TYPE_DESCRIPTION = 13
+        private const val TYPE_PAYEE_NODE = 19
         private const val TYPE_DESCRIPTION_HASH = 23
 
         private val HEX_CHARS = "0123456789abcdef".toCharArray()
@@ -295,7 +312,8 @@ data class Bolt11InvoiceSummary(
     val paymentRequest: String,
     val paymentHash: String?,
     val amountMsats: Long?,
-    val memo: Bolt11Memo
+    val memo: Bolt11Memo,
+    val payeeNodePubKey: String? = null
 )
 
 sealed class Bolt11Memo {

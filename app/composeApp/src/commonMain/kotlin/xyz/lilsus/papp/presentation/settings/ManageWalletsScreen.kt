@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -74,6 +76,8 @@ fun ManageWalletsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -87,7 +91,9 @@ fun ManageWalletsScreen(
                     Text(text = stringResource(Res.string.settings_manage_wallets_add))
                 }
                 Column(
-                    modifier = Modifier.verticalScroll(scrollState),
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(scrollState),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     state.wallets.forEach { row ->

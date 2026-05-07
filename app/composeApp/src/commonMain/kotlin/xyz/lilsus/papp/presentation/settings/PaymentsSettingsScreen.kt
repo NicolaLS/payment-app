@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.settings_payments
+import lasr.composeapp.generated.resources.settings_payments_ask_save_contacts
 import lasr.composeapp.generated.resources.settings_payments_confirm_label
 import lasr.composeapp.generated.resources.settings_payments_confirm_manual_entry
 import lasr.composeapp.generated.resources.settings_payments_confirm_threshold
@@ -60,6 +61,7 @@ fun PaymentsSettingsScreen(
     onModeSelected: (PaymentConfirmationMode) -> Unit,
     onThresholdChanged: (Long) -> Unit,
     onConfirmManualEntryChanged: (Boolean) -> Unit,
+    onAskToSaveNewContactsChanged: (Boolean) -> Unit,
     onVibrateOnScanChanged: (Boolean) -> Unit,
     onVibrateOnPaymentChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
@@ -158,6 +160,34 @@ fun PaymentsSettingsScreen(
                     } else {
                         // keep layout height consistent
                         Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(MaestroTags.Settings.PAYMENTS_ASK_SAVE_CONTACTS)
+                            .heightIn(48.dp)
+                            .toggleable(
+                                value = state.askToSaveNewContacts,
+                                role = Role.Switch,
+                                onValueChange = onAskToSaveNewContactsChanged
+                            ),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(
+                                Res.string.settings_payments_ask_save_contacts
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.askToSaveNewContacts,
+                            onCheckedChange = null
+                        )
                     }
                 }
             }
@@ -280,6 +310,7 @@ private fun PaymentsSettingsScreenPreview() {
             onModeSelected = {},
             onThresholdChanged = {},
             onConfirmManualEntryChanged = {},
+            onAskToSaveNewContactsChanged = {},
             onVibrateOnScanChanged = {},
             onVibrateOnPaymentChanged = {}
         )

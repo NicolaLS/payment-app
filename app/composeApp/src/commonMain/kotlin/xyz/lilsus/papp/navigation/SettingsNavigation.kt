@@ -45,6 +45,8 @@ import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
 import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
 import xyz.lilsus.papp.presentation.settings.ChooseWalletTypeScreen
+import xyz.lilsus.papp.presentation.settings.ContactsSettingsScreen
+import xyz.lilsus.papp.presentation.settings.ContactsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsScreen
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
@@ -74,6 +76,9 @@ internal object SettingsSubNav
 
 @Serializable
 internal object SettingsPayments
+
+@Serializable
+internal object SettingsContacts
 
 @Serializable
 internal object SettingsCurrency
@@ -106,6 +111,9 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
         }
         composable<SettingsPayments> {
             PaymentsSettingsEntry(onBack = { navController.popBackStack() })
+        }
+        composable<SettingsContacts> {
+            ContactsSettingsEntry(onBack = { navController.popBackStack() })
         }
         composable<SettingsCurrency> {
             CurrencySettingsEntry(onBack = { navController.popBackStack() })
@@ -146,6 +154,12 @@ fun NavController.navigateToSettings() {
 
 fun NavController.navigateToSettingsPayments() {
     navigate(route = SettingsPayments) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsContacts() {
+    navigate(route = SettingsContacts) {
         launchSingleTop = true
     }
 }
@@ -410,8 +424,44 @@ private fun PaymentsSettingsEntry(onBack: () -> Unit) {
         onModeSelected = { viewModel.selectMode(it) },
         onThresholdChanged = { threshold -> viewModel.updateThreshold(threshold) },
         onConfirmManualEntryChanged = { enabled -> viewModel.setConfirmManualEntry(enabled) },
+        onAskToSaveNewContactsChanged = { enabled ->
+            viewModel.setAskToSaveNewContacts(enabled)
+        },
         onVibrateOnScanChanged = { enabled -> viewModel.setVibrateOnScan(enabled) },
         onVibrateOnPaymentChanged = { enabled -> viewModel.setVibrateOnPayment(enabled) }
+    )
+}
+
+@Composable
+private fun ContactsSettingsEntry(onBack: () -> Unit) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<ContactsSettingsViewModel>() },
+        onDispose = { it.clear() }
+    )
+
+    val state by viewModel.uiState.collectAsState()
+
+    ContactsSettingsScreen(
+        state = state,
+        onBack = onBack,
+        onQueryChange = viewModel::updateQuery,
+        onAddContact = viewModel::startAddContact,
+        onAddShortcut = viewModel::startAddShortcut,
+        onEditContact = viewModel::startEditContact,
+        onDeleteContact = viewModel::deleteContact,
+        onEditShortcut = viewModel::startEditShortcut,
+        onDeleteShortcut = viewModel::deleteShortcut,
+        onContactEditorAddressChange = viewModel::updateContactEditorAddress,
+        onContactEditorAliasChange = viewModel::updateContactEditorAlias,
+        onContactEditorRoleSelected = viewModel::updateContactEditorRole,
+        onContactEditorSave = viewModel::saveContactEditor,
+        onShortcutTitleChange = viewModel::updateShortcutTitle,
+        onShortcutContactSelected = viewModel::updateShortcutContact,
+        onShortcutAmountChange = viewModel::updateShortcutAmount,
+        onShortcutCommentChange = viewModel::updateShortcutComment,
+        onShortcutSave = viewModel::saveShortcutEditor,
+        onEditorDismiss = viewModel::dismissEditor
     )
 }
 
@@ -439,6 +489,7 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
         onBack = onBack,
         onManageWallets = { navController.navigateToSettingsManageWallets() },
         onPayments = { navController.navigateToSettingsPayments() },
+        onContacts = { navController.navigateToSettingsContacts() },
         onCurrency = { navController.navigateToSettingsCurrency() },
         onLanguage = { navController.navigateToSettingsLanguage() },
         onTheme = { navController.navigateToSettingsTheme() },

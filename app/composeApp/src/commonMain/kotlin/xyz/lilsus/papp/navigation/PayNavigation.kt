@@ -261,6 +261,7 @@ private fun MainScreenEntry(
     val uiState by viewModel.uiState.collectAsState()
     val pendingPayments by viewModel.pendingPayments.collectAsState()
     val wallets by viewModel.wallets.collectAsState()
+    val contactsState by viewModel.contactsUiState.collectAsState()
     val keepPreviewWarm =
         uiState == MainUiState.Active &&
             scannerMode == QrScannerMode.Far &&
@@ -340,6 +341,7 @@ private fun MainScreenEntry(
             uiState = uiState,
             wallets = wallets,
             pendingPayments = pendingPayments,
+            contactsState = contactsState,
             snackbarHostState = snackbarHostState,
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))
@@ -363,6 +365,51 @@ private fun MainScreenEntry(
             onPendingRetryDismiss = { viewModel.dispatch(MainIntent.PendingRetryDismiss) },
             onResultDismiss = { viewModel.dispatch(MainIntent.DismissResult) },
             onPendingTap = { id -> viewModel.dispatch(MainIntent.TapPending(id)) },
+            onContactsOpen = { viewModel.dispatch(MainIntent.OpenContacts) },
+            onContactsDismiss = { viewModel.dispatch(MainIntent.DismissContacts) },
+            onPaySheetTabSelected = { tab ->
+                viewModel.dispatch(MainIntent.PaySheetTabSelected(tab))
+            },
+            onContactsQueryChange = { query ->
+                viewModel.dispatch(MainIntent.ContactSearchChanged(query))
+            },
+            onContactsRoleSelected = { role ->
+                viewModel.dispatch(MainIntent.ContactRoleSelected(role))
+            },
+            onContactsAddCandidate = {
+                viewModel.dispatch(MainIntent.AddContactCandidate)
+            },
+            onShortcutSelected = { id ->
+                viewModel.dispatch(MainIntent.SelectShortcut(id))
+            },
+            onContactSelected = { id ->
+                viewModel.dispatch(MainIntent.SelectContact(id))
+            },
+            onContactEdit = { id ->
+                viewModel.dispatch(MainIntent.EditContact(id))
+            },
+            onContactEditorAliasChange = { alias ->
+                viewModel.dispatch(MainIntent.ContactEditorAliasChanged(alias))
+            },
+            onContactEditorAddressChange = { address ->
+                viewModel.dispatch(MainIntent.ContactEditorAddressChanged(address))
+            },
+            onContactEditorRoleSelected = { role ->
+                viewModel.dispatch(MainIntent.ContactEditorRoleSelected(role))
+            },
+            onContactEditorSave = { viewModel.dispatch(MainIntent.ContactEditorSave) },
+            onContactEditorDelete = { viewModel.dispatch(MainIntent.ContactEditorDelete) },
+            onContactEditorDismiss = { viewModel.dispatch(MainIntent.ContactEditorDismiss) },
+            onSaveContactPromptAliasChange = { alias ->
+                viewModel.dispatch(MainIntent.SaveContactPromptAliasChanged(alias))
+            },
+            onSaveContactPromptRoleSelected = { role ->
+                viewModel.dispatch(MainIntent.SaveContactPromptRoleSelected(role))
+            },
+            onSaveContactPromptSave = { viewModel.dispatch(MainIntent.SaveContactPromptSave) },
+            onSaveContactPromptDismiss = {
+                viewModel.dispatch(MainIntent.SaveContactPromptDismiss)
+            },
             onRequestScannerStart = {
                 if (!cameraPermission.hasPermission) {
                     if (!hasRequestedPermission) {

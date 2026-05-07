@@ -2,6 +2,7 @@
 
 package xyz.lilsus.papp.presentation.main
 
+import com.russhwolf.settings.MapSettings
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -23,6 +24,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import xyz.lilsus.papp.data.settings.ContactsRepositoryImpl
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.bolt11.Bolt11Memo
@@ -45,24 +47,33 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
+import xyz.lilsus.papp.domain.repository.ContactsRepository
 import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.LnurlRepository
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
+import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.usecases.RecordContactPaymentUseCase
+import xyz.lilsus.papp.domain.usecases.RecordShortcutPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
+import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
@@ -405,6 +416,62 @@ class MainViewModelTest {
             viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
             assertEquals(addressInvoice, repository.lastInvoice)
             assertNull(repository.lastAmountMsats)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun savedContactPaysUsingStoredLightningAddress() = runBlocking {
+        val amountMsats = 50_000L
+        val contactInvoice = "lnbc1contactinvoice"
+        val params = LnurlPayParams(
+            callback = LNURL_CALLBACK,
+            minSendable = amountMsats,
+            maxSendable = amountMsats,
+            metadataRaw = LNURL_METADATA_RAW,
+            metadata = LNURL_METADATA,
+            commentAllowed = null,
+            domain = "blink.sv"
+        )
+        val contactsRepository = ContactsRepositoryImpl(MapSettings())
+        val contact = contactsRepository.saveContact(
+            address = LightningAddress("PayMe", "Blink.SV", "Tips"),
+            alias = "Pay me",
+            role = null
+        )
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubAddress("PayMe+Tips@blink.sv", Result.Success(params))
+            stubInvoice(LNURL_CALLBACK, amountMsats, Result.Success(contactInvoice))
+        }
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                contactInvoice to Bolt11InvoiceSummary(
+                    paymentRequest = contactInvoice,
+                    paymentHash = null,
+                    amountMsats = amountMsats,
+                    memo = Bolt11Memo.Text("Payment")
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            lnurlRepository = lnurlRepository,
+            contactsRepository = contactsRepository
+        )
+        try {
+            viewModel.dispatch(MainIntent.OpenContacts)
+            viewModel.contactsUiState.firstWithTimeout {
+                it.contacts.any { item -> item.address == "PayMe+Tips@blink.sv" }
+            }
+
+            viewModel.dispatch(MainIntent.SelectContact(contact.id))
+
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
+            assertEquals(1, lnurlRepository.addressFetchCount)
+            assertEquals(contactInvoice, repository.lastInvoice)
         } finally {
             viewModel.clear()
         }
@@ -903,6 +970,7 @@ class MainViewModelTest {
         lnurlRepository: FakeLnurlRepository = FakeLnurlRepository(),
         currencyPreferencesRepository: CurrencyPreferencesRepository = FakeCurrencyPreferencesRepository(currencyCode),
         exchangeRateRepository: ExchangeRateRepository = FakeExchangeRateRepository(exchangeRateResult),
+        contactsRepository: ContactsRepository? = null,
         dispatcherOverride: CoroutineDispatcher = dispatcher
     ): MainViewModel {
         val payInvoice = PayInvoiceUseCase(repository)
@@ -951,6 +1019,18 @@ class MainViewModelTest {
             requestLnurlInvoice = requestLnurlInvoice,
             observePaymentPreferences = observePaymentPreferences,
             haptics = haptics,
+            observeContacts = contactsRepository?.let { ObserveContactsUseCase(it) },
+            observeShortcuts = contactsRepository?.let {
+                ObserveShortcutsUseCase(it)
+            },
+            observeContactPreferences = contactsRepository?.let {
+                ObserveContactPreferencesUseCase(it)
+            },
+            saveContact = contactsRepository?.let { SaveContactUseCase(it) },
+            updateContact = contactsRepository?.let { UpdateContactUseCase(it) },
+            deleteContact = contactsRepository?.let { DeleteContactUseCase(it) },
+            recordContactPayment = contactsRepository?.let { RecordContactPaymentUseCase(it) },
+            recordShortcutPayment = contactsRepository?.let { RecordShortcutPaymentUseCase(it) },
             dispatcher = dispatcherOverride
         )
     }

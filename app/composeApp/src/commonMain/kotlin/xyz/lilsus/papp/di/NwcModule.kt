@@ -17,6 +17,7 @@ import xyz.lilsus.papp.data.nwc.NwcConnectionManager
 import xyz.lilsus.papp.data.nwc.NwcWalletRepositoryImpl
 import xyz.lilsus.papp.data.nwc.RealNwcClientFactory
 import xyz.lilsus.papp.data.nwc.WalletDiscoveryRepositoryImpl
+import xyz.lilsus.papp.data.settings.ContactsRepositoryImpl
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.OnboardingRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
@@ -31,6 +32,7 @@ import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.BlinkWalletAccountRepository
 import xyz.lilsus.papp.domain.repository.BlinkWalletRepository
+import xyz.lilsus.papp.domain.repository.ContactsRepository
 import xyz.lilsus.papp.domain.repository.CurrencyPreferencesRepository
 import xyz.lilsus.papp.domain.repository.ExchangeRateRepository
 import xyz.lilsus.papp.domain.repository.LanguageRepository
@@ -46,25 +48,35 @@ import xyz.lilsus.papp.domain.service.PaymentService
 import xyz.lilsus.papp.domain.usecases.ClearLanguageOverrideUseCase
 import xyz.lilsus.papp.domain.usecases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
+import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
+import xyz.lilsus.papp.domain.usecases.DeleteShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.GetBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveOnboardingRequiredUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
+import xyz.lilsus.papp.domain.usecases.RecordContactPaymentUseCase
+import xyz.lilsus.papp.domain.usecases.RecordShortcutPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RefreshBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.RefreshLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
+import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
+import xyz.lilsus.papp.domain.usecases.SaveShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
+import xyz.lilsus.papp.domain.usecases.SetAskToSaveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.SetConfirmManualEntryUseCase
 import xyz.lilsus.papp.domain.usecases.SetCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetLanguagePreferenceUseCase
@@ -75,6 +87,7 @@ import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
 import xyz.lilsus.papp.domain.usecases.SetWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
+import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
 import xyz.lilsus.papp.platform.NetworkConnectivity
 import xyz.lilsus.papp.platform.createAppLifecycleObserver
@@ -86,6 +99,7 @@ import xyz.lilsus.papp.presentation.main.MainViewModel
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.onboarding.OnboardingViewModel
+import xyz.lilsus.papp.presentation.settings.ContactsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
@@ -115,6 +129,7 @@ val nwcModule = module {
         OnboardingRepositoryImpl(settings = createOnboardingSettings())
     }
     single<PaymentPreferencesRepository> { PaymentPreferencesRepositoryImpl(get()) }
+    single<ContactsRepository> { ContactsRepositoryImpl(get()) }
     single<CurrencyPreferencesRepository> { CurrencyPreferencesRepositoryImpl(get()) }
     single<ThemePreferencesRepository> { ThemePreferencesRepositoryImpl(get()) }
     single<LanguageRepository> { createLanguageRepository() }
@@ -222,6 +237,17 @@ val nwcModule = module {
     factory { SetVibrateOnScanUseCase(repository = get()) }
     factory { SetVibrateOnPaymentUseCase(repository = get()) }
     factory { ShouldConfirmPaymentUseCase(repository = get()) }
+    factory { ObserveContactsUseCase(repository = get()) }
+    factory { ObserveShortcutsUseCase(repository = get()) }
+    factory { ObserveContactPreferencesUseCase(repository = get()) }
+    factory { SaveContactUseCase(repository = get()) }
+    factory { UpdateContactUseCase(repository = get()) }
+    factory { DeleteContactUseCase(repository = get()) }
+    factory { SaveShortcutUseCase(repository = get()) }
+    factory { DeleteShortcutUseCase(repository = get()) }
+    factory { RecordContactPaymentUseCase(repository = get()) }
+    factory { RecordShortcutPaymentUseCase(repository = get()) }
+    factory { SetAskToSaveContactsUseCase(repository = get()) }
     factory {
         val info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
         ManualAmountController(
@@ -264,7 +290,15 @@ val nwcModule = module {
             resolveLightningAddressUseCase = get(),
             requestLnurlInvoice = get(),
             observePaymentPreferences = get(),
-            haptics = get()
+            haptics = get(),
+            observeContacts = get(),
+            observeShortcuts = get(),
+            observeContactPreferences = get(),
+            saveContact = get(),
+            updateContact = get(),
+            deleteContact = get(),
+            recordContactPayment = get(),
+            recordShortcutPayment = get()
         )
     }
 
@@ -295,7 +329,23 @@ val nwcModule = module {
             setConfirmationThreshold = get(),
             setConfirmManualEntryPreference = get(),
             setVibrateOnScanUseCase = get(),
-            setVibrateOnPaymentUseCase = get()
+            setVibrateOnPaymentUseCase = get(),
+            observeContactPreferences = get(),
+            setAskToSaveContactsUseCase = get()
+        )
+    }
+
+    factory {
+        ContactsSettingsViewModel(
+            observeContacts = get(),
+            observeShortcuts = get(),
+            saveContact = get(),
+            updateContact = get(),
+            deleteContactUseCase = get(),
+            saveShortcut = get(),
+            deleteShortcutUseCase = get(),
+            lightningInputParser = get(),
+            dispatcher = get()
         )
     }
 

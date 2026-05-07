@@ -2,8 +2,10 @@ package xyz.lilsus.papp.presentation.main
 
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
+import xyz.lilsus.papp.presentation.main.contacts.PaySheetTab
 
 /**
  * Defines the one-off events emitted by [MainViewModel] for the UI layer to handle.
@@ -56,6 +58,26 @@ sealed interface MainIntent {
     data object PendingRetryViewPending : MainIntent
     data object PendingRetryDismiss : MainIntent
     data class StartDonation(val amountSats: Long, val address: LightningAddress) : MainIntent
+
+    data object OpenContacts : MainIntent
+    data object DismissContacts : MainIntent
+    data class PaySheetTabSelected(val tab: PaySheetTab) : MainIntent
+    data class ContactSearchChanged(val query: String) : MainIntent
+    data class ContactRoleSelected(val role: ContactRole?) : MainIntent
+    data object AddContactCandidate : MainIntent
+    data class SelectShortcut(val id: String) : MainIntent
+    data class SelectContact(val id: String) : MainIntent
+    data class EditContact(val id: String) : MainIntent
+    data class ContactEditorAliasChanged(val alias: String) : MainIntent
+    data class ContactEditorAddressChanged(val address: String) : MainIntent
+    data class ContactEditorRoleSelected(val role: ContactRole?) : MainIntent
+    data object ContactEditorSave : MainIntent
+    data object ContactEditorDelete : MainIntent
+    data object ContactEditorDismiss : MainIntent
+    data class SaveContactPromptAliasChanged(val alias: String) : MainIntent
+    data class SaveContactPromptRoleSelected(val role: ContactRole?) : MainIntent
+    data object SaveContactPromptSave : MainIntent
+    data object SaveContactPromptDismiss : MainIntent
 
     /** Tap a pending payment chip - shows result if ready, does nothing if still waiting */
     data class TapPending(val id: String) : MainIntent

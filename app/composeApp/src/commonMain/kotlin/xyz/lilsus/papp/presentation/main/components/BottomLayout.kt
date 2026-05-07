@@ -43,6 +43,7 @@ import xyz.lilsus.papp.domain.format.rememberAmountFormatter
 import xyz.lilsus.papp.presentation.main.PendingPaymentItem
 import xyz.lilsus.papp.presentation.main.PendingStatus
 import xyz.lilsus.papp.presentation.main.WalletInfo
+import xyz.lilsus.papp.presentation.main.contacts.ContactsHandle
 import xyz.lilsus.papp.presentation.util.formatTimeHHmm
 
 @Composable
@@ -52,7 +53,8 @@ fun BottomLayout(
     subtitle: String? = null,
     wallets: List<WalletInfo> = emptyList(),
     pendingPayments: List<PendingPaymentItem> = emptyList(),
-    onPendingTap: (String) -> Unit = {}
+    onPendingTap: (String) -> Unit = {},
+    onContactsClick: () -> Unit = {}
 ) {
     val formatter = rememberAmountFormatter()
     Column(
@@ -77,6 +79,8 @@ fun BottomLayout(
             Spacer(modifier = Modifier.height(12.dp))
             WalletIndicator(wallets = wallets)
         }
+        Spacer(modifier = Modifier.height(14.dp))
+        ContactsHandle(onClick = onContactsClick)
         AnimatedVisibility(
             visible = pendingPayments.isNotEmpty(),
             enter = fadeIn() + slideInVertically { it },

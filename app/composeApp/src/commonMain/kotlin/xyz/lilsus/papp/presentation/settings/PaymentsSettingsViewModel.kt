@@ -14,8 +14,10 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
+import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.SetAskToSaveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.SetConfirmManualEntryUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationThresholdUseCase
@@ -32,6 +34,8 @@ class PaymentsSettingsViewModel internal constructor(
     private val setConfirmManualEntryPreference: SetConfirmManualEntryUseCase,
     private val setVibrateOnScanUseCase: SetVibrateOnScanUseCase,
     private val setVibrateOnPaymentUseCase: SetVibrateOnPaymentUseCase,
+    private val observeContactPreferences: ObserveContactPreferencesUseCase? = null,
+    private val setAskToSaveContactsUseCase: SetAskToSaveContactsUseCase? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -64,6 +68,15 @@ class PaymentsSettingsViewModel internal constructor(
                 updateFiatEquivalent()
             }
         }
+        observeContactPreferences?.let { useCase ->
+            scope.launch {
+                useCase().collectLatest { preferences ->
+                    _uiState.value = _uiState.value.copy(
+                        askToSaveNewContacts = preferences.askToSaveNewContacts
+                    )
+                }
+            }
+        }
     }
 
     fun selectMode(mode: PaymentConfirmationMode) {
@@ -90,6 +103,10 @@ class PaymentsSettingsViewModel internal constructor(
 
     fun setVibrateOnPayment(enabled: Boolean) {
         scope.launch { setVibrateOnPaymentUseCase(enabled) }
+    }
+
+    fun setAskToSaveNewContacts(enabled: Boolean) {
+        scope.launch { setAskToSaveContactsUseCase?.invoke(enabled) }
     }
 
     fun clear() {
@@ -119,5 +136,6 @@ data class PaymentsSettingsUiState(
     val confirmManualEntry: Boolean = PaymentPreferences().confirmManualEntry,
     val vibrateOnScan: Boolean = PaymentPreferences().vibrateOnScan,
     val vibrateOnPayment: Boolean = PaymentPreferences().vibrateOnPayment,
+    val askToSaveNewContacts: Boolean = true,
     val thresholdFiatEquivalent: DisplayAmount? = null
 )

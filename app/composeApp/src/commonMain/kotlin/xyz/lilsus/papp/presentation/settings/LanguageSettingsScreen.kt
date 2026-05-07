@@ -3,9 +3,11 @@ package xyz.lilsus.papp.presentation.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -69,6 +71,8 @@ fun LanguageSettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             OutlinedTextField(
@@ -82,6 +86,7 @@ fun LanguageSettingsScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
                     .padding(top = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {

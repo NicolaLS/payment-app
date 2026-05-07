@@ -14,6 +14,11 @@ object MaestroTags {
         const val ACTIVE_WALLET_NAME = "payment_active_wallet_name"
         const val PENDING_CHIP = "payment_pending_chip"
         const val WATCHING_PENDING = "payment_watching_pending"
+        const val CONTACTS_HANDLE = "payment_contacts_handle"
+        const val CONTACTS_SHEET = "payment_contacts_sheet"
+        const val CONTACTS_SEARCH = "payment_contacts_search"
+        const val CONTACTS_ADD_BUTTON = "payment_contacts_add_button"
+        const val CONTACTS_SAVE_PROMPT = "payment_contacts_save_prompt"
 
         const val CONFIRMATION_SHEET = "payment_confirmation_sheet"
         const val CONFIRMATION_PAY_BUTTON = "payment_confirmation_pay_button"
@@ -39,6 +44,8 @@ object MaestroTags {
         const val RESULT_ERROR = "payment_result_error"
 
         fun manualAmountDigitKey(value: Int): String = "payment_manual_amount_key_$value"
+
+        fun contactRow(label: String): String = "payment_contact_row_${label.stableTagToken()}"
     }
 
     object Onboarding {
@@ -100,6 +107,7 @@ object MaestroTags {
         const val SCREEN = "settings_screen"
         const val MANAGE_WALLETS_ROW = "settings_manage_wallets_row"
         const val PAYMENTS_ROW = "settings_payments_row"
+        const val CONTACTS_ROW = "settings_contacts_row"
         const val CURRENCY_ROW = "settings_currency_row"
         const val LANGUAGE_ROW = "settings_language_row"
         const val THEME_ROW = "settings_theme_row"
@@ -111,6 +119,10 @@ object MaestroTags {
             "settings_payments_confirmation_mode_above"
         const val PAYMENTS_CONFIRM_MANUAL_ENTRY =
             "settings_payments_confirm_manual_entry"
+        const val PAYMENTS_ASK_SAVE_CONTACTS =
+            "settings_payments_ask_save_contacts"
+
+        const val CONTACTS_SCREEN = "settings_contacts_screen"
 
         const val MANAGE_WALLETS_SCREEN = "settings_manage_wallets_screen"
         const val MANAGE_WALLETS_ADD_BUTTON = "settings_manage_wallets_add_button"
