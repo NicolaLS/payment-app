@@ -15,7 +15,8 @@ interface QrScannerController {
 
     fun start(
         onQrCodeScanned: (String) -> Unit,
-        onCameraPermissionMissing: () -> Unit = {}
+        onCameraPermissionMissing: () -> Unit = {},
+        onScannerUnavailable: () -> Unit = {}
     ): Boolean
     fun pause()
     fun resume()

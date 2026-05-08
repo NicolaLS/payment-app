@@ -60,6 +60,8 @@ object Pay
 private const val ZOOM_DRAG_RANGE = 0.4f
 private const val ZOOM_STEP = 0.01f
 private const val PREVIEW_REVEAL_DELAY_MS = 220L
+private const val SCANNER_AUTO_RESTART_DELAY_MS = 350L
+private const val MAX_SCANNER_AUTO_RESTARTS = 1
 
 /** Horizontal swipe threshold in pixels to trigger wallet switch. */
 private const val SWIPE_THRESHOLD = 100f
@@ -96,6 +98,8 @@ private fun MainScreenEntry(
     var scannerMode by remember { mutableStateOf(QrScannerMode.Near) }
     var modeBeforeZoomGesture by remember { mutableStateOf<QrScannerMode?>(null) }
     var previewRevealJob by remember { mutableStateOf<Job?>(null) }
+    var scannerRestartRequest by remember { mutableStateOf(0) }
+    var scannerAutoRestartAttempts by remember { mutableStateOf(0) }
 
     // Use Animatable for zoom state synchronization with scanner controller
     val zoomFraction = remember { Animatable(0f) }
@@ -137,6 +141,7 @@ private fun MainScreenEntry(
 
     DisposableEffect(viewModel, scannerController) {
         onDispose {
+            previewRevealJob?.cancel()
             scannerController.stop()
             scannerStarted = false
             previewPrepared = false
@@ -208,17 +213,41 @@ private fun MainScreenEntry(
         cameraPermission.request()
     }
 
+    fun handleScannerUnavailable() {
+        scannerStarted = false
+        previewStreaming = false
+        endZoomGesture()
+
+        if (scannerAutoRestartAttempts >= MAX_SCANNER_AUTO_RESTARTS) return
+        scannerAutoRestartAttempts += 1
+        scannerRestartRequest += 1
+    }
+
     fun startScannerIfNeeded(): Boolean {
         if (scannerStarted) return true
         if (!cameraPermission.hasPermission) return false
         scannerController.setMode(scannerMode)
         scannerStarted = scannerController.start(
             onQrCodeScanned = { rawValue ->
+                scannerAutoRestartAttempts = 0
                 viewModel.dispatch(MainIntent.QrCodeScanned(rawValue))
             },
-            onCameraPermissionMissing = ::requestCameraPermissionAfterScannerFailure
+            onCameraPermissionMissing = ::requestCameraPermissionAfterScannerFailure,
+            onScannerUnavailable = ::handleScannerUnavailable
         )
         return scannerStarted
+    }
+
+    LaunchedEffect(scannerRestartRequest) {
+        if (scannerRestartRequest == 0) return@LaunchedEffect
+        delay(SCANNER_AUTO_RESTART_DELAY_MS)
+        if (
+            cameraPermission.hasPermission &&
+            viewModel.uiState.value == MainUiState.Active &&
+            !scannerStarted
+        ) {
+            startScannerIfNeeded()
+        }
     }
 
     fun beginZoomGesture(startPosition: Offset) {
@@ -257,6 +286,7 @@ private fun MainScreenEntry(
     LaunchedEffect(cameraPermission.hasPermission) {
         if (cameraPermission.hasPermission) {
             hasRequestedPermission = false
+            scannerAutoRestartAttempts = 0
         } else {
             if (scannerStarted) {
                 scannerController.stop()
@@ -282,7 +312,9 @@ private fun MainScreenEntry(
     val previewVisible = previewMounted && previewRevealRequested && previewStreaming
 
     LaunchedEffect(uiState) {
-        if (uiState != MainUiState.Active) {
+        if (uiState == MainUiState.Active) {
+            scannerAutoRestartAttempts = 0
+        } else {
             endZoomGesture()
         }
     }

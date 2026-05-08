@@ -185,6 +185,7 @@ private class AndroidQrScannerController(
     private var analysisExecutor: DroppingExecutor? = null
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private var onCameraPermissionMissing: (() -> Unit)? = null
+    private var onScannerUnavailable: (() -> Unit)? = null
     private val isActive = AtomicBoolean(false)
     private val isBound = AtomicBoolean(false)
     private var camera: Camera? = null
@@ -194,10 +195,12 @@ private class AndroidQrScannerController(
 
     override fun start(
         onQrCodeScanned: (String) -> Unit,
-        onCameraPermissionMissing: () -> Unit
+        onCameraPermissionMissing: () -> Unit,
+        onScannerUnavailable: () -> Unit
     ): Boolean {
         this.onQrCodeScanned = onQrCodeScanned
         this.onCameraPermissionMissing = onCameraPermissionMissing
+        this.onScannerUnavailable = onScannerUnavailable
         if (!isCameraPermissionGranted(context)) {
             reportCameraPermissionMissing()
             return false
@@ -240,6 +243,7 @@ private class AndroidQrScannerController(
         cameraProvider = null
         onQrCodeScanned = null
         onCameraPermissionMissing = null
+        onScannerUnavailable = null
         isBound.set(false)
     }
 
@@ -348,7 +352,7 @@ private class AndroidQrScannerController(
                         reportCameraPermissionMissing()
                     } else {
                         Log.e(TAG, "Failed to bind CameraX use cases", failure)
-                        stop()
+                        reportScannerUnavailable()
                     }
                 }
             },
@@ -358,6 +362,12 @@ private class AndroidQrScannerController(
 
     private fun reportCameraPermissionMissing() {
         val callback = onCameraPermissionMissing
+        stop()
+        callback?.invoke()
+    }
+
+    private fun reportScannerUnavailable() {
+        val callback = onScannerUnavailable
         stop()
         callback?.invoke()
     }

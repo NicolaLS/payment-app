@@ -129,6 +129,7 @@ private class IosQrScannerController : QrScannerController {
         get() = availableBackCameras.supportsManualModeSelection
 
     private var onQrCodeScanned: ((String) -> Unit)? = null
+    private var onScannerUnavailable: (() -> Unit)? = null
     private var started = false
     private var paused = true
     private var configured = false
@@ -155,13 +156,15 @@ private class IosQrScannerController : QrScannerController {
 
     override fun start(
         onQrCodeScanned: (String) -> Unit,
-        onCameraPermissionMissing: () -> Unit
+        onCameraPermissionMissing: () -> Unit,
+        onScannerUnavailable: () -> Unit
     ): Boolean {
         if (!isCameraAuthorized()) {
             onCameraPermissionMissing()
             return false
         }
         this.onQrCodeScanned = onQrCodeScanned
+        this.onScannerUnavailable = onScannerUnavailable
         ensureLifecycleObserver()
         dispatch_async(sessionQueue) {
             started = true
@@ -212,6 +215,7 @@ private class IosQrScannerController : QrScannerController {
             previewLayer = null
         }
         onQrCodeScanned = null
+        onScannerUnavailable = null
     }
 
     override fun bindPreview(surface: CameraPreviewSurface) {
@@ -246,6 +250,10 @@ private class IosQrScannerController : QrScannerController {
             resetLastEmittedValue()
             if (configured || started) {
                 configureSessionIfNeeded(force = true)
+                if (!configured) {
+                    reportScannerUnavailable()
+                    return@dispatch_async
+                }
                 if (!paused) {
                     applyZoomIfNeeded()
                 }
@@ -320,11 +328,37 @@ private class IosQrScannerController : QrScannerController {
 
     private fun ensureSessionRunning() {
         configureSessionIfNeeded(force = configuredScanMode != desiredScanMode)
-        if (!configured) return
+        if (!configured) {
+            reportScannerUnavailable()
+            return
+        }
         if (!session.running && started && !paused) {
             session.startRunning()
         }
         resetFocusAndExposure()
+    }
+
+    private fun reportScannerUnavailable() {
+        val callback = onScannerUnavailable
+        started = false
+        paused = true
+        if (session.running) {
+            session.stopRunning()
+        }
+        removeSubjectAreaObserver()
+        teardownSession()
+        configured = false
+        configuredScanMode = null
+        clearConfiguredDevice()
+        lastAppliedZoomFactor = null
+        desiredZoomFraction = 0f
+        resetLastEmittedValue()
+        dispatch_async(dispatch_get_main_queue()) {
+            removeLifecycleObserver()
+            previewLayer?.removeFromSuperlayer()
+            previewLayer = null
+            callback?.invoke()
+        }
     }
 
     @OptIn(ExperimentalForeignApi::class)
