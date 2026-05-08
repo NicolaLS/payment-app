@@ -112,10 +112,7 @@ internal data class SettingsAddBlinkWallet(val completeOnboarding: Boolean = fal
 internal data class SettingsWalletDetails(val walletId: String)
 
 @Serializable
-internal data class SettingsImportBlinkContacts(
-    val walletId: String,
-    val completeOnboarding: Boolean = false
-)
+internal data class SettingsImportBlinkContacts(val walletId: String)
 
 fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> Unit = {}) {
     navigation<SettingsSubNav>(startDestination = Settings) {
@@ -167,8 +164,7 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
             val route = backStackEntry.toRoute<SettingsImportBlinkContacts>()
             BlinkContactsImportEntry(
                 navController = navController,
-                walletId = route.walletId,
-                completeOnboarding = route.completeOnboarding
+                walletId = route.walletId
             )
         }
     }
@@ -222,11 +218,8 @@ fun NavController.navigateToSettingsWalletDetails(walletId: String) {
     }
 }
 
-fun NavController.navigateToBlinkContactsImport(
-    walletId: String,
-    completeOnboarding: Boolean = false
-) {
-    navigate(route = SettingsImportBlinkContacts(walletId, completeOnboarding)) {
+fun NavController.navigateToBlinkContactsImport(walletId: String) {
+    navigate(route = SettingsImportBlinkContacts(walletId)) {
         launchSingleTop = true
     }
 }
@@ -325,20 +318,8 @@ private fun WalletDetailsEntry(navController: NavController, walletId: String) {
 }
 
 @Composable
-private fun BlinkContactsImportEntry(
-    navController: NavController,
-    walletId: String,
-    completeOnboarding: Boolean
-) {
+private fun BlinkContactsImportEntry(navController: NavController, walletId: String) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
-    val onboardingRepository = remember { koin.get<OnboardingRepository>() }
-    val coroutineScope = rememberCoroutineScope()
-    val completeAndContinue: () -> Unit = {
-        coroutineScope.launch {
-            onboardingRepository.markOnboardingCompleted()
-            navController.navigateFromOnboardingToPay()
-        }
-    }
     val viewModel = rememberRetainedInstance(
         factory = {
             koin.get<BlinkContactsImportViewModel> {
@@ -350,16 +331,6 @@ private fun BlinkContactsImportEntry(
 
     LaunchedEffect(viewModel) {
         viewModel.loadBlinkContacts()
-        viewModel.events.collect { event ->
-            when (event) {
-                is BlinkContactsImportEvent.Imported -> {
-                    if (completeOnboarding) {
-                        onboardingRepository.markOnboardingCompleted()
-                        navController.navigateFromOnboardingToPay()
-                    }
-                }
-            }
-        }
     }
 
     val state by viewModel.uiState.collectAsState()
@@ -370,7 +341,7 @@ private fun BlinkContactsImportEntry(
         onToggleContact = viewModel::toggleBlinkContact,
         onToggleAll = viewModel::toggleAllBlinkContacts,
         onImport = viewModel::importSelectedBlinkContacts,
-        onSkip = if (completeOnboarding) completeAndContinue else null
+        onSkip = null
     )
 }
 
@@ -700,7 +671,48 @@ private fun ChooseWalletTypeEntry(navController: NavController) {
 @Composable
 private fun AddBlinkWalletEntry(navController: NavController, completeOnboarding: Boolean) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
+    var importStep by remember { mutableStateOf<AddBlinkImportStep>(AddBlinkImportStep.None) }
+
+    when (val step = importStep) {
+        AddBlinkImportStep.None -> AddBlinkWalletFormStep(
+            navController = navController,
+            koin = koin,
+            onWalletAdded = { connection ->
+                if (completeOnboarding) {
+                    importStep = AddBlinkImportStep.Import(connection.walletPublicKey)
+                } else {
+                    val popped = navController.popBackStack(
+                        route = SettingsManageWallets,
+                        inclusive = false
+                    )
+                    if (!popped) {
+                        navController.popBackStack()
+                    }
+                }
+            }
+        )
+
+        is AddBlinkImportStep.Import -> AddBlinkWalletImportStep(
+            navController = navController,
+            koin = koin,
+            walletId = step.walletId
+        )
+    }
+}
+
+private sealed interface AddBlinkImportStep {
+    data object None : AddBlinkImportStep
+    data class Import(val walletId: String) : AddBlinkImportStep
+}
+
+@Composable
+private fun AddBlinkWalletFormStep(
+    navController: NavController,
+    koin: org.koin.core.Koin,
+    onWalletAdded: (WalletConnection) -> Unit
+) {
     val viewModel = rememberRetainedInstance(
+        key = "add-blink-wallet-form",
         factory = { koin.get<AddBlinkWalletViewModel>() },
         onDispose = { it.clear() }
     )
@@ -710,26 +722,8 @@ private fun AddBlinkWalletEntry(navController: NavController, completeOnboarding
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
-                is AddBlinkWalletEvent.Success -> {
-                    if (completeOnboarding) {
-                        navController.navigateToBlinkContactsImport(
-                            walletId = event.connection.walletPublicKey,
-                            completeOnboarding = true
-                        )
-                    } else {
-                        val popped = navController.popBackStack(
-                            route = SettingsManageWallets,
-                            inclusive = false
-                        )
-                        if (!popped) {
-                            navController.popBackStack()
-                        }
-                    }
-                }
-
-                AddBlinkWalletEvent.Cancelled -> {
-                    navController.popBackStack()
-                }
+                is AddBlinkWalletEvent.Success -> onWalletAdded(event.connection)
+                AddBlinkWalletEvent.Cancelled -> navController.popBackStack()
             }
         }
     }
@@ -740,5 +734,51 @@ private fun AddBlinkWalletEntry(navController: NavController, completeOnboarding
         onAliasChange = viewModel::updateAlias,
         onApiKeyChange = viewModel::updateApiKey,
         onSubmit = viewModel::submit
+    )
+}
+
+@Composable
+private fun AddBlinkWalletImportStep(
+    navController: NavController,
+    koin: org.koin.core.Koin,
+    walletId: String
+) {
+    val onboardingRepository = remember { koin.get<OnboardingRepository>() }
+    val coroutineScope = rememberCoroutineScope()
+    val finishOnboarding: () -> Unit = {
+        coroutineScope.launch {
+            onboardingRepository.markOnboardingCompleted()
+            navController.navigateFromOnboardingToPay()
+        }
+    }
+
+    val viewModel = rememberRetainedInstance(
+        key = "blink-contacts-import-onboarding",
+        factory = {
+            koin.get<BlinkContactsImportViewModel> {
+                parametersOf(walletId)
+            }
+        },
+        onDispose = { it.clear() }
+    )
+
+    LaunchedEffect(viewModel) {
+        viewModel.loadBlinkContacts()
+        viewModel.events.collect { event ->
+            when (event) {
+                is BlinkContactsImportEvent.Imported -> finishOnboarding()
+            }
+        }
+    }
+
+    val state by viewModel.uiState.collectAsState()
+
+    BlinkContactsImportScreen(
+        state = state,
+        onBack = finishOnboarding,
+        onToggleContact = viewModel::toggleBlinkContact,
+        onToggleAll = viewModel::toggleAllBlinkContacts,
+        onImport = viewModel::importSelectedBlinkContacts,
+        onSkip = finishOnboarding
     )
 }
