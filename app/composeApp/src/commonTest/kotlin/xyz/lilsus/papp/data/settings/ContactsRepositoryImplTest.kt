@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.model.ContactPaymentRecord
 import xyz.lilsus.papp.domain.model.ContactRole
+import xyz.lilsus.papp.domain.model.ShortcutAmount
 
 class ContactsRepositoryImplTest {
     @Test
@@ -16,44 +17,44 @@ class ContactsRepositoryImplTest {
         val repository = ContactsRepositoryImpl(MapSettings())
 
         repository.saveContact(
-            address = LightningAddress("Friend", "Blink.SV", "Tips"),
+            address = LightningAddress("Person", "Blink.SV", "Tips"),
             alias = "First",
-            role = ContactRole.Friend
+            roles = setOf(ContactRole.People)
         )
         repository.saveContact(
-            address = LightningAddress("Friend", "blink.sv", "Tips"),
+            address = LightningAddress("Person", "blink.sv", "Tips"),
             alias = "Updated",
-            role = ContactRole.Work
+            roles = setOf(ContactRole.Work, ContactRole.Favorite)
         )
 
         val contacts = repository.getContacts()
         assertEquals(1, contacts.size)
-        assertEquals("Friend+Tips@blink.sv", contacts.first().address.full)
+        assertEquals("Person+Tips@blink.sv", contacts.first().address.full)
         assertEquals("Updated", contacts.first().alias)
-        assertEquals(ContactRole.Work, contacts.first().role)
+        assertEquals(setOf(ContactRole.Favorite, ContactRole.Work), contacts.first().roles)
     }
 
     @Test
     fun saveShortcutUsesSelectedContactAddress() = runTest {
         val repository = ContactsRepositoryImpl(MapSettings())
         val contact = repository.saveContact(
-            address = LightningAddress("waiter", "blink.sv"),
-            alias = "Waiter",
-            role = ContactRole.Waiter
+            address = LightningAddress("cafe", "blink.sv"),
+            alias = "Cafe",
+            roles = setOf(ContactRole.Merchants)
         )
 
         val shortcut = repository.saveShortcut(
             id = null,
             title = "",
             contactId = contact.id,
-            amountMsats = 1_000_000,
+            amount = ShortcutAmount(1_000, "SAT"),
             comment = "thanks"
         )
 
-        assertEquals("Pay Waiter", shortcut?.title)
+        assertEquals("Pay Cafe", shortcut?.title)
         assertEquals(contact.id, shortcut?.contactId)
-        assertEquals("waiter@blink.sv", shortcut?.address?.full)
-        assertEquals(1_000_000, shortcut?.amountMsats)
+        assertEquals("cafe@blink.sv", shortcut?.address?.full)
+        assertEquals(ShortcutAmount(1_000, "SAT"), shortcut?.amount)
         assertEquals("thanks", shortcut?.comment)
         assertEquals(listOf(shortcut), repository.getShortcuts())
     }
@@ -72,8 +73,8 @@ class ContactsRepositoryImplTest {
     @Test
     fun recordPaymentUpdatesKnownContactStats() = runTest {
         val repository = ContactsRepositoryImpl(MapSettings())
-        val address = LightningAddress("waiter", "blink.sv")
-        repository.saveContact(address, "Waiter", ContactRole.Waiter)
+        val address = LightningAddress("cafe", "blink.sv")
+        repository.saveContact(address, "Cafe", setOf(ContactRole.Merchants))
 
         repository.recordPayment(
             ContactPaymentRecord(
@@ -92,13 +93,13 @@ class ContactsRepositoryImplTest {
     @Test
     fun deleteContactRemovesContactAndItsShortcuts() = runTest {
         val repository = ContactsRepositoryImpl(MapSettings())
-        val address = LightningAddress("waiter", "blink.sv")
-        val contact = repository.saveContact(address, "Waiter", ContactRole.Waiter)
+        val address = LightningAddress("cafe", "blink.sv")
+        val contact = repository.saveContact(address, "Cafe", setOf(ContactRole.Merchants))
         repository.saveShortcut(
             id = null,
-            title = "Tip waiter",
+            title = "Tip cafe",
             contactId = contact.id,
-            amountMsats = 1_000_000,
+            amount = ShortcutAmount(1_000, "SAT"),
             comment = null
         )
 

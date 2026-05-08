@@ -15,7 +15,9 @@ import xyz.lilsus.papp.domain.model.ContactPaymentRecord
 import xyz.lilsus.papp.domain.model.ContactPreferences
 import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.domain.model.ContactStats
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.PaymentShortcut
+import xyz.lilsus.papp.domain.model.ShortcutAmount
 import xyz.lilsus.papp.domain.model.ShortcutStats
 import xyz.lilsus.papp.domain.repository.ContactsRepository
 
@@ -57,7 +59,7 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
     override suspend fun saveContact(
         address: LightningAddress,
         alias: String?,
-        role: ContactRole?
+        roles: Set<ContactRole>
     ): Contact {
         val storedAddress = address.forStorage()
         val key = storedAddress.normalizedKey()
@@ -70,7 +72,7 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
                 tag = storedAddress.tag,
                 domain = storedAddress.domain,
                 alias = alias.cleanAlias(),
-                role = role?.name,
+                roles = roles.toStoredRoleNames(),
                 updatedAtMs = now
             ) ?: StoredContact(
                 id = idForAddress(storedAddress),
@@ -79,7 +81,7 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
                 tag = storedAddress.tag,
                 domain = storedAddress.domain,
                 alias = alias.cleanAlias(),
-                role = role?.name,
+                roles = roles.toStoredRoleNames(),
                 createdAtMs = now,
                 updatedAtMs = now
             )
@@ -89,13 +91,17 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
         return saved!!.toDomain()
     }
 
-    override suspend fun updateContact(id: String, alias: String?, role: ContactRole?): Contact? {
+    override suspend fun updateContact(
+        id: String,
+        alias: String?,
+        roles: Set<ContactRole>
+    ): Contact? {
         var updated: StoredContact? = null
         updateState { current ->
             val contact = current.contacts.firstOrNull { it.id == id } ?: return@updateState current
             val updatedContact = contact.copy(
                 alias = alias.cleanAlias(),
-                role = role?.name,
+                roles = roles.toStoredRoleNames(),
                 updatedAtMs = currentTimeMillis()
             )
             updated = updatedContact
@@ -119,10 +125,10 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
         id: String?,
         title: String,
         contactId: String,
-        amountMsats: Long,
+        amount: ShortcutAmount,
         comment: String?
     ): PaymentShortcut? {
-        if (amountMsats <= 0L) return null
+        val storedAmount = amount.normalizedForStorage() ?: return null
         var saved: StoredShortcut? = null
         updateState { current ->
             val contact = current.contacts.firstOrNull { it.id == contactId }
@@ -138,7 +144,8 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
                 username = contact.username,
                 tag = contact.tag,
                 domain = contact.domain,
-                amountMsats = amountMsats,
+                amountMinor = storedAmount.minor,
+                amountCurrencyCode = storedAmount.normalizedCurrencyCode,
                 comment = comment.cleanComment(),
                 paymentCount = existing?.paymentCount ?: 0,
                 lastPaidAtMs = existing?.lastPaidAtMs,
@@ -195,7 +202,7 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
 
     private fun updateState(transform: (StoredContactsState) -> StoredContactsState) {
         val current = state.value
-        val updated = transform(current).migrated()
+        val updated = transform(current)
         if (updated == current) return
         persist(updated)
         state.value = updated
@@ -203,7 +210,7 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
 
     private fun loadState(): StoredContactsState {
         val raw = settings.getStringOrNull(KEY_CONTACTS) ?: return StoredContactsState()
-        return runCatching { json.decodeFromString<StoredContactsState>(raw).migrated() }
+        return runCatching { json.decodeFromString<StoredContactsState>(raw) }
             .getOrElse { StoredContactsState() }
     }
 
@@ -220,35 +227,6 @@ class ContactsRepositoryImpl(private val settings: Settings) : ContactsRepositor
     }
 }
 
-private fun StoredContactsState.migrated(): StoredContactsState {
-    val contactsWithoutLegacy = contacts.map { it.copy(shortcuts = emptyList()) }
-    val migratedLegacyShortcuts = contacts.flatMap { contact ->
-        contact.shortcuts.mapNotNull { shortcut ->
-            if (shortcut.amountMsats <= 0) return@mapNotNull null
-            StoredShortcut(
-                id = shortcut.id,
-                title = shortcut.title.cleanTitle(contact),
-                contactId = contact.id,
-                username = contact.username,
-                tag = contact.tag,
-                domain = contact.domain,
-                amountMsats = shortcut.amountMsats,
-                comment = shortcut.comment.cleanComment(),
-                createdAtMs = shortcut.createdAtMs,
-                updatedAtMs = shortcut.updatedAtMs
-            )
-        }
-    }
-    val normalizedShortcuts = (shortcuts + migratedLegacyShortcuts)
-        .mapNotNull { it.normalized(contactsWithoutLegacy) }
-        .distinctBy { it.id }
-    return copy(
-        contacts = contactsWithoutLegacy,
-        shortcuts = normalizedShortcuts,
-        preferences = preferences.copy(suggestShortcuts = false)
-    )
-}
-
 private fun List<StoredContact>.replaceById(contact: StoredContact): List<StoredContact> =
     filterNot { it.id == contact.id } + contact
 
@@ -263,7 +241,7 @@ private fun StoredContact.toDomain(): Contact = Contact(
         tag = tag
     ),
     alias = alias,
-    role = role?.let { runCatching { ContactRole.valueOf(it) }.getOrNull() },
+    roles = roles.mapNotNull { parseContactRole(it) }.toSet(),
     stats = ContactStats(
         paymentCount = paymentCount,
         lastPaidAtMs = lastPaidAtMs
@@ -275,7 +253,7 @@ private fun StoredContact.toDomain(): Contact = Contact(
 private fun StoredShortcut.toDomain(): PaymentShortcut? {
     val username = username ?: return null
     val domain = domain ?: return null
-    if (amountMsats <= 0L) return null
+    val amount = shortcutAmount()?.normalizedForStorage() ?: return null
     return PaymentShortcut(
         id = id,
         title = title.orEmpty().ifBlank { "Pay $username" },
@@ -285,7 +263,7 @@ private fun StoredShortcut.toDomain(): PaymentShortcut? {
             domain = domain,
             tag = tag
         ),
-        amountMsats = amountMsats,
+        amount = amount,
         comment = comment,
         stats = ShortcutStats(
             paymentCount = paymentCount,
@@ -297,25 +275,20 @@ private fun StoredShortcut.toDomain(): PaymentShortcut? {
 }
 
 private fun StoredShortcut.normalized(contacts: List<StoredContact>): StoredShortcut? {
-    val legacyRecipient = recipients.firstOrNull()
-    val shortcutContactId = contactId ?: legacyRecipient?.contactId
-    val contact = shortcutContactId?.let { id -> contacts.firstOrNull { it.id == id } }
-    val normalizedUsername = contact?.username ?: username ?: legacyRecipient?.username
-    val normalizedDomain = contact?.domain ?: domain ?: legacyRecipient?.domain
-    val normalizedAmount = amountMsats.takeIf { it > 0L }
-        ?: legacyRecipient?.amountMsats?.takeIf { it > 0L }
-        ?: return null
+    val contact = contactId?.let { id -> contacts.firstOrNull { it.id == id } }
+    val normalizedUsername = contact?.username ?: username
+    val normalizedDomain = contact?.domain ?: domain
+    val amount = shortcutAmount()?.normalizedForStorage() ?: return null
     if (normalizedUsername == null || normalizedDomain == null) return null
     return copy(
         title = title.cleanTitle(contact, normalizedUsername),
-        contactId = contact?.id ?: shortcutContactId,
+        contactId = contact?.id ?: contactId,
         username = normalizedUsername,
-        tag = contact?.tag ?: tag ?: legacyRecipient?.tag,
+        tag = contact?.tag ?: tag,
         domain = normalizedDomain,
-        amountMsats = normalizedAmount,
-        comment = (comment ?: legacyRecipient?.comment).cleanComment(),
-        recipients = emptyList(),
-        context = StoredShortcutContext()
+        amountMinor = amount.minor,
+        amountCurrencyCode = amount.normalizedCurrencyCode,
+        comment = comment.cleanComment()
     )
 }
 
@@ -357,6 +330,31 @@ private fun String?.cleanAlias(): String? = this?.trim()?.takeIf { it.isNotEmpty
 
 private fun String?.cleanComment(): String? = this?.trim()?.takeIf { it.isNotEmpty() }
 
+private fun Set<ContactRole>.toStoredRoleNames(): List<String> =
+    ContactRole.entries.filter { it in this }.map { it.name }
+
+private fun parseContactRole(raw: String): ContactRole? =
+    runCatching { ContactRole.valueOf(raw) }.getOrNull()
+
+private fun ShortcutAmount.normalizedForStorage(): ShortcutAmount? {
+    val code = normalizedCurrencyCode
+    val supported = CurrencyCatalog.supportedCodes.any { it.equals(code, ignoreCase = true) }
+    if (!supported || minor <= 0L) return null
+    return copy(currencyCode = code)
+}
+
+private fun StoredShortcut.shortcutAmount(): ShortcutAmount? {
+    if (amountMinor != null && amountCurrencyCode != null) {
+        return ShortcutAmount(amountMinor, amountCurrencyCode)
+    }
+    val legacyAmountMsats = amountMsats ?: return null
+    if (legacyAmountMsats <= 0L) return null
+    return ShortcutAmount(
+        minor = legacyAmountMsats / MSATS_PER_SAT,
+        currencyCode = CurrencyCatalog.DEFAULT_CODE
+    )
+}
+
 @Serializable
 private data class StoredContactsState(
     val contacts: List<StoredContact> = emptyList(),
@@ -365,10 +363,7 @@ private data class StoredContactsState(
 )
 
 @Serializable
-private data class StoredContactPreferences(
-    val askToSaveNewContacts: Boolean = true,
-    val suggestShortcuts: Boolean = false
-)
+private data class StoredContactPreferences(val askToSaveNewContacts: Boolean = true)
 
 @Serializable
 private data class StoredContact(
@@ -378,24 +373,9 @@ private data class StoredContact(
     val tag: String? = null,
     val domain: String,
     val alias: String? = null,
-    val role: String? = null,
-    val shortcuts: List<StoredLegacyShortcut> = emptyList(),
+    val roles: List<String> = emptyList(),
     val paymentCount: Int = 0,
     val lastPaidAtMs: Long? = null,
-    val createdAtMs: Long,
-    val updatedAtMs: Long
-)
-
-@Serializable
-private data class StoredLegacyShortcut(
-    val id: String,
-    val contactId: String,
-    val title: String? = null,
-    val amountMsats: Long,
-    val comment: String? = null,
-    val startMinuteOfDay: Int? = null,
-    val endMinuteOfDay: Int? = null,
-    val previousTargetKey: String? = null,
     val createdAtMs: Long,
     val updatedAtMs: Long
 )
@@ -408,31 +388,14 @@ private data class StoredShortcut(
     val username: String? = null,
     val tag: String? = null,
     val domain: String? = null,
-    val amountMsats: Long = 0L,
+    val amountMinor: Long? = null,
+    val amountCurrencyCode: String? = null,
+    val amountMsats: Long? = null,
     val comment: String? = null,
-    val recipients: List<StoredShortcutRecipient> = emptyList(),
-    val context: StoredShortcutContext = StoredShortcutContext(),
     val paymentCount: Int = 0,
     val lastPaidAtMs: Long? = null,
     val createdAtMs: Long,
     val updatedAtMs: Long
 )
 
-@Serializable
-private data class StoredShortcutRecipient(
-    val id: String,
-    val contactId: String? = null,
-    val username: String,
-    val tag: String? = null,
-    val domain: String,
-    val amountMsats: Long,
-    val comment: String? = null
-)
-
-@Serializable
-private data class StoredShortcutContext(
-    val startMinuteOfDay: Int? = null,
-    val endMinuteOfDay: Int? = null,
-    val dayOfMonth: Int? = null,
-    val previousTargetKey: String? = null
-)
+private const val MSATS_PER_SAT = 1_000L

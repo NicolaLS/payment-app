@@ -62,9 +62,7 @@ sealed interface MainIntent {
     data object OpenContacts : MainIntent
     data object DismissContacts : MainIntent
     data class PaySheetTabSelected(val tab: PaySheetTab) : MainIntent
-    data class ContactSearchChanged(val query: String) : MainIntent
     data class ContactRoleSelected(val role: ContactRole?) : MainIntent
-    data object AddContactCandidate : MainIntent
     data class SelectShortcut(val id: String) : MainIntent
     data class SelectContact(val id: String) : MainIntent
     data class EditContact(val id: String) : MainIntent

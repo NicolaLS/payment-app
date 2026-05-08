@@ -76,18 +76,9 @@ fun MainScreen(
     onContactsOpen: () -> Unit = {},
     onContactsDismiss: () -> Unit = {},
     onPaySheetTabSelected: (PaySheetTab) -> Unit = {},
-    onContactsQueryChange: (String) -> Unit = {},
     onContactsRoleSelected: (ContactRole?) -> Unit = {},
-    onContactsAddCandidate: () -> Unit = {},
     onShortcutSelected: (String) -> Unit = {},
     onContactSelected: (String) -> Unit = {},
-    onContactEdit: (String) -> Unit = {},
-    onContactEditorAliasChange: (String) -> Unit = {},
-    onContactEditorAddressChange: (String) -> Unit = {},
-    onContactEditorRoleSelected: (ContactRole?) -> Unit = {},
-    onContactEditorSave: () -> Unit = {},
-    onContactEditorDelete: () -> Unit = {},
-    onContactEditorDismiss: () -> Unit = {},
     onSaveContactPromptAliasChange: (String) -> Unit = {},
     onSaveContactPromptRoleSelected: (ContactRole?) -> Unit = {},
     onSaveContactPromptSave: () -> Unit = {},
@@ -229,18 +220,9 @@ fun MainScreen(
             state = contactsState,
             onDismiss = onContactsDismiss,
             onTabSelected = onPaySheetTabSelected,
-            onQueryChange = onContactsQueryChange,
             onRoleSelected = onContactsRoleSelected,
-            onAddCandidate = onContactsAddCandidate,
             onContactSelected = onContactSelected,
-            onShortcutSelected = onShortcutSelected,
-            onEditContact = onContactEdit,
-            onEditorAliasChange = onContactEditorAliasChange,
-            onEditorAddressChange = onContactEditorAddressChange,
-            onEditorRoleSelected = onContactEditorRoleSelected,
-            onEditorSave = onContactEditorSave,
-            onEditorDelete = onContactEditorDelete,
-            onEditorDismiss = onContactEditorDismiss
+            onShortcutSelected = onShortcutSelected
         )
     }
 

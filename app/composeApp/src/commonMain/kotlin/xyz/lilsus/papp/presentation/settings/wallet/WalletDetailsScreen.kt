@@ -29,6 +29,9 @@ import lasr.composeapp.generated.resources.settings_wallet_details_blink_default
 import lasr.composeapp.generated.resources.settings_wallet_details_blink_refresh
 import lasr.composeapp.generated.resources.settings_wallet_details_connection_id
 import lasr.composeapp.generated.resources.settings_wallet_details_default_id_unset
+import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts
+import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_hint
+import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_title
 import lasr.composeapp.generated.resources.settings_wallet_details_title
 import lasr.composeapp.generated.resources.settings_wallet_details_type
 import lasr.composeapp.generated.resources.wallet_type_blink
@@ -45,6 +48,7 @@ fun WalletDetailsScreen(
     state: WalletDetailsUiState,
     onBack: () -> Unit,
     onRefreshBlinkDefaultWallet: () -> Unit,
+    onImportBlinkContacts: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -158,6 +162,10 @@ fun WalletDetailsScreen(
                         }
                     }
                 }
+
+                BlinkContactImportCard(
+                    onImport = onImportBlinkContacts
+                )
             }
 
             if (!state.isBlink) {
@@ -168,6 +176,43 @@ fun WalletDetailsScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BlinkContactImportCard(onImport: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 4.dp,
+        shape = MaterialTheme.shapes.large
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.settings_wallet_details_import_contacts_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(Res.string.settings_wallet_details_import_contacts_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onImport,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(
+                        Res.string.settings_wallet_details_import_contacts
+                    )
+                )
             }
         }
     }
@@ -207,7 +252,8 @@ private fun WalletDetailsScreenPreview() {
                 blinkDefaultWalletId = "wallet-987"
             ),
             onBack = {},
-            onRefreshBlinkDefaultWallet = {}
+            onRefreshBlinkDefaultWallet = {},
+            onImportBlinkContacts = {}
         )
     }
 }

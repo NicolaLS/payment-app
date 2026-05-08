@@ -370,14 +370,8 @@ private fun MainScreenEntry(
             onPaySheetTabSelected = { tab ->
                 viewModel.dispatch(MainIntent.PaySheetTabSelected(tab))
             },
-            onContactsQueryChange = { query ->
-                viewModel.dispatch(MainIntent.ContactSearchChanged(query))
-            },
             onContactsRoleSelected = { role ->
                 viewModel.dispatch(MainIntent.ContactRoleSelected(role))
-            },
-            onContactsAddCandidate = {
-                viewModel.dispatch(MainIntent.AddContactCandidate)
             },
             onShortcutSelected = { id ->
                 viewModel.dispatch(MainIntent.SelectShortcut(id))
@@ -385,21 +379,6 @@ private fun MainScreenEntry(
             onContactSelected = { id ->
                 viewModel.dispatch(MainIntent.SelectContact(id))
             },
-            onContactEdit = { id ->
-                viewModel.dispatch(MainIntent.EditContact(id))
-            },
-            onContactEditorAliasChange = { alias ->
-                viewModel.dispatch(MainIntent.ContactEditorAliasChanged(alias))
-            },
-            onContactEditorAddressChange = { address ->
-                viewModel.dispatch(MainIntent.ContactEditorAddressChanged(address))
-            },
-            onContactEditorRoleSelected = { role ->
-                viewModel.dispatch(MainIntent.ContactEditorRoleSelected(role))
-            },
-            onContactEditorSave = { viewModel.dispatch(MainIntent.ContactEditorSave) },
-            onContactEditorDelete = { viewModel.dispatch(MainIntent.ContactEditorDelete) },
-            onContactEditorDismiss = { viewModel.dispatch(MainIntent.ContactEditorDismiss) },
             onSaveContactPromptAliasChange = { alias ->
                 viewModel.dispatch(MainIntent.SaveContactPromptAliasChanged(alias))
             },

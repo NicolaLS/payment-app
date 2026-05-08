@@ -81,6 +81,40 @@ class BlinkApiClientTest {
     }
 
     @Test
+    fun fetchContactsReturnsBlinkContacts() = runTest {
+        val client = createClient(
+            responseJson = """{
+                "data": {
+                    "me": {
+                        "contacts": [
+                            {
+                                "alias": "Alice",
+                                "handle": "alice",
+                                "transactionsCount": 3
+                            },
+                            {
+                                "alias": null,
+                                "handle": "bob@example.com",
+                                "transactionsCount": 1
+                            }
+                        ]
+                    }
+                }
+            }"""
+        )
+
+        val contacts = client.fetchContacts("test-api-key")
+
+        assertEquals(2, contacts.size)
+        assertEquals("alice", contacts[0].handle)
+        assertEquals("Alice", contacts[0].alias)
+        assertEquals(3, contacts[0].transactionsCount)
+        assertEquals("blink.sv", contacts[0].lightningAddressDomain)
+        assertEquals("bob@example.com", contacts[1].handle)
+        assertEquals(null, contacts[1].alias)
+    }
+
+    @Test
     fun payInvoiceParsesFeeFromTransaction() = runTest {
         val client = createClient(
             responseJson = """{

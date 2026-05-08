@@ -289,6 +289,8 @@ apollo {
         mapScalar("WalletId", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("PaymentHash", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("Memo", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
+        mapScalar("ContactAlias", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
+        mapScalar("ContactHandle", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("SatAmount", "kotlin.Long", "com.apollographql.apollo.api.LongAdapter")
         mapScalar("SignedAmount", "kotlin.Long", "com.apollographql.apollo.api.LongAdapter")
         introspection {

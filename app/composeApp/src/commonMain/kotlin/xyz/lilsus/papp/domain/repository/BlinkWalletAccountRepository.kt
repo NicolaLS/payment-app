@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.domain.repository
 
+import xyz.lilsus.papp.domain.model.BlinkContact
 import xyz.lilsus.papp.domain.model.WalletConnection
 
 /**
@@ -11,4 +12,6 @@ interface BlinkWalletAccountRepository {
     suspend fun getCachedDefaultWalletId(walletId: String): String?
 
     suspend fun refreshDefaultWalletId(walletId: String): String
+
+    suspend fun fetchContacts(walletId: String): List<BlinkContact>
 }

@@ -3,8 +3,6 @@ package xyz.lilsus.papp.presentation.main.contacts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,18 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -40,37 +32,30 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
-import lasr.composeapp.generated.resources.contacts_add
-import lasr.composeapp.generated.resources.contacts_add_address
-import lasr.composeapp.generated.resources.contacts_address_label
 import lasr.composeapp.generated.resources.contacts_alias_label
-import lasr.composeapp.generated.resources.contacts_cancel
-import lasr.composeapp.generated.resources.contacts_delete
-import lasr.composeapp.generated.resources.contacts_edit
 import lasr.composeapp.generated.resources.contacts_empty
 import lasr.composeapp.generated.resources.contacts_handle
 import lasr.composeapp.generated.resources.contacts_invalid_address
 import lasr.composeapp.generated.resources.contacts_not_now
-import lasr.composeapp.generated.resources.contacts_role_all
-import lasr.composeapp.generated.resources.contacts_role_friend
-import lasr.composeapp.generated.resources.contacts_role_label
-import lasr.composeapp.generated.resources.contacts_role_merchant
-import lasr.composeapp.generated.resources.contacts_role_none
-import lasr.composeapp.generated.resources.contacts_role_restaurant
-import lasr.composeapp.generated.resources.contacts_role_waiter
+import lasr.composeapp.generated.resources.contacts_role_bills
+import lasr.composeapp.generated.resources.contacts_role_favorite
+import lasr.composeapp.generated.resources.contacts_role_merchants
+import lasr.composeapp.generated.resources.contacts_role_people
+import lasr.composeapp.generated.resources.contacts_role_personal
 import lasr.composeapp.generated.resources.contacts_role_work
 import lasr.composeapp.generated.resources.contacts_save
 import lasr.composeapp.generated.resources.contacts_save_prompt_body
 import lasr.composeapp.generated.resources.contacts_save_prompt_title
-import lasr.composeapp.generated.resources.contacts_search_placeholder
-import lasr.composeapp.generated.resources.contacts_title
 import lasr.composeapp.generated.resources.pay_sheet_contacts_tab
 import lasr.composeapp.generated.resources.pay_sheet_shortcuts_tab
 import lasr.composeapp.generated.resources.shortcuts_empty
@@ -103,7 +88,7 @@ fun ContactsHandle(onClick: () -> Unit, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(
-                imageVector = Icons.Filled.Search,
+                imageVector = LightningBoltIcon,
                 contentDescription = null,
                 modifier = Modifier.size(18.dp)
             )
@@ -118,18 +103,9 @@ fun ContactsBottomSheet(
     state: ContactsUiState,
     onDismiss: () -> Unit,
     onTabSelected: (PaySheetTab) -> Unit,
-    onQueryChange: (String) -> Unit,
     onRoleSelected: (ContactRole?) -> Unit,
-    onAddCandidate: () -> Unit,
     onContactSelected: (String) -> Unit,
-    onShortcutSelected: (String) -> Unit,
-    onEditContact: (String) -> Unit,
-    onEditorAliasChange: (String) -> Unit,
-    onEditorAddressChange: (String) -> Unit,
-    onEditorRoleSelected: (ContactRole?) -> Unit,
-    onEditorSave: () -> Unit,
-    onEditorDelete: () -> Unit,
-    onEditorDismiss: () -> Unit
+    onShortcutSelected: (String) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     ModalBottomSheet(
@@ -137,25 +113,12 @@ fun ContactsBottomSheet(
         sheetState = sheetState,
         modifier = Modifier.enableMaestroTestTagsAsResourceId()
     ) {
-        state.editor?.let { editor ->
-            ContactEditorContent(
-                state = editor,
-                onAliasChange = onEditorAliasChange,
-                onAddressChange = onEditorAddressChange,
-                onRoleSelected = onEditorRoleSelected,
-                onSave = onEditorSave,
-                onDelete = onEditorDelete,
-                onDismiss = onEditorDismiss
-            )
-        } ?: PaySheetContent(
+        PaySheetContent(
             state = state,
             onTabSelected = onTabSelected,
-            onQueryChange = onQueryChange,
             onRoleSelected = onRoleSelected,
-            onAddCandidate = onAddCandidate,
             onContactSelected = onContactSelected,
-            onShortcutSelected = onShortcutSelected,
-            onEditContact = onEditContact
+            onShortcutSelected = onShortcutSelected
         )
     }
 }
@@ -200,8 +163,7 @@ fun SaveContactBottomSheet(
                 singleLine = true
             )
             RoleChips(
-                selectedRole = state.selectedRole,
-                includeAll = false,
+                selectedRoles = state.selectedRoles,
                 onSelected = onRoleSelected
             )
             state.error?.let { ErrorText(it) }
@@ -221,66 +183,53 @@ fun SaveContactBottomSheet(
 private fun PaySheetContent(
     state: ContactsUiState,
     onTabSelected: (PaySheetTab) -> Unit,
-    onQueryChange: (String) -> Unit,
     onRoleSelected: (ContactRole?) -> Unit,
-    onAddCandidate: () -> Unit,
     onContactSelected: (String) -> Unit,
-    onShortcutSelected: (String) -> Unit,
-    onEditContact: (String) -> Unit
+    onShortcutSelected: (String) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 560.dp)
+            .height(PAY_SHEET_CONTENT_HEIGHT)
             .testTag(MaestroTags.Payment.CONTACTS_SHEET)
             .padding(horizontal = 20.dp, vertical = 12.dp)
             .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = if (state.selectedTab == PaySheetTab.Shortcuts) {
-                stringResource(Res.string.shortcuts_title)
-            } else {
-                stringResource(Res.string.contacts_title)
-            },
-            style = MaterialTheme.typography.headlineSmall
-        )
         PrimaryTabRow(selectedTabIndex = if (state.selectedTab == PaySheetTab.Shortcuts) 0 else 1) {
             Tab(
                 selected = state.selectedTab == PaySheetTab.Shortcuts,
                 onClick = { onTabSelected(PaySheetTab.Shortcuts) },
-                text = { Text(stringResource(Res.string.pay_sheet_shortcuts_tab)) }
+                text = {
+                    Text(
+                        text = stringResource(Res.string.pay_sheet_shortcuts_tab),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             )
             Tab(
                 selected = state.selectedTab == PaySheetTab.Contacts,
                 onClick = { onTabSelected(PaySheetTab.Contacts) },
-                text = { Text(stringResource(Res.string.pay_sheet_contacts_tab)) }
+                text = {
+                    Text(
+                        text = stringResource(Res.string.pay_sheet_contacts_tab),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             )
         }
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = onQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(MaestroTags.Payment.CONTACTS_SEARCH),
-            placeholder = { Text(stringResource(Res.string.contacts_search_placeholder)) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            singleLine = true
-        )
         if (state.selectedTab == PaySheetTab.Contacts) {
             ContactsTab(
                 state = state,
                 onRoleSelected = onRoleSelected,
-                onAddCandidate = onAddCandidate,
                 onContactSelected = onContactSelected,
-                onEditContact = onEditContact,
-                modifier = Modifier.weight(1f, fill = false)
+                modifier = Modifier.weight(1f)
             )
         } else {
             ShortcutsTab(
                 state = state,
                 onShortcutSelected = onShortcutSelected,
-                modifier = Modifier.weight(1f, fill = false)
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -321,35 +270,18 @@ private fun ShortcutsTab(
 private fun ContactsTab(
     state: ContactsUiState,
     onRoleSelected: (ContactRole?) -> Unit,
-    onAddCandidate: () -> Unit,
     onContactSelected: (String) -> Unit,
-    onEditContact: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         RoleChips(
-            selectedRole = state.selectedRole,
-            includeAll = true,
+            selectedRoles = state.selectedRoles,
             onSelected = onRoleSelected
         )
-        state.addCandidate?.let { candidate ->
-            Button(
-                onClick = onAddCandidate,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(MaestroTags.Payment.CONTACTS_ADD_BUTTON)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null)
-                Text(
-                    text = stringResource(Res.string.contacts_add_address, candidate),
-                    modifier = Modifier.padding(start = 8.dp)
-                )
-            }
-        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f, fill = false),
+                .weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (state.contacts.isEmpty()) {
@@ -365,8 +297,7 @@ private fun ContactsTab(
                 items(state.contacts, key = { it.id }) { contact ->
                     ContactRow(
                         item = contact,
-                        onClick = { onContactSelected(contact.id) },
-                        onEdit = { onEditContact(contact.id) }
+                        onClick = { onContactSelected(contact.id) }
                     )
                 }
             }
@@ -423,7 +354,7 @@ private fun ShortcutRow(item: ShortcutListItem, onPay: () -> Unit) {
                 }
             }
             Text(
-                text = "${item.amountSats} sat",
+                text = item.amountLabel,
                 style = MaterialTheme.typography.titleMedium
             )
         }
@@ -431,7 +362,7 @@ private fun ShortcutRow(item: ShortcutListItem, onPay: () -> Unit) {
 }
 
 @Composable
-private fun ContactRow(item: ContactListItem, onClick: () -> Unit, onEdit: () -> Unit) {
+private fun ContactRow(item: ContactListItem, onClick: () -> Unit) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -465,143 +396,110 @@ private fun ContactRow(item: ContactListItem, onClick: () -> Unit, onEdit: () ->
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                item.role?.let {
+                item.roles.takeIf { it.isNotEmpty() }?.let {
                     Text(
-                        text = roleLabel(it),
+                        text = rolesLabel(it),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
-            IconButton(onClick = onEdit) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = stringResource(Res.string.contacts_edit)
-                )
-            }
         }
     }
 }
 
 @Composable
-private fun ContactEditorContent(
-    state: ContactEditorUiState,
-    onAliasChange: (String) -> Unit,
-    onAddressChange: (String) -> Unit,
-    onRoleSelected: (ContactRole?) -> Unit,
-    onSave: () -> Unit,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp)
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (state.contactId == null) {
-                    stringResource(Res.string.contacts_add)
-                } else {
-                    stringResource(Res.string.contacts_edit)
-                },
-                style = MaterialTheme.typography.headlineSmall
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(Res.string.contacts_cancel)
-                )
+private fun RoleChips(selectedRoles: Set<ContactRole>, onSelected: (ContactRole?) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        ContactRole.entries.chunked(ROLE_CHIPS_PER_ROW).forEach { rowRoles ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                rowRoles.forEach { role ->
+                    val selected = role in selectedRoles
+                    FilterChip(
+                        selected = selected,
+                        onClick = { onSelected(role) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 36.dp),
+                        label = {
+                            Text(
+                                text = roleLabel(role),
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = roleColor(role),
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+                repeat(ROLE_CHIPS_PER_ROW - rowRoles.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
-        }
-        OutlinedTextField(
-            value = state.address,
-            onValueChange = onAddressChange,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = state.addressEditable,
-            label = { Text(stringResource(Res.string.contacts_address_label)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true
-        )
-        OutlinedTextField(
-            value = state.alias,
-            onValueChange = onAliasChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(Res.string.contacts_alias_label)) },
-            singleLine = true
-        )
-        Text(
-            text = stringResource(Res.string.contacts_role_label),
-            style = MaterialTheme.typography.titleSmall
-        )
-        RoleChips(
-            selectedRole = state.selectedRole,
-            includeAll = false,
-            onSelected = onRoleSelected
-        )
-        state.error?.let { ErrorText(it) }
-        Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(Res.string.contacts_save))
-        }
-        if (state.contactId != null) {
-            TextButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.contacts_delete))
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun RoleChips(
-    selectedRole: ContactRole?,
-    includeAll: Boolean,
-    onSelected: (ContactRole?) -> Unit
-) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (includeAll) {
-            FilterChip(
-                selected = selectedRole == null,
-                onClick = { onSelected(null) },
-                label = { Text(stringResource(Res.string.contacts_role_all)) }
-            )
-        } else {
-            FilterChip(
-                selected = selectedRole == null,
-                onClick = { onSelected(null) },
-                label = { Text(stringResource(Res.string.contacts_role_none)) }
-            )
-        }
-        ContactRole.entries.forEach { role ->
-            FilterChip(
-                selected = selectedRole == role,
-                onClick = { onSelected(role) },
-                label = { Text(roleLabel(role)) }
-            )
         }
     }
 }
 
 @Composable
 private fun roleLabel(role: ContactRole): String = when (role) {
-    ContactRole.Friend -> stringResource(Res.string.contacts_role_friend)
-    ContactRole.Waiter -> stringResource(Res.string.contacts_role_waiter)
-    ContactRole.Restaurant -> stringResource(Res.string.contacts_role_restaurant)
-    ContactRole.Merchant -> stringResource(Res.string.contacts_role_merchant)
+    ContactRole.Favorite -> stringResource(Res.string.contacts_role_favorite)
+    ContactRole.Personal -> stringResource(Res.string.contacts_role_personal)
     ContactRole.Work -> stringResource(Res.string.contacts_role_work)
+    ContactRole.People -> stringResource(Res.string.contacts_role_people)
+    ContactRole.Merchants -> stringResource(Res.string.contacts_role_merchants)
+    ContactRole.Bills -> stringResource(Res.string.contacts_role_bills)
 }
+
+@Composable
+private fun rolesLabel(roles: Set<ContactRole>): String {
+    val labels = buildList {
+        if (ContactRole.Favorite in roles) add(stringResource(Res.string.contacts_role_favorite))
+        if (ContactRole.Personal in roles) add(stringResource(Res.string.contacts_role_personal))
+        if (ContactRole.Work in roles) add(stringResource(Res.string.contacts_role_work))
+        if (ContactRole.People in roles) add(stringResource(Res.string.contacts_role_people))
+        if (ContactRole.Merchants in roles) add(stringResource(Res.string.contacts_role_merchants))
+        if (ContactRole.Bills in roles) add(stringResource(Res.string.contacts_role_bills))
+    }
+    return labels.joinToString(" • ")
+}
+
+private fun roleColor(role: ContactRole): Color = when (role) {
+    ContactRole.Favorite -> Color(0xFFC2185B)
+    ContactRole.Personal -> Color(0xFF2E7D32)
+    ContactRole.Work -> Color(0xFF5D4037)
+    ContactRole.People -> Color(0xFF1565C0)
+    ContactRole.Merchants -> Color(0xFFEF6C00)
+    ContactRole.Bills -> Color(0xFF455A64)
+}
+
+private val PAY_SHEET_CONTENT_HEIGHT = 430.dp
+private const val ROLE_CHIPS_PER_ROW = 3
+
+private val LightningBoltIcon: ImageVector = ImageVector.Builder(
+    name = "LightningBolt",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f
+).apply {
+    path(fill = SolidColor(Color.Black)) {
+        moveTo(13f, 2f)
+        lineTo(4f, 14f)
+        horizontalLineTo(11f)
+        lineTo(10f, 22f)
+        lineTo(20f, 9f)
+        horizontalLineTo(13f)
+        lineTo(13f, 2f)
+        close()
+    }
+}.build()
 
 @Composable
 private fun ErrorText(message: String) {

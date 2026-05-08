@@ -9,6 +9,7 @@ import com.apollographql.apollo.exception.ApolloException
 import com.apollographql.apollo.exception.ApolloHttpException
 import kotlin.math.absoluteValue
 import xyz.lilsus.papp.data.blink.graphql.AuthorizationQuery
+import xyz.lilsus.papp.data.blink.graphql.BlinkContactsQuery
 import xyz.lilsus.papp.data.blink.graphql.DefaultWalletIdQuery
 import xyz.lilsus.papp.data.blink.graphql.LnInvoicePaymentSendMutation
 import xyz.lilsus.papp.data.blink.graphql.LnNoAmountInvoicePaymentSendMutation
@@ -21,6 +22,7 @@ import xyz.lilsus.papp.data.blink.graphql.type.TxStatus
 import xyz.lilsus.papp.data.blink.graphql.type.WalletCurrency
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
+import xyz.lilsus.papp.domain.model.BlinkContact
 import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.isDebugBuild
 
@@ -248,6 +250,32 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
     }
 
     /**
+     * Fetches contacts saved in Blink for the API key's user.
+     */
+    @Suppress("DEPRECATION")
+    suspend fun fetchContacts(apiKey: String): List<BlinkContact> {
+        val data = executeGraphQlRequest(
+            apiKey = apiKey,
+            logLabel = "BlinkContacts",
+            call = apolloClient.query(BlinkContactsQuery())
+        )
+
+        return data.me?.contacts.orEmpty()
+            .mapNotNull { contact ->
+                val handle = contact.handle.trim()
+                if (handle.isBlank()) return@mapNotNull null
+                BlinkContact(
+                    handle = handle,
+                    alias = contact.alias?.trim()?.takeIf { it.isNotEmpty() },
+                    transactionsCount = contact.transactionsCount,
+                    // Blink mobile displays bare contact handles with @blink.sv even when
+                    // deprecated globals return legacy domains like pay.bbw.sv.
+                    lightningAddressDomain = DEFAULT_LIGHTNING_ADDRESS_DOMAIN
+                )
+            }
+    }
+
+    /**
      * Pays a BOLT11 invoice with an embedded amount.
      *
      * @param apiKey The Blink API key for authentication.
@@ -454,6 +482,7 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
         private const val API_KEY_HEADER = "X-API-KEY"
         private const val HTTP_UNAUTHORIZED = 401
         private const val HTTP_TOO_MANY_REQUESTS = 429
+        private const val DEFAULT_LIGHTNING_ADDRESS_DOMAIN = "blink.sv"
 
         fun createBlinkApolloClient(): ApolloClient = ApolloClient.Builder()
             .serverUrl(BLINK_API_URL)

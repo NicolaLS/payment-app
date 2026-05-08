@@ -11,6 +11,7 @@ import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 private const val KEY_CONFIRM_MODE = "payment.confirmation.mode"
 private const val KEY_CONFIRM_THRESHOLD_SATS = "payment.confirmation.threshold.sats"
 private const val KEY_CONFIRM_MANUAL_ENTRY = "payment.confirmation.manual"
+private const val KEY_CONFIRM_SHORTCUT_PAYMENTS = "payment.confirmation.shortcuts"
 private const val KEY_VIBRATE_SCAN = "payment.vibrate.scan"
 private const val KEY_VIBRATE_PAYMENT = "payment.vibrate.payment"
 
@@ -33,6 +34,10 @@ class PaymentPreferencesRepositoryImpl(private val settings: Settings) :
 
     override suspend fun setConfirmManualEntry(enabled: Boolean) {
         update { it.copy(confirmManualEntry = enabled) }
+    }
+
+    override suspend fun setConfirmShortcutPayments(enabled: Boolean) {
+        update { it.copy(confirmShortcutPayments = enabled) }
     }
 
     override suspend fun setVibrateOnScan(enabled: Boolean) {
@@ -71,12 +76,14 @@ class PaymentPreferencesRepositoryImpl(private val settings: Settings) :
         } else {
             false
         }
+        val confirmShortcutPayments = settings.getBoolean(KEY_CONFIRM_SHORTCUT_PAYMENTS, false)
         val vibrateScan = settings.getBoolean(KEY_VIBRATE_SCAN, true)
         val vibratePayment = settings.getBoolean(KEY_VIBRATE_PAYMENT, true)
         return PaymentPreferences(
             confirmationMode = mode,
             thresholdSats = threshold,
             confirmManualEntry = confirmManual,
+            confirmShortcutPayments = confirmShortcutPayments,
             vibrateOnScan = vibrateScan,
             vibrateOnPayment = vibratePayment
         ).normalise()
@@ -92,6 +99,7 @@ class PaymentPreferencesRepositoryImpl(private val settings: Settings) :
         )
         settings.putLong(KEY_CONFIRM_THRESHOLD_SATS, preferences.thresholdSats)
         settings.putBoolean(KEY_CONFIRM_MANUAL_ENTRY, preferences.confirmManualEntry)
+        settings.putBoolean(KEY_CONFIRM_SHORTCUT_PAYMENTS, preferences.confirmShortcutPayments)
         settings.putBoolean(KEY_VIBRATE_SCAN, preferences.vibrateOnScan)
         settings.putBoolean(KEY_VIBRATE_PAYMENT, preferences.vibrateOnPayment)
     }

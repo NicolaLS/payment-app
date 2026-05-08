@@ -15,6 +15,8 @@ interface PaymentPreferencesRepository {
 
     suspend fun setConfirmManualEntry(enabled: Boolean)
 
+    suspend fun setConfirmShortcutPayments(enabled: Boolean)
+
     suspend fun setVibrateOnScan(enabled: Boolean)
 
     suspend fun setVibrateOnPayment(enabled: Boolean)

@@ -44,6 +44,7 @@ import lasr.composeapp.generated.resources.settings_language_subtitle
 import lasr.composeapp.generated.resources.settings_manage_wallets
 import lasr.composeapp.generated.resources.settings_manage_wallets_subtitle
 import lasr.composeapp.generated.resources.settings_payments
+import lasr.composeapp.generated.resources.settings_payments_subtitle
 import lasr.composeapp.generated.resources.settings_theme
 import lasr.composeapp.generated.resources.settings_theme_subtitle
 import lasr.composeapp.generated.resources.settings_title
@@ -84,6 +85,7 @@ fun SettingsScreen(
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_payments),
+            subtitle = stringResource(Res.string.settings_payments_subtitle),
             testTag = MaestroTags.Settings.PAYMENTS_ROW,
             onClick = onPayments
         ),

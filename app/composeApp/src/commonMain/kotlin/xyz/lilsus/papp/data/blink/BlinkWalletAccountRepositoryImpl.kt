@@ -3,6 +3,7 @@ package xyz.lilsus.papp.data.blink
 import kotlin.random.Random
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
+import xyz.lilsus.papp.domain.model.BlinkContact
 import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
@@ -68,6 +69,19 @@ class BlinkWalletAccountRepositoryImpl(
         val defaultWalletId = apiClient.fetchDefaultWalletId(apiKey)
         credentialStore.storeDefaultWalletId(walletId, defaultWalletId)
         return defaultWalletId
+    }
+
+    override suspend fun fetchContacts(walletId: String): List<BlinkContact> {
+        val wallet = walletSettingsRepository.getWallets()
+            .firstOrNull { it.walletPublicKey == walletId }
+            ?: throw AppErrorException(AppError.MissingWalletConnection)
+        if (!wallet.isBlink) {
+            throw AppErrorException(AppError.MissingWalletConnection)
+        }
+
+        val apiKey = credentialStore.getApiKey(walletId)
+            ?: throw AppErrorException(AppError.AuthenticationFailure("API key not found"))
+        return apiClient.fetchContacts(apiKey)
     }
 
     private companion object {

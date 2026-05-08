@@ -37,6 +37,7 @@ import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentShortcut
 import xyz.lilsus.papp.domain.model.Result
+import xyz.lilsus.papp.domain.model.ShortcutAmount
 import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.model.toPaymentTarget
@@ -316,11 +317,7 @@ class MainViewModel internal constructor(
 
             is MainIntent.PaySheetTabSelected -> selectPaySheetTab(intent.tab)
 
-            is MainIntent.ContactSearchChanged -> updateContactSearch(intent.query)
-
             is MainIntent.ContactRoleSelected -> selectContactRole(intent.role)
-
-            MainIntent.AddContactCandidate -> addContactCandidate()
 
             is MainIntent.SelectShortcut -> selectShortcut(intent.id)
 
@@ -337,7 +334,7 @@ class MainViewModel internal constructor(
             }
 
             is MainIntent.ContactEditorRoleSelected -> updateContactEditor { editor ->
-                editor.copy(selectedRole = intent.role)
+                editor.copy(selectedRoles = editor.selectedRoles.toggleRole(intent.role))
             }
 
             MainIntent.ContactEditorSave -> saveContactEditor()
@@ -351,7 +348,7 @@ class MainViewModel internal constructor(
             }
 
             is MainIntent.SaveContactPromptRoleSelected -> updateSavePrompt { prompt ->
-                prompt.copy(selectedRole = intent.role)
+                prompt.copy(selectedRoles = prompt.selectedRoles.toggleRole(intent.role))
             }
 
             MainIntent.SaveContactPromptSave -> savePromptContact()
@@ -537,8 +534,7 @@ class MainViewModel internal constructor(
         _contactsUiState.value = _contactsUiState.value.copy(
             isOpen = true,
             selectedTab = PaySheetTab.Shortcuts,
-            query = "",
-            selectedRole = null,
+            selectedRoles = emptySet(),
             editor = null
         )
         refreshContactsDisplay()
@@ -553,27 +549,12 @@ class MainViewModel internal constructor(
         refreshContactsDisplay()
     }
 
-    private fun updateContactSearch(query: String) {
-        _contactsUiState.value = _contactsUiState.value.copy(query = query)
-        refreshContactsDisplay()
-    }
-
     private fun selectContactRole(role: ContactRole?) {
-        _contactsUiState.value = _contactsUiState.value.copy(selectedRole = role)
-        refreshContactsDisplay()
-    }
-
-    private fun addContactCandidate() {
-        val address = parseLightningAddress(_contactsUiState.value.query) ?: return
-        _contactsUiState.value = _contactsUiState.value.copy(
-            editor = ContactEditorUiState(
-                contactId = null,
-                address = address.full,
-                alias = address.username,
-                selectedRole = null,
-                addressEditable = true
-            )
+        val current = _contactsUiState.value
+        _contactsUiState.value = current.copy(
+            selectedRoles = current.selectedRoles.toggleRole(role)
         )
+        refreshContactsDisplay()
     }
 
     private fun selectShortcut(id: String) {
@@ -583,25 +564,31 @@ class MainViewModel internal constructor(
     }
 
     private fun startShortcutPayment(shortcut: PaymentShortcut) {
-        if (shortcut.amountMsats <= 0L) return
-        val sourceKey = lightningAddressSourceKey(shortcut.address)
-        val context = PaymentContactContext(
-            address = shortcut.address,
-            contactId = shortcut.contactId,
-            shortcutId = shortcut.id,
-            displayName = shortcut.displayName(),
-            targetKey = sourceKey,
-            allowSavePrompt = false
-        )
-        if (vibrateOnScan) haptics.notifyScanSuccess()
-        resolveLightningAddress(
-            address = shortcut.address,
-            paymentSource = PaymentRequestSource.Camera,
-            sourceKey = sourceKey,
-            contactContext = context,
-            shortcutAmountMsats = shortcut.amountMsats,
-            shortcutComment = shortcut.comment
-        )
+        scope.launch {
+            val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcut.amount)
+            if (amountMsats == null || amountMsats <= 0L) {
+                emitError(AppError.InvalidInvoice("Shortcut amount could not be converted"))
+                return@launch
+            }
+            val sourceKey = lightningAddressSourceKey(shortcut.address)
+            val context = PaymentContactContext(
+                address = shortcut.address,
+                contactId = shortcut.contactId,
+                shortcutId = shortcut.id,
+                displayName = shortcut.displayName(),
+                targetKey = sourceKey,
+                allowSavePrompt = false
+            )
+            if (vibrateOnScan) haptics.notifyScanSuccess()
+            resolveLightningAddress(
+                address = shortcut.address,
+                paymentSource = PaymentRequestSource.Camera,
+                sourceKey = sourceKey,
+                contactContext = context,
+                shortcutAmountMsats = roundToFullSatoshis(amountMsats),
+                shortcutComment = shortcut.comment
+            )
+        }
     }
 
     private fun selectContact(id: String) {
@@ -636,7 +623,7 @@ class MainViewModel internal constructor(
                 contactId = contact.id,
                 address = contact.address.full,
                 alias = contact.alias.orEmpty(),
-                selectedRole = contact.role,
+                selectedRoles = contact.roles,
                 addressEditable = false
             )
         )
@@ -663,14 +650,13 @@ class MainViewModel internal constructor(
         }
         scope.launch {
             if (editor.contactId == null) {
-                saveContact?.invoke(address, editor.alias, editor.selectedRole)
+                saveContact?.invoke(address, editor.alias, editor.selectedRoles)
             } else {
-                updateContact?.invoke(editor.contactId, editor.alias, editor.selectedRole)
+                updateContact?.invoke(editor.contactId, editor.alias, editor.selectedRoles)
             } ?: return@launch
             _contactsUiState.value = _contactsUiState.value.copy(
                 editor = null,
-                query = "",
-                selectedRole = null
+                selectedRoles = emptySet()
             )
             refreshContactsDisplay()
         }
@@ -696,7 +682,7 @@ class MainViewModel internal constructor(
             val contact = saveContact?.invoke(
                 pending.address,
                 prompt.alias,
-                prompt.selectedRole
+                prompt.selectedRoles
             ) ?: return@launch
             recordContactPayment?.invoke(
                 ContactPaymentRecord(
@@ -723,19 +709,17 @@ class MainViewModel internal constructor(
 
     private fun refreshContactsDisplay() {
         val current = _contactsUiState.value
-        val query = current.query.trim()
-        val role = current.selectedRole
+        val selectedRoles = current.selectedRoles
         val filteredContacts = contacts
             .asSequence()
-            .filter { contact -> role == null || contact.role == role }
             .filter { contact ->
-                query.isBlank() ||
-                    contact.displayName.contains(query, ignoreCase = true) ||
-                    contact.address.full.contains(query, ignoreCase = true) ||
-                    contact.role?.name?.contains(query, ignoreCase = true) == true
+                selectedRoles.isEmpty() || contact.roles.containsAll(selectedRoles)
             }
             .sortedWith(
-                compareByDescending<Contact> { it.stats.paymentCount }
+                compareByDescending<Contact> {
+                    if (ContactRole.Favorite in it.roles) 1 else 0
+                }
+                    .thenByDescending { it.stats.paymentCount }
                     .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
                     .thenBy { it.displayName.lowercase() }
                     .thenBy { it.address.full.lowercase() }
@@ -744,13 +728,6 @@ class MainViewModel internal constructor(
             .toList()
         val filteredShortcuts = shortcuts
             .asSequence()
-            .filter { shortcut ->
-                query.isBlank() ||
-                    shortcut.title.contains(query, ignoreCase = true) ||
-                    shortcut.address.full.contains(query, ignoreCase = true) ||
-                    shortcut.displayName().contains(query, ignoreCase = true) ||
-                    shortcut.comment?.contains(query, ignoreCase = true) == true
-            }
             .sortedWith(
                 compareByDescending<PaymentShortcut> { it.stats.paymentCount }
                     .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
@@ -758,16 +735,9 @@ class MainViewModel internal constructor(
             )
             .map { it.toListItem() }
             .toList()
-        val addCandidate = parseLightningAddress(query)
-            ?.takeIf { address ->
-                query.isNotBlank() &&
-                    contacts.none { it.address.sameAddressAs(address) }
-            }
-            ?.full
         _contactsUiState.value = current.copy(
             contacts = filteredContacts,
-            shortcuts = filteredShortcuts,
-            addCandidate = addCandidate
+            shortcuts = filteredShortcuts
         )
     }
 
@@ -775,7 +745,7 @@ class MainViewModel internal constructor(
         id = id,
         displayName = displayName,
         address = address.full,
-        role = role,
+        roles = roles,
         paymentCount = stats.paymentCount,
         lastPaidAtMs = stats.lastPaidAtMs
     )
@@ -783,7 +753,7 @@ class MainViewModel internal constructor(
     private fun PaymentShortcut.toListItem(): ShortcutListItem = ShortcutListItem(
         id = id,
         title = title,
-        amountSats = amountMsats / MSATS_PER_SAT,
+        amountLabel = amount.displayLabel(),
         recipientSummary = displayName(),
         commentSummary = comment,
         paymentCount = stats.paymentCount,
@@ -794,6 +764,48 @@ class MainViewModel internal constructor(
         ?.let { id -> contacts.firstOrNull { it.id == id } }
         ?.displayName
         ?: address.username
+
+    private fun ShortcutAmount.displayLabel(): String {
+        val info = CurrencyCatalog.infoFor(normalizedCurrencyCode)
+        val unit = if (info.code == CurrencyCatalog.DEFAULT_CODE) {
+            "sats"
+        } else {
+            info.code
+        }
+        return "${minor.formatMinorAmount(info.fractionDigits)} $unit"
+    }
+
+    private fun Long.formatMinorAmount(fractionDigits: Int): String {
+        if (fractionDigits <= 0) return toString()
+        val factor = decimalFactor(fractionDigits)
+        val whole = this / factor
+        val fraction = (this % factor).toString().padStart(fractionDigits, '0').trimEnd('0')
+        return if (fraction.isEmpty()) {
+            whole.toString()
+        } else {
+            "$whole.$fraction"
+        }
+    }
+
+    private fun decimalFactor(fractionDigits: Int): Long {
+        var factor = 1L
+        repeat(fractionDigits) { factor *= 10L }
+        return factor
+    }
+
+    private fun Set<ContactRole>.toggleRole(role: ContactRole?): Set<ContactRole> = when (role) {
+        null -> emptySet()
+
+        ContactRole.Personal -> {
+            if (role in this) this - role else (this - ContactRole.Work) + role
+        }
+
+        ContactRole.Work -> {
+            if (role in this) this - role else (this - ContactRole.Personal) + role
+        }
+
+        else -> if (role in this) this - role else this + role
+    }
 
     private fun parseLightningAddress(raw: String): LightningAddress? =
         when (val result = lightningInputParser.parse(raw.trim())) {
@@ -1326,9 +1338,17 @@ class MainViewModel internal constructor(
             val amountMsats = amountOverrideMsats ?: summary.amountMsats
             val isManualEntry =
                 origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
+            val isShortcut = contactContext?.shortcutId != null
             val requiresConfirmation =
                 source == PaymentRequestSource.DeepLink ||
-                    (amountMsats != null && shouldConfirmPayment(amountMsats, isManualEntry))
+                    (
+                        amountMsats != null &&
+                            shouldConfirmPayment(
+                                amountMsats = amountMsats,
+                                isManualEntry = isManualEntry,
+                                isShortcut = isShortcut
+                            )
+                        )
             if (requiresConfirmation) {
                 val display = currencyManager.convertMsatsToDisplay(
                     amountMsats ?: 0L,
@@ -1557,7 +1577,7 @@ class MainViewModel internal constructor(
             savePrompt = ContactSavePromptUiState(
                 address = address.full,
                 alias = context.displayName,
-                selectedRole = null
+                selectedRoles = emptySet()
             )
         )
     }

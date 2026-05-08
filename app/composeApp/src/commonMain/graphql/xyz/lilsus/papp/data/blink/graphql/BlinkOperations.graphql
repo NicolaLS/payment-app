@@ -14,6 +14,16 @@ query DefaultWalletId {
   }
 }
 
+query BlinkContacts {
+  me {
+    contacts {
+      alias
+      handle
+      transactionsCount
+    }
+  }
+}
+
 query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
   me {
     defaultAccount {

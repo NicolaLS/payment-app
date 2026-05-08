@@ -5,8 +5,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -14,32 +17,32 @@ import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.model.Contact
 import xyz.lilsus.papp.domain.model.ContactRole
-import xyz.lilsus.papp.domain.model.PaymentShortcut
+import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
-import xyz.lilsus.papp.domain.usecases.DeleteShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
-import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
-import xyz.lilsus.papp.domain.usecases.SaveShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 
 class ContactsSettingsViewModel internal constructor(
     observeContacts: ObserveContactsUseCase,
-    observeShortcuts: ObserveShortcutsUseCase,
+    observeWallets: ObserveWalletsUseCase,
     private val saveContact: SaveContactUseCase,
     private val updateContact: UpdateContactUseCase,
     private val deleteContactUseCase: DeleteContactUseCase,
-    private val saveShortcut: SaveShortcutUseCase,
-    private val deleteShortcutUseCase: DeleteShortcutUseCase,
     private val lightningInputParser: LightningInputParser = LightningInputParser(),
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     private var contacts: List<Contact> = emptyList()
-    private var shortcuts: List<PaymentShortcut> = emptyList()
+    private var blinkWallets: List<BlinkWalletImportOption> = emptyList()
+    private var editorAutoSaveRevision: Int = 0
 
     private val _uiState = MutableStateFlow(ContactsSettingsUiState())
     val uiState: StateFlow<ContactsSettingsUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<ContactsSettingsEvent>(extraBufferCapacity = 4)
+    val events: SharedFlow<ContactsSettingsEvent> = _events.asSharedFlow()
 
     init {
         scope.launch {
@@ -49,88 +52,74 @@ class ContactsSettingsViewModel internal constructor(
             }
         }
         scope.launch {
-            observeShortcuts().collectLatest {
-                shortcuts = it
+            observeWallets().collectLatest { wallets ->
+                blinkWallets = wallets
+                    .filter { it.isBlink }
+                    .map { it.toBlinkImportOption() }
                 refresh()
             }
         }
     }
 
-    fun updateQuery(query: String) {
-        _uiState.value = _uiState.value.copy(query = query)
-        refresh()
-    }
-
     fun startAddContact() {
+        editorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(
             contactEditor = ContactSettingsEditor(
                 contactId = null,
-                address = _uiState.value.query,
+                address = "",
                 alias = "",
-                role = null,
+                roles = emptySet(),
                 addressEditable = true
-            ),
-            shortcutEditor = null
+            )
         )
+    }
+
+    fun startBlinkContactsImport() {
+        when (blinkWallets.size) {
+            0 -> Unit
+
+            1 -> openBlinkContactsImport(blinkWallets.first().walletId)
+
+            else -> {
+                _uiState.value = _uiState.value.copy(
+                    blinkWalletChooser = BlinkWalletChooser(blinkWallets)
+                )
+            }
+        }
+    }
+
+    fun selectBlinkWalletForImport(walletId: String) {
+        if (blinkWallets.none { it.walletId == walletId }) return
+        _uiState.value = _uiState.value.copy(blinkWalletChooser = null)
+        openBlinkContactsImport(walletId)
+    }
+
+    fun dismissBlinkWalletChooser() {
+        _uiState.value = _uiState.value.copy(blinkWalletChooser = null)
     }
 
     fun startEditContact(id: String) {
         val contact = contacts.firstOrNull { it.id == id } ?: return
+        editorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(
             contactEditor = ContactSettingsEditor(
                 contactId = contact.id,
                 address = contact.address.full,
                 alias = contact.alias.orEmpty(),
-                role = contact.role,
+                roles = contact.roles,
                 addressEditable = false
-            ),
-            shortcutEditor = null
+            )
         )
     }
 
-    fun startAddShortcut() {
-        val options = shortcutContactOptions()
-        _uiState.value = _uiState.value.copy(
-            shortcutEditor = ShortcutSettingsEditor(
-                shortcutId = null,
-                title = "",
-                selectedContactId = options.firstOrNull()?.id,
-                amountSats = "",
-                comment = "",
-                contactOptions = options
-            ),
-            contactEditor = null
-        )
-    }
-
-    fun startEditShortcut(id: String) {
-        val shortcut = shortcuts.firstOrNull { it.id == id } ?: return
-        val options = shortcutContactOptions()
-        val selectedContactId = shortcut.contactId
-            ?: contacts.firstOrNull { it.address.sameAddressAs(shortcut.address) }?.id
-            ?: options.firstOrNull()?.id
-        _uiState.value = _uiState.value.copy(
-            shortcutEditor = ShortcutSettingsEditor(
-                shortcutId = shortcut.id,
-                title = shortcut.title,
-                selectedContactId = selectedContactId,
-                amountSats = (shortcut.amountMsats / MSATS_PER_SAT)
-                    .takeIf { it > 0L }
-                    ?.toString()
-                    .orEmpty(),
-                comment = shortcut.comment.orEmpty(),
-                contactOptions = options
-            ),
-            contactEditor = null
-        )
-    }
-
-    fun deleteContact(id: String) {
-        scope.launch { deleteContactUseCase(id) }
-    }
-
-    fun deleteShortcut(id: String) {
-        scope.launch { deleteShortcutUseCase(id) }
+    fun deleteContactEditor() {
+        val id = _uiState.value.contactEditor?.contactId ?: return
+        editorAutoSaveRevision++
+        scope.launch {
+            deleteContactUseCase(id)
+            _uiState.value = _uiState.value.copy(contactEditor = null)
+            refresh()
+        }
     }
 
     fun updateContactEditorAddress(address: String) {
@@ -139,26 +128,17 @@ class ContactsSettingsViewModel internal constructor(
 
     fun updateContactEditorAlias(alias: String) {
         updateContactEditor { it.copy(alias = alias, error = null) }
+            ?.autoSaveExistingContact()
     }
 
     fun updateContactEditorRole(role: ContactRole?) {
-        updateContactEditor { it.copy(role = role) }
+        updateContactEditor { it.copy(roles = it.roles.toggleRole(role)) }
+            ?.autoSaveExistingContact()
     }
 
-    fun updateShortcutTitle(title: String) {
-        updateShortcutEditor { it.copy(title = title, error = null) }
-    }
-
-    fun updateShortcutContact(contactId: String) {
-        updateShortcutEditor { it.copy(selectedContactId = contactId, error = null) }
-    }
-
-    fun updateShortcutAmount(amount: String) {
-        updateShortcutEditor { it.copy(amountSats = amount.filter(Char::isDigit), error = null) }
-    }
-
-    fun updateShortcutComment(comment: String) {
-        updateShortcutEditor { it.copy(comment = comment, error = null) }
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(query = query)
+        refresh()
     }
 
     fun saveContactEditor() {
@@ -170,91 +150,59 @@ class ContactsSettingsViewModel internal constructor(
         }
         scope.launch {
             if (editor.contactId == null) {
-                saveContact(address, editor.alias, editor.role)
+                saveContact(address, editor.alias, editor.roles)
             } else {
-                updateContact(editor.contactId, editor.alias, editor.role)
+                updateContact(editor.contactId, editor.alias, editor.roles)
             }
-            _uiState.value = _uiState.value.copy(contactEditor = null, query = "")
-            refresh()
-        }
-    }
-
-    fun saveShortcutEditor() {
-        val editor = _uiState.value.shortcutEditor ?: return
-        val contactId = editor.selectedContactId
-        if (editor.contactOptions.isEmpty() || contactId == null) {
-            updateShortcutEditor { it.copy(error = "Add a contact before creating a shortcut.") }
-            return
-        }
-        val amountSats = editor.amountSats.toLongOrNull()
-        if (amountSats == null || amountSats <= 0L) {
-            updateShortcutEditor { it.copy(error = "Enter an amount in sats.") }
-            return
-        }
-        val contact = contacts.firstOrNull { it.id == contactId }
-        if (contact == null) {
-            updateShortcutEditor { it.copy(error = "Select a contact.") }
-            return
-        }
-        val title = editor.title.ifBlank { "Pay ${contact.displayName}" }
-        scope.launch {
-            saveShortcut(
-                id = editor.shortcutId,
-                title = title,
-                contactId = contact.id,
-                amountMsats = amountSats * MSATS_PER_SAT,
-                comment = editor.comment.takeIf { it.isNotBlank() }
-            )
-            _uiState.value = _uiState.value.copy(shortcutEditor = null, query = "")
+            _uiState.value = _uiState.value.copy(contactEditor = null)
             refresh()
         }
     }
 
     fun dismissEditor() {
-        _uiState.value = _uiState.value.copy(contactEditor = null, shortcutEditor = null)
+        editorAutoSaveRevision++
+        _uiState.value = _uiState.value.copy(contactEditor = null)
     }
 
     fun clear() {
         scope.cancel()
     }
 
-    private fun updateContactEditor(transform: (ContactSettingsEditor) -> ContactSettingsEditor) {
-        val editor = _uiState.value.contactEditor ?: return
-        _uiState.value = _uiState.value.copy(contactEditor = transform(editor))
+    private fun updateContactEditor(
+        transform: (ContactSettingsEditor) -> ContactSettingsEditor
+    ): ContactSettingsEditor? {
+        val editor = _uiState.value.contactEditor ?: return null
+        val updated = transform(editor)
+        _uiState.value = _uiState.value.copy(contactEditor = updated)
+        return updated
     }
 
-    private fun updateShortcutEditor(
-        transform: (ShortcutSettingsEditor) -> ShortcutSettingsEditor
-    ) {
-        val editor = _uiState.value.shortcutEditor ?: return
-        _uiState.value = _uiState.value.copy(shortcutEditor = transform(editor))
+    private fun ContactSettingsEditor.autoSaveExistingContact() {
+        val id = contactId ?: return
+        val revision = ++editorAutoSaveRevision
+        val aliasSnapshot = alias
+        val rolesSnapshot = roles
+        scope.launch {
+            if (revision == editorAutoSaveRevision) {
+                updateContact(id, aliasSnapshot, rolesSnapshot)
+            }
+        }
     }
 
     private fun refresh() {
-        refreshOpenShortcutEditor()
-        val query = _uiState.value.query.trim()
-        val shortcutItems = shortcuts
-            .filter { shortcut ->
-                query.isBlank() ||
-                    shortcut.title.contains(query, ignoreCase = true) ||
-                    shortcut.address.full.contains(query, ignoreCase = true) ||
-                    shortcut.comment?.contains(query, ignoreCase = true) == true ||
-                    shortcut.displayName().contains(query, ignoreCase = true)
-            }
-            .sortedWith(
-                compareByDescending<PaymentShortcut> { it.stats.paymentCount }
-                    .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
-                    .thenBy { it.title.lowercase() }
-            )
-            .map { it.toSettingsItem() }
+        val query = _uiState.value.query.trim().lowercase()
         val contactItems = contacts
             .filter { contact ->
                 query.isBlank() ||
-                    contact.displayName.contains(query, ignoreCase = true) ||
-                    contact.address.full.contains(query, ignoreCase = true)
+                    contact.displayName.lowercase().contains(query) ||
+                    contact.address.full.lowercase().contains(query) ||
+                    contact.roles.any { it.name.lowercase().contains(query) }
             }
             .sortedWith(
-                compareByDescending<Contact> { it.stats.paymentCount }
+                compareByDescending<Contact> {
+                    if (ContactRole.Favorite in it.roles) 1 else 0
+                }
+                    .thenByDescending { it.stats.paymentCount }
                     .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
                     .thenBy { it.displayName.lowercase() }
             )
@@ -263,54 +211,30 @@ class ContactsSettingsViewModel internal constructor(
                     id = contact.id,
                     displayName = contact.displayName,
                     address = contact.address.full,
-                    role = contact.role
+                    roles = contact.roles
                 )
             }
         _uiState.value = _uiState.value.copy(
-            shortcuts = shortcutItems,
-            contacts = contactItems
+            contacts = contactItems,
+            blinkWallets = blinkWallets,
+            blinkWalletChooser = _uiState.value.blinkWalletChooser
+                ?.takeIf { blinkWallets.size > 1 }
+                ?.copy(wallets = blinkWallets)
         )
     }
 
-    private fun refreshOpenShortcutEditor() {
-        val editor = _uiState.value.shortcutEditor ?: return
-        val options = shortcutContactOptions()
-        val selectedContactId = editor.selectedContactId?.takeIf { selected ->
-            options.any { it.id == selected }
-        } ?: options.firstOrNull()?.id
-        _uiState.value = _uiState.value.copy(
-            shortcutEditor = editor.copy(
-                selectedContactId = selectedContactId,
-                contactOptions = options
-            )
-        )
-    }
-
-    private fun shortcutContactOptions(): List<ShortcutContactOption> = contacts
-        .sortedWith(
-            compareByDescending<Contact> { it.stats.paymentCount }
-                .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
-                .thenBy { it.displayName.lowercase() }
-        )
-        .map { contact ->
-            ShortcutContactOption(
-                id = contact.id,
-                displayName = contact.displayName,
-                address = contact.address.full
-            )
+    private fun openBlinkContactsImport(walletId: String) {
+        scope.launch {
+            _events.emit(ContactsSettingsEvent.OpenBlinkContactsImport(walletId))
         }
+    }
 
-    private fun PaymentShortcut.toSettingsItem(): ShortcutSettingsItem = ShortcutSettingsItem(
-        id = id,
-        title = title,
-        amountSats = amountMsats / MSATS_PER_SAT,
-        contactName = displayName(),
-        comment = comment
-    )
-
-    private fun PaymentShortcut.displayName(): String =
-        contactId?.let { id -> contacts.firstOrNull { it.id == id } }?.displayName
-            ?: address.username
+    private fun WalletConnection.toBlinkImportOption(): BlinkWalletImportOption =
+        BlinkWalletImportOption(
+            walletId = walletPublicKey,
+            displayName = alias?.takeIf { it.isNotBlank() } ?: "Blink wallet",
+            subtitle = walletPublicKey
+        )
 
     private fun parseAddress(raw: String): LightningAddress? =
         when (val result = lightningInputParser.parse(raw.trim())) {
@@ -320,54 +244,55 @@ class ContactsSettingsViewModel internal constructor(
             is LightningInputParser.ParseResult.Failure -> null
         }
 
-    private fun LightningAddress.sameAddressAs(other: LightningAddress): Boolean =
-        full.equals(other.full, ignoreCase = true)
+    private fun Set<ContactRole>.toggleRole(role: ContactRole?): Set<ContactRole> = when (role) {
+        null -> emptySet()
 
-    companion object {
-        private const val MSATS_PER_SAT = 1_000L
+        ContactRole.Personal -> {
+            if (role in this) this - role else (this - ContactRole.Work) + role
+        }
+
+        ContactRole.Work -> {
+            if (role in this) this - role else (this - ContactRole.Personal) + role
+        }
+
+        else -> if (role in this) this - role else this + role
     }
 }
 
 data class ContactsSettingsUiState(
-    val query: String = "",
-    val shortcuts: List<ShortcutSettingsItem> = emptyList(),
     val contacts: List<ContactSettingsItem> = emptyList(),
     val contactEditor: ContactSettingsEditor? = null,
-    val shortcutEditor: ShortcutSettingsEditor? = null
-)
+    val query: String = "",
+    val blinkWallets: List<BlinkWalletImportOption> = emptyList(),
+    val blinkWalletChooser: BlinkWalletChooser? = null
+) {
+    val hasBlinkWallets: Boolean get() = blinkWallets.isNotEmpty()
+}
 
-data class ShortcutSettingsItem(
-    val id: String,
-    val title: String,
-    val amountSats: Long,
-    val contactName: String,
-    val comment: String?
+data class BlinkWalletChooser(val wallets: List<BlinkWalletImportOption>)
+
+data class BlinkWalletImportOption(
+    val walletId: String,
+    val displayName: String,
+    val subtitle: String
 )
 
 data class ContactSettingsItem(
     val id: String,
     val displayName: String,
     val address: String,
-    val role: ContactRole?
+    val roles: Set<ContactRole>
 )
 
 data class ContactSettingsEditor(
     val contactId: String?,
     val address: String,
     val alias: String,
-    val role: ContactRole?,
+    val roles: Set<ContactRole>,
     val addressEditable: Boolean,
     val error: String? = null
 )
 
-data class ShortcutSettingsEditor(
-    val shortcutId: String?,
-    val title: String,
-    val selectedContactId: String?,
-    val amountSats: String,
-    val comment: String,
-    val contactOptions: List<ShortcutContactOption>,
-    val error: String? = null
-)
-
-data class ShortcutContactOption(val id: String, val displayName: String, val address: String)
+sealed interface ContactsSettingsEvent {
+    data class OpenBlinkContactsImport(val walletId: String) : ContactsSettingsEvent
+}

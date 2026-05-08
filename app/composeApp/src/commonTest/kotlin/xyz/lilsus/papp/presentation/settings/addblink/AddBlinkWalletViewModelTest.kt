@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
+import xyz.lilsus.papp.domain.model.BlinkContact
 import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
@@ -132,5 +133,7 @@ class AddBlinkWalletViewModelTest {
         override suspend fun getCachedDefaultWalletId(walletId: String): String? = error("Not used by AddBlinkWalletViewModel")
 
         override suspend fun refreshDefaultWalletId(walletId: String): String = error("Not used by AddBlinkWalletViewModel")
+
+        override suspend fun fetchContacts(walletId: String): List<BlinkContact> = error("Not used by AddBlinkWalletViewModel")
     }
 }

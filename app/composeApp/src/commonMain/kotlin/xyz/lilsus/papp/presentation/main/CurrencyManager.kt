@@ -19,6 +19,7 @@ import xyz.lilsus.papp.domain.model.CurrencyInfo
 import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.Result
+import xyz.lilsus.papp.domain.model.ShortcutAmount
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 
 /**
@@ -47,6 +48,7 @@ class CurrencyManager(
     private var exchangeRateJob: Job? = null
     private var exchangeRateRequestId: Int = 0
     private var lastExchangeRateRefreshMs: Long? = null
+    private val shortcutExchangeRates = mutableMapOf<String, CachedExchangeRate>()
 
     /**
      * Updates the preferred currency. Fetches exchange rate if needed for fiat currencies.
@@ -113,6 +115,27 @@ class CurrencyManager(
         }
     }
 
+    suspend fun convertShortcutAmountToMsats(amount: ShortcutAmount): Long? {
+        val code = amount.normalizedCurrencyCode
+        val supported = CurrencyCatalog.supportedCodes.any { it.equals(code, ignoreCase = true) }
+        if (!supported || amount.minor <= 0L) return null
+        val info = CurrencyCatalog.infoFor(code)
+        return when (info.currency) {
+            DisplayCurrency.Satoshi -> amount.minor * MSATS_PER_SAT
+
+            DisplayCurrency.Bitcoin -> amount.minor * MSATS_PER_SAT
+
+            is DisplayCurrency.Fiat -> {
+                val rate = exchangeRateForShortcut(info) ?: return null
+                if (rate <= 0.0) return null
+                val factor = 10.0.pow(info.fractionDigits)
+                val fiatMajor = amount.minor.toDouble() / factor
+                val btc = fiatMajor / rate
+                (btc * MSATS_PER_BTC).roundToLong().takeIf { it > 0L }
+            }
+        }
+    }
+
     /**
      * Returns true if an exchange rate is needed but not available or stale.
      */
@@ -168,6 +191,44 @@ class CurrencyManager(
         return (currentTimeMillis() - last) >= EXCHANGE_RATE_MAX_AGE_MS
     }
 
+    private suspend fun exchangeRateForShortcut(info: CurrencyInfo): Double? {
+        val code = info.code.uppercase()
+        val current = _state.value
+        if (
+            current.info.code.equals(code, ignoreCase = true) &&
+            current.exchangeRate != null &&
+            !isExchangeRateStale()
+        ) {
+            return current.exchangeRate
+        }
+        shortcutExchangeRates[code]?.let { cached ->
+            if ((currentTimeMillis() - cached.cachedAtMs) < EXCHANGE_RATE_MAX_AGE_MS) {
+                return cached.pricePerBitcoin
+            }
+        }
+        return when (val result = getExchangeRate(code)) {
+            is Result.Success -> {
+                val price = max(result.data.pricePerBitcoin, 0.0)
+                shortcutExchangeRates[code] = CachedExchangeRate(
+                    pricePerBitcoin = price,
+                    cachedAtMs = currentTimeMillis()
+                )
+                if (_state.value.info.code.equals(code, ignoreCase = true)) {
+                    _state.value = CurrencyState(info = info, exchangeRate = price)
+                    markExchangeRateFresh()
+                }
+                price
+            }
+
+            is Result.Error -> {
+                _errors.tryEmit(result.error)
+                null
+            }
+
+            Result.Loading -> null
+        }
+    }
+
     companion object {
         private const val MSATS_PER_SAT = 1_000L
         private const val MSATS_PER_BTC = 100_000_000_000L
@@ -179,3 +240,5 @@ class CurrencyManager(
  * Immutable snapshot of currency state for display purposes.
  */
 data class CurrencyState(val info: CurrencyInfo, val exchangeRate: Double?)
+
+private data class CachedExchangeRate(val pricePerBitcoin: Double, val cachedAtMs: Long)

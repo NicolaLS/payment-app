@@ -51,8 +51,10 @@ import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.DeleteShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
+import xyz.lilsus.papp.domain.usecases.FetchBlinkContactsUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
 import xyz.lilsus.papp.domain.usecases.GetBlinkDefaultWalletIdUseCase
+import xyz.lilsus.papp.domain.usecases.GetContactsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
@@ -78,6 +80,7 @@ import xyz.lilsus.papp.domain.usecases.SaveShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.usecases.SetAskToSaveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.SetConfirmManualEntryUseCase
+import xyz.lilsus.papp.domain.usecases.SetConfirmShortcutPaymentsUseCase
 import xyz.lilsus.papp.domain.usecases.SetCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationModeUseCase
@@ -106,6 +109,7 @@ import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletViewModel
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
+import xyz.lilsus.papp.presentation.settings.wallet.BlinkContactsImportViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
 val nwcModule = module {
@@ -234,10 +238,12 @@ val nwcModule = module {
     factory { SetPaymentConfirmationModeUseCase(repository = get()) }
     factory { SetPaymentConfirmationThresholdUseCase(repository = get()) }
     factory { SetConfirmManualEntryUseCase(repository = get()) }
+    factory { SetConfirmShortcutPaymentsUseCase(repository = get()) }
     factory { SetVibrateOnScanUseCase(repository = get()) }
     factory { SetVibrateOnPaymentUseCase(repository = get()) }
     factory { ShouldConfirmPaymentUseCase(repository = get()) }
     factory { ObserveContactsUseCase(repository = get()) }
+    factory { GetContactsUseCase(repository = get()) }
     factory { ObserveShortcutsUseCase(repository = get()) }
     factory { ObserveContactPreferencesUseCase(repository = get()) }
     factory { SaveContactUseCase(repository = get()) }
@@ -248,6 +254,7 @@ val nwcModule = module {
     factory { RecordContactPaymentUseCase(repository = get()) }
     factory { RecordShortcutPaymentUseCase(repository = get()) }
     factory { SetAskToSaveContactsUseCase(repository = get()) }
+    factory { FetchBlinkContactsUseCase(repository = get()) }
     factory {
         val info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
         ManualAmountController(
@@ -328,22 +335,36 @@ val nwcModule = module {
             setConfirmationMode = get(),
             setConfirmationThreshold = get(),
             setConfirmManualEntryPreference = get(),
+            setConfirmShortcutPaymentsUseCase = get(),
             setVibrateOnScanUseCase = get(),
             setVibrateOnPaymentUseCase = get(),
             observeContactPreferences = get(),
-            setAskToSaveContactsUseCase = get()
+            setAskToSaveContactsUseCase = get(),
+            observeContacts = get(),
+            observeShortcuts = get(),
+            saveShortcut = get(),
+            deleteShortcutUseCase = get()
         )
     }
 
     factory {
         ContactsSettingsViewModel(
             observeContacts = get(),
-            observeShortcuts = get(),
+            observeWallets = get(),
             saveContact = get(),
             updateContact = get(),
             deleteContactUseCase = get(),
-            saveShortcut = get(),
-            deleteShortcutUseCase = get(),
+            lightningInputParser = get(),
+            dispatcher = get()
+        )
+    }
+
+    factory { (walletId: String) ->
+        BlinkContactsImportViewModel(
+            walletId = walletId,
+            fetchBlinkContacts = get(),
+            getContacts = get(),
+            saveContact = get(),
             lightningInputParser = get(),
             dispatcher = get()
         )

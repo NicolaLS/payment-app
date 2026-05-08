@@ -112,7 +112,7 @@ fun App() {
                     navController.navigateToAddWallet()
                 },
                 onNavigateToAddBlinkWallet = {
-                    navController.navigateToAddBlinkWallet()
+                    navController.navigateToAddBlinkWallet(completeOnboarding = true)
                 }
             )
             paymentScreen(

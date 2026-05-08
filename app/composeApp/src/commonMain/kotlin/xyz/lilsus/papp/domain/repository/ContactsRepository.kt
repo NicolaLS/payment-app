@@ -7,6 +7,7 @@ import xyz.lilsus.papp.domain.model.ContactPaymentRecord
 import xyz.lilsus.papp.domain.model.ContactPreferences
 import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.domain.model.PaymentShortcut
+import xyz.lilsus.papp.domain.model.ShortcutAmount
 
 interface ContactsRepository {
     val contacts: Flow<List<Contact>>
@@ -16,15 +17,20 @@ interface ContactsRepository {
     suspend fun getContacts(): List<Contact>
     suspend fun getShortcuts(): List<PaymentShortcut>
     suspend fun findByAddress(address: LightningAddress): Contact?
-    suspend fun saveContact(address: LightningAddress, alias: String?, role: ContactRole?): Contact
-    suspend fun updateContact(id: String, alias: String?, role: ContactRole?): Contact?
+    suspend fun saveContact(
+        address: LightningAddress,
+        alias: String?,
+        roles: Set<ContactRole>
+    ): Contact
+
+    suspend fun updateContact(id: String, alias: String?, roles: Set<ContactRole>): Contact?
     suspend fun deleteContact(id: String)
 
     suspend fun saveShortcut(
         id: String?,
         title: String,
         contactId: String,
-        amountMsats: Long,
+        amount: ShortcutAmount,
         comment: String?
     ): PaymentShortcut?
 

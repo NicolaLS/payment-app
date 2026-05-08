@@ -438,7 +438,7 @@ class MainViewModelTest {
         val contact = contactsRepository.saveContact(
             address = LightningAddress("PayMe", "Blink.SV", "Tips"),
             alias = "Pay me",
-            role = null
+            roles = emptySet()
         )
         val lnurlRepository = FakeLnurlRepository().apply {
             stubAddress("PayMe+Tips@blink.sv", Result.Success(params))
@@ -1179,6 +1179,10 @@ private class FakePaymentPreferencesRepository(initial: PaymentPreferences) : Pa
 
     override suspend fun setConfirmManualEntry(enabled: Boolean) {
         state.value = state.value.copy(confirmManualEntry = enabled)
+    }
+
+    override suspend fun setConfirmShortcutPayments(enabled: Boolean) {
+        state.value = state.value.copy(confirmShortcutPayments = enabled)
     }
 
     override suspend fun setVibrateOnScan(enabled: Boolean) {
