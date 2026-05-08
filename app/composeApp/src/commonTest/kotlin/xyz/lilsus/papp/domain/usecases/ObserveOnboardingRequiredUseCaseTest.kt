@@ -7,6 +7,8 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.data.settings.OnboardingRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
@@ -58,6 +60,29 @@ class ObserveOnboardingRequiredUseCaseTest {
 
         assertFalse(onboardingRequired)
         assertTrue(onboardingRepository.hasCompletedOnboarding.first())
+    }
+
+    @Test
+    fun doesNotRepairCompletionFlagWhenWalletIsAddedDuringOnboarding() = runTest {
+        val onboardingRepository = OnboardingRepositoryImpl(settings = MapSettings())
+        val walletRepository = WalletSettingsRepositoryImpl(settings = MapSettings())
+        val useCase = ObserveOnboardingRequiredUseCase(
+            onboardingRepository = onboardingRepository,
+            walletSettingsRepository = walletRepository
+        )
+        var onboardingRequired = false
+        val job = launch {
+            useCase().collect { onboardingRequired = it }
+        }
+        advanceUntilIdle()
+
+        walletRepository.saveWalletConnection(existingWallet(), activate = true)
+        advanceUntilIdle()
+
+        assertTrue(onboardingRequired)
+        assertFalse(onboardingRepository.hasCompletedOnboarding.first())
+
+        job.cancel()
     }
 
     private fun existingWallet(): WalletConnection = WalletConnection(
