@@ -51,7 +51,7 @@ class WalletSettingsRepositoryImplTest {
         assertEquals(wallet.type, active?.type)
     }
 
-    private fun createRepository(onRemoved: (WalletConnection) -> Unit): WalletSettingsRepositoryImpl {
+    private fun createRepository(onRemoved: suspend (WalletConnection) -> Unit): WalletSettingsRepositoryImpl {
         val repository = WalletSettingsRepositoryImpl(
             settings = MapSettings(),
             onWalletRemoved = onRemoved

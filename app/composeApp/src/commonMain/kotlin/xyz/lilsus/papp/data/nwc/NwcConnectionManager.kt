@@ -95,6 +95,18 @@ class NwcConnectionManager(
             runCatching { client.close() }
         }
     }
+
+    /**
+     * Evicts and closes the cached client for the given wallet URI.
+     * Called when a wallet is removed so its credentials and websocket
+     * are not retained in memory until the app backgrounds.
+     */
+    suspend fun evict(walletUri: String) {
+        val client = mutex.withLock { clients.remove(walletUri) }
+        if (client != null) {
+            runCatching { client.close() }
+        }
+    }
 }
 
 private fun WalletConnection.requireNwcUri(): String {

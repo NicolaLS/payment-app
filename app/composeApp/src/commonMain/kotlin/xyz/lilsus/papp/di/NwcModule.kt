@@ -120,12 +120,21 @@ val nwcModule = module {
     single { createSecureSettings() }
     single<WalletSettingsRepository> {
         val blinkCredentialStore = get<BlinkCredentialStore>()
+        val koinScope = this
         WalletSettingsRepositoryImpl(
             settings = get(),
             onWalletRemoved = { wallet ->
-                if (wallet.type == WalletType.BLINK) {
-                    blinkCredentialStore.removeApiKey(wallet.walletPublicKey)
-                    blinkCredentialStore.removeDefaultWalletId(wallet.walletPublicKey)
+                when (wallet.type) {
+                    WalletType.BLINK -> {
+                        blinkCredentialStore.removeApiKey(wallet.walletPublicKey)
+                        blinkCredentialStore.removeDefaultWalletId(wallet.walletPublicKey)
+                    }
+
+                    WalletType.NWC -> {
+                        if (wallet.uri.isNotBlank()) {
+                            koinScope.get<NwcConnectionManager>().evict(wallet.uri)
+                        }
+                    }
                 }
             }
         )

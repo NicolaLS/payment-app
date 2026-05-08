@@ -18,7 +18,7 @@ private const val KEY_ACTIVE_PUBKEY = "wallet.active"
 
 class WalletSettingsRepositoryImpl(
     private val settings: Settings,
-    private val onWalletRemoved: (WalletConnection) -> Unit = {}
+    private val onWalletRemoved: suspend (WalletConnection) -> Unit = {}
 ) : WalletSettingsRepository {
 
     private val json = Json {
@@ -91,7 +91,7 @@ class WalletSettingsRepositoryImpl(
     override suspend fun clearWalletConnection() {
         val walletsToRemove = state.value.wallets
         updateState { WalletState() }
-        walletsToRemove.forEach(onWalletRemoved)
+        walletsToRemove.forEach { onWalletRemoved(it) }
     }
 
     private fun updateState(transform: (WalletState) -> WalletState) {
