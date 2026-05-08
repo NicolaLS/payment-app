@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.presentation.main
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -137,6 +138,7 @@ class MainViewModel internal constructor(
     private var contactPreferences: ContactPreferences = ContactPreferences()
     private val pendingContactContexts = mutableMapOf<String, PaymentContactContext>()
     private var pendingSaveContact: PendingSaveContact? = null
+    private var paymentAdmissionInProgress: Boolean = false
 
     init {
         scope.launch {
@@ -372,6 +374,7 @@ class MainViewModel internal constructor(
     }
 
     private fun handlePaymentInput(rawInput: String, source: PaymentRequestSource) {
+        if (paymentAdmissionInProgress) return
         if (_uiState.value !is MainUiState.Active) return
 
         manualEntryContext = null
@@ -1331,46 +1334,58 @@ class MainViewModel internal constructor(
         dynamicSourceKey: String? = null,
         contactContext: PaymentContactContext? = null
     ) {
+        if (paymentAdmissionInProgress) return
+        paymentAdmissionInProgress = true
         scope.launch {
-            if (currencyManager.needsExchangeRate()) {
-                currencyManager.ensureExchangeRateIfNeeded(currencyManager.state.value.info)
-            }
-            val amountMsats = amountOverrideMsats ?: summary.amountMsats
-            val isManualEntry =
-                origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
-            val isShortcut = contactContext?.shortcutId != null
-            val requiresConfirmation =
-                source == PaymentRequestSource.DeepLink ||
-                    (
-                        amountMsats != null &&
-                            shouldConfirmPayment(
-                                amountMsats = amountMsats,
-                                isManualEntry = isManualEntry,
-                                isShortcut = isShortcut
+            try {
+                if (currencyManager.needsExchangeRate()) {
+                    currencyManager.ensureExchangeRateIfNeeded(currencyManager.state.value.info)
+                }
+                val amountMsats = amountOverrideMsats ?: summary.amountMsats
+                val isManualEntry =
+                    origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
+                val isShortcut = contactContext?.shortcutId != null
+                val requiresConfirmation =
+                    source == PaymentRequestSource.DeepLink ||
+                        (
+                            amountMsats != null &&
+                                shouldConfirmPayment(
+                                    amountMsats = amountMsats,
+                                    isManualEntry = isManualEntry,
+                                    isShortcut = isShortcut
+                                )
                             )
-                        )
-            if (requiresConfirmation) {
-                val display = currencyManager.convertMsatsToDisplay(
-                    amountMsats ?: 0L,
-                    currencyManager.state.value
-                )
-                pendingPayment = PendingPayment(
-                    summary = summary,
-                    overrideAmountMsats = amountOverrideMsats,
-                    origin = origin,
-                    source = source,
-                    dynamicSourceKey = dynamicSourceKey,
-                    contactContext = contactContext
-                )
-                _uiState.value = MainUiState.Confirm(display)
-            } else {
-                startPayment(
-                    summary = summary,
-                    amountOverrideMsats = amountOverrideMsats,
-                    origin = origin,
-                    dynamicSourceKey = dynamicSourceKey,
-                    contactContext = contactContext
-                )
+                if (requiresConfirmation) {
+                    val display = currencyManager.convertMsatsToDisplay(
+                        amountMsats ?: 0L,
+                        currencyManager.state.value
+                    )
+                    pendingPayment = PendingPayment(
+                        summary = summary,
+                        overrideAmountMsats = amountOverrideMsats,
+                        origin = origin,
+                        source = source,
+                        dynamicSourceKey = dynamicSourceKey,
+                        contactContext = contactContext
+                    )
+                    _uiState.value = MainUiState.Confirm(display)
+                } else {
+                    startPayment(
+                        summary = summary,
+                        amountOverrideMsats = amountOverrideMsats,
+                        origin = origin,
+                        dynamicSourceKey = dynamicSourceKey,
+                        contactContext = contactContext
+                    )
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: AppErrorException) {
+                emitError(error.error)
+            } catch (error: Throwable) {
+                emitError(AppError.Unexpected(error.message))
+            } finally {
+                paymentAdmissionInProgress = false
             }
         }
     }
@@ -1387,6 +1402,7 @@ class MainViewModel internal constructor(
         dynamicSourceKey: String? = null,
         contactContext: PaymentContactContext? = null
     ) {
+        _uiState.value = MainUiState.Loading()
         val amountMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
         val walletTarget = currentWalletTarget
         val pendingId = pendingTracker.register(
@@ -1792,6 +1808,7 @@ class MainViewModel internal constructor(
         ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
 
     fun clear() {
+        paymentAdmissionInProgress = false
         val jobsToCancel = pendingCollectionJobs.values.toList()
         pendingCollectionJobs.clear()
         jobsToCancel.forEach { it.cancel() }

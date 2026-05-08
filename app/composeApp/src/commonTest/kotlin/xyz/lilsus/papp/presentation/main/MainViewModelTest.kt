@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -149,6 +150,47 @@ class MainViewModelTest {
             assertEquals(123_000L, repository.lastAmountMsats)
             assertEquals(123L, success.amountPaid.minor)
         } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun rapidManualAmountSubmitsStartSinglePayment() = runTest {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                MANUAL_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = MANUAL_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = null,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = BlockingNwcWalletRepository()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            dispatcherOverride = testDispatcher
+        )
+        try {
+            runCurrent()
+            viewModel.dispatch(MainIntent.QrCodeScanned(MANUAL_INVOICE_INPUT))
+            runCurrent()
+
+            listOf(1, 2, 3).forEach { digit ->
+                viewModel.dispatch(MainIntent.ManualAmountKeyPress(ManualAmountKey.Digit(digit)))
+            }
+            runCurrent()
+
+            viewModel.dispatch(MainIntent.ManualAmountSubmit)
+            viewModel.dispatch(MainIntent.ManualAmountSubmit)
+            runCurrent()
+
+            assertEquals(listOf(MANUAL_PAYMENT_REQUEST to 123_000L), repository.invoices)
+        } finally {
+            repository.completeIfNeeded()
+            runCurrent()
             viewModel.clear()
         }
     }
@@ -317,6 +359,43 @@ class MainViewModelTest {
             assertEquals(AMOUNT_PAYMENT_REQUEST, repository.lastInvoice)
             assertNull(repository.lastAmountMsats)
         } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun rapidQrScansStartSinglePaymentBeforePendingRegistration() = runTest {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = BlockingNwcWalletRepository()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            preferences = PaymentPreferences(
+                confirmationMode = PaymentConfirmationMode.Above,
+                thresholdSats = 1_000
+            ),
+            dispatcherOverride = testDispatcher
+        )
+        try {
+            runCurrent()
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+            runCurrent()
+
+            assertEquals(listOf(AMOUNT_PAYMENT_REQUEST to null), repository.invoices)
+        } finally {
+            repository.completeIfNeeded()
+            runCurrent()
             viewModel.clear()
         }
     }
