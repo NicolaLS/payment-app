@@ -285,12 +285,12 @@ class PendingPaymentTracker(
                     }
 
                     is PaymentLookupResult.LookupError -> {
-                        if (isRetryableLookupError(result.error)) {
-                            continue
+                        if (!isRetryableLookupError(result.error)) {
+                            markFailure(id, result.error)
+                            _events.tryEmit(PendingEvent.Failed(id, result.error))
+                            return@launch
                         }
-                        markFailure(id, result.error)
-                        _events.tryEmit(PendingEvent.Failed(id, result.error))
-                        return@launch
+                        // Retryable lookup errors still need the shared delay below.
                     }
                 }
 

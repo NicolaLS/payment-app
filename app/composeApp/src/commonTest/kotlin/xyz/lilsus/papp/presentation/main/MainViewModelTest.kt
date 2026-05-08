@@ -899,6 +899,55 @@ class MainViewModelTest {
     }
 
     @Test
+    fun retryableLookupErrorsWaitBeforeRetrying() = runTest {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = "blink-hash-4",
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        var lookupAttempts = 0
+        val repository = UnconfirmedNwcWalletRepository {
+            lookupAttempts += 1
+            if (lookupAttempts < 5) {
+                PaymentLookupResult.LookupError(AppError.NetworkUnavailable)
+            } else {
+                PaymentLookupResult.Failed
+            }
+        }
+        walletSettingsRepository.saveWalletConnection(
+            blinkWallet("blink-wallet-1"),
+            activate = true
+        )
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            dispatcherOverride = StandardTestDispatcher(testScheduler)
+        )
+        try {
+            runCurrent()
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+            runCurrent()
+
+            assertEquals(1, repository.lookupCalls.size)
+
+            advanceTimeBy(499L)
+            runCurrent()
+            assertEquals(1, repository.lookupCalls.size)
+
+            advanceTimeBy(1L)
+            runCurrent()
+            assertEquals(2, repository.lookupCalls.size)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
     fun lnurlFixedAmountPaysInvoice() = runBlocking {
         val amountMsats = 50_000L
         val lnurlInvoice = "lnbc1lnurlfixed"
