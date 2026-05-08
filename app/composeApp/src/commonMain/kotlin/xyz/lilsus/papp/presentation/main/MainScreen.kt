@@ -93,24 +93,21 @@ fun MainScreen(
     modifier: Modifier = Modifier
 ) {
     var scannerInitialized by remember { mutableStateOf(false) }
+    val scannerShouldRun = uiState == MainUiState.Active && !contactsState.isOpen
 
-    LaunchedEffect(uiState, isCameraPermissionGranted) {
+    LaunchedEffect(scannerShouldRun, isCameraPermissionGranted) {
         if (!isCameraPermissionGranted) {
             scannerInitialized = false
             onScannerPause()
-        } else {
-            when (uiState) {
-                MainUiState.Active -> {
-                    if (!scannerInitialized) {
-                        withFrameNanos { }
-                        onRequestScannerStart()
-                        scannerInitialized = true
-                    }
-                    onScannerResume()
-                }
-
-                else -> onScannerPause()
+        } else if (scannerShouldRun) {
+            if (!scannerInitialized) {
+                withFrameNanos { }
+                onRequestScannerStart()
+                scannerInitialized = true
             }
+            onScannerResume()
+        } else {
+            onScannerPause()
         }
     }
 
