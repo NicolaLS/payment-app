@@ -13,7 +13,10 @@ enum class QrScannerMode {
 interface QrScannerController {
     val supportsManualModeSelection: Boolean
 
-    fun start(onQrCodeScanned: (String) -> Unit)
+    fun start(
+        onQrCodeScanned: (String) -> Unit,
+        onCameraPermissionMissing: () -> Unit = {}
+    ): Boolean
     fun pause()
     fun resume()
     fun stop()

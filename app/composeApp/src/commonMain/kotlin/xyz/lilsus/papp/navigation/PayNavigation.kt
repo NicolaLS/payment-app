@@ -194,14 +194,31 @@ private fun MainScreenEntry(
         }
     }
 
-    fun startScannerIfNeeded() {
-        if (scannerStarted) return
-        if (!cameraPermission.hasPermission) return
+    fun endZoomGesture() {
+        hidePreview()
+        restoreScannerModeAfterZoomGesture()
+    }
+
+    fun requestCameraPermissionAfterScannerFailure() {
+        scannerStarted = false
+        previewStreaming = false
+        scannerController.stop()
+        endZoomGesture()
+        hasRequestedPermission = true
+        cameraPermission.request()
+    }
+
+    fun startScannerIfNeeded(): Boolean {
+        if (scannerStarted) return true
+        if (!cameraPermission.hasPermission) return false
         scannerController.setMode(scannerMode)
-        scannerController.start { rawValue ->
-            viewModel.dispatch(MainIntent.QrCodeScanned(rawValue))
-        }
-        scannerStarted = true
+        scannerStarted = scannerController.start(
+            onQrCodeScanned = { rawValue ->
+                viewModel.dispatch(MainIntent.QrCodeScanned(rawValue))
+            },
+            onCameraPermissionMissing = ::requestCameraPermissionAfterScannerFailure
+        )
+        return scannerStarted
     }
 
     fun beginZoomGesture(startPosition: Offset) {
@@ -216,7 +233,7 @@ private fun MainScreenEntry(
 
         previewPrepared = true
         previewRevealRequested = false
-        startScannerIfNeeded()
+        if (!startScannerIfNeeded()) return
         dragStartPosition = startPosition
         scope.launch { zoomFraction.snapTo(0f) }
         scannerController.resume()
@@ -235,11 +252,6 @@ private fun MainScreenEntry(
         } else {
             previewRevealRequested = true
         }
-    }
-
-    fun endZoomGesture() {
-        hidePreview()
-        restoreScannerModeAfterZoomGesture()
     }
 
     LaunchedEffect(cameraPermission.hasPermission) {
@@ -277,8 +289,9 @@ private fun MainScreenEntry(
 
     LaunchedEffect(keepPreviewWarm) {
         if (!keepPreviewWarm) return@LaunchedEffect
-        startScannerIfNeeded()
-        scannerController.resume()
+        if (startScannerIfNeeded()) {
+            scannerController.resume()
+        }
     }
 
     // Track horizontal swipe for wallet switching
@@ -401,7 +414,7 @@ private fun MainScreenEntry(
             },
             onScannerResume = {
                 if (!cameraPermission.hasPermission) return@MainScreen
-                startScannerIfNeeded()
+                if (!startScannerIfNeeded()) return@MainScreen
                 scannerController.resume()
             },
             onScannerPause = {

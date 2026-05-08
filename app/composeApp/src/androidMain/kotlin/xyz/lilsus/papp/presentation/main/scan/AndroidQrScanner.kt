@@ -85,8 +85,9 @@ actual fun rememberCameraPermissionState(): CameraPermissionState {
         permissionGranted.value = isCameraPermissionGranted(context)
     }
 
-    return remember(launcher) {
+    return remember(context.applicationContext, launcher) {
         AndroidCameraPermissionState(
+            context = context.applicationContext,
             permissionState = permissionGranted,
             launcher = launcher
         )
@@ -155,6 +156,7 @@ actual fun CameraPreviewHost(
 }
 
 private class AndroidCameraPermissionState(
+    private val context: Context,
     private val permissionState: MutableState<Boolean>,
     private val launcher: ActivityResultLauncher<String>
 ) : CameraPermissionState {
@@ -162,6 +164,7 @@ private class AndroidCameraPermissionState(
         get() = permissionState.value
 
     override fun request() {
+        permissionState.value = isCameraPermissionGranted(context)
         if (!permissionState.value) {
             launcher.launch(Manifest.permission.CAMERA)
         }
@@ -181,6 +184,7 @@ private class AndroidQrScannerController(
     private var previewSurface: CameraPreviewSurface? = null
     private var analysisExecutor: DroppingExecutor? = null
     private var onQrCodeScanned: ((String) -> Unit)? = null
+    private var onCameraPermissionMissing: (() -> Unit)? = null
     private val isActive = AtomicBoolean(false)
     private val isBound = AtomicBoolean(false)
     private var camera: Camera? = null
@@ -188,13 +192,22 @@ private class AndroidQrScannerController(
     private var desiredZoomFraction = 0f
     private var lastAppliedZoomRatio: Float? = null
 
-    override fun start(onQrCodeScanned: (String) -> Unit) {
+    override fun start(
+        onQrCodeScanned: (String) -> Unit,
+        onCameraPermissionMissing: () -> Unit
+    ): Boolean {
         this.onQrCodeScanned = onQrCodeScanned
+        this.onCameraPermissionMissing = onCameraPermissionMissing
+        if (!isCameraPermissionGranted(context)) {
+            reportCameraPermissionMissing()
+            return false
+        }
         if (isBound.compareAndSet(false, true)) {
             bindCamera()
         } else {
             resume()
         }
+        return true
     }
 
     override fun pause() {
@@ -226,6 +239,7 @@ private class AndroidQrScannerController(
         analysisExecutor = null
         cameraProvider = null
         onQrCodeScanned = null
+        onCameraPermissionMissing = null
         isBound.set(false)
     }
 
@@ -326,12 +340,26 @@ private class AndroidQrScannerController(
 
                     resume()
                 } catch (failure: Throwable) {
-                    Log.e(TAG, "Failed to bind CameraX use cases", failure)
-                    stop()
+                    if (
+                        !isCameraPermissionGranted(context) ||
+                        failure.hasSecurityExceptionCause()
+                    ) {
+                        Log.w(TAG, "Camera permission missing while binding CameraX", failure)
+                        reportCameraPermissionMissing()
+                    } else {
+                        Log.e(TAG, "Failed to bind CameraX use cases", failure)
+                        stop()
+                    }
                 }
             },
             ContextCompat.getMainExecutor(context)
         )
+    }
+
+    private fun reportCameraPermissionMissing() {
+        val callback = onCameraPermissionMissing
+        stop()
+        callback?.invoke()
     }
 
     private fun newBarcodeScanner(): BarcodeScanner = BarcodeScanning.getClient(
@@ -537,3 +565,12 @@ private fun isCameraPermissionGranted(context: Context): Boolean =
         context,
         Manifest.permission.CAMERA
     ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+private fun Throwable.hasSecurityExceptionCause(): Boolean {
+    var current: Throwable? = this
+    while (current != null) {
+        if (current is SecurityException) return true
+        current = current.cause
+    }
+    return false
+}

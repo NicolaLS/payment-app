@@ -153,7 +153,14 @@ private class IosQrScannerController : QrScannerController {
         }
     )
 
-    override fun start(onQrCodeScanned: (String) -> Unit) {
+    override fun start(
+        onQrCodeScanned: (String) -> Unit,
+        onCameraPermissionMissing: () -> Unit
+    ): Boolean {
+        if (!isCameraAuthorized()) {
+            onCameraPermissionMissing()
+            return false
+        }
         this.onQrCodeScanned = onQrCodeScanned
         ensureLifecycleObserver()
         dispatch_async(sessionQueue) {
@@ -163,6 +170,7 @@ private class IosQrScannerController : QrScannerController {
             ensureSessionRunning()
             applyZoomIfNeeded()
         }
+        return true
     }
 
     override fun pause() {

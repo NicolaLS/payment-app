@@ -393,6 +393,13 @@ private fun AddWalletEntry(navController: NavController) {
         onDispose { scannerController.stop() }
     }
 
+    fun requestCameraPermissionAfterScannerFailure() {
+        scannerStarted = false
+        scannerController.stop()
+        permissionRequested = true
+        cameraPermission.request()
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -424,10 +431,12 @@ private fun AddWalletEntry(navController: NavController) {
 
         permissionRequested = false
         if (!scannerStarted) {
-            scannerController.start { value ->
-                viewModel.handleScannedValue(value)
-            }
-            scannerStarted = true
+            scannerStarted = scannerController.start(
+                onQrCodeScanned = { value ->
+                    viewModel.handleScannedValue(value)
+                },
+                onCameraPermissionMissing = ::requestCameraPermissionAfterScannerFailure
+            )
         } else {
             scannerController.resume()
         }
