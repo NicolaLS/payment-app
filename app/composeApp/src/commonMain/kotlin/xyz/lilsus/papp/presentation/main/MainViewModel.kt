@@ -44,6 +44,7 @@ import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.model.toPaymentTarget
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.usecases.GetActiveWalletTargetUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
@@ -78,6 +79,7 @@ class MainViewModel internal constructor(
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
     private val observeWallets: ObserveWalletsUseCase,
     private val setActiveWallet: SetActiveWalletUseCase,
+    private val getActiveWalletTarget: GetActiveWalletTargetUseCase,
     private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
     private val currencyManager: CurrencyManager,
     private val bolt11Parser: Bolt11InvoiceParser,
@@ -1403,8 +1405,47 @@ class MainViewModel internal constructor(
         contactContext: PaymentContactContext? = null
     ) {
         _uiState.value = MainUiState.Loading()
+        scope.launch {
+            val walletTarget = try {
+                getActiveWalletTarget()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: AppErrorException) {
+                clearPaymentSessionState()
+                emitError(error.error)
+                return@launch
+            } catch (error: Throwable) {
+                clearPaymentSessionState()
+                emitError(AppError.Unexpected(error.message))
+                return@launch
+            }
+
+            if (walletTarget == null) {
+                clearPaymentSessionState()
+                emitError(AppError.MissingWalletConnection)
+                return@launch
+            }
+
+            startPaymentWithWallet(
+                summary = summary,
+                amountOverrideMsats = amountOverrideMsats,
+                origin = origin,
+                walletTarget = walletTarget,
+                dynamicSourceKey = dynamicSourceKey,
+                contactContext = contactContext
+            )
+        }
+    }
+
+    private fun startPaymentWithWallet(
+        summary: Bolt11InvoiceSummary,
+        amountOverrideMsats: Long?,
+        origin: PendingOrigin,
+        walletTarget: WalletPaymentTarget,
+        dynamicSourceKey: String? = null,
+        contactContext: PaymentContactContext? = null
+    ) {
         val amountMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
-        val walletTarget = currentWalletTarget
         val pendingId = pendingTracker.register(
             summary = summary,
             amountMsats = amountMsats,

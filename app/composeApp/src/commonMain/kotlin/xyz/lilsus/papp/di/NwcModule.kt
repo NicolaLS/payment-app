@@ -53,6 +53,7 @@ import xyz.lilsus.papp.domain.usecases.DeleteShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.usecases.FetchBlinkContactsUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.usecases.GetActiveWalletTargetUseCase
 import xyz.lilsus.papp.domain.usecases.GetBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.GetContactsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
@@ -221,6 +222,7 @@ val nwcModule = module {
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
+    factory { GetActiveWalletTargetUseCase(repository = get()) }
     factory { ObserveLanguagePreferenceUseCase(repository = get()) }
     factory { ObserveThemePreferenceUseCase(repository = get()) }
     factory { ObserveWalletsUseCase(repository = get()) }
@@ -287,6 +289,7 @@ val nwcModule = module {
             observeWalletConnection = get(),
             observeWallets = get(),
             setActiveWallet = get(),
+            getActiveWalletTarget = get(),
             observeCurrencyPreference = get(),
             currencyManager = get(),
             bolt11Parser = get(),

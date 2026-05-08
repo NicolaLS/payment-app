@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
@@ -57,6 +58,7 @@ import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
+import xyz.lilsus.papp.domain.usecases.GetActiveWalletTargetUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
@@ -88,6 +90,9 @@ class MainViewModelTest {
     fun setUp() {
         walletSettingsRepository = FakeWalletSettingsRepository()
         walletConnection = ObserveWalletConnectionUseCase(walletSettingsRepository)
+        runBlocking {
+            walletSettingsRepository.saveWalletConnection(nwcWallet("default-wallet"), true)
+        }
     }
 
     @AfterTest
@@ -723,6 +728,48 @@ class MainViewModelTest {
     }
 
     @Test
+    fun coldStartPaymentStoresConcreteWalletBeforeWalletObserverEmits() = runTest {
+        val paymentHash = "blink-hash-cold-start"
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = paymentHash,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = UnconfirmedNwcWalletRepository {
+            PaymentLookupResult.Pending
+        }
+        walletSettingsRepository.saveWalletConnection(
+            blinkWallet("blink-wallet-cold-start"),
+            activate = true
+        )
+        walletSettingsRepository.holdWalletConnectionFlow()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            dispatcherOverride = StandardTestDispatcher(testScheduler)
+        )
+        try {
+            runCurrent()
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+            runCurrent()
+
+            val lookup = repository.lookupCalls.single()
+            assertEquals(paymentHash, lookup.paymentHash)
+            assertEquals(
+                WalletPaymentTarget.Blink("blink-wallet-cold-start"),
+                lookup.walletTarget
+            )
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
     fun sameInvoiceOnDifferentBlinkWalletsPromptsThenRetriesSameInvoice() = runTest {
         val parser = FakeBolt11InvoiceParser(
             mapOf(
@@ -1130,12 +1177,14 @@ class MainViewModelTest {
         )
         val observeWallets = ObserveWalletsUseCase(walletSettingsRepository)
         val setActiveWallet = SetActiveWalletUseCase(walletSettingsRepository)
+        val getActiveWalletTarget = GetActiveWalletTargetUseCase(walletSettingsRepository)
         return MainViewModel(
             payInvoice = payInvoice,
             lookupPayment = lookupPayment,
             observeWalletConnection = walletConnection,
             observeWallets = observeWallets,
             setActiveWallet = setActiveWallet,
+            getActiveWalletTarget = getActiveWalletTarget,
             observeCurrencyPreference = observeCurrencyPreference,
             currencyManager = currencyManager,
             bolt11Parser = parser,
@@ -1393,9 +1442,13 @@ private class DeferredExchangeRateRepository(private val completion: Completable
 private class FakeWalletSettingsRepository : WalletSettingsRepository {
     private val connections = MutableStateFlow<WalletConnection?>(null)
     private val stored = MutableStateFlow<List<WalletConnection>>(emptyList())
+    private val walletConnectionFlowEnabled = MutableStateFlow(true)
 
     override val wallets: Flow<List<WalletConnection>> = stored
-    override val walletConnection: Flow<WalletConnection?> = connections
+    override val walletConnection: Flow<WalletConnection?> =
+        combine(connections, walletConnectionFlowEnabled) { connection, enabled ->
+            if (enabled) connection else null
+        }
 
     override suspend fun getWalletConnection(): WalletConnection? = connections.value
 
@@ -1428,8 +1481,20 @@ private class FakeWalletSettingsRepository : WalletSettingsRepository {
     fun reset() {
         connections.value = null
         stored.value = emptyList()
+        walletConnectionFlowEnabled.value = true
+    }
+
+    fun holdWalletConnectionFlow() {
+        walletConnectionFlowEnabled.value = false
     }
 }
+
+private fun nwcWallet(pubKey: String): WalletConnection = WalletConnection(
+    walletPublicKey = pubKey,
+    alias = "NWC $pubKey",
+    type = WalletType.NWC,
+    uri = "nostr+walletconnect://$pubKey?relay=wss://relay.example&secret=sec"
+)
 
 private fun blinkWallet(walletId: String): WalletConnection = WalletConnection(
     walletPublicKey = walletId,
