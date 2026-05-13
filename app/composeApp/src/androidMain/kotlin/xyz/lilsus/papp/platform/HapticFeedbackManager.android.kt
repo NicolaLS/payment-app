@@ -5,7 +5,6 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import xyz.lilsus.papp.PappApplication
 
 private const val LIGHT_DURATION_MS = 25L
 private const val STRONG_PULSE_MS = 40L
@@ -48,4 +47,4 @@ private class AndroidHapticFeedbackManager(private val context: Context) : Hapti
 }
 
 actual fun createHapticFeedbackManager(): HapticFeedbackManager =
-    AndroidHapticFeedbackManager(PappApplication.instance)
+    AndroidHapticFeedbackManager(AndroidAppContext.application)

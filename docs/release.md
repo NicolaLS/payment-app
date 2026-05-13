@@ -36,7 +36,7 @@ direnv allow
 Check that Gradle can see the release signing setup without printing secrets:
 
 ```bash
-./gradlew :composeApp:printReleaseSigningConfig
+./gradlew :androidApp:printReleaseSigningConfig
 ```
 
 It should end with:
@@ -50,13 +50,13 @@ Release signing ready: true
 Build the signed release Android App Bundle:
 
 ```bash
-./gradlew :composeApp:buildSignedReleaseBundle
+./gradlew :androidApp:buildSignedReleaseBundle
 ```
 
 Output:
 
 ```text
-composeApp/build/outputs/bundle/release/composeApp-release.aab
+androidApp/build/outputs/bundle/release/androidApp-release.aab
 ```
 
 This bundle is signed with the publish/upload keystore, which is the artifact to upload
@@ -67,7 +67,7 @@ to Google Play.
 Install the signed release on a connected Android device:
 
 ```bash
-./gradlew :composeApp:installSignedReleaseApk
+./gradlew :androidApp:installSignedReleaseApk
 ```
 
 This task builds the signed `.aab`, runs `bundletool build-apks --connected-device`,
@@ -78,11 +78,11 @@ If multiple devices are connected, set the target before running the task:
 
 ```bash
 export ANDROID_SERIAL=<device-id>
-./gradlew :composeApp:installSignedReleaseApk
+./gradlew :androidApp:installSignedReleaseApk
 ```
 
 Intermediate APK set output:
 
 ```text
-composeApp/build/outputs/apks/release/composeApp-release.apks
+androidApp/build/outputs/apks/release/androidApp-release.apks
 ```

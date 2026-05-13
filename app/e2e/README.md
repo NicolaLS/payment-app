@@ -35,7 +35,7 @@ This writes `e2e/.env.local` and prints the relay/helper URLs.
 Install the E2E app on the target device or simulator:
 
 ```bash
-./gradlew :composeApp:installE2e      # Android
+./gradlew :androidApp:installE2e      # Android
 ./gradlew installE2eIos              # booted iOS simulator
 ```
 

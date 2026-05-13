@@ -77,14 +77,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Run Android Lint
-        run: ./gradlew :composeApp:lintDebug
+        run: ./gradlew :androidApp:lintDebug
 
       - name: Upload lint results
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: lint-results
-          path: app/composeApp/build/reports/lint-results-debug.html
+          path: app/androidApp/build/reports/lint-results-debug.html
           retention-days: 14
 
   build:
@@ -111,17 +111,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Build Android Debug
-        run: ./gradlew :composeApp:assembleDebug
+        run: ./gradlew :androidApp:assembleDebug
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v7
         with:
           name: debug-apk
-          path: app/composeApp/build/outputs/apk/debug/*.apk
+          path: app/androidApp/build/outputs/apk/debug/*.apk
           retention-days: 14
 
       - name: Run Unit Tests
-        run: ./gradlew :composeApp:testDebugUnitTest
+        run: ./gradlew :composeApp:allTests :androidApp:testDebugUnitTest
 
       - name: Upload test results
         if: failure()

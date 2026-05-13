@@ -1,13 +1,12 @@
 package xyz.lilsus.papp
 
 import android.app.Application
-import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraXConfig
-import java.lang.ref.WeakReference
 import org.koin.core.context.startKoin
 import xyz.lilsus.papp.di.nwcModule
+import xyz.lilsus.papp.platform.AndroidAppContext
 import xyz.lilsus.papp.platform.initializeNetworkConnectivity
 
 class PappApplication :
@@ -22,35 +21,10 @@ class PappApplication :
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
+        AndroidAppContext.initialize(this)
         initializeNetworkConnectivity(this)
         startKoin {
             modules(nwcModule)
         }
-    }
-
-    fun registerActivity(activity: AppCompatActivity) {
-        currentActivity = WeakReference(activity)
-    }
-
-    fun unregisterActivity(activity: AppCompatActivity) {
-        currentActivity?.get()?.let {
-            if (it === activity) {
-                currentActivity = null
-            }
-        }
-    }
-
-    fun recreateTopActivity() {
-        currentActivity?.get()?.let { activity ->
-            activity.runOnUiThread { activity.recreate() }
-        }
-    }
-
-    companion object {
-        lateinit var instance: PappApplication
-            private set
-
-        private var currentActivity: WeakReference<AppCompatActivity>? = null
     }
 }

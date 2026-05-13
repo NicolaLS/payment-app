@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.window.layout.WindowMetricsCalculator
 import xyz.lilsus.papp.navigation.DeepLinkEvents
+import xyz.lilsus.papp.platform.AndroidAppContext
 
 class MainActivity : AppCompatActivity() {
     private var orientationListenerView: View? = null
@@ -44,11 +45,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        PappApplication.instance.registerActivity(this)
+        AndroidAppContext.registerActivity(this)
     }
 
     override fun onStop() {
-        PappApplication.instance.unregisterActivity(this)
+        AndroidAppContext.unregisterActivity(this)
         super.onStop()
     }
 

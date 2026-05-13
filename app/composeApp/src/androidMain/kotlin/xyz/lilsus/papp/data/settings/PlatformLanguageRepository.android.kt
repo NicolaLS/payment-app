@@ -7,9 +7,9 @@ import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import xyz.lilsus.papp.PappApplication
 import xyz.lilsus.papp.domain.model.LanguagePreference
 import xyz.lilsus.papp.domain.repository.LanguageRepository
+import xyz.lilsus.papp.platform.AndroidAppContext
 
 private class AndroidLanguageRepository : LanguageRepository {
 
@@ -30,14 +30,14 @@ private class AndroidLanguageRepository : LanguageRepository {
         val locales = LocaleListCompat.forLanguageTags(tag)
         AppCompatDelegate.setApplicationLocales(locales)
         state.value = readPreference(AppCompatDelegate.getApplicationLocales())
-        PappApplication.instance.recreateTopActivity()
+        AndroidAppContext.recreateTopActivity()
     }
 
     override suspend fun clearOverride() {
         if (state.value is LanguagePreference.System) return
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
         state.value = readPreference(AppCompatDelegate.getApplicationLocales())
-        PappApplication.instance.recreateTopActivity()
+        AndroidAppContext.recreateTopActivity()
     }
 
     override suspend fun refresh() {

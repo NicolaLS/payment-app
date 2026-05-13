@@ -11,7 +11,7 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import xyz.lilsus.papp.PappApplication
+import xyz.lilsus.papp.platform.AndroidAppContext
 
 private const val KEY_ALIAS = "wallet_secure_key"
 private const val TRANSFORMATION = "AES/GCM/NoPadding"
@@ -19,7 +19,7 @@ private const val KEYSTORE = "AndroidKeyStore"
 private const val PREF_NAME = "secure_wallet_settings"
 
 actual fun createSecureSettings(): Settings {
-    val context = PappApplication.instance.applicationContext
+    val context = AndroidAppContext.application.applicationContext
     val delegate = SharedPreferencesSettings(
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     )

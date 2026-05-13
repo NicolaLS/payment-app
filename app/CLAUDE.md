@@ -6,16 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Papp is a Kotlin Multiplatform (KMP) Lightning payment app targeting Android and iOS. It uses Compose Multiplatform for the UI and connects to Lightning wallets via Nostr Wallet Connect (NWC) and Blink API wallets.
 
-**Key Dependencies:** Kotlin 2.3.0, Compose Multiplatform 1.10.0, nwc-kmp 0.2.1-SNAPSHOT, Koin 4.1.1, Ktor 3.4.0
+**Key Dependencies:** Kotlin 2.3.21, Compose Multiplatform 1.10.0, nwc-kmp 0.3.1-SNAPSHOT, Koin 4.1.1, Ktor 3.4.0
 
 ## Build Commands
 
 ```bash
 # Build Android debug APK
-./gradlew :composeApp:assembleDebug
+./gradlew :androidApp:assembleDebug
 
 # Build Android release APK (minified)
-./gradlew :composeApp:assembleRelease
+./gradlew :androidApp:assembleRelease
 
 # Build iOS framework for simulator
 ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
@@ -23,14 +23,14 @@ Papp is a Kotlin Multiplatform (KMP) Lightning payment app targeting Android and
 # Build iOS framework for device
 ./gradlew :composeApp:linkReleaseFrameworkIosArm64
 
-# Run all checks (tests + lint)
-./gradlew :composeApp:check
+# Run all checks (tests + lint) and build the Android debug APK
+./gradlew check :androidApp:assembleDebug
 
 # Run unit tests only
 ./gradlew :composeApp:allTests
 
 # Run Android unit tests
-./gradlew :composeApp:testDebugUnitTest
+./gradlew :composeApp:testAndroidHostTest
 
 # Run iOS simulator tests
 ./gradlew :composeApp:iosSimulatorArm64Test
@@ -129,7 +129,7 @@ Tests are in `commonTest/` and run on JVM. Key test files:
 
 Run a single test class:
 ```bash
-./gradlew :composeApp:testDebugUnitTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
+./gradlew :composeApp:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
 ```
 
 ## Onboarding Flow

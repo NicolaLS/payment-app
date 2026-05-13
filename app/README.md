@@ -5,7 +5,8 @@ iOS, and local test commands from here.
 
 ## Layout
 
-- `composeApp/`: shared Compose Multiplatform app module
+- `composeApp/`: shared Compose Multiplatform code and iOS framework module
+- `androidApp/`: Android application packaging, variants, resources, and signing
 - `iosApp/`: iOS host app and Xcode project
 - `e2e/`: local Docker Compose regtest Lightning/NWC harness for Maestro
 - `flows/`: Maestro flows and helper scripts
@@ -44,19 +45,19 @@ Install the pre-commit hook:
 Build a debug APK:
 
 ```bash
-./gradlew :composeApp:assembleDebug
+./gradlew :androidApp:assembleDebug
 ```
 
 The APK is written to:
 
 ```text
-composeApp/build/outputs/apk/debug/composeApp-debug.apk
+androidApp/build/outputs/apk/debug/androidApp-debug.apk
 ```
 
 Install it on a connected device:
 
 ```bash
-adb install composeApp/build/outputs/apk/debug/composeApp-debug.apk
+adb install androidApp/build/outputs/apk/debug/androidApp-debug.apk
 ```
 
 The debug app installs as `xyz.lilsus.papp.dev`, separate from the release app.
@@ -91,7 +92,7 @@ xcodebuild build \
 Run the full app verification suite:
 
 ```bash
-./gradlew :composeApp:check
+./gradlew check :androidApp:assembleDebug
 ```
 
 Run ktlint only:
@@ -109,7 +110,7 @@ Auto-format Kotlin code:
 Run Android unit tests:
 
 ```bash
-./gradlew :composeApp:testDebugUnitTest
+./gradlew :composeApp:testAndroidHostTest
 ```
 
 Run all shared tests:
@@ -121,7 +122,7 @@ Run all shared tests:
 Run a single test class:
 
 ```bash
-./gradlew :composeApp:testDebugUnitTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
+./gradlew :composeApp:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
 ```
 
 Regenerate Compose resources after editing strings, fonts, or drawables:
