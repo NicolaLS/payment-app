@@ -1,4 +1,8 @@
 import java.util.Properties
+import org.gradle.api.DefaultTask
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.TaskAction
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -6,6 +10,16 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+}
+
+abstract class PrintReleaseSigningConfigTask : DefaultTask() {
+    @get:Input
+    abstract val statusLines: ListProperty<String>
+
+    @TaskAction
+    fun printStatus() {
+        statusLines.get().forEach(logger::lifecycle)
+    }
 }
 
 val releaseSigningPropertiesFile = providers.gradleProperty("papp.release.signing.properties")
@@ -275,37 +289,23 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 }
 
-tasks.register("printReleaseSigningConfig") {
+tasks.register<PrintReleaseSigningConfigTask>("printReleaseSigningConfig") {
     group = "publishing"
     description = "Prints the Android release signing configuration status without secrets."
-    notCompatibleWithConfigurationCache(
-        "Prints local signing configuration from external secret files."
+    statusLines.set(
+        listOf(
+            "Release signing properties: ${releaseSigningPropertiesFile?.path ?: "not found"}",
+            "Bundle keystore: ${bundleStoreFile.path} (${if (bundleStoreFile.isFile) "found" else "missing"})",
+            "Bundle key alias: ${bundleKeyAlias ?: "missing"}",
+            "Bundle store password: ${if (bundleStorePassword.isNullOrBlank()) "missing" else "configured"}",
+            "Bundle key password: ${if (bundleKeyPassword.isNullOrBlank()) "missing" else "configured"}",
+            "APK keystore: ${apkStoreFile.path} (${if (apkStoreFile.isFile) "found" else "missing"})",
+            "APK key alias: ${apkKeyAlias ?: "missing"}",
+            "APK store password: ${if (apkStorePassword.isNullOrBlank()) "missing" else "configured"}",
+            "APK key password: ${if (apkKeyPassword.isNullOrBlank()) "missing" else "configured"}",
+            "Release signing ready: $hasReleaseSigningConfig"
+        )
     )
-
-    doLast {
-        println("Release signing properties: ${releaseSigningPropertiesFile?.path ?: "not found"}")
-        println(
-            "Bundle keystore: ${bundleStoreFile.path} (${if (bundleStoreFile.isFile) "found" else "missing"})"
-        )
-        println("Bundle key alias: ${bundleKeyAlias ?: "missing"}")
-        println(
-            "Bundle store password: ${if (bundleStorePassword.isNullOrBlank()) "missing" else "configured"}"
-        )
-        println(
-            "Bundle key password: ${if (bundleKeyPassword.isNullOrBlank()) "missing" else "configured"}"
-        )
-        println(
-            "APK keystore: ${apkStoreFile.path} (${if (apkStoreFile.isFile) "found" else "missing"})"
-        )
-        println("APK key alias: ${apkKeyAlias ?: "missing"}")
-        println(
-            "APK store password: ${if (apkStorePassword.isNullOrBlank()) "missing" else "configured"}"
-        )
-        println(
-            "APK key password: ${if (apkKeyPassword.isNullOrBlank()) "missing" else "configured"}"
-        )
-        println("Release signing ready: $hasReleaseSigningConfig")
-    }
 }
 
 gradle.taskGraph.whenReady {
