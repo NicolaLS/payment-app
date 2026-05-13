@@ -13,6 +13,7 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
+    jvmToolchain(21)
 
     android {
         namespace = "xyz.lilsus.papp.shared"
@@ -21,6 +22,10 @@ kotlin {
 
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
+        }
+
+        androidResources {
+            enable = true
         }
 
         withHostTest {}
