@@ -1,5 +1,4 @@
 [versions]
-# Kotlin 2.3.0 required for nostr-kmp/nwc-kmp compatibility
 agp = "9.2.1"
 ktlint = "14.2.0"
 androidx-activity = "1.12.2"
@@ -9,6 +8,8 @@ androidx-lifecycle = "2.9.6"
 # AndroidX lifecycle (for lifecycle-process); Compose Multiplatform lifecycle uses different versioning
 androidx-lifecycle-android = "2.9.4"
 composeMultiplatform = "1.10.0"
+composeMaterial3 = "1.9.0"
+composeMaterialIconsExtended = "1.7.3"
 kotlin = "2.3.21"
 kotlinxSerializationJson = "1.10.0"
 navigationCompose = "2.9.1"
@@ -56,8 +57,14 @@ androidx-window = { module = "androidx.window:window", version.ref = "androidx-w
 androidx-window-core = { module = "androidx.window:window-core", version.ref = "androidx-window" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
-# Compose Multiplatform ui-tooling-preview (explicit coordinate for unified @Preview annotation)
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
 compose-ui-tooling-preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+compose-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "composeMaterialIconsExtended" }
+compose-ui-tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "composeMultiplatform" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
