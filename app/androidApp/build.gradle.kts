@@ -1,10 +1,5 @@
-import java.util.Properties
-import org.gradle.api.DefaultTask
-import org.gradle.api.provider.ListProperty
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.TaskAction
-import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -187,7 +182,7 @@ fun requireReleaseSigningConfig() {
 
 android {
     namespace = "xyz.lilsus.papp"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "xyz.lilsus.papp"
@@ -338,9 +333,11 @@ tasks.register("buildSignedReleaseBundle") {
 
     doLast {
         println(
-            "Signed release bundle: ${layout.buildDirectory.file(
-                "outputs/bundle/release/androidApp-release.aab"
-            ).get().asFile}"
+            "Signed release bundle: ${
+                layout.buildDirectory.file(
+                    "outputs/bundle/release/androidApp-release.aab"
+                ).get().asFile
+            }"
         )
     }
 }
