@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.presentation.main.contacts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +15,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -36,6 +40,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -216,8 +221,13 @@ private fun PaySheetContent(
                 onClick = { onTabSelected(PaySheetTab.Shortcuts) },
                 text = {
                     Text(
-                        text = stringResource(Res.string.pay_sheet_shortcuts_tab),
-                        style = MaterialTheme.typography.titleMedium
+                        text = tabLabel(
+                            label = stringResource(Res.string.pay_sheet_shortcuts_tab),
+                            count = state.shortcuts.size
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             )
@@ -226,8 +236,13 @@ private fun PaySheetContent(
                 onClick = { onTabSelected(PaySheetTab.Contacts) },
                 text = {
                     Text(
-                        text = stringResource(Res.string.pay_sheet_contacts_tab),
-                        style = MaterialTheme.typography.titleMedium
+                        text = tabLabel(
+                            label = stringResource(Res.string.pay_sheet_contacts_tab),
+                            count = state.contactCount
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             )
@@ -273,9 +288,8 @@ private fun ShortcutsTab(
     onShortcutSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+    FadingLazyColumn(
+        modifier = modifier.fillMaxWidth()
     ) {
         items(state.shortcuts, key = { it.id }) { shortcut ->
             ShortcutRow(
@@ -353,11 +367,10 @@ private fun ContactsTab(
             selectedRoles = state.selectedRoles,
             onSelected = onRoleSelected
         )
-        LazyColumn(
+        FadingLazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .weight(1f)
         ) {
             if (state.contacts.isEmpty()) {
                 item {
@@ -545,6 +558,42 @@ private fun rolesLabel(roles: Set<ContactRole>): String {
     return labels.joinToString(" • ")
 }
 
+@Composable
+private fun FadingLazyColumn(
+    modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
+    content: LazyListScope.() -> Unit
+) {
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    Box(modifier = modifier) {
+        LazyColumn(
+            state = state,
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content
+        )
+        if (state.canScrollForward) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(LIST_FADE_HEIGHT)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                containerColor.copy(alpha = 0f),
+                                containerColor
+                            )
+                        )
+                    )
+            )
+        }
+    }
+}
+
+private fun tabLabel(label: String, count: Int): String =
+    if (count > 0) "$label ($count)" else label
+
 private fun roleColor(role: ContactRole): Color = when (role) {
     ContactRole.Favorite -> Color(0xFFC2185B)
     ContactRole.Personal -> Color(0xFF2E7D32)
@@ -555,6 +604,7 @@ private fun roleColor(role: ContactRole): Color = when (role) {
 }
 
 private val PAY_SHEET_CONTENT_HEIGHT = 430.dp
+private val LIST_FADE_HEIGHT = 56.dp
 private const val ROLE_CHIPS_PER_ROW = 3
 
 private val LightningBoltIcon: ImageVector = ImageVector.Builder(

@@ -8,6 +8,7 @@ data class ContactsUiState(
     val selectedRoles: Set<ContactRole> = emptySet(),
     val shortcuts: List<ShortcutListItem> = emptyList(),
     val hasContacts: Boolean = false,
+    val contactCount: Int = 0,
     val contacts: List<ContactListItem> = emptyList(),
     val editor: ContactEditorUiState? = null,
     val savePrompt: ContactSavePromptUiState? = null

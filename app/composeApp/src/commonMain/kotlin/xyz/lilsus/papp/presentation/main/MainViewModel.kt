@@ -742,6 +742,7 @@ class MainViewModel internal constructor(
             .toList()
         _contactsUiState.value = current.copy(
             hasContacts = contacts.isNotEmpty(),
+            contactCount = contacts.size,
             contacts = filteredContacts,
             shortcuts = filteredShortcuts
         )
