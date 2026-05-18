@@ -18,6 +18,7 @@ import xyz.lilsus.papp.data.settings.ContactsRepositoryImpl
 import xyz.lilsus.papp.data.settings.CurrencyPreferencesRepositoryImpl
 import xyz.lilsus.papp.data.settings.PaymentPreferencesRepositoryImpl
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
+import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.ShortcutAmount
 import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
@@ -27,6 +28,7 @@ import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.SaveShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.SetConfirmManualEntryUseCase
@@ -134,6 +136,21 @@ class PaymentsSettingsViewModelTest {
         context.clear()
     }
 
+    @Test
+    fun thresholdEquivalentUsesSecondaryCurrencyDefaultUsd() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(dispatcher)
+        advanceUntilIdle()
+
+        val equivalent = assertNotNull(
+            context.viewModel.uiState.value.thresholdSecondaryEquivalent
+        )
+        assertEquals(DisplayCurrency.Fiat("USD"), equivalent.currency)
+        assertEquals(600L, equivalent.minor)
+
+        context.clear()
+    }
+
     private fun createTestContext(dispatcher: CoroutineDispatcher): TestContext {
         val contactsRepository = ContactsRepositoryImpl(MapSettings())
         val paymentPreferencesRepository = PaymentPreferencesRepositoryImpl(MapSettings())
@@ -148,6 +165,10 @@ class PaymentsSettingsViewModelTest {
             observeCurrencyPreference = ObserveCurrencyPreferenceUseCase(
                 currencyPreferencesRepository
             ),
+            observeSecondaryCurrencyPreference = ObserveSecondaryCurrencyPreferenceUseCase(
+                currencyPreferencesRepository
+            ),
+            getExchangeRate = GetExchangeRateUseCase(FakeExchangeRateRepository()),
             currencyManager = currencyManager,
             setConfirmationMode = SetPaymentConfirmationModeUseCase(
                 paymentPreferencesRepository

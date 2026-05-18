@@ -24,6 +24,7 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import lasr.composeapp.generated.resources.Res
+import lasr.composeapp.generated.resources.settings_currency_subtitle_format
 import lasr.composeapp.generated.resources.settings_language_system_default
 import lasr.composeapp.generated.resources.settings_theme_dark
 import lasr.composeapp.generated.resources.settings_theme_light
@@ -39,6 +40,7 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.OnboardingRepository
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.navigation.DonationNavigation.donationAddress
@@ -591,6 +593,7 @@ private fun CurrencySettingsEntry(onBack: () -> Unit) {
     CurrencySettingsScreen(
         state = state,
         onQueryChange = { viewModel.updateSearch(it) },
+        onPreferenceSelected = { viewModel.selectPreference(it) },
         onCurrencySelected = { viewModel.selectCurrency(it) },
         onBack = onBack
     )
@@ -882,14 +885,24 @@ private fun SettingsOverviewEntry(navController: NavController, onBack: () -> Un
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val observeWalletConnection = remember { koin.get<ObserveWalletConnectionUseCase>() }
     val observeCurrencyPreference = remember { koin.get<ObserveCurrencyPreferenceUseCase>() }
+    val observeSecondaryCurrencyPreference = remember {
+        koin.get<ObserveSecondaryCurrencyPreferenceUseCase>()
+    }
     val observeLanguagePreference = remember { koin.get<ObserveLanguagePreferenceUseCase>() }
     val observeThemePreference = remember { koin.get<ObserveThemePreferenceUseCase>() }
     val wallet by observeWalletConnection().collectAsState(initial = null)
     val subtitle = wallet?.let { formatWalletSubtitle(it) }
     val currency by observeCurrencyPreference().collectAsState(
-        initial = CurrencyCatalog.infoFor("SAT").currency
+        initial = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE).currency
     )
-    val currencyLabel = stringResource(CurrencyCatalog.infoFor(currency).nameRes)
+    val secondaryCurrency by observeSecondaryCurrencyPreference().collectAsState(
+        initial = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_SECONDARY_CODE).currency
+    )
+    val currencyLabel = stringResource(
+        Res.string.settings_currency_subtitle_format,
+        CurrencyCatalog.infoFor(currency).code,
+        CurrencyCatalog.infoFor(secondaryCurrency).code
+    )
     val languagePreference by observeLanguagePreference().collectAsState(
         initial = LanguagePreference.System(LanguageCatalog.fallback.tag)
     )

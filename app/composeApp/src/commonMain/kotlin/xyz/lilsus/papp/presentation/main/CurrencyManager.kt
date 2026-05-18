@@ -20,6 +20,7 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.ShortcutAmount
+import xyz.lilsus.papp.domain.model.convertMsatsToDisplayAmount
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 
 /**
@@ -94,25 +95,11 @@ class CurrencyManager(
      */
     fun convertMsatsToDisplay(msats: Long, currencyState: CurrencyState): DisplayAmount {
         val info = currencyState.info
-        return when (val currency = info.currency) {
-            DisplayCurrency.Satoshi -> DisplayAmount(msats / MSATS_PER_SAT, currency)
-
-            DisplayCurrency.Bitcoin -> DisplayAmount(msats / MSATS_PER_SAT, currency)
-
-            is DisplayCurrency.Fiat -> {
-                val rate = currencyState.exchangeRate
-                if (rate == null) {
-                    DisplayAmount(msats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
-                } else {
-                    val btc = msats.toDouble() / MSATS_PER_BTC
-                    val fiatMajor = btc * rate
-                    val factor = 10.0.pow(info.fractionDigits)
-                    val minor = (fiatMajor * factor).roundToLong()
-                    val clamped = if (minor <= 0 && msats > 0) 1 else minor
-                    DisplayAmount(clamped, currency)
-                }
-            }
-        }
+        return convertMsatsToDisplayAmount(
+            msats = msats,
+            info = info,
+            fiatPricePerBitcoin = currencyState.exchangeRate
+        ) ?: DisplayAmount(msats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
     }
 
     suspend fun convertShortcutAmountToMsats(amount: ShortcutAmount): Long? {

@@ -1374,12 +1374,20 @@ private class FakePaymentPreferencesRepository(initial: PaymentPreferences) : Pa
 private class FakeCurrencyPreferencesRepository(initialCode: String) : CurrencyPreferencesRepository {
     private val initial = CurrencyCatalog.infoFor(initialCode).code
     private val state = MutableStateFlow(initial)
+    private val secondaryState = MutableStateFlow(CurrencyCatalog.DEFAULT_SECONDARY_CODE)
     override val currencyCode: Flow<String> = state
+    override val secondaryCurrencyCode: Flow<String> = secondaryState
 
     override suspend fun getCurrencyCode(): String = state.value
 
     override suspend fun setCurrencyCode(code: String) {
         state.value = CurrencyCatalog.infoFor(code).code
+    }
+
+    override suspend fun getSecondaryCurrencyCode(): String = secondaryState.value
+
+    override suspend fun setSecondaryCurrencyCode(code: String) {
+        secondaryState.value = CurrencyCatalog.infoFor(code).code
     }
 }
 

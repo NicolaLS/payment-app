@@ -91,4 +91,5 @@ object CurrencyCatalog {
     }
 
     const val DEFAULT_CODE = "SAT"
+    const val DEFAULT_SECONDARY_CODE = "USD"
 }

@@ -37,7 +37,8 @@
     <string name="settings_payments">Payments</string>
     <string name="settings_payments_subtitle">Confirmations and shortcuts</string>
     <string name="settings_currency">Currency</string>
-    <string name="settings_currency_subtitle">USD</string>
+    <string name="settings_currency_subtitle">Primary and secondary</string>
+    <string name="settings_currency_subtitle_format">Primary %1$s • Secondary %2$s</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_subtitle">English</string>
     <string name="settings_language_system_default">Use device language (%1$s)</string>
@@ -60,6 +61,8 @@
     <string name="settings_contacts_subtitle">Saved contacts</string>
     <string name="settings_payments_ask_save_contacts">Ask to save new contacts</string>
     <string name="settings_currency_title">Currency</string>
+    <string name="settings_currency_primary">Primary</string>
+    <string name="settings_currency_secondary">Secondary</string>
     <string name="settings_language_title">Language</string>
     <string name="search_placeholder">Search…</string>
     <string name="settings_currency_satoshi">Satoshi</string>

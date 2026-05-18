@@ -45,7 +45,7 @@ import xyz.lilsus.papp.presentation.onboarding.components.OnboardingScaffold
 fun AutoPaySettingsScreen(
     confirmationMode: PaymentConfirmationMode,
     thresholdSats: Long,
-    fiatEquivalent: String?,
+    secondaryEquivalent: String?,
     onConfirmationModeChanged: (PaymentConfirmationMode) -> Unit,
     onThresholdChanged: (Long) -> Unit,
     onContinue: () -> Unit,
@@ -148,10 +148,10 @@ fun AutoPaySettingsScreen(
                                 DisplayCurrency.Satoshi
                             )
                             val satsFormatted = formatter.format(displayAmount)
-                            val labelText = if (fiatEquivalent != null) {
+                            val labelText = if (secondaryEquivalent != null) {
                                 stringResource(
                                     Res.string.onboarding_autopay_threshold_label,
-                                    "$satsFormatted ($fiatEquivalent)"
+                                    "$satsFormatted ($secondaryEquivalent)"
                                 )
                             } else {
                                 stringResource(

@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
@@ -32,6 +33,7 @@ import lasr.composeapp.generated.resources.settings_contacts
 import lasr.composeapp.generated.resources.settings_contacts_subtitle
 import lasr.composeapp.generated.resources.settings_currency
 import lasr.composeapp.generated.resources.settings_currency_subtitle
+import lasr.composeapp.generated.resources.settings_currency_subtitle_format
 import lasr.composeapp.generated.resources.settings_footer_privacy
 import lasr.composeapp.generated.resources.settings_footer_repo
 import lasr.composeapp.generated.resources.settings_footer_version
@@ -181,6 +183,8 @@ private fun SettingsListItem(entry: SettingsEntry) {
                     text = it,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -243,7 +247,11 @@ private fun SettingsScreenPreview() {
             onLanguage = {},
             onTheme = {},
             onDonate = {},
-            currencySubtitle = stringResource(CurrencyCatalog.infoFor("USD").nameRes),
+            currencySubtitle = stringResource(
+                Res.string.settings_currency_subtitle_format,
+                CurrencyCatalog.infoFor("SAT").code,
+                CurrencyCatalog.infoFor("USD").code
+            ),
             languageSubtitle = LanguageCatalog.displayName("en"),
             themeSubtitle = stringResource(Res.string.settings_theme_subtitle)
         )

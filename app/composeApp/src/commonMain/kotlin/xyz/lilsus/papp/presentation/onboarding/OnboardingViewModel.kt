@@ -8,17 +8,16 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.model.DisplayAmount
-import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
-import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationThresholdUseCase
-import xyz.lilsus.papp.presentation.main.CurrencyManager
+import xyz.lilsus.papp.presentation.common.SecondaryCurrencyPreviewController
 
 /**
  * Shared state for onboarding flow.
@@ -29,14 +28,14 @@ data class OnboardingState(
     val confirmationMode: PaymentConfirmationMode = PaymentConfirmationMode.Above,
     val thresholdSats: Long = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val hasAgreed: Boolean = false,
-    val thresholdFiatEquivalent: DisplayAmount? = null
+    val thresholdSecondaryEquivalent: DisplayAmount? = null
 )
 
 class OnboardingViewModel internal constructor(
     private val persistConfirmationMode: SetPaymentConfirmationModeUseCase,
     private val persistConfirmationThreshold: SetPaymentConfirmationThresholdUseCase,
-    private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
-    private val currencyManager: CurrencyManager,
+    observeSecondaryCurrencyPreference: ObserveSecondaryCurrencyPreferenceUseCase,
+    getExchangeRate: GetExchangeRateUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -44,18 +43,18 @@ class OnboardingViewModel internal constructor(
     private val _uiState = MutableStateFlow(OnboardingState())
     val uiState: StateFlow<OnboardingState> = _uiState.asStateFlow()
 
-    init {
-        scope.launch {
-            observeCurrencyPreference().collectLatest { currency ->
-                currencyManager.setPreferredCurrency(currency)
-            }
+    private val thresholdPreview = SecondaryCurrencyPreviewController(
+        observeSecondaryCurrencyPreference = observeSecondaryCurrencyPreference,
+        getExchangeRate = getExchangeRate,
+        scope = scope,
+        amountMsats = { _uiState.value.thresholdSats * MSATS_PER_SAT },
+        onDisplayAmountChanged = { amount ->
+            _uiState.update { it.copy(thresholdSecondaryEquivalent = amount) }
         }
+    )
 
-        scope.launch {
-            currencyManager.state.collectLatest {
-                updateFiatEquivalent()
-            }
-        }
+    init {
+        thresholdPreview.start()
     }
 
     fun setFeaturesPage(page: Int) {
@@ -72,7 +71,7 @@ class OnboardingViewModel internal constructor(
             PaymentPreferences.MAX_CONFIRMATION_THRESHOLD_SATS
         )
         _uiState.update { it.copy(thresholdSats = clamped) }
-        updateFiatEquivalent()
+        thresholdPreview.refresh()
     }
 
     fun persistAutoPaySettings() {
@@ -88,19 +87,8 @@ class OnboardingViewModel internal constructor(
     }
 
     fun clear() {
+        thresholdPreview.clear()
         scope.cancel()
-    }
-
-    private fun updateFiatEquivalent() {
-        val currencyState = currencyManager.state.value
-        val isFiat = currencyState.info.currency is DisplayCurrency.Fiat
-        if (!isFiat || currencyState.exchangeRate == null) {
-            _uiState.update { it.copy(thresholdFiatEquivalent = null) }
-            return
-        }
-        val thresholdMsats = _uiState.value.thresholdSats * MSATS_PER_SAT
-        val fiatAmount = currencyManager.convertMsatsToDisplay(thresholdMsats, currencyState)
-        _uiState.update { it.copy(thresholdFiatEquivalent = fiatAmount) }
     }
 
     companion object {

@@ -13,19 +13,36 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetCurrencyPreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.SetSecondaryCurrencyPreferenceUseCase
 
 data class CurrencySettingsUiState(
-    val selectedCode: String = CurrencyCatalog.DEFAULT_CODE,
+    val selectedPrimaryCode: String = CurrencyCatalog.DEFAULT_CODE,
+    val selectedSecondaryCode: String = CurrencyCatalog.DEFAULT_SECONDARY_CODE,
+    val activePreference: CurrencyPreference = CurrencyPreference.Primary,
     val searchQuery: String = "",
     val options: List<CurrencyOption> = emptyList()
-)
+) {
+    val selectedCode: String
+        get() = when (activePreference) {
+            CurrencyPreference.Primary -> selectedPrimaryCode
+            CurrencyPreference.Secondary -> selectedSecondaryCode
+        }
+}
+
+enum class CurrencyPreference {
+    Primary,
+    Secondary
+}
 
 data class CurrencyOption(val code: String, val label: String)
 
 class CurrencySettingsViewModel internal constructor(
     private val observeCurrency: ObserveCurrencyPreferenceUseCase,
+    private val observeSecondaryCurrency: ObserveSecondaryCurrencyPreferenceUseCase,
     private val setCurrency: SetCurrencyPreferenceUseCase,
+    private val setSecondaryCurrency: SetSecondaryCurrencyPreferenceUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
 
@@ -36,12 +53,20 @@ class CurrencySettingsViewModel internal constructor(
 
     init {
         scope.launch {
-            val options = loadOptions()
-            _uiState.value = _uiState.value.copy(options = options)
+            _uiState.value = _uiState.value.copy(options = loadOptions())
+        }
 
+        scope.launch {
             observeCurrency().collectLatest { currency ->
                 val info = CurrencyCatalog.infoFor(currency)
-                _uiState.value = _uiState.value.copy(selectedCode = info.code)
+                _uiState.value = _uiState.value.copy(selectedPrimaryCode = info.code)
+            }
+        }
+
+        scope.launch {
+            observeSecondaryCurrency().collectLatest { currency ->
+                val info = CurrencyCatalog.infoFor(currency)
+                _uiState.value = _uiState.value.copy(selectedSecondaryCode = info.code)
             }
         }
     }
@@ -57,10 +82,26 @@ class CurrencySettingsViewModel internal constructor(
         _uiState.value = _uiState.value.copy(searchQuery = query)
     }
 
+    fun selectPreference(preference: CurrencyPreference) {
+        _uiState.value = _uiState.value.copy(activePreference = preference)
+    }
+
     fun selectCurrency(code: String) {
-        _uiState.value = _uiState.value.copy(selectedCode = code)
-        scope.launch {
-            setCurrency(code)
+        val info = CurrencyCatalog.infoFor(code)
+        when (_uiState.value.activePreference) {
+            CurrencyPreference.Primary -> {
+                _uiState.value = _uiState.value.copy(selectedPrimaryCode = info.code)
+                scope.launch {
+                    setCurrency(info.code)
+                }
+            }
+
+            CurrencyPreference.Secondary -> {
+                _uiState.value = _uiState.value.copy(selectedSecondaryCode = info.code)
+                scope.launch {
+                    setSecondaryCurrency(info.code)
+                }
+            }
         }
     }
 

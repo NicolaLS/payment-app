@@ -43,7 +43,8 @@
     <string name="settings_payments">Pagos</string>
     <string name="settings_payments_subtitle">Confirmaciones y accesos directos</string>
     <string name="settings_currency">Moneda</string>
-    <string name="settings_currency_subtitle">USD</string>
+    <string name="settings_currency_subtitle">Principal y secundaria</string>
+    <string name="settings_currency_subtitle_format">Principal %1$s • Secundaria %2$s</string>
     <string name="settings_language">Idioma</string>
     <string name="settings_language_subtitle">Inglés</string>
     <string name="settings_language_system_default">Usar idioma del dispositivo (%1$s)</string>
@@ -63,6 +64,8 @@
     <string name="settings_payments_haptics_scan">Vibrar cuando se reconoce un código</string>
     <string name="settings_payments_haptics_payment">Vibrar al completar el pago</string>
     <string name="settings_currency_title">Moneda</string>
+    <string name="settings_currency_primary">Principal</string>
+    <string name="settings_currency_secondary">Secundaria</string>
     <string name="settings_language_title">Idioma</string>
     <string name="search_placeholder">Buscar…</string>
     <string name="settings_currency_satoshi">Satoshi</string>

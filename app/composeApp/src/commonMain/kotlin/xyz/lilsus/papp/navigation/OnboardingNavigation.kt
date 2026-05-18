@@ -84,12 +84,14 @@ fun NavGraphBuilder.onboardingScreen(
             val viewModel = rememberRetainedOnboardingViewModel()
             val uiState by viewModel.uiState.collectAsState()
             val formatter = rememberAmountFormatter()
-            val fiatEquivalent = uiState.thresholdFiatEquivalent?.let { formatter.format(it) }
+            val secondaryEquivalent = uiState.thresholdSecondaryEquivalent?.let {
+                formatter.format(it)
+            }
 
             AutoPaySettingsScreen(
                 confirmationMode = uiState.confirmationMode,
                 thresholdSats = uiState.thresholdSats,
-                fiatEquivalent = fiatEquivalent,
+                secondaryEquivalent = secondaryEquivalent,
                 onConfirmationModeChanged = { mode -> viewModel.setConfirmationMode(mode) },
                 onThresholdChanged = { threshold -> viewModel.setThreshold(threshold) },
                 onContinue = {

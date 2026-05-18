@@ -17,16 +17,17 @@ import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.model.Contact
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.DisplayAmount
-import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.domain.model.PaymentShortcut
 import xyz.lilsus.papp.domain.model.ShortcutAmount
 import xyz.lilsus.papp.domain.usecases.DeleteShortcutUseCase
+import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.SaveShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.SetAskToSaveContactsUseCase
@@ -36,11 +37,14 @@ import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationThresholdUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
+import xyz.lilsus.papp.presentation.common.SecondaryCurrencyPreviewController
 import xyz.lilsus.papp.presentation.main.CurrencyManager
 
 class PaymentsSettingsViewModel internal constructor(
     observePreferences: ObservePaymentPreferencesUseCase,
     private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
+    observeSecondaryCurrencyPreference: ObserveSecondaryCurrencyPreferenceUseCase,
+    getExchangeRate: GetExchangeRateUseCase,
     private val currencyManager: CurrencyManager,
     private val setConfirmationMode: SetPaymentConfirmationModeUseCase,
     private val setConfirmationThreshold: SetPaymentConfirmationThresholdUseCase,
@@ -71,6 +75,16 @@ class PaymentsSettingsViewModel internal constructor(
     private val _events = MutableSharedFlow<PaymentsSettingsEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<PaymentsSettingsEvent> = _events.asSharedFlow()
 
+    private val thresholdPreview = SecondaryCurrencyPreviewController(
+        observeSecondaryCurrencyPreference = observeSecondaryCurrencyPreference,
+        getExchangeRate = getExchangeRate,
+        scope = scope,
+        amountMsats = { _uiState.value.thresholdSats * MSATS_PER_SAT },
+        onDisplayAmountChanged = { amount ->
+            _uiState.value = _uiState.value.copy(thresholdSecondaryEquivalent = amount)
+        }
+    )
+
     init {
         scope.launch {
             observePreferences().collectLatest { preferences ->
@@ -82,7 +96,7 @@ class PaymentsSettingsViewModel internal constructor(
                     vibrateOnScan = preferences.vibrateOnScan,
                     vibrateOnPayment = preferences.vibrateOnPayment
                 )
-                updateFiatEquivalent()
+                thresholdPreview.refresh()
             }
         }
 
@@ -92,11 +106,8 @@ class PaymentsSettingsViewModel internal constructor(
             }
         }
 
-        scope.launch {
-            currencyManager.state.collectLatest {
-                updateFiatEquivalent()
-            }
-        }
+        thresholdPreview.start()
+
         observeContactPreferences?.let { useCase ->
             scope.launch {
                 useCase().collectLatest { preferences ->
@@ -299,19 +310,8 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     fun clear() {
+        thresholdPreview.clear()
         scope.cancel()
-    }
-
-    private fun updateFiatEquivalent() {
-        val currencyState = currencyManager.state.value
-        val isFiat = currencyState.info.currency is DisplayCurrency.Fiat
-        if (!isFiat || currencyState.exchangeRate == null) {
-            _uiState.value = _uiState.value.copy(thresholdFiatEquivalent = null)
-            return
-        }
-        val thresholdMsats = _uiState.value.thresholdSats * MSATS_PER_SAT
-        val fiatAmount = currencyManager.convertMsatsToDisplay(thresholdMsats, currencyState)
-        _uiState.value = _uiState.value.copy(thresholdFiatEquivalent = fiatAmount)
     }
 
     private fun updateShortcutEditor(
@@ -499,7 +499,7 @@ data class PaymentsSettingsUiState(
     val vibrateOnScan: Boolean = PaymentPreferences().vibrateOnScan,
     val vibrateOnPayment: Boolean = PaymentPreferences().vibrateOnPayment,
     val askToSaveNewContacts: Boolean = true,
-    val thresholdFiatEquivalent: DisplayAmount? = null,
+    val thresholdSecondaryEquivalent: DisplayAmount? = null,
     val shortcuts: List<ShortcutSettingsItem> = emptyList(),
     val shortcutEditor: ShortcutSettingsEditor? = null
 )

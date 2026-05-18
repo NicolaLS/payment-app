@@ -65,6 +65,7 @@ import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveOnboardingRequiredUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
@@ -86,6 +87,7 @@ import xyz.lilsus.papp.domain.usecases.SetCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetLanguagePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationThresholdUseCase
+import xyz.lilsus.papp.domain.usecases.SetSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
@@ -232,6 +234,7 @@ val nwcModule = module {
     factory { ObserveWalletConnectionUseCase(repository = get()) }
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
+    factory { ObserveSecondaryCurrencyPreferenceUseCase(repository = get()) }
     factory { GetActiveWalletTargetUseCase(repository = get()) }
     factory { ObserveLanguagePreferenceUseCase(repository = get()) }
     factory { ObserveThemePreferenceUseCase(repository = get()) }
@@ -277,6 +280,7 @@ val nwcModule = module {
         )
     }
     factory { SetCurrencyPreferenceUseCase(repository = get()) }
+    factory { SetSecondaryCurrencyPreferenceUseCase(repository = get()) }
     factory { SetLanguagePreferenceUseCase(repository = get()) }
     factory { SetThemePreferenceUseCase(repository = get()) }
     factory { ClearLanguageOverrideUseCase(repository = get()) }
@@ -344,6 +348,8 @@ val nwcModule = module {
         PaymentsSettingsViewModel(
             observePreferences = get(),
             observeCurrencyPreference = get(),
+            observeSecondaryCurrencyPreference = get(),
+            getExchangeRate = get(),
             currencyManager = get(),
             setConfirmationMode = get(),
             setConfirmationThreshold = get(),
@@ -396,7 +402,9 @@ val nwcModule = module {
     factory {
         CurrencySettingsViewModel(
             observeCurrency = get(),
-            setCurrency = get()
+            observeSecondaryCurrency = get(),
+            setCurrency = get(),
+            setSecondaryCurrency = get()
         )
     }
 
@@ -428,8 +436,8 @@ val nwcModule = module {
         OnboardingViewModel(
             persistConfirmationMode = get(),
             persistConfirmationThreshold = get(),
-            observeCurrencyPreference = get(),
-            currencyManager = get()
+            observeSecondaryCurrencyPreference = get(),
+            getExchangeRate = get()
         )
     }
 }

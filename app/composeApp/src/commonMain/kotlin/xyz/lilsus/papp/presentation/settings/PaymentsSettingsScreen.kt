@@ -136,11 +136,13 @@ fun PaymentsSettingsScreen(
     val scrollState = rememberScrollState()
     val formatter = rememberAmountFormatter()
     val displayThreshold = DisplayAmount(state.thresholdSats, DisplayCurrency.Satoshi)
-    val fiatText = state.thresholdFiatEquivalent?.let { " (${formatter.format(it)})" } ?: ""
+    val secondaryText = state.thresholdSecondaryEquivalent?.let {
+        " (${formatter.format(it)})"
+    } ?: ""
     val thresholdText = when (state.confirmationMode) {
         PaymentConfirmationMode.Above -> stringResource(
             Res.string.settings_payments_confirm_threshold,
-            formatter.format(displayThreshold) + fiatText
+            formatter.format(displayThreshold) + secondaryText
         )
 
         PaymentConfirmationMode.Always -> stringResource(Res.string.settings_payments_option_always)
