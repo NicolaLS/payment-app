@@ -28,6 +28,7 @@ import xyz.lilsus.papp.navigation.navigateToSettingsPayments
 import xyz.lilsus.papp.navigation.onboardingScreen
 import xyz.lilsus.papp.navigation.paymentScreen
 import xyz.lilsus.papp.navigation.settingsScreen
+import xyz.lilsus.papp.presentation.settings.PaymentsSettingsSection
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 private const val NWC_SCHEME = "nostr+walletconnect"
@@ -118,7 +119,11 @@ fun App() {
             )
             paymentScreen(
                 onNavigateToSettings = { navController.navigateToSettings() },
-                onNavigateToPaymentSettings = { navController.navigateToSettingsPayments() },
+                onNavigateToPaymentSettings = {
+                    navController.navigateToSettingsPayments(
+                        focusedSection = PaymentsSettingsSection.Shortcuts
+                    )
+                },
                 onNavigateToConnectWallet = { uri ->
                     navController.navigateToConnectWallet(uri = uri)
                 }

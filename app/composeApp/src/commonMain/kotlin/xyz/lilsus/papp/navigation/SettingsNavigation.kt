@@ -57,6 +57,7 @@ import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
+import xyz.lilsus.papp.presentation.settings.PaymentsSettingsSection
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.SettingsScreen
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsScreen
@@ -82,7 +83,7 @@ internal object Settings
 internal object SettingsSubNav
 
 @Serializable
-internal object SettingsPayments
+internal data class SettingsPayments(val focusedSection: PaymentsSettingsSection? = null)
 
 @Serializable
 internal object SettingsContacts
@@ -119,8 +120,12 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
         composable<Settings> {
             SettingsOverviewEntry(navController = navController, onBack = onBack)
         }
-        composable<SettingsPayments> {
-            PaymentsSettingsEntry(onBack = { navController.popBackStack() })
+        composable<SettingsPayments> { backStackEntry ->
+            val route = backStackEntry.toRoute<SettingsPayments>()
+            PaymentsSettingsEntry(
+                focusedSection = route.focusedSection,
+                onBack = { navController.popBackStack() }
+            )
         }
         composable<SettingsContacts> {
             ContactsSettingsEntry(
@@ -176,8 +181,8 @@ fun NavController.navigateToSettings() {
     }
 }
 
-fun NavController.navigateToSettingsPayments() {
-    navigate(route = SettingsPayments) {
+fun NavController.navigateToSettingsPayments(focusedSection: PaymentsSettingsSection? = null) {
+    navigate(route = SettingsPayments(focusedSection = focusedSection)) {
         launchSingleTop = true
     }
 }
@@ -479,7 +484,7 @@ private fun ThemeSettingsEntry(onBack: () -> Unit) {
 }
 
 @Composable
-private fun PaymentsSettingsEntry(onBack: () -> Unit) {
+private fun PaymentsSettingsEntry(focusedSection: PaymentsSettingsSection?, onBack: () -> Unit) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<PaymentsSettingsViewModel>() },
@@ -490,6 +495,7 @@ private fun PaymentsSettingsEntry(onBack: () -> Unit) {
 
     PaymentsSettingsScreen(
         state = state,
+        focusedSection = focusedSection,
         onBack = onBack,
         onModeSelected = { viewModel.selectMode(it) },
         onThresholdChanged = { threshold -> viewModel.updateThreshold(threshold) },
