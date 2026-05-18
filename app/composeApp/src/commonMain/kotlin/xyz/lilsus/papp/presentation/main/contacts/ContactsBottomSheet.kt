@@ -47,10 +47,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
+import lasr.composeapp.generated.resources.contacts_add
 import lasr.composeapp.generated.resources.contacts_alias_label
 import lasr.composeapp.generated.resources.contacts_empty
 import lasr.composeapp.generated.resources.contacts_handle
 import lasr.composeapp.generated.resources.contacts_invalid_address
+import lasr.composeapp.generated.resources.contacts_no_matching_contacts
 import lasr.composeapp.generated.resources.contacts_not_now
 import lasr.composeapp.generated.resources.contacts_role_bills
 import lasr.composeapp.generated.resources.contacts_role_favorite
@@ -112,7 +114,8 @@ fun ContactsBottomSheet(
     onRoleSelected: (ContactRole?) -> Unit,
     onContactSelected: (String) -> Unit,
     onShortcutSelected: (String) -> Unit,
-    onCreateShortcut: () -> Unit
+    onCreateShortcut: () -> Unit,
+    onCreateContact: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -126,7 +129,8 @@ fun ContactsBottomSheet(
             onRoleSelected = onRoleSelected,
             onContactSelected = onContactSelected,
             onShortcutSelected = onShortcutSelected,
-            onCreateShortcut = onCreateShortcut
+            onCreateShortcut = onCreateShortcut,
+            onCreateContact = onCreateContact
         )
     }
 }
@@ -194,7 +198,8 @@ private fun PaySheetContent(
     onRoleSelected: (ContactRole?) -> Unit,
     onContactSelected: (String) -> Unit,
     onShortcutSelected: (String) -> Unit,
-    onCreateShortcut: () -> Unit
+    onCreateShortcut: () -> Unit,
+    onCreateContact: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -228,12 +233,21 @@ private fun PaySheetContent(
             )
         }
         if (state.selectedTab == PaySheetTab.Contacts) {
-            ContactsTab(
-                state = state,
-                onRoleSelected = onRoleSelected,
-                onContactSelected = onContactSelected,
-                modifier = Modifier.weight(1f)
-            )
+            if (state.hasContacts) {
+                ContactsTab(
+                    state = state,
+                    onRoleSelected = onRoleSelected,
+                    onContactSelected = onContactSelected,
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                EmptyContactsState(
+                    onCreateContact = onCreateContact,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                )
+            }
         } else {
             if (state.shortcuts.isEmpty()) {
                 EmptyShortcutsState(
@@ -275,6 +289,31 @@ private fun ShortcutsTab(
 
 @Composable
 private fun EmptyShortcutsState(onCreateShortcut: () -> Unit, modifier: Modifier = Modifier) {
+    EmptyPaySheetState(
+        message = stringResource(Res.string.shortcuts_empty),
+        actionLabel = stringResource(Res.string.shortcuts_create_first),
+        onAction = onCreateShortcut,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun EmptyContactsState(onCreateContact: () -> Unit, modifier: Modifier = Modifier) {
+    EmptyPaySheetState(
+        message = stringResource(Res.string.contacts_empty),
+        actionLabel = stringResource(Res.string.contacts_add),
+        onAction = onCreateContact,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun EmptyPaySheetState(
+    message: String,
+    actionLabel: String,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -286,15 +325,15 @@ private fun EmptyShortcutsState(onCreateShortcut: () -> Unit, modifier: Modifier
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = stringResource(Res.string.shortcuts_empty),
+                text = message,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            Button(onClick = onCreateShortcut) {
+            Button(onClick = onAction) {
                 Icon(Icons.Filled.Add, contentDescription = null)
                 Text(
-                    text = stringResource(Res.string.shortcuts_create_first),
+                    text = actionLabel,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
@@ -323,7 +362,7 @@ private fun ContactsTab(
             if (state.contacts.isEmpty()) {
                 item {
                     Text(
-                        text = stringResource(Res.string.contacts_empty),
+                        text = stringResource(Res.string.contacts_no_matching_contacts),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 24.dp)

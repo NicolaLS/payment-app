@@ -7,6 +7,7 @@ data class ContactsUiState(
     val selectedTab: PaySheetTab = PaySheetTab.Shortcuts,
     val selectedRoles: Set<ContactRole> = emptySet(),
     val shortcuts: List<ShortcutListItem> = emptyList(),
+    val hasContacts: Boolean = false,
     val contacts: List<ContactListItem> = emptyList(),
     val editor: ContactEditorUiState? = null,
     val savePrompt: ContactSavePromptUiState? = null

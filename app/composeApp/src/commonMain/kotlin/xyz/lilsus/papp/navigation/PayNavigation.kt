@@ -69,12 +69,14 @@ private const val SWIPE_THRESHOLD = 100f
 fun NavGraphBuilder.paymentScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToPaymentSettings: () -> Unit = {},
+    onNavigateToContactsSettings: () -> Unit = {},
     onNavigateToConnectWallet: (String) -> Unit = {}
 ) {
     composable<Pay> {
         MainScreenEntry(
             onNavigateToSettings = onNavigateToSettings,
             onNavigateToPaymentSettings = onNavigateToPaymentSettings,
+            onNavigateToContactsSettings = onNavigateToContactsSettings,
             onNavigateToConnectWallet = onNavigateToConnectWallet
         )
     }
@@ -84,6 +86,7 @@ fun NavGraphBuilder.paymentScreen(
 private fun MainScreenEntry(
     onNavigateToSettings: () -> Unit,
     onNavigateToPaymentSettings: () -> Unit,
+    onNavigateToContactsSettings: () -> Unit,
     onNavigateToConnectWallet: (String) -> Unit
 ) {
     val viewModel = rememberMainViewModel()
@@ -427,6 +430,10 @@ private fun MainScreenEntry(
             onCreateShortcut = {
                 viewModel.dispatch(MainIntent.DismissContacts)
                 onNavigateToPaymentSettings()
+            },
+            onCreateContact = {
+                viewModel.dispatch(MainIntent.DismissContacts)
+                onNavigateToContactsSettings()
             },
             onContactSelected = { id ->
                 viewModel.dispatch(MainIntent.SelectContact(id))

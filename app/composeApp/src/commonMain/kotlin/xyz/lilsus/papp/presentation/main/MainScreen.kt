@@ -79,6 +79,7 @@ fun MainScreen(
     onContactsRoleSelected: (ContactRole?) -> Unit = {},
     onShortcutSelected: (String) -> Unit = {},
     onCreateShortcut: () -> Unit = {},
+    onCreateContact: () -> Unit = {},
     onContactSelected: (String) -> Unit = {},
     onSaveContactPromptAliasChange: (String) -> Unit = {},
     onSaveContactPromptRoleSelected: (ContactRole?) -> Unit = {},
@@ -221,7 +222,8 @@ fun MainScreen(
             onRoleSelected = onContactsRoleSelected,
             onContactSelected = onContactSelected,
             onShortcutSelected = onShortcutSelected,
-            onCreateShortcut = onCreateShortcut
+            onCreateShortcut = onCreateShortcut,
+            onCreateContact = onCreateContact
         )
     }
 
