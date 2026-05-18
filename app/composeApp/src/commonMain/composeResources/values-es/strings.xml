@@ -250,7 +250,7 @@
     <string name="shortcut_choose_contact">Elegir contacto</string>
     <string name="shortcut_contact_label">Contact</string>
     <string name="shortcut_contact_search_label">Search contacts</string>
-    <string name="shortcut_contact_change">Cambiar</string>
+    <string name="shortcut_change">Cambiar</string>
     <string name="shortcut_no_contacts">Add a contact before creating a shortcut.</string>
     <string name="shortcut_no_matching_contacts">No matching contacts</string>
     <string name="shortcut_currency_label">Currency</string>

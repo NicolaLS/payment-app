@@ -86,9 +86,9 @@ import lasr.composeapp.generated.resources.settings_payments_haptics_title
 import lasr.composeapp.generated.resources.settings_payments_option_above
 import lasr.composeapp.generated.resources.settings_payments_option_always
 import lasr.composeapp.generated.resources.shortcut_amount_label
+import lasr.composeapp.generated.resources.shortcut_change
 import lasr.composeapp.generated.resources.shortcut_choose_contact
 import lasr.composeapp.generated.resources.shortcut_comment_label
-import lasr.composeapp.generated.resources.shortcut_contact_change
 import lasr.composeapp.generated.resources.shortcut_contact_label
 import lasr.composeapp.generated.resources.shortcut_contact_search_label
 import lasr.composeapp.generated.resources.shortcut_currency_label
@@ -170,9 +170,16 @@ fun PaymentsSettingsScreen(
     val focusedSectionTop = focusedSection?.let { sectionTops[it] }
     val shortcutEditor = state.shortcutEditor
     var isChoosingShortcutContact by remember { mutableStateOf(false) }
+    var isChoosingShortcutCurrency by remember { mutableStateOf(false) }
+    var shortcutCurrencyQuery by remember(shortcutEditor?.shortcutId) { mutableStateOf("") }
+    val shortcutCurrencyOptions = CurrencyCatalog.supportedCodes.map { code ->
+        val info = CurrencyCatalog.infoFor(code)
+        CurrencyOption(code = info.code, label = stringResource(info.nameRes))
+    }
 
     LaunchedEffect(shortcutEditor?.shortcutId, shortcutEditor != null) {
         isChoosingShortcutContact = shortcutEditor != null && shortcutEditor.selectedContact == null
+        isChoosingShortcutCurrency = false
     }
 
     LaunchedEffect(shortcutEditor?.selectedContact) {
@@ -204,6 +211,8 @@ fun PaymentsSettingsScreen(
                         stringResource(
                             if (isChoosingShortcutContact) {
                                 Res.string.shortcut_choose_contact
+                            } else if (isChoosingShortcutCurrency) {
+                                Res.string.shortcut_currency_label
                             } else if (editor.shortcutId == null) {
                                 Res.string.shortcuts_add
                             } else {
@@ -217,6 +226,11 @@ fun PaymentsSettingsScreen(
                     BackIconButton(
                         onClick = {
                             when {
+                                shortcutEditor != null && isChoosingShortcutCurrency -> {
+                                    shortcutCurrencyQuery = ""
+                                    isChoosingShortcutCurrency = false
+                                }
+
                                 shortcutEditor != null &&
                                     isChoosingShortcutContact &&
                                     shortcutEditor.selectedContact != null -> {
@@ -253,13 +267,31 @@ fun PaymentsSettingsScreen(
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 24.dp)
                 )
+            } else if (isChoosingShortcutCurrency) {
+                CurrencyPickerContent(
+                    selectedCode = shortcutEditor.currencyCode,
+                    searchQuery = shortcutCurrencyQuery,
+                    options = shortcutCurrencyOptions,
+                    onQueryChange = { shortcutCurrencyQuery = it },
+                    onCurrencySelected = { currencyCode ->
+                        onShortcutCurrencySelected(currencyCode)
+                        shortcutCurrencyQuery = ""
+                        isChoosingShortcutCurrency = false
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .consumeWindowInsets(padding)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
+                )
             } else {
                 ShortcutSettingsEditorContent(
                     state = shortcutEditor,
                     onTitleChange = onShortcutTitleChange,
                     onContactChange = { isChoosingShortcutContact = true },
                     onAmountChange = onShortcutAmountChange,
-                    onCurrencySelected = onShortcutCurrencySelected,
+                    onCurrencyChange = { isChoosingShortcutCurrency = true },
                     onCommentChange = onShortcutCommentChange,
                     onSave = onShortcutSave,
                     modifier = Modifier
@@ -661,12 +693,14 @@ private fun ShortcutSettingsEditorContent(
     onTitleChange: (String) -> Unit,
     onContactChange: () -> Unit,
     onAmountChange: (String) -> Unit,
-    onCurrencySelected: (String) -> Unit,
+    onCurrencyChange: () -> Unit,
     onCommentChange: (String) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val selectedContact = state.selectedContact ?: return
+    val currencyInfo = CurrencyCatalog.infoFor(state.currencyCode)
+    val currencyLabel = stringResource(currencyInfo.nameRes)
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
@@ -686,9 +720,9 @@ private fun ShortcutSettingsEditorContent(
             singleLine = true
         )
         SectionTitle(stringResource(Res.string.shortcut_currency_label))
-        ShortcutCurrencyChips(
-            selected = state.currencyCode,
-            onSelected = onCurrencySelected
+        ShortcutSelectedCurrencyRow(
+            option = CurrencyOption(code = currencyInfo.code, label = currencyLabel),
+            onClick = onCurrencyChange
         )
         OutlinedTextField(
             value = state.title,
@@ -712,8 +746,60 @@ private fun ShortcutSettingsEditorContent(
 }
 
 @Composable
+private fun ShortcutSelectedCurrencyRow(option: CurrencyOption, onClick: () -> Unit) {
+    val changeLabel = stringResource(Res.string.shortcut_change)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                role = Role.Button,
+                onClickLabel = changeLabel,
+                onClick = onClick
+            ),
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = option.label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = option.code,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Text(
+                text = changeLabel,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
 private fun ShortcutSelectedContactRow(option: ShortcutContactOption, onClick: () -> Unit) {
-    val changeLabel = stringResource(Res.string.shortcut_contact_change)
+    val changeLabel = stringResource(Res.string.shortcut_change)
 
     Surface(
         modifier = Modifier
@@ -842,23 +928,6 @@ private fun FadingShortcutContactList(
                         )
                     )
             )
-        }
-    }
-}
-
-@Composable
-private fun ShortcutCurrencyChips(selected: String, onSelected: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        CurrencyCatalog.supportedCodes.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { code ->
-                    FilterChip(
-                        selected = selected.equals(code, ignoreCase = true),
-                        onClick = { onSelected(code) },
-                        label = { Text(code) }
-                    )
-                }
-            }
         }
     }
 }
