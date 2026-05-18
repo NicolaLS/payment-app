@@ -2,15 +2,12 @@ package xyz.lilsus.papp.presentation.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -19,7 +16,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -53,6 +49,9 @@ import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.appVersionName
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.LanguageCatalog
+import xyz.lilsus.papp.presentation.common.AppFadingLazyColumn
+import xyz.lilsus.papp.presentation.common.AppListDefaults
+import xyz.lilsus.papp.presentation.common.AppListRow
 import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -127,12 +126,12 @@ fun SettingsScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
+        AppFadingLazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = AppListDefaults.ScreenPadding,
+            verticalArrangement = Arrangement.spacedBy(AppListDefaults.SectionSpacing)
         ) {
             items(entries) { entry ->
                 SettingsListItem(entry)
@@ -161,46 +160,36 @@ private data class SettingsEntry(
 
 @Composable
 private fun SettingsListItem(entry: SettingsEntry) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(entry.testTag),
-        color = MaterialTheme.colorScheme.surfaceVariant,
+    AppListRow(
+        onClick = entry.onClick,
+        testTag = entry.testTag,
+        minHeight = 48.dp,
         tonalElevation = 4.dp,
-        shape = MaterialTheme.shapes.medium
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .heightIn(48.dp)
-                .clickable(onClick = entry.onClick)
-                .padding(horizontal = 20.dp, vertical = 16.dp)
-                .fillMaxWidth()
+        Column(
+            modifier = Modifier.weight(1f)
         ) {
-            Column(
-                modifier = Modifier.padding(end = 32.dp)
-            ) {
-                Text(
-                    text = entry.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                entry.subtitle?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
+            Text(
+                text = entry.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
+            entry.subtitle?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
         }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

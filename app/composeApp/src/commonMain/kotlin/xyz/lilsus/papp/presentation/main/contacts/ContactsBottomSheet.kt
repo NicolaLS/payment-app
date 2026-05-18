@@ -63,10 +63,10 @@ import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
+import xyz.lilsus.papp.presentation.common.AppFadingLazyColumn
 import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ContactRoleChips
-import xyz.lilsus.papp.presentation.common.FadingLazyColumn
 
 @Composable
 fun ContactsHandle(onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -278,7 +278,7 @@ private fun ShortcutsTab(
     onShortcutSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    FadingLazyColumn(
+    AppFadingLazyColumn(
         modifier = modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         verticalArrangement = Arrangement.spacedBy(10.dp)

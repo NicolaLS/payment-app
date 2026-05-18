@@ -12,7 +12,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.settings_currency
 import lasr.composeapp.generated.resources.settings_currency_aud
@@ -25,6 +24,7 @@ import lasr.composeapp.generated.resources.settings_currency_jpy
 import lasr.composeapp.generated.resources.settings_currency_satoshi
 import lasr.composeapp.generated.resources.settings_currency_usd
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.presentation.common.AppListDefaults
 import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -62,7 +62,7 @@ fun CurrencySettingsScreen(
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .padding(AppListDefaults.ScreenPadding)
         )
     }
 }

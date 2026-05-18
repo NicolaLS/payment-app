@@ -1,45 +1,27 @@
 package xyz.lilsus.papp.presentation.common
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.contacts_role_favorite
@@ -75,7 +57,7 @@ fun ContactListContent(
     rowTestTag: (ContactListEntry) -> String? = { null },
     fadeContainerColor: Color = MaterialTheme.colorScheme.background
 ) {
-    ContactListScaffold(
+    AppListScaffold(
         isEmpty = contacts.isEmpty(),
         emptyMessage = emptyMessage,
         modifier = modifier,
@@ -83,10 +65,15 @@ fun ContactListContent(
         searchQuery = searchQuery,
         onSearchQueryChange = onSearchQueryChange,
         searchLabel = searchLabel,
-        showTagFilters = showTagFilters,
-        selectedTags = selectedTags,
-        onTagSelected = onTagSelected,
-        fadeContainerColor = fadeContainerColor
+        fadeContainerColor = fadeContainerColor,
+        fixedContent = {
+            if (showTagFilters) {
+                ContactRoleChips(
+                    selectedRoles = selectedTags,
+                    onSelected = onTagSelected
+                )
+            }
+        }
     ) {
         items(contacts, key = { it.id }) { contact ->
             ContactListRow(
@@ -96,95 +83,6 @@ fun ContactListContent(
                 showTags = showRowTags,
                 testTag = rowTestTag(contact),
                 onClick = { onContactClick(contact) }
-            )
-        }
-    }
-}
-
-@Composable
-fun ContactListScaffold(
-    isEmpty: Boolean,
-    emptyMessage: String?,
-    modifier: Modifier = Modifier,
-    showSearchBar: Boolean = false,
-    searchQuery: String = "",
-    onSearchQueryChange: (String) -> Unit = {},
-    searchLabel: String = stringResource(Res.string.contacts_search_label),
-    showTagFilters: Boolean = false,
-    selectedTags: Set<ContactRole> = emptySet(),
-    onTagSelected: (ContactRole?) -> Unit = {},
-    fadeContainerColor: Color = MaterialTheme.colorScheme.background,
-    listSpacing: Dp = 12.dp,
-    content: LazyListScope.() -> Unit
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        if (showSearchBar) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(searchLabel) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                singleLine = true
-            )
-        }
-        if (showTagFilters) {
-            ContactRoleChips(
-                selectedRoles = selectedTags,
-                onSelected = onTagSelected
-            )
-        }
-        if (isEmpty) {
-            emptyMessage?.let { message ->
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-        } else {
-            FadingLazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                containerColor = fadeContainerColor,
-                verticalArrangement = Arrangement.spacedBy(listSpacing),
-                content = content
-            )
-        }
-    }
-}
-
-@Composable
-fun FadingLazyColumn(
-    modifier: Modifier = Modifier,
-    state: LazyListState = rememberLazyListState(),
-    containerColor: Color = MaterialTheme.colorScheme.background,
-    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(12.dp),
-    content: LazyListScope.() -> Unit
-) {
-    Box(modifier = modifier) {
-        LazyColumn(
-            state = state,
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = verticalArrangement,
-            content = content
-        )
-        if (state.canScrollForward) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(CONTACT_LIST_FADE_HEIGHT)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                containerColor.copy(alpha = 0f),
-                                containerColor
-                            )
-                        )
-                    )
             )
         }
     }
@@ -204,56 +102,30 @@ fun ContactListRow(
     supportingContent: (@Composable ColumnScope.() -> Unit)? = null,
     trailingContent: (@Composable RowScope.() -> Unit)? = null
 ) {
-    val rowModifier = Modifier
-        .heightIn(min = 64.dp)
-        .fillMaxWidth()
-        .clickable(
-            enabled = enabled,
-            role = Role.Button,
-            onClick = onClick
-        )
-        .then(
-            if (showSelectedIndicator) {
-                Modifier.semantics { this.selected = selected }
-            } else {
-                Modifier
-            }
-        )
-        .padding(horizontal = 16.dp, vertical = 12.dp)
-
-    Surface(
-        modifier = if (testTag == null) {
-            modifier.fillMaxWidth()
-        } else {
-            modifier
-                .fillMaxWidth()
-                .testTag(testTag)
-        },
-        tonalElevation = if (selected) 3.dp else 1.dp,
-        shape = MaterialTheme.shapes.medium
+    AppListRow(
+        modifier = modifier,
+        onClick = onClick,
+        enabled = enabled,
+        selected = selected,
+        showSelectedState = showSelectedIndicator,
+        testTag = testTag
     ) {
-        Row(
-            modifier = rowModifier,
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            leadingContent?.invoke(this)
-            ContactSummary(
-                contact = contact,
-                selected = selected,
-                showTags = showTags,
-                supportingContent = supportingContent,
-                modifier = Modifier.weight(1f)
+        leadingContent?.invoke(this)
+        ContactSummary(
+            contact = contact,
+            selected = selected,
+            showTags = showTags,
+            supportingContent = supportingContent,
+            modifier = Modifier.weight(1f)
+        )
+        if (showSelectedIndicator && selected) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
             )
-            if (showSelectedIndicator && selected) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            trailingContent?.invoke(this)
         }
+        trailingContent?.invoke(this)
     }
 }
 
@@ -362,5 +234,4 @@ private fun contactRoleColor(role: ContactRole): Color = when (role) {
     ContactRole.Merchants -> Color(0xFFEF6C00)
 }
 
-private val CONTACT_LIST_FADE_HEIGHT = 56.dp
 private const val ROLE_CHIPS_PER_ROW = 3

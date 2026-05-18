@@ -168,7 +168,7 @@ kover {
                     packages(
                         "lasr.composeapp.generated.resources",
                         "xyz.lilsus.papp.data.blink.graphql",
-                        "xyz.lilsus.papp.di",
+                        "xyz.lilsus.papp.di"
                     )
                 }
             }

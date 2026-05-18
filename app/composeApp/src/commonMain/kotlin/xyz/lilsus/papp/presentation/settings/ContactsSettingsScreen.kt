@@ -53,6 +53,7 @@ import lasr.composeapp.generated.resources.settings_contacts
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.ContactRole
+import xyz.lilsus.papp.presentation.common.AppListDefaults
 import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
@@ -128,7 +129,7 @@ fun ContactsSettingsScreen(
                     .padding(padding)
                     .consumeWindowInsets(padding)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    .padding(AppListDefaults.ScreenPadding)
             )
         }
     }

@@ -42,9 +42,10 @@ import lasr.composeapp.generated.resources.settings_wallet_details_import_contac
 import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_title
 import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_transactions
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.presentation.common.AppListDefaults
+import xyz.lilsus.papp.presentation.common.AppListScaffold
 import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.ContactListEntry
-import xyz.lilsus.papp.presentation.common.ContactListScaffold
 import xyz.lilsus.papp.presentation.common.ContactSummary
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 
@@ -89,7 +90,7 @@ fun BlinkContactsImportScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .consumeWindowInsets(padding)
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(AppListDefaults.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
@@ -130,7 +131,7 @@ fun BlinkContactsImportScreen(
             }
 
             if (state.items.isNotEmpty()) {
-                ContactListScaffold(
+                AppListScaffold(
                     isEmpty = state.filteredItems.isEmpty(),
                     emptyMessage = stringResource(Res.string.contacts_no_matching_contacts),
                     modifier = Modifier

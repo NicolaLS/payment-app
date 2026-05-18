@@ -96,6 +96,7 @@ import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
+import xyz.lilsus.papp.presentation.common.AppListDefaults
 import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
@@ -256,7 +257,7 @@ fun PaymentsSettingsScreen(
                         .padding(padding)
                         .consumeWindowInsets(padding)
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 24.dp)
+                        .padding(AppListDefaults.ScreenPadding)
                 )
             } else if (isChoosingShortcutCurrency) {
                 CurrencyPickerContent(
@@ -274,7 +275,7 @@ fun PaymentsSettingsScreen(
                         .padding(padding)
                         .consumeWindowInsets(padding)
                         .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 24.dp)
+                        .padding(AppListDefaults.ScreenPadding)
                 )
             } else {
                 ShortcutSettingsEditorContent(
