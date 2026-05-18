@@ -174,6 +174,40 @@ class ContactsSettingsViewModelTest {
     }
 
     @Test
+    fun contactLabelsCanBeCombinedAndToggled() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(
+            dispatcher = dispatcher,
+            wallets = emptyList()
+        )
+        advanceUntilIdle()
+
+        context.viewModel.startAddContact()
+        context.viewModel.updateContactEditorRole(ContactRole.Favorite)
+        context.viewModel.updateContactEditorRole(ContactRole.People)
+        context.viewModel.updateContactEditorRole(ContactRole.Merchants)
+
+        assertEquals(
+            setOf(ContactRole.Favorite, ContactRole.People, ContactRole.Merchants),
+            assertNotNull(context.viewModel.uiState.value.contactEditor).roles
+        )
+
+        context.viewModel.updateContactEditorRole(ContactRole.People)
+        assertEquals(
+            setOf(ContactRole.Favorite, ContactRole.Merchants),
+            assertNotNull(context.viewModel.uiState.value.contactEditor).roles
+        )
+
+        context.viewModel.updateContactEditorRole(null)
+        assertEquals(
+            emptySet(),
+            assertNotNull(context.viewModel.uiState.value.contactEditor).roles
+        )
+
+        context.viewModel.clear()
+    }
+
+    @Test
     fun editingExistingContactAutoSavesAndCanDelete() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(

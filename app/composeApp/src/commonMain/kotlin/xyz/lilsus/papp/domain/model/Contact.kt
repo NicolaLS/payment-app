@@ -4,11 +4,8 @@ import xyz.lilsus.papp.domain.lnurl.LightningAddress
 
 enum class ContactRole {
     Favorite,
-    Personal,
-    Work,
     People,
-    Merchants,
-    Bills
+    Merchants
 }
 
 data class Contact(

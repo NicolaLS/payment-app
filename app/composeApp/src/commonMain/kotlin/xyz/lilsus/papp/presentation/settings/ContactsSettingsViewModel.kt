@@ -246,15 +246,6 @@ class ContactsSettingsViewModel internal constructor(
 
     private fun Set<ContactRole>.toggleRole(role: ContactRole?): Set<ContactRole> = when (role) {
         null -> emptySet()
-
-        ContactRole.Personal -> {
-            if (role in this) this - role else (this - ContactRole.Work) + role
-        }
-
-        ContactRole.Work -> {
-            if (role in this) this - role else (this - ContactRole.Personal) + role
-        }
-
         else -> if (role in this) this - role else this + role
     }
 }

@@ -53,13 +53,10 @@ import lasr.composeapp.generated.resources.contacts_import_blink
 import lasr.composeapp.generated.resources.contacts_import_blink_choose_wallet
 import lasr.composeapp.generated.resources.contacts_invalid_address
 import lasr.composeapp.generated.resources.contacts_no_matching_contacts
-import lasr.composeapp.generated.resources.contacts_role_bills
 import lasr.composeapp.generated.resources.contacts_role_favorite
 import lasr.composeapp.generated.resources.contacts_role_label
 import lasr.composeapp.generated.resources.contacts_role_merchants
 import lasr.composeapp.generated.resources.contacts_role_people
-import lasr.composeapp.generated.resources.contacts_role_personal
-import lasr.composeapp.generated.resources.contacts_role_work
 import lasr.composeapp.generated.resources.contacts_save
 import lasr.composeapp.generated.resources.contacts_search_label
 import lasr.composeapp.generated.resources.settings_contacts
@@ -415,33 +412,24 @@ private fun RoleChips(selectedRoles: Set<ContactRole>, onSelected: (ContactRole?
 @Composable
 private fun roleLabel(role: ContactRole): String = when (role) {
     ContactRole.Favorite -> stringResource(Res.string.contacts_role_favorite)
-    ContactRole.Personal -> stringResource(Res.string.contacts_role_personal)
-    ContactRole.Work -> stringResource(Res.string.contacts_role_work)
     ContactRole.People -> stringResource(Res.string.contacts_role_people)
     ContactRole.Merchants -> stringResource(Res.string.contacts_role_merchants)
-    ContactRole.Bills -> stringResource(Res.string.contacts_role_bills)
 }
 
 @Composable
 private fun rolesLabel(roles: Set<ContactRole>): String {
     val labels = buildList {
         if (ContactRole.Favorite in roles) add(stringResource(Res.string.contacts_role_favorite))
-        if (ContactRole.Personal in roles) add(stringResource(Res.string.contacts_role_personal))
-        if (ContactRole.Work in roles) add(stringResource(Res.string.contacts_role_work))
         if (ContactRole.People in roles) add(stringResource(Res.string.contacts_role_people))
         if (ContactRole.Merchants in roles) add(stringResource(Res.string.contacts_role_merchants))
-        if (ContactRole.Bills in roles) add(stringResource(Res.string.contacts_role_bills))
     }
     return labels.joinToString(" • ")
 }
 
 private fun roleColor(role: ContactRole): Color = when (role) {
     ContactRole.Favorite -> Color(0xFFC2185B)
-    ContactRole.Personal -> Color(0xFF2E7D32)
-    ContactRole.Work -> Color(0xFF5D4037)
     ContactRole.People -> Color(0xFF1565C0)
     ContactRole.Merchants -> Color(0xFFEF6C00)
-    ContactRole.Bills -> Color(0xFF455A64)
 }
 
 private const val ROLE_CHIPS_PER_ROW = 3

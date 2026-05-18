@@ -24,14 +24,14 @@ class ContactsRepositoryImplTest {
         repository.saveContact(
             address = LightningAddress("Person", "blink.sv", "Tips"),
             alias = "Updated",
-            roles = setOf(ContactRole.Work, ContactRole.Favorite)
+            roles = setOf(ContactRole.Merchants, ContactRole.Favorite)
         )
 
         val contacts = repository.getContacts()
         assertEquals(1, contacts.size)
         assertEquals("Person+Tips@blink.sv", contacts.first().address.full)
         assertEquals("Updated", contacts.first().alias)
-        assertEquals(setOf(ContactRole.Favorite, ContactRole.Work), contacts.first().roles)
+        assertEquals(setOf(ContactRole.Favorite, ContactRole.Merchants), contacts.first().roles)
     }
 
     @Test

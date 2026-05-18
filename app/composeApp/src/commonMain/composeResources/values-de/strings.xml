@@ -252,14 +252,11 @@
     <string name="contacts_import_blink_choose_wallet">Blink-Wallet auswählen</string>
     <string name="contacts_alias_label">Alias</string>
     <string name="contacts_address_label">Lightning address</string>
-    <string name="contacts_role_label">Rollen</string>
-    <string name="contacts_role_filter_label">Rollen zum Filtern auswählen</string>
+    <string name="contacts_role_label">Labels</string>
+    <string name="contacts_role_filter_label">Labels zum Filtern auswählen</string>
     <string name="contacts_role_favorite">Favorit</string>
-    <string name="contacts_role_personal">Privat</string>
-    <string name="contacts_role_work">Arbeit</string>
     <string name="contacts_role_people">Personen</string>
     <string name="contacts_role_merchants">Händler</string>
-    <string name="contacts_role_bills">Rechnungen</string>
     <string name="contacts_edit">Edit</string>
     <string name="contacts_delete">Delete</string>
     <string name="contacts_save">Save</string>
