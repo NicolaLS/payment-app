@@ -154,7 +154,8 @@ class PaymentsSettingsViewModel internal constructor(
             shortcutEditor = ShortcutSettingsEditor(
                 shortcutId = null,
                 title = "",
-                selectedContactId = options.firstOrNull()?.id,
+                selectedContactId = null,
+                selectedContact = null,
                 amount = "",
                 currencyCode = currencyCode,
                 comment = "",
@@ -169,12 +170,12 @@ class PaymentsSettingsViewModel internal constructor(
         val options = shortcutContactOptions()
         val selectedContactId = shortcut.contactId
             ?: contacts.firstOrNull { it.address.sameAddressAs(shortcut.address) }?.id
-            ?: options.firstOrNull()?.id
         _uiState.value = _uiState.value.copy(
             shortcutEditor = ShortcutSettingsEditor(
                 shortcutId = shortcut.id,
                 title = shortcut.title,
                 selectedContactId = selectedContactId,
+                selectedContact = selectedContactId?.let(::shortcutContactOption),
                 amount = shortcut.amount.inputText(),
                 currencyCode = CurrencyCatalog
                     .infoFor(shortcut.amount.normalizedCurrencyCode)
@@ -195,11 +196,13 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     fun updateShortcutContact(contactId: String) {
+        val options = shortcutContactOptions()
         updateShortcutEditor {
             it.copy(
                 selectedContactId = contactId,
+                selectedContact = shortcutContactOption(contactId),
                 contactQuery = "",
-                contactOptions = shortcutContactOptions(),
+                contactOptions = options,
                 error = null
             )
         }
@@ -248,8 +251,12 @@ class PaymentsSettingsViewModel internal constructor(
     fun saveShortcutEditor() {
         val editor = _uiState.value.shortcutEditor ?: return
         val contactId = editor.selectedContactId
-        if (contacts.isEmpty() || contactId == null) {
+        if (contacts.isEmpty()) {
             updateShortcutEditor { it.copy(error = "Add a contact before creating a shortcut.") }
+            return
+        }
+        if (contactId == null) {
+            updateShortcutEditor { it.copy(error = "Select a contact.") }
             return
         }
         val amountInfo = CurrencyCatalog.infoFor(editor.currencyCode)
@@ -324,10 +331,11 @@ class PaymentsSettingsViewModel internal constructor(
         val options = shortcutContactOptions(editor.contactQuery)
         val selectedContactId = editor.selectedContactId?.takeIf { selected ->
             contacts.any { it.id == selected }
-        } ?: options.firstOrNull()?.id
+        }
         _uiState.value = _uiState.value.copy(
             shortcutEditor = editor.copy(
                 selectedContactId = selectedContactId,
+                selectedContact = selectedContactId?.let(::shortcutContactOption),
                 contactOptions = options
             )
         )
@@ -348,14 +356,19 @@ class PaymentsSettingsViewModel internal constructor(
                     .thenBy { it.displayName.lowercase() }
             )
             .map { contact ->
-                ShortcutContactOption(
-                    id = contact.id,
-                    displayName = contact.displayName,
-                    address = contact.address.full
-                )
+                contact.toShortcutContactOption()
             }
             .toList()
     }
+
+    private fun shortcutContactOption(contactId: String): ShortcutContactOption? =
+        contacts.firstOrNull { it.id == contactId }?.toShortcutContactOption()
+
+    private fun Contact.toShortcutContactOption(): ShortcutContactOption = ShortcutContactOption(
+        id = id,
+        displayName = displayName,
+        address = address.full
+    )
 
     private fun ShortcutAmount.inputText(): String {
         val info = CurrencyCatalog.infoFor(normalizedCurrencyCode)
@@ -463,6 +476,7 @@ data class ShortcutSettingsEditor(
     val shortcutId: String?,
     val title: String,
     val selectedContactId: String?,
+    val selectedContact: ShortcutContactOption? = null,
     val amount: String,
     val currencyCode: String,
     val comment: String,
