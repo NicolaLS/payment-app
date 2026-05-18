@@ -107,6 +107,7 @@ import xyz.lilsus.papp.presentation.settings.ContactsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.ShortcutContactPickerViewModel
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletViewModel
 import xyz.lilsus.papp.presentation.settings.addwallet.AddWalletViewModel
@@ -355,7 +356,15 @@ val nwcModule = module {
             observeContacts = get(),
             observeShortcuts = get(),
             saveShortcut = get(),
-            deleteShortcutUseCase = get()
+            deleteShortcutUseCase = get(),
+            autoSaveScope = get()
+        )
+    }
+
+    factory {
+        ShortcutContactPickerViewModel(
+            observeContacts = get(),
+            dispatcher = get()
         )
     }
 
@@ -368,7 +377,8 @@ val nwcModule = module {
             updateContact = get(),
             deleteContactUseCase = get(),
             lightningInputParser = get(),
-            dispatcher = get()
+            dispatcher = get(),
+            autoSaveScope = get()
         )
     }
 

@@ -14,8 +14,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
@@ -48,18 +50,25 @@ import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 import xyz.lilsus.papp.presentation.main.scan.rememberCameraPermissionState
 import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
 import xyz.lilsus.papp.presentation.settings.ChooseWalletTypeScreen
+import xyz.lilsus.papp.presentation.settings.ContactSettingsEditorScreen
 import xyz.lilsus.papp.presentation.settings.ContactsSettingsEvent
 import xyz.lilsus.papp.presentation.settings.ContactsSettingsScreen
 import xyz.lilsus.papp.presentation.settings.ContactsSettingsViewModel
+import xyz.lilsus.papp.presentation.settings.CurrencyOption
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsScreen
 import xyz.lilsus.papp.presentation.settings.CurrencySettingsViewModel
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsScreen
 import xyz.lilsus.papp.presentation.settings.LanguageSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.ManageWalletsScreen
+import xyz.lilsus.papp.presentation.settings.PaymentsSettingsEvent
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsScreen
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsSection
 import xyz.lilsus.papp.presentation.settings.PaymentsSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.SettingsScreen
+import xyz.lilsus.papp.presentation.settings.ShortcutContactPickerScreen
+import xyz.lilsus.papp.presentation.settings.ShortcutContactPickerViewModel
+import xyz.lilsus.papp.presentation.settings.ShortcutCurrencyPickerScreen
+import xyz.lilsus.papp.presentation.settings.ShortcutSettingsEditorScreen
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsScreen
 import xyz.lilsus.papp.presentation.settings.ThemeSettingsViewModel
 import xyz.lilsus.papp.presentation.settings.addblink.AddBlinkWalletEvent
@@ -76,6 +85,9 @@ import xyz.lilsus.papp.presentation.settings.wallet.WalletDetailsViewModel
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsEvent
 import xyz.lilsus.papp.presentation.settings.wallet.WalletSettingsViewModel
 
+private const val SHORTCUT_CONTACT_RESULT_KEY = "shortcut_contact_result"
+private const val SHORTCUT_CURRENCY_RESULT_KEY = "shortcut_currency_result"
+
 @Serializable
 internal object Settings
 
@@ -83,13 +95,31 @@ internal object Settings
 internal object SettingsSubNav
 
 @Serializable
-internal data class SettingsPayments(
-    val focusedSection: PaymentsSettingsSection? = null,
-    val initialShortcutContactId: String? = null
-)
+internal data class SettingsPayments(val focusedSection: PaymentsSettingsSection? = null)
 
 @Serializable
 internal object SettingsContacts
+
+@Serializable
+internal object SettingsAddContact
+
+@Serializable
+internal data class SettingsEditContact(val contactId: String)
+
+@Serializable
+internal object SettingsShortcutCreateContactPicker
+
+@Serializable
+internal data class SettingsShortcutCreate(val contactId: String)
+
+@Serializable
+internal data class SettingsShortcutEdit(val shortcutId: String)
+
+@Serializable
+internal data class SettingsShortcutContactPicker(val selectedContactId: String? = null)
+
+@Serializable
+internal data class SettingsShortcutCurrencyPicker(val selectedCode: String)
 
 @Serializable
 internal object SettingsCurrency
@@ -127,14 +157,77 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
             val route = backStackEntry.toRoute<SettingsPayments>()
             PaymentsSettingsEntry(
                 focusedSection = route.focusedSection,
-                initialShortcutContactId = route.initialShortcutContactId,
-                onBack = { navController.popBackStack() }
+                navController = navController
             )
         }
         composable<SettingsContacts> {
             ContactsSettingsEntry(
                 navController = navController,
                 onBack = { navController.popBackStack() }
+            )
+        }
+        composable<SettingsAddContact> {
+            ContactSettingsEditorEntry(
+                navController = navController,
+                contactId = null
+            )
+        }
+        composable<SettingsEditContact> { backStackEntry ->
+            val route = backStackEntry.toRoute<SettingsEditContact>()
+            ContactSettingsEditorEntry(
+                navController = navController,
+                contactId = route.contactId
+            )
+        }
+        composable<SettingsShortcutCreateContactPicker> {
+            ShortcutContactPickerEntry(
+                navController = navController,
+                selectedContactId = null,
+                onContactSelected = { contactId ->
+                    navController.navigateToSettingsShortcutCreate(contactId = contactId) {
+                        popUpTo<SettingsShortcutCreateContactPicker> {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+        composable<SettingsShortcutCreate> { backStackEntry ->
+            val route = backStackEntry.toRoute<SettingsShortcutCreate>()
+            ShortcutSettingsEditorEntry(
+                navController = navController,
+                backStackEntry = backStackEntry,
+                shortcutId = null,
+                contactId = route.contactId
+            )
+        }
+        composable<SettingsShortcutEdit> { backStackEntry ->
+            val route = backStackEntry.toRoute<SettingsShortcutEdit>()
+            ShortcutSettingsEditorEntry(
+                navController = navController,
+                backStackEntry = backStackEntry,
+                shortcutId = route.shortcutId,
+                contactId = null
+            )
+        }
+        composable<SettingsShortcutContactPicker> { backStackEntry ->
+            val route = backStackEntry.toRoute<SettingsShortcutContactPicker>()
+            ShortcutContactPickerEntry(
+                navController = navController,
+                selectedContactId = route.selectedContactId,
+                onContactSelected = { contactId ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(SHORTCUT_CONTACT_RESULT_KEY, contactId)
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable<SettingsShortcutCurrencyPicker> { backStackEntry ->
+            val route = backStackEntry.toRoute<SettingsShortcutCurrencyPicker>()
+            ShortcutCurrencyPickerEntry(
+                navController = navController,
+                selectedCode = route.selectedCode
             )
         }
         composable<SettingsCurrency> {
@@ -185,22 +278,64 @@ fun NavController.navigateToSettings() {
     }
 }
 
-fun NavController.navigateToSettingsPayments(
-    focusedSection: PaymentsSettingsSection? = null,
-    initialShortcutContactId: String? = null
-) {
-    navigate(
-        route = SettingsPayments(
-            focusedSection = focusedSection,
-            initialShortcutContactId = initialShortcutContactId
-        )
-    ) {
+fun NavController.navigateToSettingsPayments(focusedSection: PaymentsSettingsSection? = null) {
+    navigate(route = SettingsPayments(focusedSection = focusedSection)) {
         launchSingleTop = true
     }
 }
 
 fun NavController.navigateToSettingsContacts() {
     navigate(route = SettingsContacts) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsAddContact() {
+    navigate(route = SettingsAddContact) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsEditContact(contactId: String) {
+    navigate(route = SettingsEditContact(contactId = contactId)) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsShortcutCreateContactPicker() {
+    navigate(route = SettingsShortcutCreateContactPicker) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsShortcutCreate(
+    contactId: String,
+    builder: NavOptionsBuilder.() -> Unit = {}
+) {
+    navigate(route = SettingsShortcutCreate(contactId = contactId)) {
+        launchSingleTop = true
+        builder()
+    }
+}
+
+fun NavController.navigateToSettingsShortcutEdit(
+    shortcutId: String,
+    builder: NavOptionsBuilder.() -> Unit = {}
+) {
+    navigate(route = SettingsShortcutEdit(shortcutId = shortcutId)) {
+        launchSingleTop = true
+        builder()
+    }
+}
+
+fun NavController.navigateToSettingsShortcutContactPicker(selectedContactId: String?) {
+    navigate(route = SettingsShortcutContactPicker(selectedContactId = selectedContactId)) {
+        launchSingleTop = true
+    }
+}
+
+fun NavController.navigateToSettingsShortcutCurrencyPicker(selectedCode: String) {
+    navigate(route = SettingsShortcutCurrencyPicker(selectedCode = selectedCode)) {
         launchSingleTop = true
     }
 }
@@ -499,8 +634,7 @@ private fun ThemeSettingsEntry(onBack: () -> Unit) {
 @Composable
 private fun PaymentsSettingsEntry(
     focusedSection: PaymentsSettingsSection?,
-    initialShortcutContactId: String?,
-    onBack: () -> Unit
+    navController: NavController
 ) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
@@ -510,14 +644,10 @@ private fun PaymentsSettingsEntry(
 
     val state by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(initialShortcutContactId) {
-        initialShortcutContactId?.let(viewModel::startAddShortcutForContact)
-    }
-
     PaymentsSettingsScreen(
         state = state,
         focusedSection = focusedSection,
-        onBack = onBack,
+        onBack = { navController.popBackStack() },
         onModeSelected = { viewModel.selectMode(it) },
         onThresholdChanged = { threshold -> viewModel.updateThreshold(threshold) },
         onConfirmManualEntryChanged = { enabled -> viewModel.setConfirmManualEntry(enabled) },
@@ -529,17 +659,10 @@ private fun PaymentsSettingsEntry(
         },
         onVibrateOnScanChanged = { enabled -> viewModel.setVibrateOnScan(enabled) },
         onVibrateOnPaymentChanged = { enabled -> viewModel.setVibrateOnPayment(enabled) },
-        onAddShortcut = viewModel::startAddShortcut,
-        onEditShortcut = viewModel::startEditShortcut,
-        onDeleteShortcut = viewModel::deleteShortcut,
-        onShortcutTitleChange = viewModel::updateShortcutTitle,
-        onShortcutContactSelected = viewModel::updateShortcutContact,
-        onShortcutContactQueryChange = viewModel::updateShortcutContactQuery,
-        onShortcutAmountChange = viewModel::updateShortcutAmount,
-        onShortcutCurrencySelected = viewModel::updateShortcutCurrency,
-        onShortcutCommentChange = viewModel::updateShortcutComment,
-        onShortcutSave = viewModel::saveShortcutEditor,
-        onShortcutEditorDismiss = viewModel::dismissShortcutEditor
+        onAddShortcut = { navController.navigateToSettingsShortcutCreateContactPicker() },
+        onEditShortcut = { shortcutId ->
+            navController.navigateToSettingsShortcutEdit(shortcutId = shortcutId)
+        }
     )
 }
 
@@ -561,10 +684,12 @@ private fun ContactsSettingsEntry(navController: NavController, onBack: () -> Un
                 }
 
                 is ContactsSettingsEvent.CreateShortcutForContact -> {
-                    navController.navigateToSettingsPayments(
-                        initialShortcutContactId = event.contactId
+                    navController.navigateToSettingsShortcutCreate(
+                        contactId = event.contactId
                     )
                 }
+
+                ContactsSettingsEvent.CloseContactEditor -> Unit
             }
         }
     }
@@ -572,19 +697,183 @@ private fun ContactsSettingsEntry(navController: NavController, onBack: () -> Un
     ContactsSettingsScreen(
         state = state,
         onBack = onBack,
-        onAddContact = viewModel::startAddContact,
+        onAddContact = { navController.navigateToSettingsAddContact() },
         onImportBlinkContacts = viewModel::startBlinkContactsImport,
         onBlinkWalletSelected = viewModel::selectBlinkWalletForImport,
         onBlinkWalletChooserDismiss = viewModel::dismissBlinkWalletChooser,
         onSearchQueryChange = viewModel::updateSearchQuery,
-        onEditContact = viewModel::startEditContact,
-        onContactEditorAddressChange = viewModel::updateContactEditorAddress,
-        onContactEditorAliasChange = viewModel::updateContactEditorAlias,
-        onContactEditorRoleSelected = viewModel::updateContactEditorRole,
-        onContactEditorSave = viewModel::saveContactEditor,
-        onContactEditorDelete = viewModel::deleteContactEditor,
-        onCreateShortcutForContact = viewModel::createShortcutForCurrentContact,
-        onEditorDismiss = viewModel::dismissEditor
+        onEditContact = { contactId ->
+            navController.navigateToSettingsEditContact(contactId)
+        }
+    )
+}
+
+@Composable
+private fun ContactSettingsEditorEntry(navController: NavController, contactId: String?) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<ContactsSettingsViewModel>() },
+        onDispose = { it.clear() }
+    )
+
+    val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(contactId) {
+        if (contactId == null) {
+            viewModel.startAddContact()
+        } else {
+            viewModel.startEditContact(contactId)
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is ContactsSettingsEvent.OpenBlinkContactsImport -> {
+                    navController.navigateToBlinkContactsImport(walletId = event.walletId)
+                }
+
+                is ContactsSettingsEvent.CreateShortcutForContact -> {
+                    navController.navigateToSettingsShortcutCreate(
+                        contactId = event.contactId
+                    )
+                }
+
+                ContactsSettingsEvent.CloseContactEditor -> {
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
+
+    ContactSettingsEditorScreen(
+        state = state.contactEditor,
+        onBack = { navController.popBackStack() },
+        onAddressChange = viewModel::updateContactEditorAddress,
+        onAliasChange = viewModel::updateContactEditorAlias,
+        onRoleSelected = viewModel::updateContactEditorRole,
+        onSave = viewModel::saveContactEditor,
+        onDelete = viewModel::deleteContactEditor,
+        onCreateShortcut = viewModel::createShortcutForCurrentContact
+    )
+}
+
+@Composable
+private fun ShortcutSettingsEditorEntry(
+    navController: NavController,
+    backStackEntry: NavBackStackEntry,
+    shortcutId: String?,
+    contactId: String?
+) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<PaymentsSettingsViewModel>() },
+        onDispose = { it.clear() }
+    )
+
+    val state by viewModel.uiState.collectAsState()
+    val selectedContactResult by backStackEntry.savedStateHandle
+        .getStateFlow<String?>(SHORTCUT_CONTACT_RESULT_KEY, null)
+        .collectAsState()
+    val selectedCurrencyResult by backStackEntry.savedStateHandle
+        .getStateFlow<String?>(SHORTCUT_CURRENCY_RESULT_KEY, null)
+        .collectAsState()
+
+    LaunchedEffect(shortcutId, contactId) {
+        when {
+            shortcutId != null -> viewModel.startEditShortcut(shortcutId)
+            contactId != null -> viewModel.startAddShortcutForContact(contactId)
+        }
+    }
+
+    LaunchedEffect(selectedContactResult) {
+        selectedContactResult?.let { selectedContactId ->
+            viewModel.updateShortcutContact(selectedContactId)
+            backStackEntry.savedStateHandle.set<String?>(SHORTCUT_CONTACT_RESULT_KEY, null)
+        }
+    }
+
+    LaunchedEffect(selectedCurrencyResult) {
+        selectedCurrencyResult?.let { selectedCurrencyCode ->
+            viewModel.updateShortcutCurrency(selectedCurrencyCode)
+            backStackEntry.savedStateHandle.set<String?>(SHORTCUT_CURRENCY_RESULT_KEY, null)
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                PaymentsSettingsEvent.CloseShortcutEditor -> {
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
+
+    ShortcutSettingsEditorScreen(
+        state = state.shortcutEditor,
+        onBack = { navController.popBackStack() },
+        onTitleChange = viewModel::updateShortcutTitle,
+        onContactChange = {
+            navController.navigateToSettingsShortcutContactPicker(
+                selectedContactId = state.shortcutEditor?.selectedContactId
+            )
+        },
+        onAmountChange = viewModel::updateShortcutAmount,
+        onCurrencyChange = {
+            state.shortcutEditor?.currencyCode?.let {
+                navController.navigateToSettingsShortcutCurrencyPicker(selectedCode = it)
+            }
+        },
+        onCommentChange = viewModel::updateShortcutComment,
+        onSave = viewModel::saveShortcutEditor,
+        onDelete = viewModel::deleteShortcut
+    )
+}
+
+@Composable
+private fun ShortcutContactPickerEntry(
+    navController: NavController,
+    selectedContactId: String?,
+    onContactSelected: (String) -> Unit
+) {
+    val koin = remember { KoinPlatformTools.defaultContext().get() }
+    val viewModel = rememberRetainedInstance(
+        factory = { koin.get<ShortcutContactPickerViewModel>() },
+        onDispose = { it.clear() }
+    )
+
+    val state by viewModel.uiState.collectAsState()
+
+    ShortcutContactPickerScreen(
+        state = state,
+        selectedContactId = selectedContactId,
+        onBack = { navController.popBackStack() },
+        onQueryChange = viewModel::updateSearchQuery,
+        onContactSelected = onContactSelected
+    )
+}
+
+@Composable
+private fun ShortcutCurrencyPickerEntry(navController: NavController, selectedCode: String) {
+    var query by remember { mutableStateOf("") }
+    val options = CurrencyCatalog.supportedCodes.map { code ->
+        val info = CurrencyCatalog.infoFor(code)
+        CurrencyOption(code = info.code, label = stringResource(info.nameRes))
+    }
+
+    ShortcutCurrencyPickerScreen(
+        selectedCode = selectedCode,
+        searchQuery = query,
+        options = options,
+        onBack = { navController.popBackStack() },
+        onQueryChange = { query = it },
+        onCurrencySelected = { currencyCode ->
+            navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.set(SHORTCUT_CURRENCY_RESULT_KEY, currencyCode)
+            navController.popBackStack()
+        }
     )
 }
 

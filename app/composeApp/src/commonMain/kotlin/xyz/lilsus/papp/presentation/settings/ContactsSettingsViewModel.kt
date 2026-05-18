@@ -36,13 +36,16 @@ class ContactsSettingsViewModel internal constructor(
     private val updateContact: UpdateContactUseCase,
     private val deleteContactUseCase: DeleteContactUseCase,
     private val lightningInputParser: LightningInputParser = LightningInputParser(),
-    dispatcher: CoroutineDispatcher = Dispatchers.Main
+    dispatcher: CoroutineDispatcher = Dispatchers.Main,
+    autoSaveScope: CoroutineScope? = null
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val durableAutoSaveScope = autoSaveScope ?: scope
     private var contacts: List<Contact> = emptyList()
     private var shortcuts: List<PaymentShortcut> = emptyList()
     private var blinkWallets: List<BlinkWalletImportOption> = emptyList()
     private var editorAutoSaveRevision: Int = 0
+    private var pendingContactEditorId: String? = null
 
     private val _uiState = MutableStateFlow(ContactsSettingsUiState())
     val uiState: StateFlow<ContactsSettingsUiState> = _uiState.asStateFlow()
@@ -54,6 +57,11 @@ class ContactsSettingsViewModel internal constructor(
         scope.launch {
             observeContacts().collectLatest {
                 contacts = it
+                pendingContactEditorId?.let { contactId ->
+                    if (openContactEditor(contactId)) {
+                        pendingContactEditorId = null
+                    }
+                }
                 refresh()
             }
         }
@@ -111,7 +119,15 @@ class ContactsSettingsViewModel internal constructor(
     }
 
     fun startEditContact(id: String) {
-        val contact = contacts.firstOrNull { it.id == id } ?: return
+        if (openContactEditor(id)) {
+            pendingContactEditorId = null
+        } else {
+            pendingContactEditorId = id
+        }
+    }
+
+    private fun openContactEditor(id: String): Boolean {
+        val contact = contacts.firstOrNull { it.id == id } ?: return false
         editorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(
             contactEditor = ContactSettingsEditor(
@@ -123,6 +139,7 @@ class ContactsSettingsViewModel internal constructor(
                 shortcuts = shortcutItemsForContact(contact.id)
             )
         )
+        return true
     }
 
     fun deleteContactEditor() {
@@ -132,6 +149,7 @@ class ContactsSettingsViewModel internal constructor(
             deleteContactUseCase(id)
             _uiState.value = _uiState.value.copy(contactEditor = null)
             refresh()
+            _events.emit(ContactsSettingsEvent.CloseContactEditor)
         }
     }
 
@@ -169,6 +187,7 @@ class ContactsSettingsViewModel internal constructor(
             }
             _uiState.value = _uiState.value.copy(contactEditor = null)
             refresh()
+            _events.emit(ContactsSettingsEvent.CloseContactEditor)
         }
     }
 
@@ -177,11 +196,6 @@ class ContactsSettingsViewModel internal constructor(
         scope.launch {
             _events.emit(ContactsSettingsEvent.CreateShortcutForContact(contactId))
         }
-    }
-
-    fun dismissEditor() {
-        editorAutoSaveRevision++
-        _uiState.value = _uiState.value.copy(contactEditor = null)
     }
 
     fun clear() {
@@ -202,7 +216,7 @@ class ContactsSettingsViewModel internal constructor(
         val revision = ++editorAutoSaveRevision
         val aliasSnapshot = alias
         val rolesSnapshot = roles
-        scope.launch {
+        durableAutoSaveScope.launch {
             if (revision == editorAutoSaveRevision) {
                 updateContact(id, aliasSnapshot, rolesSnapshot)
             }
@@ -376,4 +390,5 @@ data class ContactShortcutItem(
 sealed interface ContactsSettingsEvent {
     data class OpenBlinkContactsImport(val walletId: String) : ContactsSettingsEvent
     data class CreateShortcutForContact(val contactId: String) : ContactsSettingsEvent
+    data object CloseContactEditor : ContactsSettingsEvent
 }

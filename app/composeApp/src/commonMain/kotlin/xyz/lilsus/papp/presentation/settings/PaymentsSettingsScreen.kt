@@ -130,15 +130,6 @@ fun PaymentsSettingsScreen(
     onVibrateOnPaymentChanged: (Boolean) -> Unit,
     onAddShortcut: () -> Unit,
     onEditShortcut: (String) -> Unit,
-    onDeleteShortcut: (String) -> Unit,
-    onShortcutTitleChange: (String) -> Unit,
-    onShortcutContactSelected: (String) -> Unit,
-    onShortcutContactQueryChange: (String) -> Unit,
-    onShortcutAmountChange: (String) -> Unit,
-    onShortcutCurrencySelected: (String) -> Unit,
-    onShortcutCommentChange: (String) -> Unit,
-    onShortcutSave: () -> Unit,
-    onShortcutEditorDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -158,31 +149,12 @@ fun PaymentsSettingsScreen(
     var viewportTop by remember { mutableStateOf<Float?>(null) }
     var hasFocusedSection by remember(focusedSection) { mutableStateOf(false) }
     val focusedSectionTop = focusedSection?.let { sectionTops[it] }
-    val shortcutEditor = state.shortcutEditor
-    var isChoosingShortcutContact by remember { mutableStateOf(false) }
-    var isChoosingShortcutCurrency by remember { mutableStateOf(false) }
-    var shortcutCurrencyQuery by remember(shortcutEditor?.shortcutId) { mutableStateOf("") }
-    val shortcutCurrencyOptions = CurrencyCatalog.supportedCodes.map { code ->
-        val info = CurrencyCatalog.infoFor(code)
-        CurrencyOption(code = info.code, label = stringResource(info.nameRes))
-    }
 
-    LaunchedEffect(shortcutEditor?.shortcutId, shortcutEditor != null) {
-        isChoosingShortcutContact = shortcutEditor != null && shortcutEditor.selectedContact == null
-        isChoosingShortcutCurrency = false
-    }
-
-    LaunchedEffect(shortcutEditor?.selectedContact) {
-        if (shortcutEditor != null && shortcutEditor.selectedContact == null) {
-            isChoosingShortcutContact = true
-        }
-    }
-
-    LaunchedEffect(focusedSection, state.shortcutEditor, viewportTop, focusedSectionTop) {
+    LaunchedEffect(focusedSection, viewportTop, focusedSectionTop) {
         focusedSection ?: return@LaunchedEffect
         val viewportTopValue = viewportTop ?: return@LaunchedEffect
         val targetTop = focusedSectionTop ?: return@LaunchedEffect
-        if (!hasFocusedSection && state.shortcutEditor == null) {
+        if (!hasFocusedSection) {
             hasFocusedSection = true
             withFrameNanos { }
             val scrollDelta = targetTop - viewportTopValue
@@ -196,299 +168,341 @@ fun PaymentsSettingsScreen(
         modifier = modifier.testTag(MaestroTags.Settings.PAYMENTS_SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    val title = shortcutEditor?.let { editor ->
-                        stringResource(
-                            if (isChoosingShortcutContact) {
-                                Res.string.shortcut_choose_contact
-                            } else if (isChoosingShortcutCurrency) {
-                                Res.string.shortcut_currency_label
-                            } else if (editor.shortcutId == null) {
-                                Res.string.shortcuts_add
-                            } else {
-                                Res.string.shortcut_edit
-                            }
-                        )
-                    } ?: stringResource(Res.string.settings_payments)
-                    Text(title)
-                },
+                title = { Text(stringResource(Res.string.settings_payments)) },
                 navigationIcon = {
-                    BackIconButton(
-                        onClick = {
-                            when {
-                                shortcutEditor != null && isChoosingShortcutCurrency -> {
-                                    shortcutCurrencyQuery = ""
-                                    isChoosingShortcutCurrency = false
-                                }
-
-                                shortcutEditor != null &&
-                                    isChoosingShortcutContact &&
-                                    shortcutEditor.selectedContact != null -> {
-                                    onShortcutContactQueryChange("")
-                                    isChoosingShortcutContact = false
-                                }
-
-                                shortcutEditor != null -> onShortcutEditorDismiss()
-
-                                else -> onBack()
-                            }
-                        }
-                    )
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )
         }
     ) { padding ->
-        if (shortcutEditor != null) {
-            if (isChoosingShortcutContact) {
-                ShortcutContactPickerContent(
-                    query = shortcutEditor.contactQuery,
-                    options = shortcutEditor.contactOptions,
-                    selectedContactId = shortcutEditor.selectedContactId,
-                    onQueryChange = onShortcutContactQueryChange,
-                    onContactSelected = { contactId ->
-                        onShortcutContactSelected(contactId)
-                        isChoosingShortcutContact = false
-                    },
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .verticalScroll(scrollState)
+                .onGloballyPositioned { coordinates ->
+                    viewportTop = coordinates.positionInRoot().y
+                },
+            verticalArrangement = Arrangement.Top
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .settingsSectionScrollTarget(
+                        section = PaymentsSettingsSection.Confirmation,
+                        sectionTops = sectionTops
+                    ),
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 6.dp
+            ) {
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .consumeWindowInsets(padding)
-                        .navigationBarsPadding()
-                        .padding(AppListDefaults.ScreenPadding)
-                )
-            } else if (isChoosingShortcutCurrency) {
-                CurrencyPickerContent(
-                    selectedCode = shortcutEditor.currencyCode,
-                    searchQuery = shortcutCurrencyQuery,
-                    options = shortcutCurrencyOptions,
-                    onQueryChange = { shortcutCurrencyQuery = it },
-                    onCurrencySelected = { currencyCode ->
-                        onShortcutCurrencySelected(currencyCode)
-                        shortcutCurrencyQuery = ""
-                        isChoosingShortcutCurrency = false
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .consumeWindowInsets(padding)
-                        .navigationBarsPadding()
-                        .padding(AppListDefaults.ScreenPadding)
-                )
-            } else {
-                ShortcutSettingsEditorContent(
-                    state = shortcutEditor,
-                    onTitleChange = onShortcutTitleChange,
-                    onContactChange = { isChoosingShortcutContact = true },
-                    onAmountChange = onShortcutAmountChange,
-                    onCurrencyChange = { isChoosingShortcutCurrency = true },
-                    onCommentChange = onShortcutCommentChange,
-                    onSave = if (shortcutEditor.shortcutId == null) {
-                        onShortcutSave
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_payments_confirm_label),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    Text(
+                        text = thresholdText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    PaymentModeChips(
+                        selected = state.confirmationMode,
+                        onSelected = onModeSelected
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(MaestroTags.Settings.PAYMENTS_CONFIRM_MANUAL_ENTRY)
+                            .heightIn(48.dp)
+                            .toggleable(
+                                value = state.confirmManualEntry,
+                                role = Role.Switch,
+                                onValueChange = onConfirmManualEntryChanged
+                            ),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(
+                                Res.string.settings_payments_confirm_manual_entry
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.confirmManualEntry,
+                            onCheckedChange = null
+                        )
+                    }
+                    if (state.confirmationMode == PaymentConfirmationMode.Above) {
+                        ThresholdSlider(
+                            thresholdSats = state.thresholdSats,
+                            onThresholdChanged = onThresholdChanged
+                        )
                     } else {
-                        null
-                    },
-                    onDelete = shortcutEditor.shortcutId?.let { shortcutId ->
-                        { onDeleteShortcut(shortcutId) }
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .consumeWindowInsets(padding)
-                        .navigationBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 24.dp)
-                )
+                        // keep layout height consistent
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
             }
-        } else {
-            Column(
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ShortcutSettingsSection(
+                shortcuts = state.shortcuts,
+                confirmShortcutPayments = state.confirmShortcutPayments,
+                onConfirmShortcutPaymentsChanged = onConfirmShortcutPaymentsChanged,
+                onAddShortcut = onAddShortcut,
+                onEditShortcut = onEditShortcut,
+                modifier = Modifier.settingsSectionScrollTarget(
+                    section = PaymentsSettingsSection.Shortcuts,
+                    sectionTops = sectionTops
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ContactsPaymentSettingsSection(
+                askToSaveNewContacts = state.askToSaveNewContacts,
+                onAskToSaveNewContactsChanged = onAskToSaveNewContactsChanged,
+                modifier = Modifier.settingsSectionScrollTarget(
+                    section = PaymentsSettingsSection.Contacts,
+                    sectionTops = sectionTops
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .settingsSectionScrollTarget(
+                        section = PaymentsSettingsSection.Haptics,
+                        sectionTops = sectionTops
+                    ),
+                shape = RoundedCornerShape(16.dp),
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_payments_haptics_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(48.dp)
+                            .toggleable(
+                                value = state.vibrateOnScan,
+                                role = Role.Switch,
+                                onValueChange = onVibrateOnScanChanged
+                            ),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.settings_payments_haptics_scan),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.vibrateOnScan,
+                            onCheckedChange = null
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(48.dp)
+                            .toggleable(
+                                value = state.vibrateOnPayment,
+                                role = Role.Switch,
+                                onValueChange = onVibrateOnPaymentChanged
+                            ),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(
+                                Res.string.settings_payments_haptics_payment
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 16.dp)
+                        )
+                        Switch(
+                            checked = state.vibrateOnPayment,
+                            onCheckedChange = null
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShortcutSettingsEditorScreen(
+    state: ShortcutSettingsEditor?,
+    onBack: () -> Unit,
+    onTitleChange: (String) -> Unit,
+    onContactChange: () -> Unit,
+    onAmountChange: (String) -> Unit,
+    onCurrencyChange: () -> Unit,
+    onCommentChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDelete: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    Scaffold(
+        modifier = modifier.testTag(MaestroTags.Settings.PAYMENTS_SCREEN),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        stringResource(
+                            if (state?.shortcutId == null) {
+                                Res.string.shortcuts_add
+                            } else {
+                                Res.string.shortcut_edit
+                            }
+                        )
+                    )
+                },
+                navigationIcon = {
+                    BackIconButton(onClick = onBack)
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        state?.let { editor ->
+            ShortcutSettingsEditorContent(
+                state = editor,
+                onTitleChange = onTitleChange,
+                onContactChange = onContactChange,
+                onAmountChange = onAmountChange,
+                onCurrencyChange = onCurrencyChange,
+                onCommentChange = onCommentChange,
+                onSave = if (editor.shortcutId == null) onSave else null,
+                onDelete = editor.shortcutId?.let { shortcutId ->
+                    { onDelete(shortcutId) }
+                },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .consumeWindowInsets(padding)
                     .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 24.dp)
-                    .verticalScroll(scrollState)
-                    .onGloballyPositioned { coordinates ->
-                        viewportTop = coordinates.positionInRoot().y
-                    },
-                verticalArrangement = Arrangement.Top
-            ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .settingsSectionScrollTarget(
-                            section = PaymentsSettingsSection.Confirmation,
-                            sectionTops = sectionTops
-                        ),
-                    shape = RoundedCornerShape(16.dp),
-                    tonalElevation = 6.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.settings_payments_confirm_label),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.semantics { heading() }
-                        )
-                        Text(
-                            text = thresholdText,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        PaymentModeChips(
-                            selected = state.confirmationMode,
-                            onSelected = onModeSelected
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag(MaestroTags.Settings.PAYMENTS_CONFIRM_MANUAL_ENTRY)
-                                .heightIn(48.dp)
-                                .toggleable(
-                                    value = state.confirmManualEntry,
-                                    role = Role.Switch,
-                                    onValueChange = onConfirmManualEntryChanged
-                                ),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(
-                                    Res.string.settings_payments_confirm_manual_entry
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 16.dp)
-                            )
-                            Switch(
-                                checked = state.confirmManualEntry,
-                                onCheckedChange = null
-                            )
-                        }
-                        if (state.confirmationMode == PaymentConfirmationMode.Above) {
-                            ThresholdSlider(
-                                thresholdSats = state.thresholdSats,
-                                onThresholdChanged = onThresholdChanged
-                            )
-                        } else {
-                            // keep layout height consistent
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                ShortcutSettingsSection(
-                    shortcuts = state.shortcuts,
-                    confirmShortcutPayments = state.confirmShortcutPayments,
-                    onConfirmShortcutPaymentsChanged = onConfirmShortcutPaymentsChanged,
-                    onAddShortcut = onAddShortcut,
-                    onEditShortcut = onEditShortcut,
-                    modifier = Modifier.settingsSectionScrollTarget(
-                        section = PaymentsSettingsSection.Shortcuts,
-                        sectionTops = sectionTops
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                ContactsPaymentSettingsSection(
-                    askToSaveNewContacts = state.askToSaveNewContacts,
-                    onAskToSaveNewContactsChanged = onAskToSaveNewContactsChanged,
-                    modifier = Modifier.settingsSectionScrollTarget(
-                        section = PaymentsSettingsSection.Contacts,
-                        sectionTops = sectionTops
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .settingsSectionScrollTarget(
-                            section = PaymentsSettingsSection.Haptics,
-                            sectionTops = sectionTops
-                        ),
-                    shape = RoundedCornerShape(16.dp),
-                    tonalElevation = 6.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.settings_payments_haptics_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.semantics { heading() }
-                        )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(48.dp)
-                                .toggleable(
-                                    value = state.vibrateOnScan,
-                                    role = Role.Switch,
-                                    onValueChange = onVibrateOnScanChanged
-                                ),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.settings_payments_haptics_scan),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 16.dp)
-                            )
-                            Switch(
-                                checked = state.vibrateOnScan,
-                                onCheckedChange = null
-                            )
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(48.dp)
-                                .toggleable(
-                                    value = state.vibrateOnPayment,
-                                    role = Role.Switch,
-                                    onValueChange = onVibrateOnPaymentChanged
-                                ),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(
-                                    Res.string.settings_payments_haptics_payment
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(end = 16.dp)
-                            )
-                            Switch(
-                                checked = state.vibrateOnPayment,
-                                onCheckedChange = null
-                            )
-                        }
-                    }
-                }
-            }
+            )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShortcutContactPickerScreen(
+    state: ShortcutContactPickerUiState,
+    selectedContactId: String?,
+    onBack: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onContactSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(Res.string.shortcut_choose_contact)) },
+                navigationIcon = {
+                    BackIconButton(onClick = onBack)
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        ShortcutContactPickerContent(
+            query = state.query,
+            options = state.options,
+            selectedContactId = selectedContactId,
+            onQueryChange = onQueryChange,
+            onContactSelected = onContactSelected,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
+                .padding(AppListDefaults.ScreenPadding)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShortcutCurrencyPickerScreen(
+    selectedCode: String,
+    searchQuery: String,
+    options: List<CurrencyOption>,
+    onBack: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onCurrencySelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(Res.string.shortcut_currency_label)) },
+                navigationIcon = {
+                    BackIconButton(onClick = onBack)
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        CurrencyPickerContent(
+            selectedCode = selectedCode,
+            searchQuery = searchQuery,
+            options = options,
+            onQueryChange = onQueryChange,
+            onCurrencySelected = onCurrencySelected,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
+                .padding(AppListDefaults.ScreenPadding)
+        )
     }
 }
 
@@ -952,16 +966,7 @@ private fun PaymentsSettingsScreenPreview() {
             onVibrateOnScanChanged = {},
             onVibrateOnPaymentChanged = {},
             onAddShortcut = {},
-            onEditShortcut = {},
-            onDeleteShortcut = {},
-            onShortcutTitleChange = {},
-            onShortcutContactSelected = {},
-            onShortcutContactQueryChange = {},
-            onShortcutAmountChange = {},
-            onShortcutCurrencySelected = {},
-            onShortcutCommentChange = {},
-            onShortcutSave = {},
-            onShortcutEditorDismiss = {}
+            onEditShortcut = {}
         )
     }
 }

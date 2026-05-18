@@ -5,8 +5,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -51,16 +54,22 @@ class PaymentsSettingsViewModel internal constructor(
     observeShortcuts: ObserveShortcutsUseCase? = null,
     private val saveShortcut: SaveShortcutUseCase? = null,
     private val deleteShortcutUseCase: DeleteShortcutUseCase? = null,
-    dispatcher: CoroutineDispatcher = Dispatchers.Main
+    dispatcher: CoroutineDispatcher = Dispatchers.Main,
+    autoSaveScope: CoroutineScope? = null
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val durableAutoSaveScope = autoSaveScope ?: scope
     private var contacts: List<Contact> = emptyList()
     private var shortcuts: List<PaymentShortcut> = emptyList()
     private var shortcutEditorAutoSaveRevision: Int = 0
     private var pendingInitialShortcutContactId: String? = null
+    private var pendingEditShortcutId: String? = null
 
     private val _uiState = MutableStateFlow(PaymentsSettingsUiState())
     val uiState: StateFlow<PaymentsSettingsUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<PaymentsSettingsEvent>(extraBufferCapacity = 4)
+    val events: SharedFlow<PaymentsSettingsEvent> = _events.asSharedFlow()
 
     init {
         scope.launch {
@@ -114,6 +123,11 @@ class PaymentsSettingsViewModel internal constructor(
             scope.launch {
                 useCase().collectLatest {
                     shortcuts = it
+                    pendingEditShortcutId?.let { shortcutId ->
+                        if (openShortcutEditor(shortcutId)) {
+                            pendingEditShortcutId = null
+                        }
+                    }
                     refreshShortcuts()
                 }
             }
@@ -154,10 +168,6 @@ class PaymentsSettingsViewModel internal constructor(
         scope.launch { setAskToSaveContactsUseCase?.invoke(enabled) }
     }
 
-    fun startAddShortcut() {
-        openAddShortcutEditor(selectedContactId = null)
-    }
-
     fun startAddShortcutForContact(contactId: String) {
         if (openAddShortcutEditor(selectedContactId = contactId)) {
             pendingInitialShortcutContactId = null
@@ -169,7 +179,6 @@ class PaymentsSettingsViewModel internal constructor(
     private fun openAddShortcutEditor(selectedContactId: String?): Boolean {
         val selectedContact = selectedContactId?.let(::shortcutContactOption)
         if (selectedContactId != null && selectedContact == null) return false
-        val options = shortcutContactOptions()
         val currencyCode = currencyManager.state.value.info.code
         shortcutEditorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(
@@ -180,17 +189,22 @@ class PaymentsSettingsViewModel internal constructor(
                 selectedContact = selectedContact,
                 amount = "",
                 currencyCode = currencyCode,
-                comment = "",
-                contactQuery = "",
-                contactOptions = options
+                comment = ""
             )
         )
         return true
     }
 
     fun startEditShortcut(id: String) {
-        val shortcut = shortcuts.firstOrNull { it.id == id } ?: return
-        val options = shortcutContactOptions()
+        if (openShortcutEditor(id)) {
+            pendingEditShortcutId = null
+        } else {
+            pendingEditShortcutId = id
+        }
+    }
+
+    private fun openShortcutEditor(id: String): Boolean {
+        val shortcut = shortcuts.firstOrNull { it.id == id } ?: return false
         val selectedContactId = shortcut.contactId
             ?: contacts.firstOrNull { it.address.sameAddressAs(shortcut.address) }?.id
         shortcutEditorAutoSaveRevision++
@@ -204,11 +218,10 @@ class PaymentsSettingsViewModel internal constructor(
                 currencyCode = CurrencyCatalog
                     .infoFor(shortcut.amount.normalizedCurrencyCode)
                     .code,
-                comment = shortcut.comment.orEmpty(),
-                contactQuery = "",
-                contactOptions = options
+                comment = shortcut.comment.orEmpty()
             )
         )
+        return true
     }
 
     fun deleteShortcut(id: String) {
@@ -219,6 +232,7 @@ class PaymentsSettingsViewModel internal constructor(
                 _uiState.value = _uiState.value.copy(shortcutEditor = null)
             }
             refreshShortcuts()
+            _events.emit(PaymentsSettingsEvent.CloseShortcutEditor)
         }
     }
 
@@ -228,27 +242,13 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     fun updateShortcutContact(contactId: String) {
-        val options = shortcutContactOptions()
         updateShortcutEditor {
             it.copy(
                 selectedContactId = contactId,
                 selectedContact = shortcutContactOption(contactId),
-                contactQuery = "",
-                contactOptions = options,
                 error = null
             )
         }?.autoSaveExistingShortcut()
-    }
-
-    fun updateShortcutContactQuery(query: String) {
-        updateShortcutEditor { editor ->
-            val options = shortcutContactOptions(query)
-            editor.copy(
-                contactQuery = query,
-                contactOptions = options,
-                error = null
-            )
-        }
     }
 
     fun updateShortcutAmount(amount: String) {
@@ -294,12 +294,8 @@ class PaymentsSettingsViewModel internal constructor(
             )
             _uiState.value = _uiState.value.copy(shortcutEditor = null)
             refreshShortcuts()
+            _events.emit(PaymentsSettingsEvent.CloseShortcutEditor)
         }
-    }
-
-    fun dismissShortcutEditor() {
-        shortcutEditorAutoSaveRevision++
-        _uiState.value = _uiState.value.copy(shortcutEditor = null)
     }
 
     fun clear() {
@@ -330,7 +326,7 @@ class PaymentsSettingsViewModel internal constructor(
         shortcutId ?: return
         val revision = ++shortcutEditorAutoSaveRevision
         val request = toSaveRequest(setError = true) ?: return
-        scope.launch {
+        durableAutoSaveScope.launch {
             if (revision == shortcutEditorAutoSaveRevision) {
                 saveShortcut?.invoke(
                     id = request.id,
@@ -400,47 +396,19 @@ class PaymentsSettingsViewModel internal constructor(
 
     private fun refreshOpenShortcutEditor() {
         val editor = _uiState.value.shortcutEditor ?: return
-        val options = shortcutContactOptions(editor.contactQuery)
         val selectedContactId = editor.selectedContactId?.takeIf { selected ->
             contacts.any { it.id == selected }
         }
         _uiState.value = _uiState.value.copy(
             shortcutEditor = editor.copy(
                 selectedContactId = selectedContactId,
-                selectedContact = selectedContactId?.let(::shortcutContactOption),
-                contactOptions = options
+                selectedContact = selectedContactId?.let(::shortcutContactOption)
             )
         )
     }
 
-    private fun shortcutContactOptions(query: String = ""): List<ShortcutContactOption> {
-        val normalizedQuery = query.trim().lowercase()
-        return contacts
-            .asSequence()
-            .filter { contact ->
-                normalizedQuery.isBlank() ||
-                    contact.displayName.lowercase().contains(normalizedQuery) ||
-                    contact.address.full.lowercase().contains(normalizedQuery)
-            }
-            .sortedWith(
-                compareByDescending<Contact> { it.stats.paymentCount }
-                    .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
-                    .thenBy { it.displayName.lowercase() }
-            )
-            .map { contact ->
-                contact.toShortcutContactOption()
-            }
-            .toList()
-    }
-
     private fun shortcutContactOption(contactId: String): ShortcutContactOption? =
         contacts.firstOrNull { it.id == contactId }?.toShortcutContactOption()
-
-    private fun Contact.toShortcutContactOption(): ShortcutContactOption = ShortcutContactOption(
-        id = id,
-        displayName = displayName,
-        address = address.full
-    )
 
     private fun ShortcutAmount.inputText(): String {
         val info = CurrencyCatalog.infoFor(normalizedCurrencyCode)
@@ -552,12 +520,54 @@ data class ShortcutSettingsEditor(
     val amount: String,
     val currencyCode: String,
     val comment: String,
-    val contactQuery: String,
-    val contactOptions: List<ShortcutContactOption>,
     val error: String? = null
 )
 
 data class ShortcutContactOption(val id: String, val displayName: String, val address: String)
+
+sealed interface PaymentsSettingsEvent {
+    data object CloseShortcutEditor : PaymentsSettingsEvent
+}
+
+data class ShortcutContactPickerUiState(
+    val query: String = "",
+    val options: List<ShortcutContactOption> = emptyList()
+)
+
+class ShortcutContactPickerViewModel internal constructor(
+    observeContacts: ObserveContactsUseCase,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main
+) {
+    private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private var contacts: List<Contact> = emptyList()
+
+    private val _uiState = MutableStateFlow(ShortcutContactPickerUiState())
+    val uiState: StateFlow<ShortcutContactPickerUiState> = _uiState.asStateFlow()
+
+    init {
+        scope.launch {
+            observeContacts().collectLatest {
+                contacts = it
+                refresh()
+            }
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(query = query)
+        refresh()
+    }
+
+    fun clear() {
+        scope.cancel()
+    }
+
+    private fun refresh() {
+        _uiState.value = _uiState.value.copy(
+            options = contacts.toShortcutContactOptions(_uiState.value.query)
+        )
+    }
+}
 
 private data class ShortcutSaveRequest(
     val id: String?,
@@ -565,4 +575,29 @@ private data class ShortcutSaveRequest(
     val contactId: String,
     val amount: ShortcutAmount,
     val comment: String?
+)
+
+private fun List<Contact>.toShortcutContactOptions(
+    query: String = ""
+): List<ShortcutContactOption> {
+    val normalizedQuery = query.trim().lowercase()
+    return asSequence()
+        .filter { contact ->
+            normalizedQuery.isBlank() ||
+                contact.displayName.lowercase().contains(normalizedQuery) ||
+                contact.address.full.lowercase().contains(normalizedQuery)
+        }
+        .sortedWith(
+            compareByDescending<Contact> { it.stats.paymentCount }
+                .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
+                .thenBy { it.displayName.lowercase() }
+        )
+        .map { contact -> contact.toShortcutContactOption() }
+        .toList()
+}
+
+private fun Contact.toShortcutContactOption(): ShortcutContactOption = ShortcutContactOption(
+    id = id,
+    displayName = displayName,
+    address = address.full
 )

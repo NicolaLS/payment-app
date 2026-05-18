@@ -73,74 +73,34 @@ fun ContactsSettingsScreen(
     onBlinkWalletChooserDismiss: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onEditContact: (String) -> Unit,
-    onContactEditorAddressChange: (String) -> Unit,
-    onContactEditorAliasChange: (String) -> Unit,
-    onContactEditorRoleSelected: (ContactRole?) -> Unit,
-    onContactEditorSave: () -> Unit,
-    onContactEditorDelete: () -> Unit,
-    onCreateShortcutForContact: () -> Unit,
-    onEditorDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val isEditing = state.contactEditor != null
     Scaffold(
         modifier = modifier.testTag(MaestroTags.Settings.CONTACTS_SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(Res.string.settings_contacts)) },
                 navigationIcon = {
-                    BackIconButton(
-                        onClick = if (isEditing) onEditorDismiss else onBack
-                    )
+                    BackIconButton(onClick = onBack)
                 },
                 scrollBehavior = scrollBehavior
             )
         }
     ) { padding ->
-        when {
-            state.contactEditor != null -> ContactSettingsEditorContent(
-                state = state.contactEditor,
-                onAddressChange = onContactEditorAddressChange,
-                onAliasChange = onContactEditorAliasChange,
-                onRoleSelected = onContactEditorRoleSelected,
-                onSave = if (state.contactEditor.contactId == null) {
-                    onContactEditorSave
-                } else {
-                    null
-                },
-                onDelete = if (state.contactEditor.contactId != null) {
-                    onContactEditorDelete
-                } else {
-                    null
-                },
-                onCreateShortcut = if (state.contactEditor.contactId != null) {
-                    onCreateShortcutForContact
-                } else {
-                    null
-                },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .consumeWindowInsets(padding)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 24.dp)
-            )
-
-            else -> SettingsListContent(
-                state = state,
-                onAddContact = onAddContact,
-                onImportBlinkContacts = onImportBlinkContacts,
-                onSearchQueryChange = onSearchQueryChange,
-                onEditContact = onEditContact,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .consumeWindowInsets(padding)
-                    .navigationBarsPadding()
-                    .padding(AppListDefaults.ScreenPadding)
-            )
-        }
+        SettingsListContent(
+            state = state,
+            onAddContact = onAddContact,
+            onImportBlinkContacts = onImportBlinkContacts,
+            onSearchQueryChange = onSearchQueryChange,
+            onEditContact = onEditContact,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
+                .padding(AppListDefaults.ScreenPadding)
+        )
     }
     state.blinkWalletChooser?.let { chooser ->
         BlinkWalletChooserDialog(
@@ -148,6 +108,52 @@ fun ContactsSettingsScreen(
             onWalletSelected = onBlinkWalletSelected,
             onDismiss = onBlinkWalletChooserDismiss
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContactSettingsEditorScreen(
+    state: ContactSettingsEditor?,
+    onBack: () -> Unit,
+    onAddressChange: (String) -> Unit,
+    onAliasChange: (String) -> Unit,
+    onRoleSelected: (ContactRole?) -> Unit,
+    onSave: () -> Unit,
+    onDelete: () -> Unit,
+    onCreateShortcut: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    Scaffold(
+        modifier = modifier.testTag(MaestroTags.Settings.CONTACTS_SCREEN),
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(Res.string.settings_contacts)) },
+                navigationIcon = {
+                    BackIconButton(onClick = onBack)
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        state?.let { editor ->
+            ContactSettingsEditorContent(
+                state = editor,
+                onAddressChange = onAddressChange,
+                onAliasChange = onAliasChange,
+                onRoleSelected = onRoleSelected,
+                onSave = if (editor.contactId == null) onSave else null,
+                onDelete = if (editor.contactId != null) onDelete else null,
+                onCreateShortcut = if (editor.contactId != null) onCreateShortcut else null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
+            )
+        }
     }
 }
 
