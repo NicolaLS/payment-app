@@ -17,10 +17,12 @@ import xyz.lilsus.papp.data.settings.ContactsRepositoryImpl
 import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.model.ContactRole
+import xyz.lilsus.papp.domain.model.ShortcutAmount
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
@@ -239,6 +241,44 @@ class ContactsSettingsViewModelTest {
         context.viewModel.clear()
     }
 
+    @Test
+    fun editingContactShowsLinkedShortcutsAndCanStartShortcutCreation() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(
+            dispatcher = dispatcher,
+            wallets = emptyList()
+        )
+        val contact = context.contactsRepository.saveContact(
+            address = LightningAddress("alice", "blink.sv"),
+            alias = "Alice",
+            roles = emptySet()
+        )
+        context.contactsRepository.saveShortcut(
+            id = null,
+            title = "Coffee",
+            contactId = contact.id,
+            amount = ShortcutAmount(minor = 42, currencyCode = "SAT"),
+            comment = "morning"
+        )
+        advanceUntilIdle()
+
+        context.viewModel.startEditContact(contact.id)
+        val editor = assertNotNull(context.viewModel.uiState.value.contactEditor)
+        assertEquals(listOf("Coffee"), editor.shortcuts.map { it.title })
+        assertEquals(listOf("42 sats"), editor.shortcuts.map { it.amountText })
+
+        val eventDeferred = async { context.viewModel.events.first() }
+        context.viewModel.createShortcutForCurrentContact()
+        advanceUntilIdle()
+
+        assertEquals(
+            ContactsSettingsEvent.CreateShortcutForContact(contact.id),
+            eventDeferred.await()
+        )
+
+        context.viewModel.clear()
+    }
+
     private suspend fun createTestContext(dispatcher: CoroutineDispatcher, wallets: List<WalletConnection>): TestContext {
         val contactsRepository = ContactsRepositoryImpl(MapSettings())
         val walletRepository = WalletSettingsRepositoryImpl(MapSettings())
@@ -248,6 +288,7 @@ class ContactsSettingsViewModelTest {
         val viewModel = ContactsSettingsViewModel(
             observeContacts = ObserveContactsUseCase(contactsRepository),
             observeWallets = ObserveWalletsUseCase(walletRepository),
+            observeShortcuts = ObserveShortcutsUseCase(contactsRepository),
             saveContact = SaveContactUseCase(contactsRepository),
             updateContact = UpdateContactUseCase(contactsRepository),
             deleteContactUseCase = DeleteContactUseCase(contactsRepository),

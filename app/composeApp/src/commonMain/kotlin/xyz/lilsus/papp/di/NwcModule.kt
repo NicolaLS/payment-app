@@ -363,6 +363,7 @@ val nwcModule = module {
         ContactsSettingsViewModel(
             observeContacts = get(),
             observeWallets = get(),
+            observeShortcuts = get(),
             saveContact = get(),
             updateContact = get(),
             deleteContactUseCase = get(),

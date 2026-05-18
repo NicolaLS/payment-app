@@ -22,14 +22,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -59,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.contacts_delete
-import lasr.composeapp.generated.resources.contacts_edit
 import lasr.composeapp.generated.resources.contacts_invalid_address
 import lasr.composeapp.generated.resources.contacts_save
 import lasr.composeapp.generated.resources.settings_contacts
@@ -285,7 +283,14 @@ fun PaymentsSettingsScreen(
                     onAmountChange = onShortcutAmountChange,
                     onCurrencyChange = { isChoosingShortcutCurrency = true },
                     onCommentChange = onShortcutCommentChange,
-                    onSave = onShortcutSave,
+                    onSave = if (shortcutEditor.shortcutId == null) {
+                        onShortcutSave
+                    } else {
+                        null
+                    },
+                    onDelete = shortcutEditor.shortcutId?.let { shortcutId ->
+                        { onDeleteShortcut(shortcutId) }
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
@@ -387,7 +392,6 @@ fun PaymentsSettingsScreen(
                     onConfirmShortcutPaymentsChanged = onConfirmShortcutPaymentsChanged,
                     onAddShortcut = onAddShortcut,
                     onEditShortcut = onEditShortcut,
-                    onDeleteShortcut = onDeleteShortcut,
                     modifier = Modifier.settingsSectionScrollTarget(
                         section = PaymentsSettingsSection.Shortcuts,
                         sectionTops = sectionTops
@@ -548,7 +552,6 @@ private fun ShortcutSettingsSection(
     onConfirmShortcutPaymentsChanged: (Boolean) -> Unit,
     onAddShortcut: () -> Unit,
     onEditShortcut: (String) -> Unit,
-    onDeleteShortcut: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -610,8 +613,7 @@ private fun ShortcutSettingsSection(
             shortcuts.forEach { item ->
                 ShortcutSettingsRow(
                     item = item,
-                    onEdit = { onEditShortcut(item.id) },
-                    onDelete = { onDeleteShortcut(item.id) }
+                    onClick = { onEditShortcut(item.id) }
                 )
             }
         }
@@ -619,14 +621,15 @@ private fun ShortcutSettingsSection(
 }
 
 @Composable
-private fun ShortcutSettingsRow(
-    item: ShortcutSettingsItem,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
-) {
-    SettingsSurfaceRow(onClick = onEdit) {
+private fun ShortcutSettingsRow(item: ShortcutSettingsItem, onClick: () -> Unit) {
+    val rowContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+    SettingsSurfaceRow(onClick = onClick) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(item.title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = rowContentColor
+            )
             Text(
                 text = listOfNotNull(
                     item.amountText,
@@ -634,47 +637,15 @@ private fun ShortcutSettingsRow(
                     item.comment
                 ).joinToString(" - "),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = rowContentColor.copy(alpha = 0.72f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
-        RowActions(onEdit = onEdit, onDelete = onDelete)
-    }
-}
-
-@Composable
-private fun SettingsSurfaceRow(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 2.dp,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .heightIn(min = 64.dp)
-                .fillMaxWidth()
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content
-        )
-    }
-}
-
-@Composable
-private fun RowActions(onEdit: () -> Unit, onDelete: () -> Unit) {
-    IconButton(onClick = onEdit) {
         Icon(
-            imageVector = Icons.Filled.Edit,
-            contentDescription = stringResource(Res.string.contacts_edit)
-        )
-    }
-    IconButton(onClick = onDelete) {
-        Icon(
-            imageVector = Icons.Filled.Delete,
-            contentDescription = stringResource(Res.string.contacts_delete)
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = rowContentColor.copy(alpha = 0.72f)
         )
     }
 }
@@ -687,7 +658,8 @@ private fun ShortcutSettingsEditorContent(
     onAmountChange: (String) -> Unit,
     onCurrencyChange: () -> Unit,
     onCommentChange: (String) -> Unit,
-    onSave: () -> Unit,
+    onSave: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     val selectedContact = state.selectedContact ?: return
@@ -731,9 +703,45 @@ private fun ShortcutSettingsEditorContent(
             onClick = onCurrencyChange
         )
         state.error?.let { ErrorText(it) }
-        Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(Res.string.contacts_save))
+        onSave?.let { save ->
+            Button(onClick = save, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.contacts_save))
+            }
         }
+        onDelete?.let { delete ->
+            OutlinedButton(
+                onClick = delete,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Filled.Delete, contentDescription = null)
+                Text(
+                    text = stringResource(Res.string.contacts_delete),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSurfaceRow(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        tonalElevation = 2.dp,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+            modifier = Modifier
+                .heightIn(min = 64.dp)
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content
+        )
     }
 }
 

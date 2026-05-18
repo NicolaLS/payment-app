@@ -17,9 +17,13 @@ import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.model.Contact
 import xyz.lilsus.papp.domain.model.ContactRole
+import xyz.lilsus.papp.domain.model.CurrencyCatalog
+import xyz.lilsus.papp.domain.model.PaymentShortcut
+import xyz.lilsus.papp.domain.model.ShortcutAmount
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
@@ -27,6 +31,7 @@ import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 class ContactsSettingsViewModel internal constructor(
     observeContacts: ObserveContactsUseCase,
     observeWallets: ObserveWalletsUseCase,
+    observeShortcuts: ObserveShortcutsUseCase,
     private val saveContact: SaveContactUseCase,
     private val updateContact: UpdateContactUseCase,
     private val deleteContactUseCase: DeleteContactUseCase,
@@ -35,6 +40,7 @@ class ContactsSettingsViewModel internal constructor(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     private var contacts: List<Contact> = emptyList()
+    private var shortcuts: List<PaymentShortcut> = emptyList()
     private var blinkWallets: List<BlinkWalletImportOption> = emptyList()
     private var editorAutoSaveRevision: Int = 0
 
@@ -56,6 +62,12 @@ class ContactsSettingsViewModel internal constructor(
                 blinkWallets = wallets
                     .filter { it.isBlink }
                     .map { it.toBlinkImportOption() }
+                refresh()
+            }
+        }
+        scope.launch {
+            observeShortcuts().collectLatest {
+                shortcuts = it
                 refresh()
             }
         }
@@ -107,7 +119,8 @@ class ContactsSettingsViewModel internal constructor(
                 address = contact.address.full,
                 alias = contact.alias.orEmpty(),
                 roles = contact.roles,
-                addressEditable = false
+                addressEditable = false,
+                shortcuts = shortcutItemsForContact(contact.id)
             )
         )
     }
@@ -159,6 +172,13 @@ class ContactsSettingsViewModel internal constructor(
         }
     }
 
+    fun createShortcutForCurrentContact() {
+        val contactId = _uiState.value.contactEditor?.contactId ?: return
+        scope.launch {
+            _events.emit(ContactsSettingsEvent.CreateShortcutForContact(contactId))
+        }
+    }
+
     fun dismissEditor() {
         editorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(contactEditor = null)
@@ -191,6 +211,13 @@ class ContactsSettingsViewModel internal constructor(
 
     private fun refresh() {
         val query = _uiState.value.query.trim().lowercase()
+        val refreshedEditor = _uiState.value.contactEditor?.let { editor ->
+            editor.copy(
+                shortcuts = editor.contactId
+                    ?.let(::shortcutItemsForContact)
+                    .orEmpty()
+            )
+        }
         val contactItems = contacts
             .filter { contact ->
                 query.isBlank() ||
@@ -216,11 +243,34 @@ class ContactsSettingsViewModel internal constructor(
             }
         _uiState.value = _uiState.value.copy(
             contacts = contactItems,
+            contactEditor = refreshedEditor,
             blinkWallets = blinkWallets,
             blinkWalletChooser = _uiState.value.blinkWalletChooser
                 ?.takeIf { blinkWallets.size > 1 }
                 ?.copy(wallets = blinkWallets)
         )
+    }
+
+    private fun shortcutItemsForContact(contactId: String): List<ContactShortcutItem> {
+        val contact = contacts.firstOrNull { it.id == contactId } ?: return emptyList()
+        return shortcuts
+            .filter { shortcut ->
+                shortcut.contactId == contactId ||
+                    shortcut.address.sameAddressAs(contact.address)
+            }
+            .sortedWith(
+                compareByDescending<PaymentShortcut> { it.stats.paymentCount }
+                    .thenByDescending { it.stats.lastPaidAtMs ?: 0L }
+                    .thenBy { it.title.lowercase() }
+            )
+            .map { shortcut ->
+                ContactShortcutItem(
+                    id = shortcut.id,
+                    title = shortcut.title,
+                    amountText = shortcut.amount.displayText(),
+                    comment = shortcut.comment
+                )
+            }
     }
 
     private fun openBlinkContactsImport(walletId: String) {
@@ -247,6 +297,37 @@ class ContactsSettingsViewModel internal constructor(
     private fun Set<ContactRole>.toggleRole(role: ContactRole?): Set<ContactRole> = when (role) {
         null -> emptySet()
         else -> if (role in this) this - role else this + role
+    }
+
+    private fun LightningAddress.sameAddressAs(other: LightningAddress): Boolean =
+        full.equals(other.full, ignoreCase = true)
+
+    private fun ShortcutAmount.displayText(): String {
+        val info = CurrencyCatalog.infoFor(normalizedCurrencyCode)
+        val unit = if (info.code == CurrencyCatalog.DEFAULT_CODE) {
+            "sats"
+        } else {
+            info.code
+        }
+        return "${minor.formatMinorAmount(info.fractionDigits)} $unit"
+    }
+
+    private fun Long.formatMinorAmount(fractionDigits: Int): String {
+        if (fractionDigits <= 0) return toString()
+        val factor = decimalFactor(fractionDigits)
+        val whole = this / factor
+        val fraction = (this % factor).toString().padStart(fractionDigits, '0').trimEnd('0')
+        return if (fraction.isEmpty()) {
+            whole.toString()
+        } else {
+            "$whole.$fraction"
+        }
+    }
+
+    private fun decimalFactor(fractionDigits: Int): Long {
+        var factor = 1L
+        repeat(fractionDigits) { factor *= 10L }
+        return factor
     }
 }
 
@@ -281,9 +362,18 @@ data class ContactSettingsEditor(
     val alias: String,
     val roles: Set<ContactRole>,
     val addressEditable: Boolean,
+    val shortcuts: List<ContactShortcutItem> = emptyList(),
     val error: String? = null
+)
+
+data class ContactShortcutItem(
+    val id: String,
+    val title: String,
+    val amountText: String,
+    val comment: String?
 )
 
 sealed interface ContactsSettingsEvent {
     data class OpenBlinkContactsImport(val walletId: String) : ContactsSettingsEvent
+    data class CreateShortcutForContact(val contactId: String) : ContactsSettingsEvent
 }

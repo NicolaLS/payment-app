@@ -83,7 +83,10 @@ internal object Settings
 internal object SettingsSubNav
 
 @Serializable
-internal data class SettingsPayments(val focusedSection: PaymentsSettingsSection? = null)
+internal data class SettingsPayments(
+    val focusedSection: PaymentsSettingsSection? = null,
+    val initialShortcutContactId: String? = null
+)
 
 @Serializable
 internal object SettingsContacts
@@ -124,6 +127,7 @@ fun NavGraphBuilder.settingsScreen(navController: NavController, onBack: () -> U
             val route = backStackEntry.toRoute<SettingsPayments>()
             PaymentsSettingsEntry(
                 focusedSection = route.focusedSection,
+                initialShortcutContactId = route.initialShortcutContactId,
                 onBack = { navController.popBackStack() }
             )
         }
@@ -181,8 +185,16 @@ fun NavController.navigateToSettings() {
     }
 }
 
-fun NavController.navigateToSettingsPayments(focusedSection: PaymentsSettingsSection? = null) {
-    navigate(route = SettingsPayments(focusedSection = focusedSection)) {
+fun NavController.navigateToSettingsPayments(
+    focusedSection: PaymentsSettingsSection? = null,
+    initialShortcutContactId: String? = null
+) {
+    navigate(
+        route = SettingsPayments(
+            focusedSection = focusedSection,
+            initialShortcutContactId = initialShortcutContactId
+        )
+    ) {
         launchSingleTop = true
     }
 }
@@ -485,7 +497,11 @@ private fun ThemeSettingsEntry(onBack: () -> Unit) {
 }
 
 @Composable
-private fun PaymentsSettingsEntry(focusedSection: PaymentsSettingsSection?, onBack: () -> Unit) {
+private fun PaymentsSettingsEntry(
+    focusedSection: PaymentsSettingsSection?,
+    initialShortcutContactId: String?,
+    onBack: () -> Unit
+) {
     val koin = remember { KoinPlatformTools.defaultContext().get() }
     val viewModel = rememberRetainedInstance(
         factory = { koin.get<PaymentsSettingsViewModel>() },
@@ -493,6 +509,10 @@ private fun PaymentsSettingsEntry(focusedSection: PaymentsSettingsSection?, onBa
     )
 
     val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(initialShortcutContactId) {
+        initialShortcutContactId?.let(viewModel::startAddShortcutForContact)
+    }
 
     PaymentsSettingsScreen(
         state = state,
@@ -539,6 +559,12 @@ private fun ContactsSettingsEntry(navController: NavController, onBack: () -> Un
                 is ContactsSettingsEvent.OpenBlinkContactsImport -> {
                     navController.navigateToBlinkContactsImport(walletId = event.walletId)
                 }
+
+                is ContactsSettingsEvent.CreateShortcutForContact -> {
+                    navController.navigateToSettingsPayments(
+                        initialShortcutContactId = event.contactId
+                    )
+                }
             }
         }
     }
@@ -557,6 +583,7 @@ private fun ContactsSettingsEntry(navController: NavController, onBack: () -> Un
         onContactEditorRoleSelected = viewModel::updateContactEditorRole,
         onContactEditorSave = viewModel::saveContactEditor,
         onContactEditorDelete = viewModel::deleteContactEditor,
+        onCreateShortcutForContact = viewModel::createShortcutForCurrentContact,
         onEditorDismiss = viewModel::dismissEditor
     )
 }

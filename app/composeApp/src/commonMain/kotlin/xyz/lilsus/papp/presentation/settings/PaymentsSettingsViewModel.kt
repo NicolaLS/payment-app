@@ -56,6 +56,8 @@ class PaymentsSettingsViewModel internal constructor(
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
     private var contacts: List<Contact> = emptyList()
     private var shortcuts: List<PaymentShortcut> = emptyList()
+    private var shortcutEditorAutoSaveRevision: Int = 0
+    private var pendingInitialShortcutContactId: String? = null
 
     private val _uiState = MutableStateFlow(PaymentsSettingsUiState())
     val uiState: StateFlow<PaymentsSettingsUiState> = _uiState.asStateFlow()
@@ -99,6 +101,11 @@ class PaymentsSettingsViewModel internal constructor(
             scope.launch {
                 useCase().collectLatest {
                     contacts = it
+                    pendingInitialShortcutContactId?.let { contactId ->
+                        if (openAddShortcutEditor(selectedContactId = contactId)) {
+                            pendingInitialShortcutContactId = null
+                        }
+                    }
                     refreshShortcuts()
                 }
             }
@@ -148,14 +155,29 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     fun startAddShortcut() {
+        openAddShortcutEditor(selectedContactId = null)
+    }
+
+    fun startAddShortcutForContact(contactId: String) {
+        if (openAddShortcutEditor(selectedContactId = contactId)) {
+            pendingInitialShortcutContactId = null
+        } else {
+            pendingInitialShortcutContactId = contactId
+        }
+    }
+
+    private fun openAddShortcutEditor(selectedContactId: String?): Boolean {
+        val selectedContact = selectedContactId?.let(::shortcutContactOption)
+        if (selectedContactId != null && selectedContact == null) return false
         val options = shortcutContactOptions()
         val currencyCode = currencyManager.state.value.info.code
+        shortcutEditorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(
             shortcutEditor = ShortcutSettingsEditor(
                 shortcutId = null,
                 title = "",
-                selectedContactId = null,
-                selectedContact = null,
+                selectedContactId = selectedContact?.id,
+                selectedContact = selectedContact,
                 amount = "",
                 currencyCode = currencyCode,
                 comment = "",
@@ -163,6 +185,7 @@ class PaymentsSettingsViewModel internal constructor(
                 contactOptions = options
             )
         )
+        return true
     }
 
     fun startEditShortcut(id: String) {
@@ -170,6 +193,7 @@ class PaymentsSettingsViewModel internal constructor(
         val options = shortcutContactOptions()
         val selectedContactId = shortcut.contactId
             ?: contacts.firstOrNull { it.address.sameAddressAs(shortcut.address) }?.id
+        shortcutEditorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(
             shortcutEditor = ShortcutSettingsEditor(
                 shortcutId = shortcut.id,
@@ -188,11 +212,19 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     fun deleteShortcut(id: String) {
-        scope.launch { deleteShortcutUseCase?.invoke(id) }
+        shortcutEditorAutoSaveRevision++
+        scope.launch {
+            deleteShortcutUseCase?.invoke(id)
+            if (_uiState.value.shortcutEditor?.shortcutId == id) {
+                _uiState.value = _uiState.value.copy(shortcutEditor = null)
+            }
+            refreshShortcuts()
+        }
     }
 
     fun updateShortcutTitle(title: String) {
         updateShortcutEditor { it.copy(title = title, error = null) }
+            ?.autoSaveExistingShortcut()
     }
 
     fun updateShortcutContact(contactId: String) {
@@ -205,7 +237,7 @@ class PaymentsSettingsViewModel internal constructor(
                 contactOptions = options,
                 error = null
             )
-        }
+        }?.autoSaveExistingShortcut()
     }
 
     fun updateShortcutContactQuery(query: String) {
@@ -226,7 +258,7 @@ class PaymentsSettingsViewModel internal constructor(
                 amount = amount.cleanAmountInput(info.fractionDigits),
                 error = null
             )
-        }
+        }?.autoSaveExistingShortcut()
     }
 
     fun updateShortcutCurrency(currencyCode: String) {
@@ -241,46 +273,24 @@ class PaymentsSettingsViewModel internal constructor(
                 amount = editor.amount.cleanAmountInput(info.fractionDigits),
                 error = null
             )
-        }
+        }?.autoSaveExistingShortcut()
     }
 
     fun updateShortcutComment(comment: String) {
         updateShortcutEditor { it.copy(comment = comment, error = null) }
+            ?.autoSaveExistingShortcut()
     }
 
     fun saveShortcutEditor() {
         val editor = _uiState.value.shortcutEditor ?: return
-        val contactId = editor.selectedContactId
-        if (contacts.isEmpty()) {
-            updateShortcutEditor { it.copy(error = "Add a contact before creating a shortcut.") }
-            return
-        }
-        if (contactId == null) {
-            updateShortcutEditor { it.copy(error = "Select a contact.") }
-            return
-        }
-        val amountInfo = CurrencyCatalog.infoFor(editor.currencyCode)
-        val amountMinor = editor.amount.parseMinorAmount(amountInfo.fractionDigits)
-        if (amountMinor == null || amountMinor <= 0L) {
-            updateShortcutEditor { it.copy(error = "Enter an amount.") }
-            return
-        }
-        val contact = contacts.firstOrNull { it.id == contactId }
-        if (contact == null) {
-            updateShortcutEditor { it.copy(error = "Select a contact.") }
-            return
-        }
-        val title = editor.title.ifBlank { "Pay ${contact.displayName}" }
+        val request = editor.toSaveRequest(setError = true) ?: return
         scope.launch {
             saveShortcut?.invoke(
-                id = editor.shortcutId,
-                title = title,
-                contactId = contact.id,
-                amount = ShortcutAmount(
-                    minor = amountMinor,
-                    currencyCode = amountInfo.code
-                ),
-                comment = editor.comment.takeIf { it.isNotBlank() }
+                id = request.id,
+                title = request.title,
+                contactId = request.contactId,
+                amount = request.amount,
+                comment = request.comment
             )
             _uiState.value = _uiState.value.copy(shortcutEditor = null)
             refreshShortcuts()
@@ -288,6 +298,7 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     fun dismissShortcutEditor() {
+        shortcutEditorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(shortcutEditor = null)
     }
 
@@ -309,9 +320,70 @@ class PaymentsSettingsViewModel internal constructor(
 
     private fun updateShortcutEditor(
         transform: (ShortcutSettingsEditor) -> ShortcutSettingsEditor
-    ) {
-        val editor = _uiState.value.shortcutEditor ?: return
+    ): ShortcutSettingsEditor? {
+        val editor = _uiState.value.shortcutEditor ?: return null
         _uiState.value = _uiState.value.copy(shortcutEditor = transform(editor))
+        return _uiState.value.shortcutEditor
+    }
+
+    private fun ShortcutSettingsEditor.autoSaveExistingShortcut() {
+        shortcutId ?: return
+        val revision = ++shortcutEditorAutoSaveRevision
+        val request = toSaveRequest(setError = true) ?: return
+        scope.launch {
+            if (revision == shortcutEditorAutoSaveRevision) {
+                saveShortcut?.invoke(
+                    id = request.id,
+                    title = request.title,
+                    contactId = request.contactId,
+                    amount = request.amount,
+                    comment = request.comment
+                )
+                refreshShortcuts()
+            }
+        }
+    }
+
+    private fun ShortcutSettingsEditor.toSaveRequest(setError: Boolean): ShortcutSaveRequest? {
+        val contactId = selectedContactId
+        if (contacts.isEmpty()) {
+            setShortcutEditorErrorIfRequested(
+                setError,
+                "Add a contact before creating a shortcut."
+            )
+            return null
+        }
+        if (contactId == null) {
+            setShortcutEditorErrorIfRequested(setError, "Select a contact.")
+            return null
+        }
+        val amountInfo = CurrencyCatalog.infoFor(currencyCode)
+        val amountMinor = amount.parseMinorAmount(amountInfo.fractionDigits)
+        if (amountMinor == null || amountMinor <= 0L) {
+            setShortcutEditorErrorIfRequested(setError, "Enter an amount.")
+            return null
+        }
+        val contact = contacts.firstOrNull { it.id == contactId }
+        if (contact == null) {
+            setShortcutEditorErrorIfRequested(setError, "Select a contact.")
+            return null
+        }
+        return ShortcutSaveRequest(
+            id = shortcutId,
+            title = title.ifBlank { "Pay ${contact.displayName}" },
+            contactId = contact.id,
+            amount = ShortcutAmount(
+                minor = amountMinor,
+                currencyCode = amountInfo.code
+            ),
+            comment = comment.takeIf { it.isNotBlank() }
+        )
+    }
+
+    private fun setShortcutEditorErrorIfRequested(setError: Boolean, message: String) {
+        if (setError) {
+            updateShortcutEditor { it.copy(error = message) }
+        }
     }
 
     private fun refreshShortcuts() {
@@ -486,3 +558,11 @@ data class ShortcutSettingsEditor(
 )
 
 data class ShortcutContactOption(val id: String, val displayName: String, val address: String)
+
+private data class ShortcutSaveRequest(
+    val id: String?,
+    val title: String,
+    val contactId: String,
+    val amount: ShortcutAmount,
+    val comment: String?
+)

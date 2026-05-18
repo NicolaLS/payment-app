@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -51,6 +52,7 @@ fun ContactListContent(
     selectedTags: Set<ContactRole> = emptySet(),
     onTagSelected: (ContactRole?) -> Unit = {},
     showRowTags: Boolean = false,
+    showNavigationIndicator: Boolean = false,
     selectedContactId: String? = null,
     showSelectedIndicator: Boolean = selectedContactId != null,
     emptyMessage: String? = null,
@@ -82,6 +84,17 @@ fun ContactListContent(
                 showSelectedIndicator = showSelectedIndicator,
                 showTags = showRowTags,
                 testTag = rowTestTag(contact),
+                trailingContent = if (showNavigationIndicator) {
+                    {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    null
+                },
                 onClick = { onContactClick(contact) }
             )
         }
