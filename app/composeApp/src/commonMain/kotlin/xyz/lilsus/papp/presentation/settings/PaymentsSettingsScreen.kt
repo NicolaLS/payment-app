@@ -712,19 +712,6 @@ private fun ShortcutSettingsEditorContent(
             onClick = onContactChange
         )
         OutlinedTextField(
-            value = state.amount,
-            onValueChange = onAmountChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(Res.string.shortcut_amount_label)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            singleLine = true
-        )
-        SectionTitle(stringResource(Res.string.shortcut_currency_label))
-        ShortcutSelectedCurrencyRow(
-            option = CurrencyOption(code = currencyInfo.code, label = currencyLabel),
-            onClick = onCurrencyChange
-        )
-        OutlinedTextField(
             value = state.title,
             onValueChange = onTitleChange,
             modifier = Modifier.fillMaxWidth(),
@@ -737,6 +724,19 @@ private fun ShortcutSettingsEditorContent(
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(Res.string.shortcut_comment_label)) },
             singleLine = true
+        )
+        OutlinedTextField(
+            value = state.amount,
+            onValueChange = onAmountChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(Res.string.shortcut_amount_label)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            singleLine = true
+        )
+        SectionTitle(stringResource(Res.string.shortcut_currency_label))
+        ShortcutSelectedCurrencyRow(
+            option = CurrencyOption(code = currencyInfo.code, label = currencyLabel),
+            onClick = onCurrencyChange
         )
         state.error?.let { ErrorText(it) }
         Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
