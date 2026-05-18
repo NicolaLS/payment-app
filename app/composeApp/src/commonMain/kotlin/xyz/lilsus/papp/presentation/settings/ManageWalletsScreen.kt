@@ -4,10 +4,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -200,21 +202,39 @@ private fun WalletCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedButton(
-                    modifier = Modifier.testTag(
-                        MaestroTags.Settings.walletRemoveButton(wallet.testLabel())
-                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag(
+                            MaestroTags.Settings.walletRemoveButton(wallet.testLabel())
+                        ),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
                     onClick = onRemoveWallet
                 ) {
-                    Text(text = stringResource(Res.string.settings_manage_wallets_remove))
+                    Text(
+                        text = stringResource(Res.string.settings_manage_wallets_remove),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        softWrap = false
+                    )
                 }
                 Button(
-                    modifier = Modifier.testTag(
-                        MaestroTags.Settings.walletSetActiveButton(wallet.testLabel())
-                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag(
+                            MaestroTags.Settings.walletSetActiveButton(wallet.testLabel())
+                        ),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
                     onClick = onSetActive,
                     enabled = !isActive
                 ) {
-                    Text(text = stringResource(Res.string.settings_manage_wallets_set_active))
+                    Text(
+                        text = stringResource(Res.string.settings_manage_wallets_set_active),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        softWrap = false
+                    )
                 }
             }
         }

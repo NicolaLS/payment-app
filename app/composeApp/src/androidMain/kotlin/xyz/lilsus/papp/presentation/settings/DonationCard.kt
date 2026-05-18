@@ -2,8 +2,10 @@ package xyz.lilsus.papp.presentation.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -48,17 +50,48 @@ actual fun DonationCard(onDonate1k: () -> Unit, onDonate5k: () -> Unit, onDonate
                 textAlign = TextAlign.Center
             )
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(onClick = onDonate1k) {
-                    Text(text = stringResource(Res.string.settings_donate_tier_small))
+                Button(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    onClick = onDonate1k
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_donate_tier_small),
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
-                Button(onClick = onDonate5k) {
-                    Text(text = stringResource(Res.string.settings_donate_tier_medium))
+                Button(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    onClick = onDonate5k
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_donate_tier_medium),
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
-                Button(onClick = onDonate10k) {
-                    Text(text = stringResource(Res.string.settings_donate_tier_large))
+                Button(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    onClick = onDonate10k
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_donate_tier_large),
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }
