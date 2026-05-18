@@ -129,6 +129,12 @@ class BlinkContactsImportViewModel internal constructor(
         }
     }
 
+    fun updateSearchQuery(query: String) {
+        _uiState.update {
+            it.copy(searchQuery = query)
+        }
+    }
+
     fun importSelectedBlinkContacts() {
         val state = _uiState.value
         if (state.isImporting) return
@@ -225,6 +231,7 @@ private fun LightningAddress.importKey(): String = full.trim().lowercase()
 data class BlinkContactsImportUiState(
     val items: List<BlinkContactImportItem> = emptyList(),
     val selectedIds: Set<String> = emptySet(),
+    val searchQuery: String = "",
     val hasLoaded: Boolean = false,
     val isLoading: Boolean = false,
     val isImporting: Boolean = false,
@@ -233,6 +240,13 @@ data class BlinkContactsImportUiState(
 ) {
     val selectedCount: Int
         get() = items.count { !it.alreadyAdded && it.id in selectedIds }
+
+    val filteredItems: List<BlinkContactImportItem>
+        get() {
+            val query = searchQuery.trim()
+            if (query.isBlank()) return items
+            return items.filter { it.matchesQuery(query) }
+        }
 
     val selectableCount: Int
         get() = items.count { !it.alreadyAdded }
@@ -252,6 +266,11 @@ data class BlinkContactImportItem(
     val transactionsCount: Int,
     val alreadyAdded: Boolean
 )
+
+private fun BlinkContactImportItem.matchesQuery(query: String): Boolean =
+    displayName.contains(query, ignoreCase = true) ||
+        address.contains(query, ignoreCase = true) ||
+        alias.orEmpty().contains(query, ignoreCase = true)
 
 sealed interface BlinkContactsImportEvent {
     data class Imported(val count: Int) : BlinkContactsImportEvent

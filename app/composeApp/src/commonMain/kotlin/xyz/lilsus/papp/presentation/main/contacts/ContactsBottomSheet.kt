@@ -1,6 +1,5 @@
 package xyz.lilsus.papp.presentation.main.contacts
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,19 +13,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -40,7 +33,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,9 +51,6 @@ import lasr.composeapp.generated.resources.contacts_handle
 import lasr.composeapp.generated.resources.contacts_invalid_address
 import lasr.composeapp.generated.resources.contacts_no_matching_contacts
 import lasr.composeapp.generated.resources.contacts_not_now
-import lasr.composeapp.generated.resources.contacts_role_favorite
-import lasr.composeapp.generated.resources.contacts_role_merchants
-import lasr.composeapp.generated.resources.contacts_role_people
 import lasr.composeapp.generated.resources.contacts_save
 import lasr.composeapp.generated.resources.contacts_save_prompt_body
 import lasr.composeapp.generated.resources.contacts_save_prompt_title
@@ -74,6 +63,10 @@ import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
+import xyz.lilsus.papp.presentation.common.ContactListContent
+import xyz.lilsus.papp.presentation.common.ContactListEntry
+import xyz.lilsus.papp.presentation.common.ContactRoleChips
+import xyz.lilsus.papp.presentation.common.FadingLazyColumn
 
 @Composable
 fun ContactsHandle(onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -176,7 +169,7 @@ fun SaveContactBottomSheet(
                 label = { Text(stringResource(Res.string.contacts_alias_label)) },
                 singleLine = true
             )
-            RoleChips(
+            ContactRoleChips(
                 selectedRoles = state.selectedRoles,
                 onSelected = onRoleSelected
             )
@@ -286,7 +279,9 @@ private fun ShortcutsTab(
     modifier: Modifier = Modifier
 ) {
     FadingLazyColumn(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(state.shortcuts, key = { it.id }) { shortcut ->
             ShortcutRow(
@@ -359,36 +354,18 @@ private fun ContactsTab(
     onContactSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        RoleChips(
-            selectedRoles = state.selectedRoles,
-            onSelected = onRoleSelected
-        )
-        FadingLazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            if (state.contacts.isEmpty()) {
-                item {
-                    Text(
-                        text = stringResource(Res.string.contacts_no_matching_contacts),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 24.dp)
-                    )
-                }
-            } else {
-                items(state.contacts, key = { it.id }) { contact ->
-                    ContactRow(
-                        item = contact,
-                        onClick = { onContactSelected(contact.id) }
-                    )
-                }
-            }
-            item { Spacer(modifier = Modifier.height(12.dp)) }
-        }
-    }
+    ContactListContent(
+        contacts = state.contacts.map { it.toContactListEntry() },
+        onContactClick = { onContactSelected(it.id) },
+        modifier = modifier,
+        showTagFilters = true,
+        selectedTags = state.selectedRoles,
+        onTagSelected = onRoleSelected,
+        showRowTags = true,
+        emptyMessage = stringResource(Res.string.contacts_no_matching_contacts),
+        rowTestTag = { MaestroTags.Payment.contactRow(it.address) },
+        fadeContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
+    )
 }
 
 @Composable
@@ -446,154 +423,17 @@ private fun ShortcutRow(item: ShortcutListItem, onPay: () -> Unit) {
     }
 }
 
-@Composable
-private fun ContactRow(item: ContactListItem, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(MaestroTags.Payment.contactRow(item.address)),
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .clickable(
-                    role = Role.Button,
-                    onClick = onClick
-                )
-                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = item.address,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                item.roles.takeIf { it.isNotEmpty() }?.let {
-                    Text(
-                        text = rolesLabel(it),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RoleChips(selectedRoles: Set<ContactRole>, onSelected: (ContactRole?) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        ContactRole.entries.chunked(ROLE_CHIPS_PER_ROW).forEach { rowRoles ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                rowRoles.forEach { role ->
-                    val selected = role in selectedRoles
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onSelected(role) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 36.dp),
-                        label = {
-                            Text(
-                                text = roleLabel(role),
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = roleColor(role),
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-                repeat(ROLE_CHIPS_PER_ROW - rowRoles.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun roleLabel(role: ContactRole): String = when (role) {
-    ContactRole.Favorite -> stringResource(Res.string.contacts_role_favorite)
-    ContactRole.People -> stringResource(Res.string.contacts_role_people)
-    ContactRole.Merchants -> stringResource(Res.string.contacts_role_merchants)
-}
-
-@Composable
-private fun rolesLabel(roles: Set<ContactRole>): String {
-    val labels = buildList {
-        if (ContactRole.Favorite in roles) add(stringResource(Res.string.contacts_role_favorite))
-        if (ContactRole.People in roles) add(stringResource(Res.string.contacts_role_people))
-        if (ContactRole.Merchants in roles) add(stringResource(Res.string.contacts_role_merchants))
-    }
-    return labels.joinToString(" • ")
-}
-
-@Composable
-private fun FadingLazyColumn(
-    modifier: Modifier = Modifier,
-    state: LazyListState = rememberLazyListState(),
-    content: LazyListScope.() -> Unit
-) {
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-    Box(modifier = modifier) {
-        LazyColumn(
-            state = state,
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            content = content
-        )
-        if (state.canScrollForward) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(LIST_FADE_HEIGHT)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                containerColor.copy(alpha = 0f),
-                                containerColor
-                            )
-                        )
-                    )
-            )
-        }
-    }
-}
-
 private fun tabLabel(label: String, count: Int): String =
     if (count > 0) "$label ($count)" else label
 
-private fun roleColor(role: ContactRole): Color = when (role) {
-    ContactRole.Favorite -> Color(0xFFC2185B)
-    ContactRole.People -> Color(0xFF1565C0)
-    ContactRole.Merchants -> Color(0xFFEF6C00)
-}
-
 private val PAY_SHEET_CONTENT_HEIGHT = 430.dp
-private val LIST_FADE_HEIGHT = 56.dp
-private const val ROLE_CHIPS_PER_ROW = 3
+
+private fun ContactListItem.toContactListEntry(): ContactListEntry = ContactListEntry(
+    id = id,
+    displayName = displayName,
+    address = address,
+    roles = roles
+)
 
 private val LightningBoltIcon: ImageVector = ImageVector.Builder(
     name = "LightningBolt",

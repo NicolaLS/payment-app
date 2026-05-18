@@ -1,9 +1,7 @@
 package xyz.lilsus.papp.presentation.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -15,11 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,10 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,14 +46,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -108,6 +97,8 @@ import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaymentConfirmationMode
 import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.presentation.common.BackIconButton
+import xyz.lilsus.papp.presentation.common.ContactListContent
+import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ThresholdSlider
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
@@ -858,78 +849,24 @@ private fun ShortcutContactPickerContent(
     onContactSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(Res.string.shortcut_contact_search_label)) },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            singleLine = true
-        )
-        if (options.isEmpty()) {
-            Text(
-                text = stringResource(
-                    if (query.isBlank()) {
-                        Res.string.shortcut_no_contacts
-                    } else {
-                        Res.string.shortcut_no_matching_contacts
-                    }
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-        } else {
-            FadingShortcutContactList(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(top = 24.dp)
-            ) {
-                items(options, key = { it.id }) { option ->
-                    ShortcutContactPickerRow(
-                        option = option,
-                        selected = selectedContactId == option.id,
-                        onClick = { onContactSelected(option.id) }
-                    )
-                }
+    ContactListContent(
+        contacts = options.map { it.toContactListEntry() },
+        onContactClick = { onContactSelected(it.id) },
+        modifier = modifier,
+        showSearchBar = true,
+        searchQuery = query,
+        onSearchQueryChange = onQueryChange,
+        searchLabel = stringResource(Res.string.shortcut_contact_search_label),
+        selectedContactId = selectedContactId,
+        showSelectedIndicator = true,
+        emptyMessage = stringResource(
+            if (query.isBlank()) {
+                Res.string.shortcut_no_contacts
+            } else {
+                Res.string.shortcut_no_matching_contacts
             }
-        }
-    }
-}
-
-@Composable
-private fun FadingShortcutContactList(
-    modifier: Modifier = Modifier,
-    state: LazyListState = rememberLazyListState(),
-    content: LazyListScope.() -> Unit
-) {
-    val containerColor = MaterialTheme.colorScheme.background
-    Box(modifier = modifier) {
-        LazyColumn(
-            state = state,
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = content
         )
-        if (state.canScrollForward) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(SHORTCUT_LIST_FADE_HEIGHT)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                containerColor.copy(alpha = 0f),
-                                containerColor
-                            )
-                        )
-                    )
-            )
-        }
-    }
+    )
 }
 
 @Composable
@@ -940,54 +877,6 @@ private fun SectionTitle(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 8.dp)
     )
-}
-
-@Composable
-private fun ShortcutContactPickerRow(
-    option: ShortcutContactOption,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = if (selected) 3.dp else 1.dp,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = option.displayName,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = option.address,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            if (selected) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
 }
 
 @Composable
@@ -1027,7 +916,11 @@ private fun PaymentConfirmationMode.testTag(): String = when (this) {
     PaymentConfirmationMode.Above -> MaestroTags.Settings.PAYMENTS_CONFIRMATION_MODE_ABOVE
 }
 
-private val SHORTCUT_LIST_FADE_HEIGHT = 56.dp
+private fun ShortcutContactOption.toContactListEntry(): ContactListEntry = ContactListEntry(
+    id = id,
+    displayName = displayName,
+    address = address
+)
 
 @Preview
 @Composable

@@ -3,16 +3,12 @@ package xyz.lilsus.papp.presentation.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -23,8 +19,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -36,7 +30,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
@@ -53,10 +46,7 @@ import lasr.composeapp.generated.resources.contacts_import_blink
 import lasr.composeapp.generated.resources.contacts_import_blink_choose_wallet
 import lasr.composeapp.generated.resources.contacts_invalid_address
 import lasr.composeapp.generated.resources.contacts_no_matching_contacts
-import lasr.composeapp.generated.resources.contacts_role_favorite
 import lasr.composeapp.generated.resources.contacts_role_label
-import lasr.composeapp.generated.resources.contacts_role_merchants
-import lasr.composeapp.generated.resources.contacts_role_people
 import lasr.composeapp.generated.resources.contacts_save
 import lasr.composeapp.generated.resources.contacts_search_label
 import lasr.composeapp.generated.resources.settings_contacts
@@ -64,6 +54,9 @@ import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.presentation.common.BackIconButton
+import xyz.lilsus.papp.presentation.common.ContactListContent
+import xyz.lilsus.papp.presentation.common.ContactListEntry
+import xyz.lilsus.papp.presentation.common.ContactRoleChips
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,63 +150,41 @@ private fun SettingsListContent(
     onEditContact: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        LazyColumn(
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        OutlinedButton(onClick = onAddContact, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Filled.Add, contentDescription = null)
+            Text(
+                text = stringResource(Res.string.contacts_add),
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+        if (state.hasBlinkWallets) {
+            OutlinedButton(
+                onClick = onImportBlinkContacts,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(Res.string.contacts_import_blink))
+            }
+        }
+        ContactListContent(
+            contacts = state.contacts.map { it.toContactListEntry() },
+            onContactClick = { onEditContact(it.id) },
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                OutlinedButton(onClick = onAddContact, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
-                    Text(
-                        text = stringResource(Res.string.contacts_add),
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+            showSearchBar = true,
+            searchQuery = state.query,
+            onSearchQueryChange = onSearchQueryChange,
+            searchLabel = stringResource(Res.string.contacts_search_label),
+            showRowTags = true,
+            emptyMessage = stringResource(
+                if (state.query.isBlank()) {
+                    Res.string.contacts_empty
+                } else {
+                    Res.string.contacts_no_matching_contacts
                 }
-            }
-            if (state.hasBlinkWallets) {
-                item {
-                    OutlinedButton(
-                        onClick = onImportBlinkContacts,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(stringResource(Res.string.contacts_import_blink))
-                    }
-                }
-            }
-            item {
-                OutlinedTextField(
-                    value = state.query,
-                    onValueChange = onSearchQueryChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(Res.string.contacts_search_label)) },
-                    singleLine = true
-                )
-            }
-            if (state.contacts.isEmpty()) {
-                item {
-                    Text(
-                        text = stringResource(
-                            if (state.query.isBlank()) {
-                                Res.string.contacts_empty
-                            } else {
-                                Res.string.contacts_no_matching_contacts
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            items(state.contacts, key = { it.id }) { item ->
-                ContactSettingsRow(
-                    item = item,
-                    onClick = { onEditContact(item.id) }
-                )
-            }
-        }
+            )
+        )
     }
 }
 
@@ -277,46 +248,6 @@ private fun BlinkWalletChoiceRow(wallet: BlinkWalletImportOption, onClick: () ->
 }
 
 @Composable
-private fun ContactSettingsRow(item: ContactSettingsItem, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 2.dp,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(
-            modifier = Modifier
-                .heightIn(min = 64.dp)
-                .fillMaxWidth()
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = item.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = item.address,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            item.roles.takeIf { it.isNotEmpty() }?.let {
-                Text(
-                    text = rolesLabel(it),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun ContactSettingsEditorContent(
     state: ContactSettingsEditor,
     onAddressChange: (String) -> Unit,
@@ -350,7 +281,7 @@ private fun ContactSettingsEditorContent(
             text = stringResource(Res.string.contacts_role_label),
             style = MaterialTheme.typography.titleSmall
         )
-        RoleChips(
+        ContactRoleChips(
             selectedRoles = state.roles,
             onSelected = onRoleSelected
         )
@@ -372,73 +303,18 @@ private fun ContactSettingsEditorContent(
     }
 }
 
-@Composable
-private fun RoleChips(selectedRoles: Set<ContactRole>, onSelected: (ContactRole?) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        ContactRole.entries.chunked(ROLE_CHIPS_PER_ROW).forEach { rowRoles ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                rowRoles.forEach { role ->
-                    FilterChip(
-                        selected = role in selectedRoles,
-                        onClick = { onSelected(role) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 36.dp),
-                        label = {
-                            Text(
-                                text = roleLabel(role),
-                                style = MaterialTheme.typography.labelSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = roleColor(role),
-                            selectedLabelColor = Color.White
-                        )
-                    )
-                }
-                repeat(ROLE_CHIPS_PER_ROW - rowRoles.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun roleLabel(role: ContactRole): String = when (role) {
-    ContactRole.Favorite -> stringResource(Res.string.contacts_role_favorite)
-    ContactRole.People -> stringResource(Res.string.contacts_role_people)
-    ContactRole.Merchants -> stringResource(Res.string.contacts_role_merchants)
-}
-
-@Composable
-private fun rolesLabel(roles: Set<ContactRole>): String {
-    val labels = buildList {
-        if (ContactRole.Favorite in roles) add(stringResource(Res.string.contacts_role_favorite))
-        if (ContactRole.People in roles) add(stringResource(Res.string.contacts_role_people))
-        if (ContactRole.Merchants in roles) add(stringResource(Res.string.contacts_role_merchants))
-    }
-    return labels.joinToString(" • ")
-}
-
-private fun roleColor(role: ContactRole): Color = when (role) {
-    ContactRole.Favorite -> Color(0xFFC2185B)
-    ContactRole.People -> Color(0xFF1565C0)
-    ContactRole.Merchants -> Color(0xFFEF6C00)
-}
-
-private const val ROLE_CHIPS_PER_ROW = 3
-
 private fun abbreviateWalletId(value: String): String = if (value.length <= 16) {
     value
 } else {
     value.take(8) + "…" + value.takeLast(4)
 }
+
+private fun ContactSettingsItem.toContactListEntry(): ContactListEntry = ContactListEntry(
+    id = id,
+    displayName = displayName,
+    address = address,
+    roles = roles
+)
 
 @Composable
 private fun ErrorText(message: String) {

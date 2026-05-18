@@ -2,7 +2,6 @@ package xyz.lilsus.papp.presentation.settings.wallet
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
@@ -28,9 +26,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
+import lasr.composeapp.generated.resources.contacts_no_matching_contacts
+import lasr.composeapp.generated.resources.contacts_search_label
 import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_already_added
 import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_empty
 import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_hint
@@ -44,6 +43,9 @@ import lasr.composeapp.generated.resources.settings_wallet_details_import_contac
 import lasr.composeapp.generated.resources.settings_wallet_details_import_contacts_transactions
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.presentation.common.BackIconButton
+import xyz.lilsus.papp.presentation.common.ContactListEntry
+import xyz.lilsus.papp.presentation.common.ContactListScaffold
+import xyz.lilsus.papp.presentation.common.ContactSummary
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +55,7 @@ fun BlinkContactsImportScreen(
     onBack: () -> Unit,
     onToggleContact: (String) -> Unit,
     onToggleAll: () -> Unit,
+    onSearchQueryChange: (String) -> Unit,
     onImport: () -> Unit,
     onSkip: (() -> Unit)?,
     modifier: Modifier = Modifier
@@ -81,37 +84,33 @@ fun BlinkContactsImportScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .consumeWindowInsets(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+                .consumeWindowInsets(padding)
+                .padding(horizontal = 16.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text(
-                    text = stringResource(Res.string.settings_wallet_details_import_contacts_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = stringResource(Res.string.settings_wallet_details_import_contacts_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             if (state.isLoading) {
-                item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        CircularProgressIndicator()
-                        Text(
-                            text = stringResource(
-                                Res.string.settings_wallet_details_import_contacts_loading
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = stringResource(
+                            Res.string.settings_wallet_details_import_contacts_loading
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -121,44 +120,52 @@ fun BlinkContactsImportScreen(
                 state.items.isEmpty() &&
                 errorText == null
             ) {
-                item {
-                    Text(
-                        text = stringResource(
-                            Res.string.settings_wallet_details_import_contacts_empty
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = stringResource(
+                        Res.string.settings_wallet_details_import_contacts_empty
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             if (state.items.isNotEmpty()) {
-                item {
-                    SelectAllContactsRow(
-                        checked = state.allSelected,
-                        selectedCount = state.selectedCount,
-                        enabled = state.hasSelectableItems && !state.isImporting,
-                        onToggle = onToggleAll
-                    )
-                }
-                items(state.items, key = { it.id }) { item ->
-                    BlinkContactImportRow(
-                        item = item,
-                        selected = item.id in state.selectedIds,
-                        enabled = !item.alreadyAdded && !state.isImporting,
-                        onToggle = { onToggleContact(item.id) }
-                    )
+                ContactListScaffold(
+                    isEmpty = state.filteredItems.isEmpty(),
+                    emptyMessage = stringResource(Res.string.contacts_no_matching_contacts),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    showSearchBar = true,
+                    searchQuery = state.searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    searchLabel = stringResource(Res.string.contacts_search_label)
+                ) {
+                    item {
+                        SelectAllContactsRow(
+                            checked = state.allSelected,
+                            selectedCount = state.selectedCount,
+                            enabled = state.hasSelectableItems && !state.isImporting,
+                            onToggle = onToggleAll
+                        )
+                    }
+                    items(state.filteredItems, key = { it.id }) { item ->
+                        BlinkContactImportRow(
+                            item = item,
+                            selected = item.id in state.selectedIds,
+                            enabled = !item.alreadyAdded && !state.isImporting,
+                            onToggle = { onToggleContact(item.id) }
+                        )
+                    }
                 }
             }
 
             errorText?.let { message ->
-                item {
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
@@ -319,21 +326,11 @@ private fun BlinkContactImportRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Checkbox(checked = selected, onCheckedChange = null, enabled = enabled)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.displayName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = titleColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = item.address,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            ContactSummary(
+                contact = item.toContactListEntry(),
+                modifier = Modifier.weight(1f),
+                titleColor = titleColor
+            ) {
                 Text(
                     text = statusText,
                     style = MaterialTheme.typography.labelSmall,
@@ -343,3 +340,9 @@ private fun BlinkContactImportRow(
         }
     }
 }
+
+private fun BlinkContactImportItem.toContactListEntry(): ContactListEntry = ContactListEntry(
+    id = id,
+    displayName = displayName,
+    address = address
+)

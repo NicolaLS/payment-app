@@ -345,6 +345,7 @@ private fun BlinkContactsImportEntry(navController: NavController, walletId: Str
         onBack = { navController.popBackStack() },
         onToggleContact = viewModel::toggleBlinkContact,
         onToggleAll = viewModel::toggleAllBlinkContacts,
+        onSearchQueryChange = viewModel::updateSearchQuery,
         onImport = viewModel::importSelectedBlinkContacts,
         onSkip = null
     )
@@ -784,6 +785,7 @@ private fun AddBlinkWalletImportStep(
         onBack = finishOnboarding,
         onToggleContact = viewModel::toggleBlinkContact,
         onToggleAll = viewModel::toggleAllBlinkContacts,
+        onSearchQueryChange = viewModel::updateSearchQuery,
         onImport = viewModel::importSelectedBlinkContacts,
         onSkip = finishOnboarding
     )
