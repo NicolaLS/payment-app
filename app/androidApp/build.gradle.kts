@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    id("org.jetbrains.kotlinx.kover")
 }
 
 abstract class PrintReleaseSigningConfigTask : DefaultTask() {
@@ -289,6 +290,25 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.nwc)
     debugImplementation(libs.compose.ui.tooling)
+}
+
+kover {
+    currentProject {
+        sources {
+            excludedSourceSets.add("e2e")
+        }
+    }
+
+    reports {
+        total {
+            filters {
+                excludes {
+                    packages("xyz.lilsus.papp.e2e")
+                    classes("xyz.lilsus.papp.E2eMainActivity*")
+                }
+            }
+        }
+    }
 }
 
 tasks.register<PrintReleaseSigningConfigTask>("printReleaseSigningConfig") {

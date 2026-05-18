@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.apollo)
+    id("org.jetbrains.kotlinx.kover")
 }
 
 kotlin {
@@ -145,6 +146,35 @@ apollo {
         introspection {
             endpointUrl.set("https://api.blink.sv/graphql")
             schemaFile.set(blinkSchemaFile)
+        }
+    }
+}
+
+kover {
+    currentProject {
+        createVariant("shared") {
+            add("android")
+
+            sources {
+                includedSourceSets.add("commonMain")
+            }
+        }
+    }
+
+    reports {
+        variant("shared") {
+            filters {
+                excludes {
+                    packages(
+                        "lasr.composeapp.generated.resources",
+                        "xyz.lilsus.papp.data.blink.graphql",
+                        "xyz.lilsus.papp.di",
+                    )
+                }
+            }
+
+            html { onCheck = true }
+            xml { onCheck = true }
         }
     }
 }

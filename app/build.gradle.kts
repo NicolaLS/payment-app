@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ktlint)
     alias(libs.plugins.apollo) apply false
+    id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 
 subprojects {
@@ -102,4 +103,27 @@ tasks.register<Exec>("installE2eIos") {
         providers.gradleProperty("lasr.ios.simulator").orElse("booted").get(),
         appPath.path
     )
+}
+dependencies {
+    kover(project(":composeApp"))
+    kover(project(":androidApp"))
+}
+
+kover {
+    reports {
+        total {
+            filters {
+                excludes {
+                    packages(
+                        "lasr.composeapp.generated.resources",
+                        "xyz.lilsus.papp.data.blink.graphql",
+                        "xyz.lilsus.papp.e2e",
+                    )
+                    classes(
+                        "xyz.lilsus.papp.E2eMainActivity*",
+                    )
+                }
+            }
+        }
+    }
 }
