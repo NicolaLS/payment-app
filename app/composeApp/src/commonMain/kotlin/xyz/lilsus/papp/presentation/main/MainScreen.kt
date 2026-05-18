@@ -78,6 +78,7 @@ fun MainScreen(
     onPaySheetTabSelected: (PaySheetTab) -> Unit = {},
     onContactsRoleSelected: (ContactRole?) -> Unit = {},
     onShortcutSelected: (String) -> Unit = {},
+    onCreateShortcut: () -> Unit = {},
     onContactSelected: (String) -> Unit = {},
     onSaveContactPromptAliasChange: (String) -> Unit = {},
     onSaveContactPromptRoleSelected: (ContactRole?) -> Unit = {},
@@ -219,7 +220,8 @@ fun MainScreen(
             onTabSelected = onPaySheetTabSelected,
             onRoleSelected = onContactsRoleSelected,
             onContactSelected = onContactSelected,
-            onShortcutSelected = onShortcutSelected
+            onShortcutSelected = onShortcutSelected,
+            onCreateShortcut = onCreateShortcut
         )
     }
 

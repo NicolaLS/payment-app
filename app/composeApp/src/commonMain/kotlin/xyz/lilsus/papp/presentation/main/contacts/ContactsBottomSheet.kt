@@ -2,9 +2,11 @@ package xyz.lilsus.papp.presentation.main.contacts
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -15,6 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -39,6 +43,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
@@ -58,6 +63,7 @@ import lasr.composeapp.generated.resources.contacts_save_prompt_body
 import lasr.composeapp.generated.resources.contacts_save_prompt_title
 import lasr.composeapp.generated.resources.pay_sheet_contacts_tab
 import lasr.composeapp.generated.resources.pay_sheet_shortcuts_tab
+import lasr.composeapp.generated.resources.shortcuts_create_first
 import lasr.composeapp.generated.resources.shortcuts_empty
 import lasr.composeapp.generated.resources.shortcuts_title
 import org.jetbrains.compose.resources.stringResource
@@ -105,9 +111,10 @@ fun ContactsBottomSheet(
     onTabSelected: (PaySheetTab) -> Unit,
     onRoleSelected: (ContactRole?) -> Unit,
     onContactSelected: (String) -> Unit,
-    onShortcutSelected: (String) -> Unit
+    onShortcutSelected: (String) -> Unit,
+    onCreateShortcut: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -118,7 +125,8 @@ fun ContactsBottomSheet(
             onTabSelected = onTabSelected,
             onRoleSelected = onRoleSelected,
             onContactSelected = onContactSelected,
-            onShortcutSelected = onShortcutSelected
+            onShortcutSelected = onShortcutSelected,
+            onCreateShortcut = onCreateShortcut
         )
     }
 }
@@ -185,7 +193,8 @@ private fun PaySheetContent(
     onTabSelected: (PaySheetTab) -> Unit,
     onRoleSelected: (ContactRole?) -> Unit,
     onContactSelected: (String) -> Unit,
-    onShortcutSelected: (String) -> Unit
+    onShortcutSelected: (String) -> Unit,
+    onCreateShortcut: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -226,11 +235,20 @@ private fun PaySheetContent(
                 modifier = Modifier.weight(1f)
             )
         } else {
-            ShortcutsTab(
-                state = state,
-                onShortcutSelected = onShortcutSelected,
-                modifier = Modifier.weight(1f)
-            )
+            if (state.shortcuts.isEmpty()) {
+                EmptyShortcutsState(
+                    onCreateShortcut = onCreateShortcut,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                )
+            } else {
+                ShortcutsTab(
+                    state = state,
+                    onShortcutSelected = onShortcutSelected,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 }
@@ -245,24 +263,42 @@ private fun ShortcutsTab(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        if (state.shortcuts.isEmpty()) {
-            item {
+        items(state.shortcuts, key = { it.id }) { shortcut ->
+            ShortcutRow(
+                item = shortcut,
+                onPay = { onShortcutSelected(shortcut.id) }
+            )
+        }
+        item { Spacer(modifier = Modifier.height(12.dp)) }
+    }
+}
+
+@Composable
+private fun EmptyShortcutsState(onCreateShortcut: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = stringResource(Res.string.shortcuts_empty),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Button(onClick = onCreateShortcut) {
+                Icon(Icons.Filled.Add, contentDescription = null)
                 Text(
-                    text = stringResource(Res.string.shortcuts_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 24.dp)
-                )
-            }
-        } else {
-            items(state.shortcuts, key = { it.id }) { shortcut ->
-                ShortcutRow(
-                    item = shortcut,
-                    onPay = { onShortcutSelected(shortcut.id) }
+                    text = stringResource(Res.string.shortcuts_create_first),
+                    modifier = Modifier.padding(start = 8.dp)
                 )
             }
         }
-        item { Spacer(modifier = Modifier.height(12.dp)) }
     }
 }
 

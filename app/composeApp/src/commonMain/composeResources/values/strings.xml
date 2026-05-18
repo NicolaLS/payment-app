@@ -146,6 +146,7 @@
     <string name="shortcuts_title">Shortcuts</string>
     <string name="shortcuts_empty">No shortcuts yet</string>
     <string name="shortcuts_add">Add shortcut</string>
+    <string name="shortcuts_create_first">Create a shortcut</string>
     <string name="shortcut_title_label">Shortcut name</string>
     <string name="shortcut_contact_label">Contact</string>
     <string name="shortcut_contact_search_label">Search contacts</string>

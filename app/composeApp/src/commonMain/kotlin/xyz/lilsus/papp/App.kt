@@ -24,6 +24,7 @@ import xyz.lilsus.papp.navigation.navigateToAddBlinkWallet
 import xyz.lilsus.papp.navigation.navigateToAddWallet
 import xyz.lilsus.papp.navigation.navigateToConnectWallet
 import xyz.lilsus.papp.navigation.navigateToSettings
+import xyz.lilsus.papp.navigation.navigateToSettingsPayments
 import xyz.lilsus.papp.navigation.onboardingScreen
 import xyz.lilsus.papp.navigation.paymentScreen
 import xyz.lilsus.papp.navigation.settingsScreen
@@ -117,6 +118,7 @@ fun App() {
             )
             paymentScreen(
                 onNavigateToSettings = { navController.navigateToSettings() },
+                onNavigateToPaymentSettings = { navController.navigateToSettingsPayments() },
                 onNavigateToConnectWallet = { uri ->
                     navController.navigateToConnectWallet(uri = uri)
                 }
