@@ -249,6 +249,7 @@
     <string name="shortcut_currency_label">Currency</string>
     <string name="shortcut_amount_label">Amount</string>
     <string name="shortcut_comment_label">Description</string>
+    <string name="keyboard_done">Fertig</string>
     <string name="contacts_title">Contacts</string>
     <string name="contacts_empty">No contacts yet</string>
     <string name="contacts_no_matching_contacts">No matching contacts</string>

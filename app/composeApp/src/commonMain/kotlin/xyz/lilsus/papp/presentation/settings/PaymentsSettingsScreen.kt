@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -38,10 +39,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -50,6 +53,7 @@ import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.contacts_delete
 import lasr.composeapp.generated.resources.contacts_invalid_address
 import lasr.composeapp.generated.resources.contacts_save
+import lasr.composeapp.generated.resources.keyboard_done
 import lasr.composeapp.generated.resources.settings_contacts
 import lasr.composeapp.generated.resources.settings_payments
 import lasr.composeapp.generated.resources.settings_payments_ask_save_contacts
@@ -89,6 +93,7 @@ import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ThresholdSlider
+import xyz.lilsus.papp.presentation.common.numericKeyboardPlatformImeOptions
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -617,6 +622,9 @@ private fun ShortcutSettingsEditorContent(
     val selectedContact = state.selectedContact ?: return
     val currencyInfo = CurrencyCatalog.infoFor(state.currencyCode)
     val currencyLabel = stringResource(currencyInfo.nameRes)
+    val focusManager = LocalFocusManager.current
+    val finishAmountEditing = { focusManager.clearFocus(force = true) }
+    val doneLabel = stringResource(Res.string.keyboard_done)
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
@@ -646,7 +654,17 @@ private fun ShortcutSettingsEditorContent(
             onValueChange = onAmountChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(Res.string.shortcut_amount_label)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Done,
+                platformImeOptions = numericKeyboardPlatformImeOptions(
+                    doneLabel = doneLabel,
+                    onDone = finishAmountEditing
+                )
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { finishAmountEditing() }
+            ),
             singleLine = true
         )
         SectionTitle(stringResource(Res.string.shortcut_currency_label))

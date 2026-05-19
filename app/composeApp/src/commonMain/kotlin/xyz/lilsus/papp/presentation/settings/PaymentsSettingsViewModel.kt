@@ -436,7 +436,7 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     private fun String.cleanAmountInput(fractionDigits: Int): String {
-        val normalized = filter { it.isDigit() || it == '.' }
+        val normalized = replace(',', '.').filter { it.isDigit() || it == '.' }
         if (fractionDigits <= 0) return normalized.substringBefore('.').filter(Char::isDigit)
         val whole = normalized.substringBefore('.').filter(Char::isDigit)
         val hasDecimal = '.' in normalized

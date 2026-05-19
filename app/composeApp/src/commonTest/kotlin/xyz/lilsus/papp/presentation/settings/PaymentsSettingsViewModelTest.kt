@@ -163,6 +163,40 @@ class PaymentsSettingsViewModelTest {
     }
 
     @Test
+    fun shortcutAmountAcceptsCommaDecimalsForFiatAndBitcoin() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(dispatcher)
+        val contact = context.contactsRepository.saveContact(
+            address = LightningAddress("alice", "blink.sv"),
+            alias = "Alice",
+            roles = emptySet()
+        )
+        advanceUntilIdle()
+
+        context.viewModel.startAddShortcutForContact(contact.id)
+        context.viewModel.updateShortcutCurrency("USD")
+        context.viewModel.updateShortcutAmount("0,99")
+        context.viewModel.saveShortcutEditor()
+        advanceUntilIdle()
+
+        val usdShortcut = context.contactsRepository.getShortcuts().single()
+        assertEquals(99, usdShortcut.amount.minor)
+        assertEquals("USD", usdShortcut.amount.currencyCode)
+
+        context.viewModel.startAddShortcutForContact(contact.id)
+        context.viewModel.updateShortcutCurrency("BTC")
+        context.viewModel.updateShortcutAmount("0,0001")
+        context.viewModel.saveShortcutEditor()
+        advanceUntilIdle()
+
+        val btcShortcut = context.contactsRepository.getShortcuts()
+            .single { it.amount.currencyCode == "BTC" }
+        assertEquals(10_000, btcShortcut.amount.minor)
+
+        context.clear()
+    }
+
+    @Test
     fun restartingCreateShortcutRouteKeepsExistingDraft() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(dispatcher)
