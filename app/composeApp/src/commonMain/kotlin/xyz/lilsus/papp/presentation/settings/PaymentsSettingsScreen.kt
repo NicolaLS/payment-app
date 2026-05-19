@@ -36,17 +36,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -55,7 +46,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.contacts_delete
 import lasr.composeapp.generated.resources.contacts_invalid_address
@@ -101,25 +91,10 @@ import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ThresholdSlider
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
-enum class PaymentsSettingsSection {
-    Confirmation,
-    Shortcuts,
-    Contacts,
-    Haptics
-}
-
-private fun Modifier.settingsSectionScrollTarget(
-    section: PaymentsSettingsSection,
-    sectionTops: MutableMap<PaymentsSettingsSection, Float>
-): Modifier = onGloballyPositioned { coordinates ->
-    sectionTops[section] = coordinates.positionInRoot().y
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentsSettingsScreen(
     state: PaymentsSettingsUiState,
-    focusedSection: PaymentsSettingsSection? = null,
     onBack: () -> Unit,
     onModeSelected: (PaymentConfirmationMode) -> Unit,
     onThresholdChanged: (Long) -> Unit,
@@ -147,24 +122,6 @@ fun PaymentsSettingsScreen(
 
         PaymentConfirmationMode.Always -> stringResource(Res.string.settings_payments_option_always)
     }
-    val sectionTops = remember { mutableStateMapOf<PaymentsSettingsSection, Float>() }
-    var viewportTop by remember { mutableStateOf<Float?>(null) }
-    var hasFocusedSection by remember(focusedSection) { mutableStateOf(false) }
-    val focusedSectionTop = focusedSection?.let { sectionTops[it] }
-
-    LaunchedEffect(focusedSection, viewportTop, focusedSectionTop) {
-        focusedSection ?: return@LaunchedEffect
-        val viewportTopValue = viewportTop ?: return@LaunchedEffect
-        val targetTop = focusedSectionTop ?: return@LaunchedEffect
-        if (!hasFocusedSection) {
-            hasFocusedSection = true
-            withFrameNanos { }
-            val scrollDelta = targetTop - viewportTopValue
-            val scrollTarget = (scrollState.value + scrollDelta.roundToInt())
-                .coerceIn(0, scrollState.maxValue)
-            scrollState.animateScrollTo(scrollTarget)
-        }
-    }
 
     Scaffold(
         modifier = modifier.testTag(MaestroTags.Settings.PAYMENTS_SCREEN),
@@ -185,19 +142,11 @@ fun PaymentsSettingsScreen(
                 .consumeWindowInsets(padding)
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 24.dp)
-                .verticalScroll(scrollState)
-                .onGloballyPositioned { coordinates ->
-                    viewportTop = coordinates.positionInRoot().y
-                },
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.Top
         ) {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .settingsSectionScrollTarget(
-                        section = PaymentsSettingsSection.Confirmation,
-                        sectionTops = sectionTops
-                    ),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 tonalElevation = 6.dp
             ) {
@@ -269,33 +218,20 @@ fun PaymentsSettingsScreen(
                 confirmShortcutPayments = state.confirmShortcutPayments,
                 onConfirmShortcutPaymentsChanged = onConfirmShortcutPaymentsChanged,
                 onAddShortcut = onAddShortcut,
-                onEditShortcut = onEditShortcut,
-                modifier = Modifier.settingsSectionScrollTarget(
-                    section = PaymentsSettingsSection.Shortcuts,
-                    sectionTops = sectionTops
-                )
+                onEditShortcut = onEditShortcut
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             ContactsPaymentSettingsSection(
                 askToSaveNewContacts = state.askToSaveNewContacts,
-                onAskToSaveNewContactsChanged = onAskToSaveNewContactsChanged,
-                modifier = Modifier.settingsSectionScrollTarget(
-                    section = PaymentsSettingsSection.Contacts,
-                    sectionTops = sectionTops
-                )
+                onAskToSaveNewContactsChanged = onAskToSaveNewContactsChanged
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .settingsSectionScrollTarget(
-                        section = PaymentsSettingsSection.Haptics,
-                        sectionTops = sectionTops
-                    ),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 tonalElevation = 6.dp
             ) {
