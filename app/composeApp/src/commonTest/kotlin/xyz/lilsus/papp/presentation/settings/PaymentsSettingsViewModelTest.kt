@@ -137,6 +137,64 @@ class PaymentsSettingsViewModelTest {
     }
 
     @Test
+    fun changingShortcutCurrencyClearsOnlyAmount() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(dispatcher)
+        val contact = context.contactsRepository.saveContact(
+            address = LightningAddress("alice", "blink.sv"),
+            alias = "Alice",
+            roles = emptySet()
+        )
+        advanceUntilIdle()
+
+        context.viewModel.startAddShortcutForContact(contact.id)
+        context.viewModel.updateShortcutTitle("Coffee")
+        context.viewModel.updateShortcutComment("morning")
+        context.viewModel.updateShortcutAmount("42")
+        context.viewModel.updateShortcutCurrency("USD")
+
+        val editor = assertNotNull(context.viewModel.uiState.value.shortcutEditor)
+        assertEquals("Coffee", editor.title)
+        assertEquals("morning", editor.comment)
+        assertEquals("", editor.amount)
+        assertEquals("USD", editor.currencyCode)
+
+        context.clear()
+    }
+
+    @Test
+    fun restartingCreateShortcutRouteKeepsExistingDraft() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(dispatcher)
+        val firstContact = context.contactsRepository.saveContact(
+            address = LightningAddress("alice", "blink.sv"),
+            alias = "Alice",
+            roles = emptySet()
+        )
+        val secondContact = context.contactsRepository.saveContact(
+            address = LightningAddress("bob", "blink.sv"),
+            alias = "Bob",
+            roles = emptySet()
+        )
+        advanceUntilIdle()
+
+        context.viewModel.startAddShortcutForContact(firstContact.id)
+        context.viewModel.updateShortcutTitle("Coffee")
+        context.viewModel.updateShortcutComment("morning")
+        context.viewModel.updateShortcutAmount("42")
+        context.viewModel.updateShortcutContact(secondContact.id)
+        context.viewModel.startAddShortcutForContact(firstContact.id)
+
+        val editor = assertNotNull(context.viewModel.uiState.value.shortcutEditor)
+        assertEquals("Coffee", editor.title)
+        assertEquals("morning", editor.comment)
+        assertEquals("42", editor.amount)
+        assertEquals(secondContact.id, editor.selectedContactId)
+
+        context.clear()
+    }
+
+    @Test
     fun thresholdEquivalentUsesSecondaryCurrencyDefaultUsd() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(dispatcher)

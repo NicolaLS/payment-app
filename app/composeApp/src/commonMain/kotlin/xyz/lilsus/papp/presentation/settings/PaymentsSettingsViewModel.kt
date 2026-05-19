@@ -180,6 +180,11 @@ class PaymentsSettingsViewModel internal constructor(
     }
 
     fun startAddShortcutForContact(contactId: String) {
+        val currentEditor = _uiState.value.shortcutEditor
+        if (currentEditor != null && currentEditor.shortcutId == null) {
+            refreshOpenShortcutEditor()
+            return
+        }
         if (openAddShortcutEditor(selectedContactId = contactId)) {
             pendingInitialShortcutContactId = null
         } else {
@@ -279,9 +284,14 @@ class PaymentsSettingsViewModel internal constructor(
         if (!supported) return
         val info = CurrencyCatalog.infoFor(currencyCode)
         updateShortcutEditor { editor ->
+            val currencyChanged = !editor.currencyCode.equals(info.code, ignoreCase = true)
             editor.copy(
                 currencyCode = info.code,
-                amount = editor.amount.cleanAmountInput(info.fractionDigits),
+                amount = if (currencyChanged) {
+                    ""
+                } else {
+                    editor.amount.cleanAmountInput(info.fractionDigits)
+                },
                 error = null
             )
         }?.autoSaveExistingShortcut()
