@@ -6,6 +6,8 @@
     <string name="tap_continue">Zum Fortfahren tippen…</string>
     <string name="tap_dismiss_pending">Tippen zum Schließen. Zahlung läuft im Hintergrund weiter.</string>
     <string name="point_camera_message_subtitle">Richte die Kamera auf eine Rechnung.</string>
+    <string name="resolving_payment_title">Zahlung wird vorbereitet</string>
+    <string name="resolving_payment_subtitle">Es wurde noch keine Zahlung gesendet.</string>
     <string name="scanner_mode_label">Modus: %1$s</string>
     <string name="scanner_mode_near">Nah</string>
     <string name="scanner_mode_far">Fern</string>

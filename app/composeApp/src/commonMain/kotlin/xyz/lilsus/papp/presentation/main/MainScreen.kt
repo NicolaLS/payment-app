@@ -4,10 +4,14 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -27,9 +31,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.app_name_long
 import lasr.composeapp.generated.resources.point_camera_message_subtitle
+import lasr.composeapp.generated.resources.resolving_payment_subtitle
+import lasr.composeapp.generated.resources.resolving_payment_title
 import lasr.composeapp.generated.resources.tap_dismiss_pending
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
@@ -113,10 +120,26 @@ fun MainScreen(
         }
     }
 
+    var showResolvingContent by remember { mutableStateOf(false) }
+    val isResolvingLoading = uiState is MainUiState.Loading &&
+        uiState.kind == LoadingKind.Resolving
+    LaunchedEffect(uiState) {
+        showResolvingContent = false
+        if (isResolvingLoading) {
+            delay(RESOLVING_PAYMENT_INDICATOR_DELAY_MS)
+            showResolvingContent = true
+        }
+    }
+
     val isWatchingPending = uiState is MainUiState.Loading && uiState.isWatchingPending
     val isDismissable = uiState is MainUiState.Success ||
         uiState is MainUiState.Error ||
         isWatchingPending
+    val contentState = if (isResolvingLoading && !showResolvingContent) {
+        MainUiState.Active
+    } else {
+        uiState
+    }
 
     Scaffold(
         modifier = modifier.testTag(MaestroTags.Payment.SCREEN),
@@ -148,7 +171,7 @@ fun MainScreen(
                 showScannerModeSelector = showScannerModeSelector,
                 onToggleScannerMode = onToggleScannerMode
             )
-            Crossfade(targetState = uiState) { state ->
+            Crossfade(targetState = contentState) { state ->
                 when {
                     state is MainUiState.Success ||
                         state is MainUiState.Error -> ResultLayout(
@@ -171,6 +194,10 @@ fun MainScreen(
                                 textAlign = TextAlign.Center
                             )
                         }
+                    }
+
+                    state is MainUiState.Loading && state.kind == LoadingKind.Resolving -> {
+                        ResolvingPaymentLayout(modifier = Modifier.fillMaxSize())
                     }
 
                     else -> BottomLayout(
@@ -238,11 +265,40 @@ fun MainScreen(
     }
 }
 
+@Composable
+private fun ResolvingPaymentLayout(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(top = 16.dp, start = 24.dp, end = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(24.dp),
+            strokeWidth = 2.dp
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(Res.string.resolving_payment_title),
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            modifier = Modifier.padding(top = 8.dp),
+            text = stringResource(Res.string.resolving_payment_subtitle),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelMedium,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
 fun Modifier.tapToDismiss(enabled: Boolean, onDismiss: () -> Unit) = clickable(
     enabled = enabled,
     indication = null,
     interactionSource = null
 ) { onDismiss() }
+
+private const val RESOLVING_PAYMENT_INDICATOR_DELAY_MS = 1_000L
 
 @Preview
 @Composable

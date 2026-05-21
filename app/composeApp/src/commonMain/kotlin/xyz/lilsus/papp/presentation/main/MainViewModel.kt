@@ -514,7 +514,7 @@ class MainViewModel internal constructor(
             pendingPayment = null
             manualEntryContext = null
             val amountMsats = amountSats * MSATS_PER_SAT
-            _uiState.value = MainUiState.Loading()
+            _uiState.value = MainUiState.Loading(kind = LoadingKind.Resolving)
             when (val result = resolveLightningAddressUseCase(address)) {
                 is Result.Success -> {
                     val satInfo = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
@@ -883,7 +883,7 @@ class MainViewModel internal constructor(
         shortcutAmountMsats: Long? = null,
         shortcutComment: String? = null
     ) {
-        _uiState.value = MainUiState.Loading()
+        _uiState.value = MainUiState.Loading(kind = LoadingKind.Resolving)
         scope.launch {
             when (val result = fetchLnurlPayParams(endpoint)) {
                 is Result.Success -> handleLnurlParams(
@@ -911,7 +911,7 @@ class MainViewModel internal constructor(
         shortcutAmountMsats: Long? = null,
         shortcutComment: String? = null
     ) {
-        _uiState.value = MainUiState.Loading()
+        _uiState.value = MainUiState.Loading(kind = LoadingKind.Resolving)
         scope.launch {
             when (val result = resolveLightningAddressUseCase(address)) {
                 is Result.Success -> handleLnurlParams(

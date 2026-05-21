@@ -611,7 +611,10 @@ class MainViewModelTest {
             val viewModel = createViewModel(parser, repository)
             try {
                 viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-                viewModel.uiState.firstWithTimeout { it is MainUiState.Loading }
+                val loading = viewModel.uiState.firstWithTimeout {
+                    it is MainUiState.Loading
+                } as MainUiState.Loading
+                assertEquals(LoadingKind.Paying, loading.kind)
 
                 viewModel.dispatch(MainIntent.QrCodeScanned("ignored-invoice"))
 
@@ -989,6 +992,29 @@ class MainViewModelTest {
             advanceTimeBy(1L)
             runCurrent()
             assertEquals(2, repository.lookupCalls.size)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun lnurlFetchUsesResolvingLoadingState() = runBlocking {
+        val lnurlRepository = FakeLnurlRepository().apply {
+            stubEndpoint(LNURL_ENDPOINT, Result.Loading)
+        }
+        val viewModel = createViewModel(
+            parser = FakeBolt11InvoiceParser(emptyMap()),
+            repository = RecordingNwcWalletRepository(),
+            lnurlRepository = lnurlRepository
+        )
+        try {
+            viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_INPUT))
+
+            val loading = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Loading
+            } as MainUiState.Loading
+            assertEquals(LoadingKind.Resolving, loading.kind)
+            assertFalse(loading.isWatchingPending)
         } finally {
             viewModel.clear()
         }

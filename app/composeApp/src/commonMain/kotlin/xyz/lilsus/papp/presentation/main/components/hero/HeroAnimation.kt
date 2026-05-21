@@ -18,6 +18,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import xyz.lilsus.papp.presentation.main.LoadingKind
 import xyz.lilsus.papp.presentation.main.MainUiState
 import xyz.lilsus.papp.presentation.main.scan.QrScannerMode
 
@@ -77,7 +78,13 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
                 is MainUiState.EnterAmount,
                 is MainUiState.PendingRetry -> animateToCompressed()
 
-                is MainUiState.Loading -> animateToLoading()
+                is MainUiState.Loading -> {
+                    if (uiState.kind == LoadingKind.Resolving) {
+                        animateToCompressed()
+                    } else {
+                        animateToLoading()
+                    }
+                }
 
                 is MainUiState.Success -> animateToResult(isSuccess = true)
 

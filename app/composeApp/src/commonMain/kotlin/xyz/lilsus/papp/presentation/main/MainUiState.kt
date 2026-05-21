@@ -7,7 +7,10 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 sealed class MainUiState {
     object Active : MainUiState()
     object Detected : MainUiState()
-    data class Loading(val isWatchingPending: Boolean = false) : MainUiState()
+    data class Loading(
+        val kind: LoadingKind = LoadingKind.Paying,
+        val isWatchingPending: Boolean = false
+    ) : MainUiState()
     data class EnterAmount(val entry: ManualAmountUiState) : MainUiState()
     data class Confirm(val amount: DisplayAmount) : MainUiState()
     data class PendingRetry(val source: PendingRetrySource) : MainUiState()
@@ -19,6 +22,11 @@ sealed class MainUiState {
     ) : MainUiState()
 
     data class Error(val error: AppError) : MainUiState()
+}
+
+enum class LoadingKind {
+    Resolving,
+    Paying
 }
 
 enum class PendingRetrySource {

@@ -6,6 +6,8 @@
     <string name="tap_continue">Toca para continuar…</string>
     <string name="tap_dismiss_pending">Toca para cerrar. El pago continúa en segundo plano.</string>
     <string name="point_camera_message_subtitle">Apunta la cámara a una factura.</string>
+    <string name="resolving_payment_title">Preparando el pago</string>
+    <string name="resolving_payment_subtitle">Todavía no se ha enviado ningún pago.</string>
     <string name="scanner_mode_label">Modo: %1$s</string>
     <string name="scanner_mode_near">Cerca</string>
     <string name="scanner_mode_far">Lejos</string>
