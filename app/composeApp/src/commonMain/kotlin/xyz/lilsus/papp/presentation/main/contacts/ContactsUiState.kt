@@ -1,6 +1,7 @@
 package xyz.lilsus.papp.presentation.main.contacts
 
 import xyz.lilsus.papp.domain.model.ContactRole
+import xyz.lilsus.papp.presentation.common.ContactEditorError
 
 data class ContactsUiState(
     val isOpen: Boolean = false,
@@ -44,12 +45,12 @@ data class ContactEditorUiState(
     val alias: String,
     val selectedRoles: Set<ContactRole>,
     val addressEditable: Boolean,
-    val error: String? = null
+    val error: ContactEditorError? = null
 )
 
 data class ContactSavePromptUiState(
     val address: String,
     val alias: String,
     val selectedRoles: Set<ContactRole>,
-    val error: String? = null
+    val error: ContactEditorError? = null
 )

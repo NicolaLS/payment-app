@@ -38,6 +38,7 @@ import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationThresholdUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
 import xyz.lilsus.papp.presentation.common.SecondaryCurrencyPreviewController
+import xyz.lilsus.papp.presentation.common.ShortcutEditorError
 import xyz.lilsus.papp.presentation.main.CurrencyManager
 
 class PaymentsSettingsViewModel internal constructor(
@@ -355,23 +356,23 @@ class PaymentsSettingsViewModel internal constructor(
         if (contacts.isEmpty()) {
             setShortcutEditorErrorIfRequested(
                 setError,
-                "Add a contact before creating a shortcut."
+                ShortcutEditorError.NoContacts
             )
             return null
         }
         if (contactId == null) {
-            setShortcutEditorErrorIfRequested(setError, "Select a contact.")
+            setShortcutEditorErrorIfRequested(setError, ShortcutEditorError.SelectContact)
             return null
         }
         val amountInfo = CurrencyCatalog.infoFor(currencyCode)
         val amountMinor = amount.parseMinorAmount(amountInfo.fractionDigits)
         if (amountMinor == null || amountMinor <= 0L) {
-            setShortcutEditorErrorIfRequested(setError, "Enter an amount.")
+            setShortcutEditorErrorIfRequested(setError, ShortcutEditorError.EnterAmount)
             return null
         }
         val contact = contacts.firstOrNull { it.id == contactId }
         if (contact == null) {
-            setShortcutEditorErrorIfRequested(setError, "Select a contact.")
+            setShortcutEditorErrorIfRequested(setError, ShortcutEditorError.SelectContact)
             return null
         }
         return ShortcutSaveRequest(
@@ -386,9 +387,9 @@ class PaymentsSettingsViewModel internal constructor(
         )
     }
 
-    private fun setShortcutEditorErrorIfRequested(setError: Boolean, message: String) {
+    private fun setShortcutEditorErrorIfRequested(setError: Boolean, error: ShortcutEditorError) {
         if (setError) {
-            updateShortcutEditor { it.copy(error = message) }
+            updateShortcutEditor { it.copy(error = error) }
         }
     }
 
@@ -530,7 +531,7 @@ data class ShortcutSettingsEditor(
     val amount: String,
     val currencyCode: String,
     val comment: String,
-    val error: String? = null
+    val error: ShortcutEditorError? = null
 )
 
 data class ShortcutContactOption(val id: String, val displayName: String, val address: String)

@@ -10,6 +10,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import lasr.composeapp.generated.resources.Res
+import lasr.composeapp.generated.resources.settings_title
+import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
 
 @Composable
@@ -24,6 +27,9 @@ fun SettingsFAB(onNavigateSettings: () -> Unit) {
             pressedElevation = 4.dp
         )
     ) {
-        Icon(Icons.Filled.Settings, "Settings")
+        Icon(
+            imageVector = Icons.Filled.Settings,
+            contentDescription = stringResource(Res.string.settings_title)
+        )
     }
 }

@@ -37,6 +37,7 @@ import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationModeUseCase
 import xyz.lilsus.papp.domain.usecases.SetPaymentConfirmationThresholdUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.SetVibrateOnScanUseCase
+import xyz.lilsus.papp.presentation.common.ShortcutEditorError
 import xyz.lilsus.papp.presentation.main.CurrencyManager
 
 class PaymentsSettingsViewModelTest {
@@ -108,7 +109,7 @@ class PaymentsSettingsViewModelTest {
         val savedShortcut = context.contactsRepository.getShortcuts().single()
         assertEquals(21, savedShortcut.amount.minor)
         assertEquals(
-            "Enter an amount.",
+            ShortcutEditorError.EnterAmount,
             assertNotNull(context.viewModel.uiState.value.shortcutEditor).error
         )
 

@@ -64,6 +64,7 @@ import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
 import xyz.lilsus.papp.presentation.common.AppFadingLazyColumn
+import xyz.lilsus.papp.presentation.common.ContactEditorError
 import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ContactRoleChips
@@ -455,10 +456,15 @@ private val LightningBoltIcon: ImageVector = ImageVector.Builder(
 }.build()
 
 @Composable
-private fun ErrorText(message: String) {
+private fun ErrorText(error: ContactEditorError) {
     Text(
-        text = message.ifBlank { stringResource(Res.string.contacts_invalid_address) },
+        text = stringResource(error.stringRes),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.error
     )
 }
+
+private val ContactEditorError.stringRes
+    get() = when (this) {
+        ContactEditorError.InvalidAddress -> Res.string.contacts_invalid_address
+    }

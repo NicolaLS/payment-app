@@ -47,7 +47,6 @@
     <string name="settings_theme_system_default">Use system setting (%1$s)</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
-    <string name="settings_payments_title">Payments</string>
     <string name="settings_payments_confirm_label">Confirm Payment</string>
     <string name="settings_payments_confirm_threshold">Above %1$s</string>
     <string name="settings_payments_option_always">Always</string>
@@ -60,10 +59,8 @@
     <string name="settings_contacts">Contacts</string>
     <string name="settings_contacts_subtitle">Saved contacts</string>
     <string name="settings_payments_ask_save_contacts">Ask to save new contacts</string>
-    <string name="settings_currency_title">Currency</string>
     <string name="settings_currency_primary">Primary</string>
     <string name="settings_currency_secondary">Secondary</string>
-    <string name="settings_language_title">Language</string>
     <string name="search_placeholder">Search…</string>
     <string name="settings_currency_satoshi">Satoshi</string>
     <string name="settings_currency_bitcoin">Bitcoin</string>
@@ -74,9 +71,6 @@
     <string name="settings_currency_aud">Australian Dollar</string>
     <string name="settings_currency_chf">Swiss Franc</string>
     <string name="settings_currency_jpy">Japanese Yen</string>
-    <string name="settings_language_english">English</string>
-    <string name="settings_language_german">Deutsch</string>
-    <string name="settings_language_spanish">Español</string>
     <string name="settings_manage_wallets_title">Wallets</string>
     <string name="settings_manage_wallets_placeholder">No wallet connected yet. Add one to start paying.</string>
     <string name="settings_manage_wallets_add">Add Wallet</string>
@@ -157,12 +151,13 @@
     <string name="shortcut_contact_search_label">Search contacts</string>
     <string name="shortcut_change">Change</string>
     <string name="shortcut_no_contacts">Add a contact before creating a shortcut.</string>
+    <string name="shortcut_error_select_contact">Select a contact.</string>
+    <string name="shortcut_error_enter_amount">Enter an amount.</string>
     <string name="shortcut_no_matching_contacts">No matching contacts</string>
     <string name="shortcut_currency_label">Currency</string>
     <string name="shortcut_amount_label">Amount</string>
     <string name="shortcut_comment_label">Description</string>
     <string name="keyboard_done">Done</string>
-    <string name="contacts_title">Contacts</string>
     <string name="contacts_empty">No contacts yet</string>
     <string name="contacts_no_matching_contacts">No matching contacts</string>
     <string name="contacts_add">Add contact</string>
@@ -175,11 +170,9 @@
     <string name="contact_shortcuts_title">Shortcuts</string>
     <string name="contact_shortcuts_create">Create shortcut</string>
     <string name="contact_shortcuts_empty">No shortcuts for this contact yet</string>
-    <string name="contacts_role_filter_label">Select labels to filter</string>
     <string name="contacts_role_favorite">Favorite</string>
     <string name="contacts_role_people">People</string>
     <string name="contacts_role_merchants">Merchants</string>
-    <string name="contacts_edit">Edit</string>
     <string name="contacts_delete">Delete</string>
     <string name="contacts_save">Save</string>
     <string name="contacts_cancel">Cancel</string>
@@ -213,6 +206,8 @@
     <string name="error_blink_invalid_api_key_wallet_removed">Authentication error: Your API key is invalid or was revoked. Your wallet was removed automatically so you can reconnect it with a new key.</string>
     <string name="wallet_type_nwc">NWC</string>
     <string name="wallet_type_blink">Blink</string>
+    <string name="wallet_type_nwc_subtitle">Nostr Wallet Connect</string>
+    <string name="wallet_type_blink_subtitle">Blink wallet via API key</string>
 
     <string name="settings_wallet_details_title">Wallet Details</string>
     <string name="settings_wallet_details_type">Type</string>
@@ -290,8 +285,6 @@
     <string name="onboarding_add_wallet_blink_step3">Tap + to create a new key with all permissions enabled.</string>
     <string name="onboarding_add_wallet_blink_step4_prefix">Copy the key that starts with </string>
     <string name="onboarding_add_wallet_blink_step4_suffix"> and come back here to paste it.</string>
-    <string name="onboarding_add_wallet_blink_link" translatable="false">https://dashboard.blink.sv</string>
-
     <string name="onboarding_add_wallet_nwc_title">Connect via NWC</string>
     <string name="onboarding_add_wallet_nwc_intro">You'll create a connection in your wallet and bring the connection string back to Lasr.</string>
     <string name="onboarding_add_wallet_nwc_step1">In your wallet, create a new NWC connection for Lasr.</string>

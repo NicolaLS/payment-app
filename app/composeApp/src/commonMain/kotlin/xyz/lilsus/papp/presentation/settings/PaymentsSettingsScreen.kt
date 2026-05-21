@@ -51,7 +51,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.contacts_delete
-import lasr.composeapp.generated.resources.contacts_invalid_address
 import lasr.composeapp.generated.resources.contacts_save
 import lasr.composeapp.generated.resources.keyboard_done
 import lasr.composeapp.generated.resources.settings_contacts
@@ -74,6 +73,8 @@ import lasr.composeapp.generated.resources.shortcut_contact_label
 import lasr.composeapp.generated.resources.shortcut_contact_search_label
 import lasr.composeapp.generated.resources.shortcut_currency_label
 import lasr.composeapp.generated.resources.shortcut_edit
+import lasr.composeapp.generated.resources.shortcut_error_enter_amount
+import lasr.composeapp.generated.resources.shortcut_error_select_contact
 import lasr.composeapp.generated.resources.shortcut_no_contacts
 import lasr.composeapp.generated.resources.shortcut_no_matching_contacts
 import lasr.composeapp.generated.resources.shortcut_title_label
@@ -92,6 +93,7 @@ import xyz.lilsus.papp.presentation.common.AppListDefaults
 import xyz.lilsus.papp.presentation.common.BackIconButton
 import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
+import xyz.lilsus.papp.presentation.common.ShortcutEditorError
 import xyz.lilsus.papp.presentation.common.ThresholdSlider
 import xyz.lilsus.papp.presentation.common.numericKeyboardPlatformImeOptions
 import xyz.lilsus.papp.presentation.theme.AppTheme
@@ -859,13 +861,20 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun ErrorText(message: String) {
+private fun ErrorText(error: ShortcutEditorError) {
     Text(
-        text = message.ifBlank { stringResource(Res.string.contacts_invalid_address) },
+        text = stringResource(error.stringRes),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.error
     )
 }
+
+private val ShortcutEditorError.stringRes
+    get() = when (this) {
+        ShortcutEditorError.NoContacts -> Res.string.shortcut_no_contacts
+        ShortcutEditorError.SelectContact -> Res.string.shortcut_error_select_contact
+        ShortcutEditorError.EnterAmount -> Res.string.shortcut_error_enter_amount
+    }
 
 @Composable
 private fun PaymentModeChips(

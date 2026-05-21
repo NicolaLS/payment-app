@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import lasr.composeapp.generated.resources.Res
 import lasr.composeapp.generated.resources.add_wallet_choose_type
 import lasr.composeapp.generated.resources.wallet_type_blink
+import lasr.composeapp.generated.resources.wallet_type_blink_subtitle
 import lasr.composeapp.generated.resources.wallet_type_nwc
+import lasr.composeapp.generated.resources.wallet_type_nwc_subtitle
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.presentation.common.BackIconButton
 
@@ -68,14 +70,14 @@ fun ChooseWalletTypeScreen(
         ) {
             WalletTypeOption(
                 title = stringResource(Res.string.wallet_type_nwc),
-                subtitle = "Nostr Wallet Connect",
+                subtitle = stringResource(Res.string.wallet_type_nwc_subtitle),
                 icon = { Icon(Icons.Default.Bolt, contentDescription = null) },
                 onClick = onNwcSelected
             )
 
             WalletTypeOption(
                 title = stringResource(Res.string.wallet_type_blink),
-                subtitle = "Blink wallet via API key",
+                subtitle = stringResource(Res.string.wallet_type_blink_subtitle),
                 icon = { Icon(Icons.Default.Key, contentDescription = null) },
                 onClick = onBlinkSelected
             )

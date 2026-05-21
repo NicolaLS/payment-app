@@ -27,6 +27,7 @@ import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
+import xyz.lilsus.papp.presentation.common.ContactEditorError
 
 class ContactsSettingsViewModel internal constructor(
     observeContacts: ObserveContactsUseCase,
@@ -176,7 +177,7 @@ class ContactsSettingsViewModel internal constructor(
         val editor = _uiState.value.contactEditor ?: return
         val address = parseAddress(editor.address)
         if (address == null) {
-            updateContactEditor { it.copy(error = "Enter a valid Lightning address.") }
+            updateContactEditor { it.copy(error = ContactEditorError.InvalidAddress) }
             return
         }
         scope.launch {
@@ -377,7 +378,7 @@ data class ContactSettingsEditor(
     val roles: Set<ContactRole>,
     val addressEditable: Boolean,
     val shortcuts: List<ContactShortcutItem> = emptyList(),
-    val error: String? = null
+    val error: ContactEditorError? = null
 )
 
 data class ContactShortcutItem(

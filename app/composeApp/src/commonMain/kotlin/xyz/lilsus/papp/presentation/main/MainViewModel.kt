@@ -63,6 +63,7 @@ import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
+import xyz.lilsus.papp.presentation.common.ContactEditorError
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountConfig
 import xyz.lilsus.papp.presentation.main.amount.ManualAmountController
 import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
@@ -650,7 +651,7 @@ class MainViewModel internal constructor(
         val editor = _contactsUiState.value.editor ?: return
         val address = parseLightningAddress(editor.address)
         if (address == null) {
-            setContactEditorError("Enter a valid Lightning address.")
+            setContactEditorError(ContactEditorError.InvalidAddress)
             return
         }
         scope.launch {
@@ -708,8 +709,8 @@ class MainViewModel internal constructor(
         _contactsUiState.value = _contactsUiState.value.copy(savePrompt = null)
     }
 
-    private fun setContactEditorError(message: String) {
-        updateContactEditor { it.copy(error = message) }
+    private fun setContactEditorError(error: ContactEditorError) {
+        updateContactEditor { it.copy(error = error) }
     }
 
     private fun refreshContactsDisplay() {
