@@ -2,6 +2,7 @@
 <resources>
     <string name="settings_title">Einstellungen</string>
     <string name="action_back">Zurück</string>
+    <string name="action_clear_search">Suche löschen</string>
     <string name="tap_continue">Zum Fortfahren tippen…</string>
     <string name="tap_dismiss_pending">Tippen zum Schließen. Zahlung läuft im Hintergrund weiter.</string>
     <string name="point_camera_message_subtitle">Richte die Kamera auf eine Rechnung.</string>

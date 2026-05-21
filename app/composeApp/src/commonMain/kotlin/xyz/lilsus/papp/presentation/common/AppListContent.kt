@@ -20,8 +20,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -39,6 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import lasr.composeapp.generated.resources.Res
+import lasr.composeapp.generated.resources.action_clear_search
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AppListScaffold(
@@ -267,6 +272,19 @@ fun AppListSearchField(
     val placeholderContent: (@Composable () -> Unit)? = placeholder?.let { placeholderText ->
         { Text(placeholderText) }
     }
+    val clearSearchLabel = stringResource(Res.string.action_clear_search)
+    val trailingIconContent: (@Composable () -> Unit)? = if (query.isNotEmpty()) {
+        {
+            IconButton(onClick = { onQueryChange("") }) {
+                Icon(
+                    imageVector = Icons.Filled.Clear,
+                    contentDescription = clearSearchLabel
+                )
+            }
+        }
+    } else {
+        null
+    }
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
@@ -274,6 +292,7 @@ fun AppListSearchField(
         label = labelContent,
         placeholder = placeholderContent,
         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        trailingIcon = trailingIconContent,
         singleLine = true
     )
 }

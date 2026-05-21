@@ -2,6 +2,7 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="action_back">Back</string>
+    <string name="action_clear_search">Clear search</string>
     <string name="tap_continue">Tap to continue…</string>
     <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
     <string name="app_name_long" translatable="false">Lasr</string>
