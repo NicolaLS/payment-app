@@ -263,9 +263,12 @@
     <string name="shortcut_no_contacts">Añade un contacto antes de crear un shortcut.</string>
     <string name="shortcut_error_select_contact">Selecciona un contacto.</string>
     <string name="shortcut_error_enter_amount">Introduce un importe.</string>
+    <string name="shortcut_error_whole_amount">Usa un número entero para esta moneda.</string>
     <string name="shortcut_no_matching_contacts">No hay contactos coincidentes</string>
     <string name="shortcut_currency_label">Moneda</string>
     <string name="shortcut_amount_label">Importe</string>
+    <string name="shortcut_selected_currency_content_description">Cambiar moneda, actualmente %1$s</string>
+    <string name="shortcut_fiat_amount_support">En el momento del pago se usará el tipo de cambio actual para que el destinatario reciba bitcoin por el valor de este importe en %1$s.</string>
     <string name="shortcut_comment_label">Descripción</string>
     <string name="keyboard_done">Listo</string>
     <string name="contacts_empty">Todavía no hay contactos</string>

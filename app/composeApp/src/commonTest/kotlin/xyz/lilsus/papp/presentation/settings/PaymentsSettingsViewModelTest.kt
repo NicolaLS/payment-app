@@ -138,7 +138,7 @@ class PaymentsSettingsViewModelTest {
     }
 
     @Test
-    fun changingShortcutCurrencyClearsOnlyAmount() = runTest {
+    fun changingShortcutCurrencyKeepsEnteredAmount() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(dispatcher)
         val contact = context.contactsRepository.saveContact(
@@ -157,7 +157,62 @@ class PaymentsSettingsViewModelTest {
         val editor = assertNotNull(context.viewModel.uiState.value.shortcutEditor)
         assertEquals("Coffee", editor.title)
         assertEquals("morning", editor.comment)
-        assertEquals("", editor.amount)
+        assertEquals("42", editor.amount)
+        assertEquals("USD", editor.currencyCode)
+
+        context.clear()
+    }
+
+    @Test
+    fun changingToWholeNumberCurrencyKeepsFractionalAmountAndBlocksSave() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(dispatcher)
+        val contact = context.contactsRepository.saveContact(
+            address = LightningAddress("alice", "blink.sv"),
+            alias = "Alice",
+            roles = emptySet()
+        )
+        advanceUntilIdle()
+
+        context.viewModel.startAddShortcutForContact(contact.id)
+        context.viewModel.updateShortcutCurrency("USD")
+        context.viewModel.updateShortcutAmount("5.99")
+        context.viewModel.updateShortcutCurrency("SAT")
+
+        val editor = assertNotNull(context.viewModel.uiState.value.shortcutEditor)
+        assertEquals("5.99", editor.amount)
+        assertEquals("SAT", editor.currencyCode)
+        assertEquals(ShortcutEditorError.WholeAmountRequired, editor.error)
+
+        context.viewModel.saveShortcutEditor()
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), context.contactsRepository.getShortcuts())
+        assertNotNull(context.viewModel.uiState.value.shortcutEditor)
+
+        context.clear()
+    }
+
+    @Test
+    fun newShortcutUsesMostRecentShortcutCurrency() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val context = createTestContext(dispatcher)
+        val contact = context.contactsRepository.saveContact(
+            address = LightningAddress("alice", "blink.sv"),
+            alias = "Alice",
+            roles = emptySet()
+        )
+        advanceUntilIdle()
+
+        context.viewModel.startAddShortcutForContact(contact.id)
+        context.viewModel.updateShortcutCurrency("USD")
+        context.viewModel.updateShortcutAmount("1")
+        context.viewModel.saveShortcutEditor()
+        advanceUntilIdle()
+
+        context.viewModel.startAddShortcutForContact(contact.id)
+
+        val editor = assertNotNull(context.viewModel.uiState.value.shortcutEditor)
         assertEquals("USD", editor.currencyCode)
 
         context.clear()

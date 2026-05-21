@@ -3,6 +3,7 @@ package xyz.lilsus.papp.presentation.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -35,13 +37,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -75,8 +82,11 @@ import lasr.composeapp.generated.resources.shortcut_currency_label
 import lasr.composeapp.generated.resources.shortcut_edit
 import lasr.composeapp.generated.resources.shortcut_error_enter_amount
 import lasr.composeapp.generated.resources.shortcut_error_select_contact
+import lasr.composeapp.generated.resources.shortcut_error_whole_amount
+import lasr.composeapp.generated.resources.shortcut_fiat_amount_support
 import lasr.composeapp.generated.resources.shortcut_no_contacts
 import lasr.composeapp.generated.resources.shortcut_no_matching_contacts
+import lasr.composeapp.generated.resources.shortcut_selected_currency_content_description
 import lasr.composeapp.generated.resources.shortcut_title_label
 import lasr.composeapp.generated.resources.shortcuts_add
 import lasr.composeapp.generated.resources.shortcuts_empty
@@ -623,10 +633,16 @@ private fun ShortcutSettingsEditorContent(
 ) {
     val selectedContact = state.selectedContact ?: return
     val currencyInfo = CurrencyCatalog.infoFor(state.currencyCode)
-    val currencyLabel = stringResource(currencyInfo.nameRes)
     val focusManager = LocalFocusManager.current
+    val commentFocusRequester = remember { FocusRequester() }
+    val amountFocusRequester = remember { FocusRequester() }
     val finishAmountEditing = { focusManager.clearFocus(force = true) }
     val doneLabel = stringResource(Res.string.keyboard_done)
+    val amountSupportingText = if (currencyInfo.currency is DisplayCurrency.Fiat) {
+        stringResource(Res.string.shortcut_fiat_amount_support, currencyInfo.code)
+    } else {
+        null
+    }
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
@@ -642,20 +658,41 @@ private fun ShortcutSettingsEditorContent(
             onValueChange = onTitleChange,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(Res.string.shortcut_title_label)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(
+                onNext = { commentFocusRequester.requestFocus() }
+            ),
             singleLine = true
         )
         OutlinedTextField(
             value = state.comment,
             onValueChange = onCommentChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(commentFocusRequester),
             label = { Text(stringResource(Res.string.shortcut_comment_label)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(
+                onNext = { amountFocusRequester.requestFocus() }
+            ),
             singleLine = true
         )
         OutlinedTextField(
             value = state.amount,
             onValueChange = onAmountChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(amountFocusRequester),
             label = { Text(stringResource(Res.string.shortcut_amount_label)) },
+            trailingIcon = {
+                ShortcutAmountCurrencyButton(
+                    currencyCode = currencyInfo.code,
+                    onClick = onCurrencyChange
+                )
+            },
+            supportingText = amountSupportingText?.let { text ->
+                { Text(text) }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
                 imeAction = ImeAction.Done,
@@ -668,11 +705,6 @@ private fun ShortcutSettingsEditorContent(
                 onDone = { finishAmountEditing() }
             ),
             singleLine = true
-        )
-        SectionTitle(stringResource(Res.string.shortcut_currency_label))
-        ShortcutSelectedCurrencyRow(
-            option = CurrencyOption(code = currencyInfo.code, label = currencyLabel),
-            onClick = onCurrencyChange
         )
         state.error?.let { ErrorText(it) }
         onSave?.let { save ->
@@ -718,54 +750,24 @@ private fun SettingsSurfaceRow(onClick: () -> Unit, content: @Composable RowScop
 }
 
 @Composable
-private fun ShortcutSelectedCurrencyRow(option: CurrencyOption, onClick: () -> Unit) {
-    val changeLabel = stringResource(Res.string.shortcut_change)
+private fun ShortcutAmountCurrencyButton(currencyCode: String, onClick: () -> Unit) {
+    val currencyContentDescription = stringResource(
+        Res.string.shortcut_selected_currency_content_description,
+        currencyCode
+    )
 
-    Surface(
+    TextButton(
+        onClick = onClick,
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                role = Role.Button,
-                onClickLabel = changeLabel,
-                onClick = onClick
-            ),
-        tonalElevation = 1.dp,
-        shape = MaterialTheme.shapes.medium
+            .heightIn(min = 48.dp)
+            .semantics { contentDescription = currencyContentDescription },
+        contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = option.label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = option.code,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Text(
-                text = changeLabel,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
+        Text(currencyCode)
+        Icon(
+            imageVector = Icons.Filled.ArrowDropDown,
+            contentDescription = null
+        )
     }
 }
 
@@ -874,6 +876,7 @@ private val ShortcutEditorError.stringRes
         ShortcutEditorError.NoContacts -> Res.string.shortcut_no_contacts
         ShortcutEditorError.SelectContact -> Res.string.shortcut_error_select_contact
         ShortcutEditorError.EnterAmount -> Res.string.shortcut_error_enter_amount
+        ShortcutEditorError.WholeAmountRequired -> Res.string.shortcut_error_whole_amount
     }
 
 @Composable

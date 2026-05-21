@@ -7,5 +7,6 @@ enum class ContactEditorError {
 enum class ShortcutEditorError {
     NoContacts,
     SelectContact,
-    EnterAmount
+    EnterAmount,
+    WholeAmountRequired
 }

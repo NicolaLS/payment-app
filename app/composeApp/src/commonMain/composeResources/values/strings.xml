@@ -154,9 +154,12 @@
     <string name="shortcut_no_contacts">Add a contact before creating a shortcut.</string>
     <string name="shortcut_error_select_contact">Select a contact.</string>
     <string name="shortcut_error_enter_amount">Enter an amount.</string>
+    <string name="shortcut_error_whole_amount">Use a whole number for this currency.</string>
     <string name="shortcut_no_matching_contacts">No matching contacts</string>
     <string name="shortcut_currency_label">Currency</string>
     <string name="shortcut_amount_label">Amount</string>
+    <string name="shortcut_selected_currency_content_description">Change currency, currently %1$s</string>
+    <string name="shortcut_fiat_amount_support">At payment time, the current exchange rate will be used so the recipient receives bitcoin worth this %1$s amount.</string>
     <string name="shortcut_comment_label">Description</string>
     <string name="keyboard_done">Done</string>
     <string name="contacts_empty">No contacts yet</string>

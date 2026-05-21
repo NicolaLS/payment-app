@@ -67,6 +67,7 @@ class PaymentsSettingsViewModel internal constructor(
     private var contacts: List<Contact> = emptyList()
     private var shortcuts: List<PaymentShortcut> = emptyList()
     private var shortcutEditorAutoSaveRevision: Int = 0
+    private var lastSelectedShortcutCurrencyCode: String? = null
     private var pendingInitialShortcutContactId: String? = null
     private var pendingEditShortcutId: String? = null
 
@@ -196,7 +197,7 @@ class PaymentsSettingsViewModel internal constructor(
     private fun openAddShortcutEditor(selectedContactId: String?): Boolean {
         val selectedContact = selectedContactId?.let(::shortcutContactOption)
         if (selectedContactId != null && selectedContact == null) return false
-        val currencyCode = currencyManager.state.value.info.code
+        val currencyCode = defaultShortcutCurrencyCode()
         shortcutEditorAutoSaveRevision++
         _uiState.value = _uiState.value.copy(
             shortcutEditor = ShortcutSettingsEditor(
@@ -284,16 +285,11 @@ class PaymentsSettingsViewModel internal constructor(
         }
         if (!supported) return
         val info = CurrencyCatalog.infoFor(currencyCode)
+        lastSelectedShortcutCurrencyCode = info.code
         updateShortcutEditor { editor ->
-            val currencyChanged = !editor.currencyCode.equals(info.code, ignoreCase = true)
             editor.copy(
                 currencyCode = info.code,
-                amount = if (currencyChanged) {
-                    ""
-                } else {
-                    editor.amount.cleanAmountInput(info.fractionDigits)
-                },
-                error = null
+                error = editor.amount.validationError(info.fractionDigits)
             )
         }?.autoSaveExistingShortcut()
     }
@@ -333,6 +329,20 @@ class PaymentsSettingsViewModel internal constructor(
         return _uiState.value.shortcutEditor
     }
 
+    private fun defaultShortcutCurrencyCode(): String {
+        val rememberedCode = lastSelectedShortcutCurrencyCode.supportedCurrencyCodeOrNull()
+        if (rememberedCode != null) return rememberedCode
+
+        val recentShortcutCode = shortcuts
+            .maxByOrNull { it.updatedAtMs }
+            ?.amount
+            ?.normalizedCurrencyCode
+            .supportedCurrencyCodeOrNull()
+        if (recentShortcutCode != null) return recentShortcutCode
+
+        return currencyManager.state.value.info.code
+    }
+
     private fun ShortcutSettingsEditor.autoSaveExistingShortcut() {
         shortcutId ?: return
         val revision = ++shortcutEditorAutoSaveRevision
@@ -365,6 +375,10 @@ class PaymentsSettingsViewModel internal constructor(
             return null
         }
         val amountInfo = CurrencyCatalog.infoFor(currencyCode)
+        amount.validationError(amountInfo.fractionDigits)?.let { error ->
+            setShortcutEditorErrorIfRequested(setError, error)
+            return null
+        }
         val amountMinor = amount.parseMinorAmount(amountInfo.fractionDigits)
         if (amountMinor == null || amountMinor <= 0L) {
             setShortcutEditorErrorIfRequested(setError, ShortcutEditorError.EnterAmount)
@@ -448,6 +462,15 @@ class PaymentsSettingsViewModel internal constructor(
         } else {
             whole
         }
+    }
+
+    private fun String.validationError(fractionDigits: Int): ShortcutEditorError? {
+        val normalized = replace(',', '.').filter { it.isDigit() || it == '.' }
+        if (normalized.isBlank() || normalized == ".") return null
+        if (fractionDigits <= 0 && '.' in normalized) {
+            return ShortcutEditorError.WholeAmountRequired
+        }
+        return null
     }
 
     private fun String.parseMinorAmount(fractionDigits: Int): Long? {
@@ -587,6 +610,13 @@ private data class ShortcutSaveRequest(
     val amount: ShortcutAmount,
     val comment: String?
 )
+
+private fun String?.supportedCurrencyCodeOrNull(): String? {
+    val candidate = this ?: return null
+    return CurrencyCatalog.supportedCodes
+        .firstOrNull { it.equals(candidate, ignoreCase = true) }
+        ?.let { CurrencyCatalog.infoFor(it).code }
+}
 
 private fun List<Contact>.toShortcutContactOptions(
     query: String = ""

@@ -264,9 +264,12 @@
     <string name="shortcut_no_contacts">Füge einen Kontakt hinzu, bevor du einen Shortcut erstellst.</string>
     <string name="shortcut_error_select_contact">Wähle einen Kontakt aus.</string>
     <string name="shortcut_error_enter_amount">Gib einen Betrag ein.</string>
+    <string name="shortcut_error_whole_amount">Verwende für diese Währung eine ganze Zahl.</string>
     <string name="shortcut_no_matching_contacts">Keine passenden Kontakte</string>
     <string name="shortcut_currency_label">Währung</string>
     <string name="shortcut_amount_label">Betrag</string>
+    <string name="shortcut_selected_currency_content_description">Währung ändern, derzeit %1$s</string>
+    <string name="shortcut_fiat_amount_support">Zum Zahlungszeitpunkt wird der aktuelle Wechselkurs verwendet, sodass der Empfänger Bitcoin im Wert dieses %1$s-Betrags erhält.</string>
     <string name="shortcut_comment_label">Beschreibung</string>
     <string name="keyboard_done">Fertig</string>
     <string name="contacts_empty">Noch keine Kontakte</string>
