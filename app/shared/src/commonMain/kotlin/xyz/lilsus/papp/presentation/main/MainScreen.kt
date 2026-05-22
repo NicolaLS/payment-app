@@ -24,7 +24,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -92,34 +91,11 @@ fun MainScreen(
     onSaveContactPromptRoleSelected: (ContactRole?) -> Unit = {},
     onSaveContactPromptSave: () -> Unit = {},
     onSaveContactPromptDismiss: () -> Unit = {},
-    onRequestScannerStart: () -> Unit,
-    onScannerResume: () -> Unit,
-    onScannerPause: () -> Unit,
-    isCameraPermissionGranted: Boolean,
     scannerMode: QrScannerMode = QrScannerMode.Near,
     showScannerModeSelector: Boolean = false,
     onToggleScannerMode: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    var scannerInitialized by remember { mutableStateOf(false) }
-    val scannerShouldRun = uiState == MainUiState.Active && !contactsState.isOpen
-
-    LaunchedEffect(scannerShouldRun, isCameraPermissionGranted) {
-        if (!isCameraPermissionGranted) {
-            scannerInitialized = false
-            onScannerPause()
-        } else if (scannerShouldRun) {
-            if (!scannerInitialized) {
-                withFrameNanos { }
-                onRequestScannerStart()
-                scannerInitialized = true
-            }
-            onScannerResume()
-        } else {
-            onScannerPause()
-        }
-    }
-
     var showResolvingContent by remember { mutableStateOf(false) }
     val isResolvingLoading = uiState is MainUiState.Loading &&
         uiState.kind == LoadingKind.Resolving
@@ -312,11 +288,7 @@ fun MainScreenPreviewSuccess() {
                 feePaid = DisplayAmount(69, DisplayCurrency.Satoshi)
             ),
             pendingPayments = emptyList(),
-            snackbarHostState = remember { SnackbarHostState() },
-            onRequestScannerStart = {},
-            onScannerResume = {},
-            onScannerPause = {},
-            isCameraPermissionGranted = true
+            snackbarHostState = remember { SnackbarHostState() }
         )
     }
 }
@@ -338,11 +310,7 @@ fun MainScreenPreviewEnterAmount() {
                 )
             ),
             pendingPayments = emptyList(),
-            snackbarHostState = remember { SnackbarHostState() },
-            onRequestScannerStart = {},
-            onScannerResume = {},
-            onScannerPause = {},
-            isCameraPermissionGranted = true
+            snackbarHostState = remember { SnackbarHostState() }
         )
     }
 }
@@ -358,11 +326,7 @@ fun MainScreenPreviewConfirm() {
                 amount = DisplayAmount(500_000, DisplayCurrency.Satoshi)
             ),
             pendingPayments = emptyList(),
-            snackbarHostState = remember { SnackbarHostState() },
-            onRequestScannerStart = {},
-            onScannerResume = {},
-            onScannerPause = {},
-            isCameraPermissionGranted = true
+            snackbarHostState = remember { SnackbarHostState() }
         )
     }
 }

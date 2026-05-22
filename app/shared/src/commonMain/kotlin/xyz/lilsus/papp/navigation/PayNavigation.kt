@@ -23,6 +23,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlin.math.abs
@@ -61,7 +64,7 @@ private const val ZOOM_DRAG_RANGE = 0.4f
 private const val ZOOM_STEP = 0.01f
 private const val PREVIEW_REVEAL_DELAY_MS = 220L
 private const val SCANNER_AUTO_RESTART_DELAY_MS = 350L
-private const val MAX_SCANNER_AUTO_RESTARTS = 1
+private const val MAX_SCANNER_AUTO_RESTARTS = 5
 
 /** Horizontal swipe threshold in pixels to trigger wallet switch. */
 private const val SWIPE_THRESHOLD = 100f
@@ -92,6 +95,9 @@ private fun MainScreenEntry(
     val viewModel = rememberMainViewModel()
     val cameraPermission = rememberCameraPermissionState()
     val scannerController = rememberQrScannerController()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleState by lifecycleOwner.lifecycle.currentStateAsState()
+    val screenResumed = lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -112,6 +118,21 @@ private fun MainScreenEntry(
 
     // Track drag start position for absolute distance calculation
     var dragStartPosition by remember { mutableStateOf(Offset.Zero) }
+
+    val uiState by viewModel.uiState.collectAsState()
+    val pendingPayments by viewModel.pendingPayments.collectAsState()
+    val wallets by viewModel.wallets.collectAsState()
+    val contactsState by viewModel.contactsUiState.collectAsState()
+    val scannerShouldRun =
+        screenResumed &&
+            uiState == MainUiState.Active &&
+            !contactsState.isOpen &&
+            cameraPermission.hasPermission
+    val keepPreviewWarm =
+        scannerShouldRun &&
+            scannerMode == QrScannerMode.Far
+    val previewMounted = previewPrepared || keepPreviewWarm
+    val previewVisible = previewMounted && previewRevealRequested && previewStreaming
 
     fun hidePreview() {
         previewRevealJob?.cancel()
@@ -230,8 +251,8 @@ private fun MainScreenEntry(
     }
 
     fun startScannerIfNeeded(): Boolean {
+        if (!scannerShouldRun) return false
         if (scannerStarted) return true
-        if (!cameraPermission.hasPermission) return false
         scannerController.setMode(scannerMode)
         scannerStarted = scannerController.start(
             onQrCodeScanned = { rawValue ->
@@ -242,18 +263,6 @@ private fun MainScreenEntry(
             onScannerUnavailable = ::handleScannerUnavailable
         )
         return scannerStarted
-    }
-
-    LaunchedEffect(scannerRestartRequest) {
-        if (scannerRestartRequest == 0) return@LaunchedEffect
-        delay(SCANNER_AUTO_RESTART_DELAY_MS)
-        if (
-            cameraPermission.hasPermission &&
-            viewModel.uiState.value == MainUiState.Active &&
-            !scannerStarted
-        ) {
-            startScannerIfNeeded()
-        }
     }
 
     fun beginZoomGesture(startPosition: Offset) {
@@ -289,7 +298,8 @@ private fun MainScreenEntry(
         }
     }
 
-    LaunchedEffect(cameraPermission.hasPermission) {
+    LaunchedEffect(screenResumed, cameraPermission.hasPermission) {
+        if (!screenResumed) return@LaunchedEffect
         if (cameraPermission.hasPermission) {
             hasRequestedPermission = false
             scannerAutoRestartAttempts = 0
@@ -306,17 +316,6 @@ private fun MainScreenEntry(
         }
     }
 
-    val uiState by viewModel.uiState.collectAsState()
-    val pendingPayments by viewModel.pendingPayments.collectAsState()
-    val wallets by viewModel.wallets.collectAsState()
-    val contactsState by viewModel.contactsUiState.collectAsState()
-    val keepPreviewWarm =
-        uiState == MainUiState.Active &&
-            scannerMode == QrScannerMode.Far &&
-            cameraPermission.hasPermission
-    val previewMounted = previewPrepared || keepPreviewWarm
-    val previewVisible = previewMounted && previewRevealRequested && previewStreaming
-
     LaunchedEffect(uiState) {
         if (uiState == MainUiState.Active) {
             scannerAutoRestartAttempts = 0
@@ -325,9 +324,27 @@ private fun MainScreenEntry(
         }
     }
 
-    LaunchedEffect(keepPreviewWarm) {
-        if (!keepPreviewWarm) return@LaunchedEffect
+    LaunchedEffect(scannerShouldRun) {
+        if (!scannerShouldRun) {
+            if (scannerStarted) {
+                scannerController.stop()
+                scannerStarted = false
+            }
+            scannerAutoRestartAttempts = 0
+            endZoomGesture()
+            return@LaunchedEffect
+        }
+
+        scannerAutoRestartAttempts = 0
         if (startScannerIfNeeded()) {
+            scannerController.resume()
+        }
+    }
+
+    LaunchedEffect(scannerRestartRequest, scannerShouldRun) {
+        if (scannerRestartRequest == 0) return@LaunchedEffect
+        delay(SCANNER_AUTO_RESTART_DELAY_MS)
+        if (scannerShouldRun && !scannerStarted && startScannerIfNeeded()) {
             scannerController.resume()
         }
     }
@@ -357,8 +374,8 @@ private fun MainScreenEntry(
                 }
             )
         }
-        .pointerInput(cameraPermission.hasPermission) {
-            if (!cameraPermission.hasPermission) return@pointerInput
+        .pointerInput(scannerShouldRun) {
+            if (!scannerShouldRun) return@pointerInput
             detectDragGesturesAfterLongPress(
                 onDragStart = ::beginZoomGesture,
                 onDragCancel = ::endZoomGesture,
@@ -448,27 +465,6 @@ private fun MainScreenEntry(
             onSaveContactPromptDismiss = {
                 viewModel.dispatch(MainIntent.SaveContactPromptDismiss)
             },
-            onRequestScannerStart = {
-                if (!cameraPermission.hasPermission) {
-                    if (!hasRequestedPermission) {
-                        hasRequestedPermission = true
-                        cameraPermission.request()
-                    }
-                } else {
-                    startScannerIfNeeded()
-                }
-            },
-            onScannerResume = {
-                if (!cameraPermission.hasPermission) return@MainScreen
-                if (!startScannerIfNeeded()) return@MainScreen
-                scannerController.resume()
-            },
-            onScannerPause = {
-                if (scannerStarted) {
-                    scannerController.pause()
-                }
-            },
-            isCameraPermissionGranted = cameraPermission.hasPermission,
             scannerMode = scannerMode,
             showScannerModeSelector = scannerController.supportsManualModeSelection,
             onToggleScannerMode = if (
