@@ -189,8 +189,8 @@ android {
         applicationId = "xyz.lilsus.papp"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.2"
+        versionCode = 10
+        versionName = "2"
         manifestPlaceholders["mainActivityName"] = "xyz.lilsus.papp.MainActivity"
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         ndk {
