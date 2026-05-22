@@ -105,7 +105,7 @@ tasks.register<Exec>("installE2eIos") {
     )
 }
 dependencies {
-    kover(project(":composeApp"))
+    kover(project(":shared"))
     kover(project(":androidApp"))
 }
 
@@ -115,7 +115,7 @@ kover {
             filters {
                 excludes {
                     packages(
-                        "lasr.composeapp.generated.resources",
+                        "lasr.shared.generated.resources",
                         "xyz.lilsus.papp.data.blink.graphql",
                         "xyz.lilsus.papp.e2e",
                     )

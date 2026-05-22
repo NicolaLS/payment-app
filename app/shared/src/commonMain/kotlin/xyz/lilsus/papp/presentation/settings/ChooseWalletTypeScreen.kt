@@ -1,0 +1,127 @@
+package xyz.lilsus.papp.presentation.settings
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Key
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import lasr.shared.generated.resources.Res
+import lasr.shared.generated.resources.add_wallet_choose_type
+import lasr.shared.generated.resources.wallet_type_blink
+import lasr.shared.generated.resources.wallet_type_blink_subtitle
+import lasr.shared.generated.resources.wallet_type_nwc
+import lasr.shared.generated.resources.wallet_type_nwc_subtitle
+import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.presentation.common.BackIconButton
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChooseWalletTypeScreen(
+    onBack: () -> Unit,
+    onNwcSelected: () -> Unit,
+    onBlinkSelected: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(stringResource(Res.string.add_wallet_choose_type)) },
+                navigationIcon = {
+                    BackIconButton(onClick = onBack)
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
+                .padding(vertical = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            WalletTypeOption(
+                title = stringResource(Res.string.wallet_type_nwc),
+                subtitle = stringResource(Res.string.wallet_type_nwc_subtitle),
+                icon = { Icon(Icons.Default.Bolt, contentDescription = null) },
+                onClick = onNwcSelected
+            )
+
+            WalletTypeOption(
+                title = stringResource(Res.string.wallet_type_blink),
+                subtitle = stringResource(Res.string.wallet_type_blink_subtitle),
+                icon = { Icon(Icons.Default.Key, contentDescription = null) },
+                onClick = onBlinkSelected
+            )
+        }
+    }
+}
+
+@Composable
+private fun WalletTypeOption(
+    title: String,
+    subtitle: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .heightIn(48.dp)
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        tonalElevation = 1.dp
+    ) {
+        ListItem(
+            headlineContent = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            supportingContent = {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            leadingContent = icon,
+            trailingContent = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        )
+    }
+}

@@ -18,22 +18,22 @@ Papp is a Kotlin Multiplatform (KMP) Lightning payment app targeting Android and
 ./gradlew :androidApp:assembleRelease
 
 # Build iOS framework for simulator
-./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
 
 # Build iOS framework for device
-./gradlew :composeApp:linkReleaseFrameworkIosArm64
+./gradlew :shared:linkReleaseFrameworkIosArm64
 
 # Run all checks (tests + lint) and build the Android debug APK
 ./gradlew check :androidApp:assembleDebug
 
 # Run unit tests only
-./gradlew :composeApp:allTests
+./gradlew :shared:allTests
 
 # Run Android unit tests
-./gradlew :composeApp:testAndroidHostTest
+./gradlew :shared:testAndroidHostTest
 
 # Run iOS simulator tests
-./gradlew :composeApp:iosSimulatorArm64Test
+./gradlew :shared:iosSimulatorArm64Test
 
 # Lint check
 ./gradlew ktlintCheck
@@ -129,7 +129,7 @@ Tests are in `commonTest/` and run on JVM. Key test files:
 
 Run a single test class:
 ```bash
-./gradlew :composeApp:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
+./gradlew :shared:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
 ```
 
 ## Onboarding Flow

@@ -1,5 +1,5 @@
 import SwiftUI
-import ComposeApp
+import Shared
 
 @main
 struct E2EApp: App {

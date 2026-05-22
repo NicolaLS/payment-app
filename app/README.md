@@ -5,7 +5,7 @@ iOS, and local test commands from here.
 
 ## Layout
 
-- `composeApp/`: shared Compose Multiplatform code and iOS framework module
+- `shared/`: shared Compose Multiplatform code and iOS framework module
 - `androidApp/`: Android application packaging, variants, resources, and signing
 - `iosApp/`: iOS host app and Xcode project
 - `e2e/`: local Docker Compose regtest Lightning/NWC harness for Maestro
@@ -67,7 +67,7 @@ The debug app installs as `xyz.lilsus.papp.dev`, separate from the release app.
 Build the Kotlin framework for the iOS simulator:
 
 ```bash
-./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
 ```
 
 Open the host app in Xcode:
@@ -110,25 +110,25 @@ Auto-format Kotlin code:
 Run Android unit tests:
 
 ```bash
-./gradlew :composeApp:testAndroidHostTest
+./gradlew :shared:testAndroidHostTest
 ```
 
 Run all shared tests:
 
 ```bash
-./gradlew :composeApp:allTests
+./gradlew :shared:allTests
 ```
 
 Run a single test class:
 
 ```bash
-./gradlew :composeApp:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
+./gradlew :shared:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
 ```
 
 Regenerate Compose resources after editing strings, fonts, or drawables:
 
 ```bash
-./gradlew :composeApp:packComposeResources
+./gradlew :shared:packComposeResources
 ```
 
 ## CI

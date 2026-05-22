@@ -1,6 +1,6 @@
 import Foundation
 import Security
-import ComposeApp
+import Shared
 
 enum E2ELaunchSeeder {
     private static let profileKey = "e2eProfile"

@@ -2,12 +2,12 @@
 
 ## Project Structure & Module Organization
 
-This is a Kotlin Multiplatform Lightning payment app using Compose Multiplatform. The root Gradle project has a shared KMP module, `:composeApp`, a pure Android app module, `:androidApp`, plus an iOS shell app in `iosApp`.
+This is a Kotlin Multiplatform Lightning payment app using Compose Multiplatform. The root Gradle project has a shared KMP module, `:shared`, a pure Android app module, `:androidApp`, plus an iOS shell app in `iosApp`.
 
-- Shared application code lives in `composeApp/src/commonMain/kotlin/xyz/lilsus/papp`.
-- Platform-specific code lives in `composeApp/src/androidMain` and `composeApp/src/iosMain`.
-- Shared tests live in `composeApp/src/commonTest/kotlin`.
-- Compose resources live in `composeApp/src/commonMain/composeResources`.
+- Shared application code lives in `shared/src/commonMain/kotlin/xyz/lilsus/papp`.
+- Platform-specific code lives in `shared/src/androidMain` and `shared/src/iosMain`.
+- Shared tests live in `shared/src/commonTest/kotlin`.
+- Compose resources live in `shared/src/commonMain/composeResources`.
 - Android app resources live in `androidApp/src/main/res`.
 - iOS Swift/Xcode files live in `iosApp`.
 - Maestro flows live in `flows`, with local E2E harness scripts and services in `e2e`.
@@ -19,13 +19,13 @@ Keep domain logic in `domain`, data implementations in `data`, UI/MVI code in `p
 Run commands from the repository root.
 
 - `./gradlew check :androidApp:assembleDebug` runs tests, verification tasks, and builds the Android debug APK. Run this before submitting changes.
-- `./gradlew :composeApp:allTests` runs unit tests.
-- `./gradlew :composeApp:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"` runs one Android host test class.
+- `./gradlew :shared:allTests` runs unit tests.
+- `./gradlew :shared:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"` runs one Android host test class.
 - `./gradlew ktlintCheck` checks Kotlin formatting.
 - `./gradlew ktlintFormat` auto-formats Kotlin sources.
 - `./gradlew :androidApp:assembleDebug` builds the Android debug APK.
 - `./gradlew :androidApp:assembleE2e` builds the Android E2E variant with test hooks enabled.
-- `./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64` builds the iOS simulator framework.
+- `./gradlew :shared:linkDebugFrameworkIosSimulatorArm64` builds the iOS simulator framework.
 - `./gradlew buildE2eIos` builds the iOS simulator app with the E2E bundle id.
 - `./gradlew installE2eIos` installs the iOS E2E app on the booted simulator.
 - `./gradlew :androidApp:printReleaseSigningConfig` reports Android release signing readiness without printing secrets.
