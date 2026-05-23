@@ -23,6 +23,7 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.useContents
 import kotlinx.cinterop.value
 import platform.AVFoundation.*
+import platform.CoreGraphics.CGPointMake
 import platform.CoreMedia.CMTimeMake
 import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import platform.Foundation.*
@@ -136,6 +137,7 @@ private class IosQrScannerController : QrScannerController {
     private var desiredScanMode = QrScannerMode.Near
     private var configuredScanMode: QrScannerMode? = null
     private var previewLayer: AVCaptureVideoPreviewLayer? = null
+    private var previewBound = false
     private var activeDevice: AVCaptureDevice? = null
     private var zoomDevice: AVCaptureDevice? = null
     private var zoomBaseFactor = DEFAULT_BASE_ZOOM_FACTOR
@@ -219,6 +221,7 @@ private class IosQrScannerController : QrScannerController {
     }
 
     override fun bindPreview(surface: CameraPreviewSurface) {
+        previewBound = true
         dispatch_async(dispatch_get_main_queue()) {
             val layer = previewLayer ?: AVCaptureVideoPreviewLayer.layerWithSession(session).apply {
                 videoGravity = AVLayerVideoGravityResizeAspectFill
@@ -233,6 +236,7 @@ private class IosQrScannerController : QrScannerController {
     }
 
     override fun unbindPreview() {
+        previewBound = false
         dispatch_async(dispatch_get_main_queue()) {
             previewLayer?.removeFromSuperlayer()
         }
@@ -256,6 +260,12 @@ private class IosQrScannerController : QrScannerController {
                 }
                 if (!paused) {
                     applyZoomIfNeeded()
+                    activeDevice?.let { device ->
+                        runFocusRecovery(
+                            device = device,
+                            centered = desiredScanMode == QrScannerMode.Far
+                        )
+                    }
                 }
             }
         }
@@ -265,7 +275,10 @@ private class IosQrScannerController : QrScannerController {
         dispatch_async(sessionQueue) {
             val previousRequestedZoom = desiredZoomFraction
             desiredZoomFraction = zoomFraction.coerceIn(0f, 1f)
-            applyZoomIfNeeded(previousRequestedZoom)
+            applyZoomIfNeeded(
+                previousRequestedZoom = previousRequestedZoom,
+                smooth = previewBound
+            )
         }
     }
 
@@ -314,7 +327,10 @@ private class IosQrScannerController : QrScannerController {
         ) { _ ->
             dispatch_async(sessionQueue) {
                 if (!started || paused || zoomDevice !== device) return@dispatch_async
-                runAutofocusPulse(device)
+                runAutofocusPulse(
+                    device = device,
+                    centered = desiredScanMode == QrScannerMode.Far
+                )
             }
         }
     }
@@ -335,7 +351,17 @@ private class IosQrScannerController : QrScannerController {
         if (!session.running && started && !paused) {
             session.startRunning()
         }
-        resetFocusAndExposure()
+        activeDevice?.let { device ->
+            val centered = desiredScanMode == QrScannerMode.Far
+            resetFocusAndExposure(
+                device = device,
+                centered = centered
+            )
+            runFocusRecovery(
+                device = device,
+                centered = centered
+            )
+        }
     }
 
     private fun reportScannerUnavailable() {
@@ -364,14 +390,23 @@ private class IosQrScannerController : QrScannerController {
     @OptIn(ExperimentalForeignApi::class)
     private fun resetFocusAndExposure() {
         val device = activeDevice ?: return
-        resetFocusAndExposure(device)
+        resetFocusAndExposure(
+            device = device,
+            centered = desiredScanMode == QrScannerMode.Far
+        )
     }
 
     @OptIn(ExperimentalForeignApi::class)
-    private fun resetFocusAndExposure(device: AVCaptureDevice) {
+    private fun resetFocusAndExposure(
+        device: AVCaptureDevice,
+        centered: Boolean
+    ) {
         memScoped {
             val errorPtr = alloc<ObjCObjectVar<NSError?>>()
             if (device.lockForConfiguration(errorPtr.ptr)) {
+                if (centered) {
+                    applyCenterFocusAndExposurePoint(device)
+                }
                 if (device.isFocusModeSupported(AVCaptureFocusModeContinuousAutoFocus)) {
                     device.focusMode = AVCaptureFocusModeContinuousAutoFocus
                 }
@@ -417,6 +452,15 @@ private class IosQrScannerController : QrScannerController {
     private fun configureSessionIfNeeded(force: Boolean = false) {
         if (configured && !force && configuredScanMode == desiredScanMode) return
 
+        val configuration = selectCameraConfiguration(desiredScanMode)
+        if (configured && configuration != null && activeDevice === configuration.device) {
+            configuredScanMode = desiredScanMode
+            zoomBaseFactor = configuration.baseZoomFactor
+            captureConfigurationSummary = buildReusedCameraSummary(configuration)
+            NSLog(captureConfigurationSummary)
+            return
+        }
+
         val wasRunning = session.running
         if (wasRunning) {
             session.stopRunning()
@@ -430,7 +474,6 @@ private class IosQrScannerController : QrScannerController {
             removeSubjectAreaObserver()
             clearConfiguredDevice()
 
-            val configuration = selectCameraConfiguration(desiredScanMode)
             selectedConfiguration = configuration
             success = configureSingleCameraSession(configuration)
         } finally {
@@ -460,6 +503,12 @@ private class IosQrScannerController : QrScannerController {
 
         @Suppress("UNCHECKED_CAST")
         val devices = discoverySession.devices as? List<AVCaptureDevice> ?: emptyList()
+        val dualWide = devices.firstOrNull {
+            it.deviceType == AVCaptureDeviceTypeBuiltInDualWideCamera
+        }
+        val triple = devices.firstOrNull {
+            it.deviceType == AVCaptureDeviceTypeBuiltInTripleCamera
+        }
         val wide = devices.firstOrNull {
             it.deviceType == AVCaptureDeviceTypeBuiltInWideAngleCamera
         }
@@ -467,10 +516,14 @@ private class IosQrScannerController : QrScannerController {
             it.deviceType == AVCaptureDeviceTypeBuiltInUltraWideCamera
         }
         NSLog(
-            "Back camera discovery: wide=${wide?.localizedName ?: "none"}, " +
+            "Back camera discovery: dualWide=${dualWide?.localizedName ?: "none"}, " +
+                "triple=${triple?.localizedName ?: "none"}, " +
+                "wide=${wide?.localizedName ?: "none"}, " +
                 "ultraWide=${ultraWide?.localizedName ?: "none"}"
         )
         return BackCameraDiscoveryResult(
+            dualWide = dualWide,
+            triple = triple,
             wide = wide,
             ultraWide = ultraWide
         )
@@ -478,13 +531,23 @@ private class IosQrScannerController : QrScannerController {
 
     private fun selectCameraConfiguration(mode: QrScannerMode): SelectedCameraConfiguration? {
         val discovered = availableBackCameras
+        val virtualWide = discovered.dualWide ?: discovered.triple
         val fallbackDevice = discovered.wide
             ?: discovered.ultraWide
+            ?: virtualWide
             ?: AVCaptureDevice.defaultDeviceWithMediaType(AVMediaTypeVideo)
             ?: return null
 
         return when (mode) {
             QrScannerMode.Near -> when {
+                virtualWide != null -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = virtualWide,
+                    profileName = virtualWide.profileName("virtual-1x"),
+                    profile = null,
+                    baseZoomFactor = DEFAULT_BASE_ZOOM_FACTOR
+                )
+
                 discovered.ultraWide != null -> SelectedCameraConfiguration(
                     mode = mode,
                     device = discovered.ultraWide,
@@ -513,6 +576,14 @@ private class IosQrScannerController : QrScannerController {
             }
 
             QrScannerMode.Far -> when {
+                virtualWide != null -> SelectedCameraConfiguration(
+                    mode = mode,
+                    device = virtualWide,
+                    profileName = virtualWide.profileName("virtual-2x"),
+                    profile = null,
+                    baseZoomFactor = FAR_MODE_BASE_ZOOM_FACTOR
+                )
+
                 discovered.wide != null -> SelectedCameraConfiguration(
                     mode = mode,
                     device = discovered.wide,
@@ -544,7 +615,7 @@ private class IosQrScannerController : QrScannerController {
 
     private fun configureSingleCameraSession(configuration: SelectedCameraConfiguration?): Boolean {
         if (configuration == null) {
-            session.sessionPreset = AVCaptureSessionPresetHigh
+            applyBestEffortSessionPreset(AVCaptureSessionPresetHigh)
             return false
         }
 
@@ -552,10 +623,10 @@ private class IosQrScannerController : QrScannerController {
             device = configuration.device,
             profile = configuration.profile
         )
-        session.sessionPreset = if (selectedFormat != null) {
-            AVCaptureSessionPresetInputPriority
+        val sessionPreset = if (selectedFormat != null) {
+            applyBestEffortSessionPreset(AVCaptureSessionPresetInputPriority)
         } else {
-            AVCaptureSessionPresetHigh
+            applyBestEffortSessionPreset(AVCaptureSessionPresetHigh)
         }
 
         val input = createDeviceInput(configuration.device)
@@ -571,7 +642,10 @@ private class IosQrScannerController : QrScannerController {
             return false
         }
         session.addOutput(metadataOutput)
-        configureMetadataOutput(metadataOutput)
+        if (!configureMetadataOutput(metadataOutput)) {
+            NSLog("QR metadata output unavailable for selected camera")
+            return false
+        }
 
         activeDevice = configuration.device
         zoomDevice = configuration.device
@@ -579,21 +653,49 @@ private class IosQrScannerController : QrScannerController {
         zoomDevice?.let(::installSubjectAreaObserver)
         captureConfigurationSummary = buildSingleCameraSummary(
             configuration = configuration,
-            selectedFormat = selectedFormat
+            selectedFormat = selectedFormat,
+            sessionPreset = sessionPreset
         )
         return true
     }
 
-    private fun configureMetadataOutput(metadataOutput: AVCaptureMetadataOutput) {
+    private fun configureMetadataOutput(metadataOutput: AVCaptureMetadataOutput): Boolean {
         metadataOutput.setMetadataObjectsDelegate(metadataDelegate, sessionQueue)
+        @Suppress("UNCHECKED_CAST")
+        val availableTypes = metadataOutput.availableMetadataObjectTypes as? List<Any>
+            ?: emptyList()
+        if (availableTypes.none { it == AVMetadataObjectTypeQRCode }) return false
         metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
+        return true
+    }
+
+    private fun applyBestEffortSessionPreset(preferredPreset: String?): String {
+        val presets = listOf(
+            preferredPreset,
+            AVCaptureSessionPresetHigh,
+            AVCaptureSessionPresetMedium,
+            AVCaptureSessionPresetLow
+        )
+            .filterNotNull()
+            .distinct()
+
+        for (preset in presets) {
+            if (session.canSetSessionPreset(preset)) {
+                session.sessionPreset = preset
+                return preset
+            }
+        }
+
+        return session.sessionPreset ?: "unknown"
     }
 
     @OptIn(ExperimentalForeignApi::class)
     private fun selectAndApplyFormat(
         device: AVCaptureDevice,
-        profile: CameraFormatProfile
+        profile: CameraFormatProfile?
     ): CameraFormatCandidate? {
+        if (profile == null) return null
+
         val candidates = collectFormatCandidates(device)
             .filter { candidate -> candidate.maxFrameRate >= MIN_CAPTURE_FPS }
         if (candidates.isEmpty()) return null
@@ -732,7 +834,10 @@ private class IosQrScannerController : QrScannerController {
     }
 
     @OptIn(ExperimentalForeignApi::class)
-    private fun applyZoomIfNeeded(previousRequestedZoom: Float = desiredZoomFraction) {
+    private fun applyZoomIfNeeded(
+        previousRequestedZoom: Float = desiredZoomFraction,
+        smooth: Boolean = false
+    ) {
         val device = zoomDevice ?: return
         memScoped {
             val minZoom = maxOf(DEFAULT_BASE_ZOOM_FACTOR, device.minAvailableVideoZoomFactor)
@@ -751,12 +856,22 @@ private class IosQrScannerController : QrScannerController {
             val errorPtr = alloc<ObjCObjectVar<NSError?>>()
             var shouldRestoreContinuous = false
             if (device.lockForConfiguration(errorPtr.ptr)) {
-                device.videoZoomFactor = clampedTarget
+                if (smooth) {
+                    device.rampToVideoZoomFactor(
+                        factor = clampedTarget,
+                        withRate = ZOOM_RAMP_RATE
+                    )
+                } else {
+                    device.videoZoomFactor = clampedTarget
+                }
                 val shouldPulseFocus = shouldRunAutofocusPulse(
                     previousRequestedZoom = previousRequestedZoom,
                     requestedZoom = desiredZoomFraction
                 )
                 if (shouldPulseFocus) {
+                    if (desiredScanMode == QrScannerMode.Far) {
+                        applyCenterFocusAndExposurePoint(device)
+                    }
                     if (device.isFocusModeSupported(AVCaptureFocusModeAutoFocus)) {
                         device.focusMode = AVCaptureFocusModeAutoFocus
                     }
@@ -786,11 +901,17 @@ private class IosQrScannerController : QrScannerController {
         return snappedBackToDefault || largeZoomJump
     }
 
-    private fun runAutofocusPulse(device: AVCaptureDevice) {
+    private fun runAutofocusPulse(
+        device: AVCaptureDevice,
+        centered: Boolean
+    ) {
         memScoped {
             val errorPtr = alloc<ObjCObjectVar<NSError?>>()
             var shouldRestoreContinuous = false
             if (device.lockForConfiguration(errorPtr.ptr)) {
+                if (centered) {
+                    applyCenterFocusAndExposurePoint(device)
+                }
                 if (device.isFocusModeSupported(AVCaptureFocusModeAutoFocus)) {
                     device.focusMode = AVCaptureFocusModeAutoFocus
                 }
@@ -807,6 +928,39 @@ private class IosQrScannerController : QrScannerController {
         }
     }
 
+    private fun runFocusRecovery(
+        device: AVCaptureDevice,
+        centered: Boolean
+    ) {
+        runAutofocusPulse(
+            device = device,
+            centered = centered
+        )
+        scheduleAutofocusPulse(
+            device = device,
+            delayMillis = SETTLED_REFOCUS_DELAY_MS,
+            centered = centered
+        )
+    }
+
+    private fun scheduleAutofocusPulse(
+        device: AVCaptureDevice,
+        delayMillis: Long,
+        centered: Boolean
+    ) {
+        val delayNanos = delayMillis * NSEC_PER_MSEC.toLong()
+        dispatch_after(
+            dispatch_time(DISPATCH_TIME_NOW, delayNanos),
+            sessionQueue
+        ) {
+            if (!started || paused || zoomDevice !== device) return@dispatch_after
+            runAutofocusPulse(
+                device = device,
+                centered = centered
+            )
+        }
+    }
+
     private fun scheduleContinuousFocusAndExposureRestore(device: AVCaptureDevice) {
         val delayNanos = REFOCUS_RESTORE_DELAY_MS * NSEC_PER_MSEC.toLong()
         dispatch_after(
@@ -814,15 +968,30 @@ private class IosQrScannerController : QrScannerController {
             sessionQueue
         ) {
             if (zoomDevice !== device) return@dispatch_after
-            resetFocusAndExposure()
+            resetFocusAndExposure(
+                device = device,
+                centered = desiredScanMode == QrScannerMode.Far
+            )
+        }
+    }
+
+    private fun applyCenterFocusAndExposurePoint(device: AVCaptureDevice) {
+        val center = CGPointMake(0.5, 0.5)
+        if (device.focusPointOfInterestSupported) {
+            device.focusPointOfInterest = center
+        }
+        if (device.exposurePointOfInterestSupported) {
+            device.exposurePointOfInterest = center
         }
     }
 
     private fun buildSingleCameraSummary(
         configuration: SelectedCameraConfiguration,
-        selectedFormat: CameraFormatCandidate?
+        selectedFormat: CameraFormatCandidate?,
+        sessionPreset: String
     ): String {
-        val formatSummary = selectedFormat?.let(::formatSummary) ?: "system-default (preset=high)"
+        val formatSummary = selectedFormat?.let(::formatSummary)
+            ?: "system-default (preset=$sessionPreset)"
         val fallbackSuffix =
             configuration.fallbackReason?.let { "; fallback=$it" }.orEmpty()
         return "QR scanner configuration: mode=${configuration.mode.name.lowercase()}; " +
@@ -830,7 +999,23 @@ private class IosQrScannerController : QrScannerController {
                 configuration.device
             )}; " +
             "format=$formatSummary; targetFps=$TARGET_CAPTURE_FPS; " +
-            "baseZoom=${configuration.baseZoomFactor}$fallbackSuffix"
+            "baseZoom=${configuration.baseZoomFactor}; ${cameraDiagnostics(
+                configuration.device
+            )}$fallbackSuffix"
+    }
+
+    private fun buildReusedCameraSummary(
+        configuration: SelectedCameraConfiguration
+    ): String {
+        val fallbackSuffix =
+            configuration.fallbackReason?.let { "; fallback=$it" }.orEmpty()
+        return "QR scanner configuration: mode=${configuration.mode.name.lowercase()}; " +
+            "profile=${configuration.profileName}; device=${deviceSummary(
+                configuration.device
+            )}; " +
+            "reused=true; baseZoom=${configuration.baseZoomFactor}; ${cameraDiagnostics(
+                configuration.device
+            )}$fallbackSuffix"
     }
 
     private fun buildConfigurationFailureSummary(
@@ -846,6 +1031,18 @@ private class IosQrScannerController : QrScannerController {
 
     private fun formatSummary(candidate: CameraFormatCandidate): String =
         "${candidate.width}x${candidate.height}(maxFps=${candidate.maxFrameRate})"
+
+    private fun cameraDiagnostics(device: AVCaptureDevice): String {
+        @Suppress("UNCHECKED_CAST")
+        val switchFactors = device.virtualDeviceSwitchOverVideoZoomFactors as? List<NSNumber>
+            ?: emptyList()
+        val supportsFocus = device.isFocusModeSupported(AVCaptureFocusModeContinuousAutoFocus)
+        val supportsExposure = device.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure)
+        return "deviceType=${device.deviceType}; " +
+            "switchZooms=${switchFactors.joinToString(prefix = "[", postfix = "]")}; " +
+            "minFocusMm=${device.minimumFocusDistance}; " +
+            "continuousFocus=$supportsFocus; continuousExposure=$supportsExposure"
+    }
 }
 
 private class MetadataDelegate(
@@ -933,18 +1130,22 @@ private data class FormatSelectionTier(
 )
 
 private data class BackCameraDiscoveryResult(
+    val dualWide: AVCaptureDevice?,
+    val triple: AVCaptureDevice?,
     val wide: AVCaptureDevice?,
     val ultraWide: AVCaptureDevice?
 ) {
     val supportsManualModeSelection: Boolean
-        get() = wide != null && ultraWide != null && wide !== ultraWide
+        get() = dualWide != null ||
+            triple != null ||
+            (wide != null && ultraWide != null && wide !== ultraWide)
 }
 
 private data class SelectedCameraConfiguration(
     val mode: QrScannerMode,
     val device: AVCaptureDevice,
     val profileName: String,
-    val profile: CameraFormatProfile,
+    val profile: CameraFormatProfile?,
     val baseZoomFactor: Double,
     val fallbackReason: String? = null
 )
@@ -953,6 +1154,7 @@ private const val ZOOM_FACTOR_EPSILON = 0.01
 private const val ZOOM_PULSE_FROM_THRESHOLD = 0.12f
 private const val ZOOM_DEFAULT_THRESHOLD = 0.02f
 private const val ZOOM_PULSE_DELTA_THRESHOLD = 0.2f
+private const val ZOOM_RAMP_RATE = 6f
 
 private const val DEFAULT_BASE_ZOOM_FACTOR = 1.0
 private const val FAR_MODE_BASE_ZOOM_FACTOR = 2.0
@@ -988,9 +1190,19 @@ private val WIDE_FORMAT_PROFILE = CameraFormatProfile(
     maximumAspectDelta = DEFAULT_ASPECT_DELTA
 )
 
-private const val REFOCUS_RESTORE_DELAY_MS = 220L
+private const val REFOCUS_RESTORE_DELAY_MS = 450L
+private const val SETTLED_REFOCUS_DELAY_MS = 700L
 
 private val BACK_CAMERA_DEVICE_TYPES = listOf(
+    AVCaptureDeviceTypeBuiltInDualWideCamera,
+    AVCaptureDeviceTypeBuiltInTripleCamera,
     AVCaptureDeviceTypeBuiltInWideAngleCamera,
     AVCaptureDeviceTypeBuiltInUltraWideCamera
 )
+
+private fun AVCaptureDevice.profileName(suffix: String): String =
+    when (deviceType) {
+        AVCaptureDeviceTypeBuiltInDualWideCamera -> "dual-wide-$suffix"
+        AVCaptureDeviceTypeBuiltInTripleCamera -> "triple-$suffix"
+        else -> suffix
+    }
