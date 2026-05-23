@@ -62,6 +62,42 @@ adb install androidApp/build/outputs/apk/debug/androidApp-debug.apk
 
 The debug app installs as `xyz.lilsus.papp.dev`, separate from the release app.
 
+## Release
+
+After bumping `versionCode` and `versionName`, run the Android release helper:
+
+```bash
+scripts/release-android <version>
+```
+
+For example:
+
+```bash
+scripts/release-android 2
+```
+
+The helper validates the version, runs checks, builds the signed Play `.aab` and
+universal `.apk`, creates and pushes a signed `v<version>` tag, then creates the
+GitHub release with both artifacts attached. Preview the exact commands without
+changing anything with:
+
+```bash
+scripts/release-android <version> --dry-run
+```
+
+Upload the generated Play bundle to Google Play:
+
+```text
+androidApp/build/outputs/bundle/release/androidApp-release.aab
+```
+
+To backfill a GitHub release tag for an already-published commit, reuse existing
+artifacts and point the tag at that commit:
+
+```bash
+scripts/release-android 2 --commit 1b5a9f5 --skip-checks
+```
+
 ## iOS
 
 Build the Kotlin framework for the iOS simulator:

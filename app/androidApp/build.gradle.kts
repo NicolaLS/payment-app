@@ -1,5 +1,5 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -333,6 +333,9 @@ tasks.register<PrintReleaseSigningConfigTask>("printReleaseSigningConfig") {
 gradle.taskGraph.whenReady {
     val releaseSigningTasks = setOf(
         ":androidApp:buildSignedReleaseBundle",
+        ":androidApp:buildUniversalReleaseApks",
+        ":androidApp:buildUniversalReleaseApk",
+        ":androidApp:buildGithubReleaseArtifacts",
         ":androidApp:buildReleaseApksForConnectedDevice",
         ":androidApp:installSignedReleaseApks",
         ":androidApp:installSignedReleaseApk"
@@ -391,6 +394,89 @@ tasks.register<Exec>("buildReleaseApksForConnectedDevice") {
         "--ks-pass=$apkStorePasswordArgument",
         "--key-pass=$apkKeyPasswordArgument"
     )
+}
+
+tasks.register<Exec>("buildUniversalReleaseApks") {
+    group = "publishing"
+    description = "Builds a signed universal release APK set from the release bundle."
+    notCompatibleWithConfigurationCache(
+        "Uses local signing configuration from external secret files."
+    )
+    dependsOn("buildSignedReleaseBundle")
+
+    val bundleFile = layout.buildDirectory.file("outputs/bundle/release/androidApp-release.aab")
+    val apksFile = layout.buildDirectory.file(
+        "outputs/apks/universal/release/androidApp-release-universal.apks"
+    )
+
+    doFirst {
+        requireReleaseSigningConfig()
+        apksFile.get().asFile.parentFile.mkdirs()
+    }
+
+    executable = "bundletool"
+    args(
+        "build-apks",
+        "--bundle=${bundleFile.get().asFile}",
+        "--output=${apksFile.get().asFile}",
+        "--overwrite",
+        "--mode=universal",
+        "--ks=$apkStoreFilePath",
+        "--ks-key-alias=$apkKeyAlias",
+        "--ks-pass=$apkStorePasswordArgument",
+        "--key-pass=$apkKeyPasswordArgument"
+    )
+}
+
+tasks.register<Copy>("buildUniversalReleaseApk") {
+    group = "publishing"
+    description = "Extracts the signed universal release APK for GitHub releases."
+    notCompatibleWithConfigurationCache("Uses a local bundletool APK set.")
+    dependsOn("buildUniversalReleaseApks")
+
+    val apksFile = layout.buildDirectory.file(
+        "outputs/apks/universal/release/androidApp-release-universal.apks"
+    )
+    val apkOutputDir = layout.buildDirectory.dir("outputs/apk/universal/release")
+
+    doFirst {
+        requireReleaseSigningConfig()
+    }
+
+    from(provider { zipTree(apksFile.get().asFile) })
+    include("universal.apk")
+    into(apkOutputDir)
+    rename("universal.apk", "androidApp-release-universal.apk")
+
+    doLast {
+        println(
+            "Signed universal release APK: ${
+                apkOutputDir.get().file("androidApp-release-universal.apk").asFile
+            }"
+        )
+    }
+}
+
+tasks.register("buildGithubReleaseArtifacts") {
+    group = "publishing"
+    description = "Builds the signed Play bundle and universal APK for a GitHub release."
+    notCompatibleWithConfigurationCache("Uses local release signing helpers.")
+    dependsOn("buildSignedReleaseBundle", "buildUniversalReleaseApk")
+
+    val bundleOutput = layout.buildDirectory.file(
+        "outputs/bundle/release/androidApp-release.aab"
+    )
+    val apkOutput = layout.buildDirectory.file(
+        "outputs/apk/universal/release/androidApp-release-universal.apk"
+    )
+
+    doLast {
+        println(
+            "GitHub release artifacts:\n" +
+                "  ${bundleOutput.get().asFile}\n" +
+                "  ${apkOutput.get().asFile}"
+        )
+    }
 }
 
 tasks.register<Exec>("installSignedReleaseApks") {
