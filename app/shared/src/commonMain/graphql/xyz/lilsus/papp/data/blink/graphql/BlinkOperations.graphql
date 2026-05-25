@@ -30,17 +30,30 @@ query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
       wallets {
         ... on BTCWallet {
           transactionsByPaymentHash(paymentHash: $paymentHash) {
-            status
-            direction
+            ...BlinkTransactionPaymentResult
           }
         }
         ... on UsdWallet {
           transactionsByPaymentHash(paymentHash: $paymentHash) {
-            status
-            direction
+            ...BlinkTransactionPaymentResult
           }
         }
       }
+    }
+  }
+}
+
+fragment BlinkTransactionPaymentResult on Transaction {
+  status
+  direction
+  settlementFee
+  settlementCurrency
+  settlementVia {
+    ... on SettlementViaIntraLedger {
+      preImage
+    }
+    ... on SettlementViaLn {
+      preImage
     }
   }
 }
@@ -53,8 +66,7 @@ mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
       code
     }
     transaction {
-      settlementFee
-      settlementCurrency
+      ...BlinkTransactionPaymentResult
     }
   }
 }
@@ -67,8 +79,7 @@ mutation LnNoAmountInvoicePaymentSend($input: LnNoAmountInvoicePaymentInput!) {
       code
     }
     transaction {
-      settlementFee
-      settlementCurrency
+      ...BlinkTransactionPaymentResult
     }
   }
 }

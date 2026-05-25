@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,6 +33,13 @@ import lasr.shared.generated.resources.result_error_title
 import lasr.shared.generated.resources.result_paid_fee
 import lasr.shared.generated.resources.result_paid_fee_blink_hint
 import lasr.shared.generated.resources.result_paid_title
+import lasr.shared.generated.resources.result_receipt_body_middle
+import lasr.shared.generated.resources.result_receipt_body_only
+import lasr.shared.generated.resources.result_receipt_body_prefix
+import lasr.shared.generated.resources.result_receipt_body_preimage
+import lasr.shared.generated.resources.result_receipt_body_suffix
+import lasr.shared.generated.resources.result_receipt_title
+import lasr.shared.generated.resources.result_view_receipt
 import lasr.shared.generated.resources.tap_continue
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
@@ -40,7 +52,12 @@ import xyz.lilsus.papp.presentation.main.MainUiState
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @Composable
-fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
+fun ResultLayout(
+    result: MainUiState,
+    modifier: Modifier = Modifier,
+    receiptVisible: Boolean = false,
+    onViewReceipt: () -> Unit = {}
+) {
     val formatter = rememberAmountFormatter()
     Column(
         modifier = modifier.testTag(MaestroTags.Payment.RESULT),
@@ -48,53 +65,62 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
     ) {
         when (result) {
             is MainUiState.Success -> {
-                if (result.wasAlreadyPaid) {
-                    Text(
-                        modifier = Modifier.testTag(MaestroTags.Payment.RESULT_ALREADY_PAID),
-                        text = stringResource(Res.string.result_already_paid_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(Res.string.result_already_paid_message),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                val hasReceipt = result.preimage?.isNotBlank() == true
+                if (receiptVisible && hasReceipt) {
+                    PaymentReceiptText()
                 } else {
-                    val paidTitle = stringResource(Res.string.result_paid_title)
-                    val amountPaid = formatter.format(result.amountPaid)
-                    val paidSummary = buildAnnotatedString {
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.tertiary)) {
-                            append(paidTitle)
-                        }
-                        append(" ")
-                        append(amountPaid)
-                    }
-                    Text(
-                        modifier = Modifier.testTag(MaestroTags.Payment.RESULT_SUCCESS),
-                        text = paidSummary,
-                        style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(
-                            Res.string.result_paid_fee,
-                            formatter.format(result.feePaid)
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (result.showBlinkFeeHint) {
-                        Spacer(modifier = Modifier.height(4.dp))
+                    if (result.wasAlreadyPaid) {
                         Text(
-                            text = stringResource(Res.string.result_paid_fee_blink_hint),
-                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.testTag(MaestroTags.Payment.RESULT_ALREADY_PAID),
+                            text = stringResource(Res.string.result_already_paid_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(Res.string.result_already_paid_message),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    } else {
+                        val paidTitle = stringResource(Res.string.result_paid_title)
+                        val amountPaid = formatter.format(result.amountPaid)
+                        val paidSummary = buildAnnotatedString {
+                            withStyle(SpanStyle(color = MaterialTheme.colorScheme.tertiary)) {
+                                append(paidTitle)
+                            }
+                            append(" ")
+                            append(amountPaid)
+                        }
+                        Text(
+                            modifier = Modifier.testTag(MaestroTags.Payment.RESULT_SUCCESS),
+                            text = paidSummary,
+                            style = MaterialTheme.typography.displaySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(
+                                Res.string.result_paid_fee,
+                                formatter.format(result.feePaid)
+                            ),
+                            style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (result.showBlinkFeeHint) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(Res.string.result_paid_fee_blink_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (hasReceipt) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        ViewReceiptChip(onClick = onViewReceipt)
                     }
                 }
             }
@@ -137,6 +163,56 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.labelLarge
         )
     }
+}
+
+@Composable
+private fun PaymentReceiptText() {
+    val receiptBody = buildAnnotatedString {
+        append(stringResource(Res.string.result_receipt_body_prefix))
+        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+            append(stringResource(Res.string.result_receipt_body_preimage))
+        }
+        append(stringResource(Res.string.result_receipt_body_middle))
+        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+            append(stringResource(Res.string.result_receipt_body_only))
+        }
+        append(stringResource(Res.string.result_receipt_body_suffix))
+    }
+
+    Text(
+        text = stringResource(Res.string.result_receipt_title),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.tertiary,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+    Text(
+        modifier = Modifier.padding(horizontal = 24.dp),
+        text = receiptBody,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center
+    )
+}
+
+@Composable
+private fun ViewReceiptChip(onClick: () -> Unit) {
+    AssistChip(
+        modifier = Modifier.testTag(MaestroTags.Payment.RESULT_VIEW_RECEIPT),
+        onClick = onClick,
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Receipt,
+                contentDescription = null
+            )
+        },
+        label = {
+            Text(
+                text = stringResource(Res.string.result_view_receipt),
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+    )
 }
 
 @Preview(showBackground = true)

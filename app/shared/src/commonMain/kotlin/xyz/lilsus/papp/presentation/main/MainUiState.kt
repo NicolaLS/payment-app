@@ -15,7 +15,8 @@ sealed class MainUiState {
         val amountPaid: DisplayAmount,
         val feePaid: DisplayAmount,
         val showBlinkFeeHint: Boolean = false,
-        val wasAlreadyPaid: Boolean = false
+        val wasAlreadyPaid: Boolean = false,
+        val preimage: String? = null
     ) : MainUiState()
 
     data class Error(val error: AppError) : MainUiState()
@@ -46,7 +47,8 @@ data class SessionTransactionItem(
     /** Error message, available when status is Failure */
     val errorMessage: String? = null,
     val showBlinkFeeHint: Boolean = false,
-    val wasAlreadyPaid: Boolean = false
+    val wasAlreadyPaid: Boolean = false,
+    val preimage: String? = null
 )
 
 enum class PendingStatus {

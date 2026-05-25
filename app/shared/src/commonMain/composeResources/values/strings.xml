@@ -153,6 +153,14 @@
     <string name="result_paid_fee_blink_hint">Blink might refund this fee partially.</string>
     <string name="result_already_paid_title">Already Paid</string>
     <string name="result_already_paid_message">No payment was sent. This invoice was already paid.</string>
+    <string name="result_view_receipt">View receipt</string>
+    <string name="result_receipt_title">Payment receipt</string>
+    <string name="result_receipt_body_prefix">This is the </string>
+    <string name="result_receipt_body_preimage">preimage</string>
+    <string name="result_receipt_body_middle"> of the paid invoice. The preimage can </string>
+    <string name="result_receipt_body_only">only</string>
+    <string name="result_receipt_body_suffix"> be known when the payment was settled.</string>
+    <string name="payment_receipt_qr_content_description">Payment receipt QR code</string>
     <string name="result_error_title">Error</string>
     <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
     <string name="pay_sheet_contacts_tab">Contacts</string>

@@ -154,6 +154,7 @@ class MainViewModelTest {
             assertEquals(MANUAL_PAYMENT_REQUEST, repository.lastInvoice)
             assertEquals(123_000L, repository.lastAmountMsats)
             assertEquals(123L, success.amountPaid.minor)
+            assertEquals("preimage", success.preimage)
         } finally {
             viewModel.clear()
         }
@@ -628,6 +629,7 @@ class MainViewModelTest {
             assertEquals(MainUiState.Active, viewModel.uiState.value)
             assertEquals(PendingStatus.Success, replayed.status)
             assertEquals(250L, replayed.resultAmount?.minor)
+            assertEquals("preimage", replayed.preimage)
         } finally {
             viewModel.clear()
         }

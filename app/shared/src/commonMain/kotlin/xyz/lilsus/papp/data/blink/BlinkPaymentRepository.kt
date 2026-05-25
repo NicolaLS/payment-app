@@ -184,7 +184,7 @@ class BlinkPaymentRepository(
         val wasAlreadyPaid = result is BlinkPaymentResult.AlreadyPaid
 
         return PaidInvoice(
-            preimage = null, // Blink doesn't return preimage in the simple payment flow
+            preimage = result.preimage,
             feesPaidMsats = if (wasAlreadyPaid) null else result.feesPaidMsats,
             wasAlreadyPaid = wasAlreadyPaid
         )
@@ -212,9 +212,12 @@ class BlinkPaymentRepository(
             )
 
         return try {
-            when (apiClient.lookupPaymentStatus(apiKey, paymentHash)) {
-                BlinkPaymentStatusResult.Paid -> PaymentLookupResult.Settled(
-                    PaidInvoice(preimage = null, feesPaidMsats = null)
+            when (val status = apiClient.lookupPaymentStatus(apiKey, paymentHash)) {
+                is BlinkPaymentStatusResult.Paid -> PaymentLookupResult.Settled(
+                    PaidInvoice(
+                        preimage = status.preimage,
+                        feesPaidMsats = status.feesPaidMsats
+                    )
                 )
 
                 BlinkPaymentStatusResult.Pending -> PaymentLookupResult.Pending

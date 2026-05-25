@@ -165,6 +165,14 @@
     <string name="result_paid_fee_blink_hint">Blink könnte diese Gebühr teilweise erstatten.</string>
     <string name="result_already_paid_title">Bereits bezahlt</string>
     <string name="result_already_paid_message">Es wurde keine Zahlung gesendet. Diese Rechnung wurde bereits bezahlt.</string>
+    <string name="result_view_receipt">Beleg anzeigen</string>
+    <string name="result_receipt_title">Zahlungsbeleg</string>
+    <string name="result_receipt_body_prefix">Dies ist das </string>
+    <string name="result_receipt_body_preimage">Preimage</string>
+    <string name="result_receipt_body_middle"> der bezahlten Rechnung. Das Preimage kann </string>
+    <string name="result_receipt_body_only">nur</string>
+    <string name="result_receipt_body_suffix"> bekannt sein, wenn die Zahlung abgeschlossen wurde.</string>
+    <string name="payment_receipt_qr_content_description">QR-Code des Zahlungsbelegs</string>
     <string name="result_error_title">Fehler</string>
     <!-- Blink-Wallet-Strings -->
     <string name="add_blink_wallet_title">Blink-Wallet hinzufügen</string>

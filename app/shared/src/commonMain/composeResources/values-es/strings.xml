@@ -164,6 +164,14 @@
     <string name="result_paid_fee_blink_hint">Blink podría reembolsar parcialmente esta comisión.</string>
     <string name="result_already_paid_title">Ya pagada</string>
     <string name="result_already_paid_message">No se envió ningún pago. Esta factura ya fue pagada.</string>
+    <string name="result_view_receipt">Ver recibo</string>
+    <string name="result_receipt_title">Recibo de pago</string>
+    <string name="result_receipt_body_prefix">Este es el </string>
+    <string name="result_receipt_body_preimage">preimage</string>
+    <string name="result_receipt_body_middle"> de la factura pagada. El preimage </string>
+    <string name="result_receipt_body_only">solo</string>
+    <string name="result_receipt_body_suffix"> se puede conocer cuando el pago fue liquidado.</string>
+    <string name="payment_receipt_qr_content_description">Código QR del recibo de pago</string>
     <string name="result_error_title">Error</string>
     <!-- Cadenas de billetera Blink -->
     <string name="add_blink_wallet_title">Añadir billetera Blink</string>

@@ -127,6 +127,14 @@ fun MainScreen(
     }
     val showBottomActions = contentState !is MainUiState.Success &&
         contentState !is MainUiState.Error
+    val receiptPreimage = (contentState as? MainUiState.Success)
+        ?.preimage
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+    var showReceipt by remember { mutableStateOf(false) }
+    LaunchedEffect(receiptPreimage) {
+        showReceipt = false
+    }
     val showTransactionAction = showBottomActions &&
         sessionTransactions.isNotEmpty() &&
         contentState == MainUiState.Active
@@ -195,6 +203,7 @@ fun MainScreen(
             Hero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
                 uiState = uiState,
+                receiptPreimage = receiptPreimage.takeIf { showReceipt },
                 scannerMode = scannerMode,
                 showScannerModeSelector = showScannerModeSelector,
                 onToggleScannerMode = onToggleScannerMode
@@ -204,7 +213,9 @@ fun MainScreen(
                     state is MainUiState.Success ||
                         state is MainUiState.Error -> ResultLayout(
                         modifier = Modifier.fillMaxSize(),
-                        result = state
+                        result = state,
+                        receiptVisible = showReceipt,
+                        onViewReceipt = { showReceipt = true }
                     )
 
                     state is MainUiState.Loading && state.kind == LoadingKind.Resolving -> {

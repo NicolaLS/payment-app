@@ -1524,7 +1524,8 @@ class MainViewModel internal constructor(
             id = pendingId,
             paidMsats = paidMsats,
             feeMsats = feeMsats,
-            wasAlreadyPaid = wasAlreadyPaid
+            wasAlreadyPaid = wasAlreadyPaid,
+            preimage = result.preimage
         )
 
         val shouldShowResult = shouldShowDirectPaymentResult(
@@ -1544,7 +1545,8 @@ class MainViewModel internal constructor(
                 amountMsats = paidMsats,
                 feeMsats = feeMsats,
                 showBlinkFeeHint = showBlinkFeeHint,
-                wasAlreadyPaid = wasAlreadyPaid
+                wasAlreadyPaid = wasAlreadyPaid,
+                preimage = result.preimage
             )
         )
         _transactionDetailNavigationTarget.value = pendingId
@@ -1772,7 +1774,8 @@ class MainViewModel internal constructor(
             amountPaid = currencyManager.convertMsatsToDisplay(amountMsats, currencyState),
             feePaid = currencyManager.convertMsatsToDisplay(feeMsats, currencyState),
             showBlinkFeeHint = showBlinkFeeHint,
-            wasAlreadyPaid = wasAlreadyPaid
+            wasAlreadyPaid = wasAlreadyPaid,
+            preimage = preimage
         )
 
     /**
@@ -1814,7 +1817,8 @@ private data class CompletedPayment(
     val amountMsats: Long,
     val feeMsats: Long,
     val showBlinkFeeHint: Boolean,
-    val wasAlreadyPaid: Boolean
+    val wasAlreadyPaid: Boolean,
+    val preimage: String?
 )
 
 private data class LnurlSession(

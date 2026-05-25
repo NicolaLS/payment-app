@@ -1,11 +1,14 @@
 package xyz.lilsus.papp.presentation.main.components.hero
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +26,11 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.github.alexzhirkevich.qrose.options.QrBrush
+import io.github.alexzhirkevich.qrose.options.solid
+import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import lasr.shared.generated.resources.Res
+import lasr.shared.generated.resources.payment_receipt_qr_content_description
 import lasr.shared.generated.resources.scanner_mode_far
 import lasr.shared.generated.resources.scanner_mode_label
 import lasr.shared.generated.resources.scanner_mode_near
@@ -50,6 +57,7 @@ private val arcs = listOf(
 fun Hero(
     modifier: Modifier = Modifier,
     uiState: MainUiState,
+    receiptPreimage: String? = null,
     scannerMode: QrScannerMode = QrScannerMode.Near,
     showScannerModeSelector: Boolean = false,
     onToggleScannerMode: (() -> Unit)? = null
@@ -98,6 +106,17 @@ fun Hero(
 
     BoxWithConstraints(modifier = heroModifier) {
         val canvasSide = minOf(maxWidth * HERO_CANVAS_WIDTH_FRACTION, maxHeight)
+        val normalizedReceiptPreimage = receiptPreimage?.trim()?.takeIf { it.isNotEmpty() }
+        if (normalizedReceiptPreimage != null) {
+            PaymentReceiptQr(
+                preimage = normalizedReceiptPreimage,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(canvasSide)
+            )
+            return@BoxWithConstraints
+        }
+
         Canvas(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -246,6 +265,32 @@ fun Hero(
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+@Composable
+private fun PaymentReceiptQr(preimage: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = Color.White,
+        contentColor = Color.Black
+    ) {
+        Image(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            painter = rememberQrCodePainter(
+                data = preimage,
+                darkBrush = QrBrush.solid(Color.Black),
+                lightBrush = QrBrush.solid(Color.White),
+                ballBrush = QrBrush.solid(Color.Black),
+                frameBrush = QrBrush.solid(Color.Black)
+            ),
+            contentDescription = stringResource(
+                Res.string.payment_receipt_qr_content_description
+            )
+        )
     }
 }
 

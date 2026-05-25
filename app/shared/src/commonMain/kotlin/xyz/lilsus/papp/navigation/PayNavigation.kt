@@ -649,6 +649,14 @@ private fun SessionTransactionDetailScreen(
     onDismiss: () -> Unit
 ) {
     val detailState = transaction.toDetailUiState()
+    val receiptPreimage = (detailState as? MainUiState.Success)
+        ?.preimage
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+    var showReceipt by remember { mutableStateOf(false) }
+    LaunchedEffect(receiptPreimage) {
+        showReceipt = false
+    }
     Scaffold { paddingValues ->
         Column(
             modifier = Modifier
@@ -662,13 +670,16 @@ private fun SessionTransactionDetailScreen(
         ) {
             Hero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
-                uiState = detailState
+                uiState = detailState,
+                receiptPreimage = receiptPreimage.takeIf { showReceipt }
             )
             when (detailState) {
                 is MainUiState.Success,
                 is MainUiState.Error -> ResultLayout(
                     modifier = Modifier.fillMaxSize(),
-                    result = detailState
+                    result = detailState,
+                    receiptVisible = showReceipt,
+                    onViewReceipt = { showReceipt = true }
                 )
 
                 else -> Box(
@@ -698,7 +709,8 @@ private fun SessionTransactionItem.toDetailUiState(): MainUiState = when (status
             amountPaid = paidAmount,
             feePaid = fee ?: paidAmount.zero(),
             showBlinkFeeHint = showBlinkFeeHint && !wasAlreadyPaid,
-            wasAlreadyPaid = wasAlreadyPaid
+            wasAlreadyPaid = wasAlreadyPaid,
+            preimage = preimage
         )
     }
 

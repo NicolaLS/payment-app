@@ -46,8 +46,15 @@ class BlinkPaymentRepositoryTest {
                         "status": "SUCCESS",
                         "errors": [],
                         "transaction": {
+                            "__typename": "Transaction",
+                            "status": "SUCCESS",
+                            "direction": "SEND",
                             "settlementFee": -10,
-                            "settlementCurrency": "BTC"
+                            "settlementCurrency": "BTC",
+                            "settlementVia": {
+                                "__typename": "SettlementViaLn",
+                                "preImage": "$TEST_PREIMAGE"
+                            }
                         }
                     }
                 }
@@ -57,7 +64,7 @@ class BlinkPaymentRepositoryTest {
         val result = context.repository.payInvoice("lnbc1000n1test")
 
         assertNotNull(result)
-        assertNull(result.preimage)
+        assertEquals(TEST_PREIMAGE, result.preimage)
         assertEquals(10_000L, result.feesPaidMsats)
     }
 
@@ -70,8 +77,15 @@ class BlinkPaymentRepositoryTest {
                         "status": "ALREADY_PAID",
                         "errors": [],
                         "transaction": {
+                            "__typename": "Transaction",
+                            "status": "SUCCESS",
+                            "direction": "SEND",
                             "settlementFee": -10,
-                            "settlementCurrency": "BTC"
+                            "settlementCurrency": "BTC",
+                            "settlementVia": {
+                                "__typename": "SettlementViaLn",
+                                "preImage": "$TEST_PREIMAGE"
+                            }
                         }
                     }
                 }
@@ -82,6 +96,7 @@ class BlinkPaymentRepositoryTest {
 
         assertNotNull(result)
         assertTrue(result.wasAlreadyPaid)
+        assertEquals(TEST_PREIMAGE, result.preimage)
         assertNull(result.feesPaidMsats)
     }
 
@@ -142,8 +157,15 @@ class BlinkPaymentRepositoryTest {
                         "status": "SUCCESS",
                         "errors": [],
                         "transaction": {
+                            "__typename": "Transaction",
+                            "status": "SUCCESS",
+                            "direction": "SEND",
                             "settlementFee": -2,
-                            "settlementCurrency": "BTC"
+                            "settlementCurrency": "BTC",
+                            "settlementVia": {
+                                "__typename": "SettlementViaLn",
+                                "preImage": "$TEST_PREIMAGE"
+                            }
                         }
                     }
                 }
@@ -154,7 +176,7 @@ class BlinkPaymentRepositoryTest {
         val result = context.repository.payInvoice("lnbc1test", amountMsats = 1000L)
 
         assertNotNull(result)
-        assertNull(result.preimage)
+        assertEquals(TEST_PREIMAGE, result.preimage)
         assertEquals(2_000L, result.feesPaidMsats)
     }
 
@@ -418,6 +440,7 @@ class BlinkPaymentRepositoryTest {
         private const val TEST_WALLET_ID = "blink-test-wallet-123"
         private const val TEST_API_KEY = "blink_test_api_key"
         private const val TEST_BLINK_DEFAULT_WALLET_ID = "wallet-123"
+        private const val TEST_PREIMAGE = "blink-payment-preimage"
 
         private fun defaultWalletResponseJson(): String = """{
             "data": {
@@ -446,8 +469,15 @@ class BlinkPaymentRepositoryTest {
                         "wallets": [{
                             "__typename": "BTCWallet",
                             "transactionsByPaymentHash": [{
+                                "__typename": "Transaction",
                                 "status": "SUCCESS",
-                                "direction": "SEND"
+                                "direction": "SEND",
+                                "settlementFee": -3,
+                                "settlementCurrency": "BTC",
+                                "settlementVia": {
+                                    "__typename": "SettlementViaLn",
+                                    "preImage": "$TEST_PREIMAGE"
+                                }
                             }]
                         }]
                     }

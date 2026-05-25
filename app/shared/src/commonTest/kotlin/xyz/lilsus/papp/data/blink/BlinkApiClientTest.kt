@@ -123,8 +123,15 @@ class BlinkApiClientTest {
                         "status": "SUCCESS",
                         "errors": [],
                         "transaction": {
+                            "__typename": "Transaction",
+                            "status": "SUCCESS",
+                            "direction": "SEND",
                             "settlementFee": -10,
-                            "settlementCurrency": "BTC"
+                            "settlementCurrency": "BTC",
+                            "settlementVia": {
+                                "__typename": "SettlementViaLn",
+                                "preImage": "test-preimage"
+                            }
                         }
                     }
                 }
@@ -133,7 +140,13 @@ class BlinkApiClientTest {
 
         val result = client.payInvoice("test-api-key", "wallet-123", "lnbc1test")
 
-        assertEquals(BlinkPaymentResult.Success(feesPaidMsats = 10_000L), result)
+        assertEquals(
+            BlinkPaymentResult.Success(
+                feesPaidMsats = 10_000L,
+                preimage = "test-preimage"
+            ),
+            result
+        )
     }
 
     @Test

@@ -40,6 +40,7 @@ object MaestroTags {
         const val RESULT_SUCCESS = "payment_result_success"
         const val RESULT_ALREADY_PAID = "payment_result_already_paid"
         const val RESULT_ERROR = "payment_result_error"
+        const val RESULT_VIEW_RECEIPT = "payment_result_view_receipt"
 
         fun manualAmountDigitKey(value: Int): String = "payment_manual_amount_key_$value"
 

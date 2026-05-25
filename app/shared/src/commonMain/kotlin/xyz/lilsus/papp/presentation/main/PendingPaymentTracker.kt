@@ -104,7 +104,8 @@ class PendingPaymentTracker(
         error: AppError? = null,
         paidMsats: Long? = null,
         feeMsats: Long? = null,
-        wasAlreadyPaid: Boolean? = null
+        wasAlreadyPaid: Boolean? = null,
+        preimage: String? = null
     ) {
         records.update { currentRecords ->
             currentRecords[id]?.let { record ->
@@ -113,7 +114,8 @@ class PendingPaymentTracker(
                     error = error ?: record.error,
                     paidMsats = paidMsats ?: record.paidMsats,
                     feeMsats = feeMsats ?: record.feeMsats,
-                    wasAlreadyPaid = wasAlreadyPaid ?: record.wasAlreadyPaid
+                    wasAlreadyPaid = wasAlreadyPaid ?: record.wasAlreadyPaid,
+                    preimage = preimage ?: record.preimage
                 )
                 currentRecords + (id to updated)
             } ?: currentRecords
@@ -127,13 +129,20 @@ class PendingPaymentTracker(
     /**
      * Marks a pending payment as successful.
      */
-    fun markSuccess(id: String, paidMsats: Long, feeMsats: Long, wasAlreadyPaid: Boolean = false) {
+    fun markSuccess(
+        id: String,
+        paidMsats: Long,
+        feeMsats: Long,
+        wasAlreadyPaid: Boolean = false,
+        preimage: String? = null
+    ) {
         updateStatus(
             id = id,
             status = PendingStatus.Success,
             paidMsats = paidMsats,
             feeMsats = feeMsats,
-            wasAlreadyPaid = wasAlreadyPaid
+            wasAlreadyPaid = wasAlreadyPaid,
+            preimage = preimage
         )
     }
 
@@ -254,7 +263,8 @@ class PendingPaymentTracker(
                             id = id,
                             paidMsats = paidMsats,
                             feeMsats = feeMsats,
-                            wasAlreadyPaid = result.invoice.wasAlreadyPaid
+                            wasAlreadyPaid = result.invoice.wasAlreadyPaid,
+                            preimage = result.invoice.preimage
                         )
                         _events.tryEmit(
                             PendingEvent.Settled(
@@ -343,7 +353,8 @@ class PendingPaymentTracker(
                     error = record.error,
                     errorMessage = record.error?.let { errorMessageFor(it) },
                     showBlinkFeeHint = record.walletTarget?.type == WalletType.BLINK,
-                    wasAlreadyPaid = record.wasAlreadyPaid
+                    wasAlreadyPaid = record.wasAlreadyPaid,
+                    preimage = record.preimage
                 )
             }
     }
@@ -442,5 +453,6 @@ data class PendingRecord(
     val paidMsats: Long? = null,
     val feeMsats: Long? = null,
     val visible: Boolean = false,
-    val wasAlreadyPaid: Boolean = false
+    val wasAlreadyPaid: Boolean = false,
+    val preimage: String? = null
 )

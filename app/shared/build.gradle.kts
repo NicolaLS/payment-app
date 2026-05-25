@@ -112,6 +112,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.websockets)
             implementation(libs.apollo.runtime)
+            implementation(libs.qrose)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -138,6 +139,11 @@ apollo {
         mapScalar("LnPaymentRequest", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("WalletId", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("PaymentHash", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
+        mapScalar(
+            "LnPaymentPreImage",
+            "kotlin.String",
+            "com.apollographql.apollo.api.StringAdapter"
+        )
         mapScalar("Memo", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("ContactAlias", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("ContactHandle", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
