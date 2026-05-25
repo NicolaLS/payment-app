@@ -1,12 +1,10 @@
 package xyz.lilsus.papp.presentation.main.components.hero
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -98,154 +96,158 @@ fun Hero(
         )
     }
 
-    Box(
-        modifier = heroModifier,
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .aspectRatio(1f)
-            ) {
-                val canvasSize = size.minDimension
-                val canvasCenter = Offset(size.width / 2f, size.height / 2f)
+    BoxWithConstraints(modifier = heroModifier) {
+        val canvasSide = minOf(maxWidth * HERO_CANVAS_WIDTH_FRACTION, maxHeight)
+        Canvas(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(canvasSide)
+        ) {
+            val canvasSize = size.minDimension
+            val canvasCenter = Offset(size.width / 2f, size.height / 2f)
 
-                scale(animationState.modeScale, pivot = canvasCenter) {
-                    scale(animationState.clusterScale, pivot = canvasCenter) {
-                        // Apply Shake (if any)
-                        translate(left = animationState.clusterShakeX) {
-                            // Squares
-                            squares.forEachIndexed { index, spec ->
-                                val squareOffset = animationState.squareOffset(index)
-                                val px = (spec.x + squareOffset.x) * canvasSize
-                                val py = (spec.y + squareOffset.y) * canvasSize
+            scale(animationState.modeScale, pivot = canvasCenter) {
+                scale(animationState.clusterScale, pivot = canvasCenter) {
+                    // Apply Shake (if any)
+                    translate(left = animationState.clusterShakeX) {
+                        // Squares
+                        squares.forEachIndexed { index, spec ->
+                            val squareOffset = animationState.squareOffset(index)
+                            val px = (spec.x + squareOffset.x) * canvasSize
+                            val py = (spec.y + squareOffset.y) * canvasSize
 
-                                val s = spec.size * canvasSize
-                                val size = Size(s, s)
-                                val squareCenter = Offset(px + s / 2, py + s / 2)
+                            val s = spec.size * canvasSize
+                            val size = Size(s, s)
+                            val squareCenter = Offset(px + s / 2, py + s / 2)
 
-                                // Sharper corners for a more digital/tech look (5% of size instead of 10%)
-                                val cornerRadius = CornerRadius(s * 0.05f)
-                                val stroke = Stroke(width = s * 0.1f)
+                            // Sharper corners for a more digital/tech look (5% of size instead of 10%)
+                            val cornerRadius = CornerRadius(s * 0.05f)
+                            val stroke = Stroke(width = s * 0.1f)
 
-                                scale(animationState.squareScale(index), pivot = squareCenter) {
-                                    if (spec.outlined) {
-                                        // Finder Pattern (Ring)
+                            scale(animationState.squareScale(index), pivot = squareCenter) {
+                                if (spec.outlined) {
+                                    // Finder Pattern (Ring)
+                                    drawRoundRect(
+                                        color = animationState.color,
+                                        size = size,
+                                        cornerRadius = cornerRadius,
+                                        topLeft = Offset(px, py),
+                                        style = stroke
+                                    )
+                                    // Inner solid square (35% size)
+                                    val childSize =
+                                        Size(size.width * 0.35f, size.height * 0.35f)
+                                    val offsetX = px + (size.width - childSize.width) / 2f
+                                    val offsetY = py + (size.height - childSize.height) / 2f
+                                    drawRoundRect(
+                                        color = animationState.color,
+                                        size = childSize,
+                                        cornerRadius =
+                                            CornerRadius(childSize.width * 0.1f),
+                                        topLeft = Offset(offsetX, offsetY)
+                                    )
+                                } else {
+                                    // 4th Corner: "Data" Cluster with Flickering Bits
+                                    val gap = s * 0.1f
+                                    val miniSize = (s - gap) / 2f
+                                    val miniRadius = CornerRadius(miniSize * 0.1f)
+
+                                    fun drawBit(x: Float, y: Float, opacity: Float) {
                                         drawRoundRect(
-                                            color = animationState.color,
-                                            size = size,
-                                            cornerRadius = cornerRadius,
-                                            topLeft = Offset(px, py),
-                                            style = stroke
-                                        )
-                                        // Inner solid square (35% size)
-                                        val childSize =
-                                            Size(size.width * 0.35f, size.height * 0.35f)
-                                        val offsetX = px + (size.width - childSize.width) / 2f
-                                        val offsetY = py + (size.height - childSize.height) / 2f
-                                        drawRoundRect(
-                                            color = animationState.color,
-                                            size = childSize,
-                                            cornerRadius =
-                                                CornerRadius(childSize.width * 0.1f),
-                                            topLeft = Offset(offsetX, offsetY)
-                                        )
-                                    } else {
-                                        // 4th Corner: "Data" Cluster with Flickering Bits
-                                        val gap = s * 0.1f
-                                        val miniSize = (s - gap) / 2f
-                                        val miniRadius = CornerRadius(miniSize * 0.1f)
-
-                                        fun drawBit(x: Float, y: Float, opacity: Float) {
-                                            drawRoundRect(
-                                                color = animationState.color.copy(
-                                                    alpha = animationState.color.alpha * opacity
-                                                ),
-                                                size = Size(miniSize, miniSize),
-                                                cornerRadius = miniRadius,
-                                                topLeft = Offset(x, y)
-                                            )
-                                        }
-
-                                        drawBit(px, py, animationState.bitOpacity(0))
-                                        drawBit(
-                                            px + miniSize + gap,
-                                            py,
-                                            animationState.bitOpacity(1)
-                                        )
-                                        drawBit(
-                                            px,
-                                            py + miniSize + gap,
-                                            animationState.bitOpacity(2)
-                                        )
-                                        drawBit(
-                                            px + miniSize + gap,
-                                            py + miniSize + gap,
-                                            animationState.bitOpacity(3)
+                                            color = animationState.color.copy(
+                                                alpha = animationState.color.alpha * opacity
+                                            ),
+                                            size = Size(miniSize, miniSize),
+                                            cornerRadius = miniRadius,
+                                            topLeft = Offset(x, y)
                                         )
                                     }
+
+                                    drawBit(px, py, animationState.bitOpacity(0))
+                                    drawBit(
+                                        px + miniSize + gap,
+                                        py,
+                                        animationState.bitOpacity(1)
+                                    )
+                                    drawBit(
+                                        px,
+                                        py + miniSize + gap,
+                                        animationState.bitOpacity(2)
+                                    )
+                                    drawBit(
+                                        px + miniSize + gap,
+                                        py + miniSize + gap,
+                                        animationState.bitOpacity(3)
+                                    )
                                 }
                             }
+                        }
 
-                            if (animationState.boltScale > 0f) {
-                                val boltSize = canvasSize * 0.6f
-                                val boltPath = Path().apply {
-                                    moveTo(boltSize * 0.55f, 0f)
-                                    lineTo(boltSize * 0.2f, boltSize * 0.6f)
-                                    lineTo(boltSize * 0.45f, boltSize * 0.6f)
-                                    lineTo(boltSize * 0.35f, boltSize * 1f)
-                                    lineTo(boltSize * 0.8f, boltSize * 0.35f)
-                                    lineTo(boltSize * 0.55f, boltSize * 0.35f)
-                                    close()
-                                }
+                        if (animationState.boltScale > 0f) {
+                            val boltSize = canvasSize * 0.6f
+                            val boltPath = Path().apply {
+                                moveTo(boltSize * 0.55f, 0f)
+                                lineTo(boltSize * 0.2f, boltSize * 0.6f)
+                                lineTo(boltSize * 0.45f, boltSize * 0.6f)
+                                lineTo(boltSize * 0.35f, boltSize * 1f)
+                                lineTo(boltSize * 0.8f, boltSize * 0.35f)
+                                lineTo(boltSize * 0.55f, boltSize * 0.35f)
+                                close()
+                            }
 
-                                val boltCenter = Offset(canvasSize / 2f, canvasSize / 2f)
-                                val pathBounds = boltPath.getBounds()
-                                val pathCenter = pathBounds.center
+                            val boltCenter = Offset(canvasSize / 2f, canvasSize / 2f)
+                            val pathBounds = boltPath.getBounds()
+                            val pathCenter = pathBounds.center
 
-                                translate(
-                                    left = boltCenter.x - pathCenter.x,
-                                    top = boltCenter.y - pathCenter.y
-                                ) {
-                                    scale(animationState.boltScale, pivot = pathCenter) {
-                                        drawPath(boltPath, animationState.color)
-                                    }
+                            translate(
+                                left = boltCenter.x - pathCenter.x,
+                                top = boltCenter.y - pathCenter.y
+                            ) {
+                                scale(animationState.boltScale, pivot = pathCenter) {
+                                    drawPath(boltPath, animationState.color)
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                rotate(animationState.rotation, pivot = canvasCenter) {
-                    arcs.forEachIndexed { index, spec ->
-                        val arcOffset = animationState.arcOffset(index)
-                        val px = (spec.x + arcOffset.x) * canvasSize
-                        val py = (spec.y + arcOffset.y) * canvasSize
-                        val cornerLength = canvasSize * spec.cornerLength
-                        val cornerStroke = Stroke(width = canvasSize * 0.02f, cap = StrokeCap.Round)
-                        drawArc(
-                            color = animationState.color,
-                            startAngle = spec.startAngle,
-                            sweepAngle = spec.sweepAngle,
-                            useCenter = false,
-                            style = cornerStroke,
-                            size = Size(cornerLength, cornerLength),
-                            topLeft = Offset(px, py)
-                        )
-                    }
+            rotate(animationState.rotation, pivot = canvasCenter) {
+                arcs.forEachIndexed { index, spec ->
+                    val arcOffset = animationState.arcOffset(index)
+                    val px = (spec.x + arcOffset.x) * canvasSize
+                    val py = (spec.y + arcOffset.y) * canvasSize
+                    val cornerLength = canvasSize * spec.cornerLength
+                    val cornerStroke = Stroke(width = canvasSize * 0.02f, cap = StrokeCap.Round)
+                    drawArc(
+                        color = animationState.color,
+                        startAngle = spec.startAngle,
+                        sweepAngle = spec.sweepAngle,
+                        useCenter = false,
+                        style = cornerStroke,
+                        size = Size(cornerLength, cornerLength),
+                        topLeft = Offset(px, py)
+                    )
                 }
             }
+        }
 
-            if (showScannerModeSelector) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = modeLabel,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelMedium,
-                    textAlign = TextAlign.Center
-                )
-            }
+        if (showScannerModeSelector) {
+            val modeLabelTop = ((maxHeight.value + canvasSide.value) / 2f).dp +
+                MODE_LABEL_GAP
+            Text(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = modeLabelTop)
+                    .padding(horizontal = 16.dp),
+                text = modeLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
+
+private const val HERO_CANVAS_WIDTH_FRACTION = 0.5f
+private val MODE_LABEL_GAP = 12.dp

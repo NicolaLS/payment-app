@@ -1,49 +1,33 @@
 package xyz.lilsus.papp.presentation.main.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import lasr.shared.generated.resources.Res
-import lasr.shared.generated.resources.pending_chip_failure
-import lasr.shared.generated.resources.pending_chip_success
-import lasr.shared.generated.resources.pending_chip_waiting
+import lasr.shared.generated.resources.active_wallet_chip_description
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
-import xyz.lilsus.papp.domain.format.rememberAmountFormatter
-import xyz.lilsus.papp.presentation.main.PendingPaymentItem
-import xyz.lilsus.papp.presentation.main.PendingStatus
 import xyz.lilsus.papp.presentation.main.WalletInfo
-import xyz.lilsus.papp.presentation.util.formatTimeHHmm
 
 @Composable
 fun BottomLayout(
@@ -51,10 +35,8 @@ fun BottomLayout(
     title: String,
     subtitle: String? = null,
     wallets: List<WalletInfo> = emptyList(),
-    pendingPayments: List<PendingPaymentItem> = emptyList(),
-    onPendingTap: (String) -> Unit = {}
+    onWalletClick: () -> Unit = {}
 ) {
-    val formatter = rememberAmountFormatter()
     Column(
         modifier = modifier.testTag(MaestroTags.Payment.ACTIVE_CONTENT),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -75,135 +57,45 @@ fun BottomLayout(
         }
         if (wallets.size > 1) {
             Spacer(modifier = Modifier.height(12.dp))
-            WalletIndicator(wallets = wallets)
-        }
-        AnimatedVisibility(
-            visible = pendingPayments.isNotEmpty(),
-            enter = fadeIn() + slideInVertically { it },
-            exit = fadeOut() + slideOutVertically { it }
-        ) {
-            Column(
-                modifier = Modifier.padding(top = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                pendingPayments.forEach { pending ->
-                    PendingChip(
-                        item = pending,
-                        formatter = formatter,
-                        onTap = { onPendingTap(pending.id) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WalletIndicator(wallets: List<WalletInfo>) {
-    val active = wallets.find { it.isActive } ?: return
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        AnimatedContent(
-            targetState = active.displayName,
-            transitionSpec = { fadeIn() togetherWith fadeOut() }
-        ) { name ->
-            Text(
-                modifier = Modifier.testTag(MaestroTags.Payment.ACTIVE_WALLET_NAME),
-                text = name,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ActiveWalletChip(
+                wallets = wallets,
+                onClick = onWalletClick
             )
         }
-        if (wallets.size > 1) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                wallets.forEach { wallet ->
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(
-                                color = if (wallet.isActive) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.outlineVariant
-                                },
-                                shape = CircleShape
-                            )
-                    )
-                }
-            }
-        }
     }
 }
 
 @Composable
-private fun PendingChip(
-    item: PendingPaymentItem,
-    formatter: xyz.lilsus.papp.domain.format.AmountFormatter,
-    onTap: () -> Unit
-) {
-    val (containerColor, contentColor, icon) = when (item.status) {
-        PendingStatus.Success -> Triple(
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer,
-            Icons.Default.Check
-        )
+private fun ActiveWalletChip(wallets: List<WalletInfo>, onClick: () -> Unit) {
+    val active = wallets.find { it.isActive } ?: return
+    val description = stringResource(
+        Res.string.active_wallet_chip_description,
+        active.displayName
+    )
 
-        PendingStatus.Failure -> Triple(
-            MaterialTheme.colorScheme.errorContainer,
-            MaterialTheme.colorScheme.onErrorContainer,
-            Icons.Default.Close
-        )
-
-        PendingStatus.Waiting -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
-            null
-        )
-    }
-
-    Surface(
+    AssistChip(
         modifier = Modifier
-            .clip(MaterialTheme.shapes.small)
-            .testTag(MaestroTags.Payment.PENDING_CHIP)
-            .clickable(onClick = onTap),
-        shape = MaterialTheme.shapes.small,
-        color = containerColor,
-        tonalElevation = 1.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            icon?.let {
-                Icon(
-                    imageVector = it,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = contentColor
+            .testTag(MaestroTags.Payment.ACTIVE_WALLET_NAME)
+            .semantics { contentDescription = description },
+        onClick = onClick,
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.AccountBalanceWallet,
+                contentDescription = null
+            )
+        },
+        label = {
+            AnimatedContent(
+                targetState = active.displayName,
+                transitionSpec = { fadeIn() togetherWith fadeOut() }
+            ) { name ->
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Text(
-                text = chipLabel(item, formatter),
-                style = MaterialTheme.typography.labelMedium,
-                color = contentColor
-            )
         }
-    }
-}
-
-@Composable
-private fun chipLabel(
-    item: PendingPaymentItem,
-    formatter: xyz.lilsus.papp.domain.format.AmountFormatter
-): String {
-    val amount = formatter.format(item.amount)
-    val time = remember(item.createdAtMs) { formatTimeHHmm(item.createdAtMs) }
-    return when (item.status) {
-        PendingStatus.Waiting -> stringResource(Res.string.pending_chip_waiting, amount, time)
-        PendingStatus.Success -> stringResource(Res.string.pending_chip_success, amount, time)
-        PendingStatus.Failure -> stringResource(Res.string.pending_chip_failure, time)
-    }
+    )
 }

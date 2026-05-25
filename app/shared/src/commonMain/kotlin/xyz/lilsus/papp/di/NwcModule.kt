@@ -302,7 +302,6 @@ val nwcModule = module {
             lookupPayment = get(),
             observeWalletConnection = get(),
             observeWallets = get(),
-            setActiveWallet = get(),
             getActiveWalletTarget = get(),
             observeCurrencyPreference = get(),
             currencyManager = get(),

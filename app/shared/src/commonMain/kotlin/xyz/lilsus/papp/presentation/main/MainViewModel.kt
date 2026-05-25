@@ -59,7 +59,6 @@ import xyz.lilsus.papp.domain.usecases.RecordShortcutPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
-import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.usecases.ShouldConfirmPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 import xyz.lilsus.papp.platform.HapticFeedbackManager
@@ -79,7 +78,6 @@ class MainViewModel internal constructor(
     lookupPayment: LookupPaymentUseCase,
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
     private val observeWallets: ObserveWalletsUseCase,
-    private val setActiveWallet: SetActiveWalletUseCase,
     private val getActiveWalletTarget: GetActiveWalletTargetUseCase,
     private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
     private val currencyManager: CurrencyManager,
@@ -115,7 +113,15 @@ class MainViewModel internal constructor(
     private val _events = MutableSharedFlow<MainEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<MainEvent> = _events.asSharedFlow()
 
-    val pendingPayments: StateFlow<List<PendingPaymentItem>> = pendingTracker.displayItems
+    val sessionTransactions: StateFlow<List<SessionTransactionItem>> = pendingTracker.displayItems
+
+    private val _transactionDetailNavigationTarget = MutableStateFlow<String?>(null)
+    val transactionDetailNavigationTarget: StateFlow<String?> =
+        _transactionDetailNavigationTarget.asStateFlow()
+
+    private val _newSessionTransactionCount = MutableStateFlow(0)
+    val newSessionTransactionCount: StateFlow<Int> =
+        _newSessionTransactionCount.asStateFlow()
 
     private val _wallets = MutableStateFlow<List<WalletInfo>>(emptyList())
     val wallets: StateFlow<List<WalletInfo>> = _wallets.asStateFlow()
@@ -123,19 +129,13 @@ class MainViewModel internal constructor(
     private val _contactsUiState = MutableStateFlow(ContactsUiState())
     val contactsUiState: StateFlow<ContactsUiState> = _contactsUiState.asStateFlow()
 
-    private val _hasRecentTransactionResult = MutableStateFlow(false)
-    val hasRecentTransactionResult: StateFlow<Boolean> =
-        _hasRecentTransactionResult.asStateFlow()
-
-    /** Tracks which pending item the user is currently viewing (loading or result) */
-    private var openPendingId: String? = null
-
     private var pendingInvoice: Bolt11InvoiceSummary? = null
     private var manualEntryContext: ManualEntryContext? = null
     private var pendingPayment: PendingPayment? = null
     private var pendingRetry: PendingRetryChoice? = null
     private var lastPaymentResult: CompletedPayment? = null
-    private var recentTransactionResult: RecentTransactionResult? = null
+    private val knownSessionTransactionIds = mutableSetOf<String>()
+    private val newSessionTransactionIds = mutableSetOf<String>()
     private var parsedInvoiceCache: Pair<String, Bolt11InvoiceSummary>? = null
     private var vibrateOnScan: Boolean = true
     private var vibrateOnPayment: Boolean = true
@@ -184,6 +184,11 @@ class MainViewModel internal constructor(
             }
         }
         scope.launch {
+            pendingTracker.displayItems.collect { items ->
+                refreshNewSessionTransactionCount(items)
+            }
+        }
+        scope.launch {
             combine(observeWallets(), observeWalletConnection()) { all, active ->
                 all.map { wallet ->
                     WalletInfo(
@@ -221,32 +226,11 @@ class MainViewModel internal constructor(
     private fun abbreviateKey(key: String): String =
         if (key.length > 8) "${key.take(4)}…${key.takeLast(4)}" else key
 
-    private fun switchToNextWallet() {
-        val current = _wallets.value
-        val activeIndex = current.indexOfFirst { it.isActive }
-        if (activeIndex < 0 || current.size <= 1) return
-        val nextIndex = (activeIndex + 1) % current.size
-        scope.launch { setActiveWallet(current[nextIndex].pubKey) }
-    }
-
-    private fun switchToPreviousWallet() {
-        val current = _wallets.value
-        val activeIndex = current.indexOfFirst { it.isActive }
-        if (activeIndex < 0 || current.size <= 1) return
-        val prevIndex = (activeIndex - 1 + current.size) % current.size
-        scope.launch { setActiveWallet(current[prevIndex].pubKey) }
-    }
-
     private fun handlePendingEvent(event: PendingEvent) {
         when (event) {
             is PendingEvent.BecameVisible -> {
-                // If we're still showing loading for this payment, return to Active
-                // But NOT if user is explicitly watching this pending entry
-                val currentState = _uiState.value
-                val isWatchingThis = openPendingId == event.id &&
-                    currentState is MainUiState.Loading &&
-                    currentState.isWatchingPending
-                if (currentState is MainUiState.Loading && !isWatchingThis) {
+                // If we're still showing loading for this payment, return to Active.
+                if (_uiState.value is MainUiState.Loading) {
                     _uiState.value = MainUiState.Active
                 }
             }
@@ -259,27 +243,11 @@ class MainViewModel internal constructor(
                     amountMsats = event.paidMsats,
                     dynamicSourceKey = record?.dynamicSourceKey
                 )
-                // Only handle if user is viewing this pending entry
-                if (openPendingId == event.id) {
-                    if (vibrateOnPayment) haptics.notifyPaymentSuccess()
-                    showPaymentSuccess(
-                        CompletedPayment(
-                            amountMsats = event.paidMsats,
-                            feeMsats = event.feeMsats,
-                            showBlinkFeeHint =
-                                pendingTracker.get(event.id)?.walletTarget?.type ==
-                                    WalletType.BLINK,
-                            wasAlreadyPaid = false
-                        )
-                    )
-                }
+                pendingContactContexts.remove(event.id)
             }
 
             is PendingEvent.Failed -> {
-                // Only handle if user is viewing this pending entry
-                if (openPendingId == event.id) {
-                    showPaymentError(event.error, emitEvent = false)
-                }
+                pendingContactContexts.remove(event.id)
             }
         }
     }
@@ -292,7 +260,10 @@ class MainViewModel internal constructor(
         when (intent) {
             MainIntent.DismissResult -> handleDismissResult()
 
-            MainIntent.ReviewLastResult -> handleReviewLastResult()
+            is MainIntent.TransactionDetailNavigationHandled ->
+                handleTransactionDetailNavigationHandled(intent.id)
+
+            MainIntent.SessionTransactionsOpened -> handleSessionTransactionsOpened()
 
             is MainIntent.QrCodeScanned -> handleQrCodeScanned(intent.rawValue)
 
@@ -363,12 +334,6 @@ class MainViewModel internal constructor(
             MainIntent.SaveContactPromptSave -> savePromptContact()
 
             MainIntent.SaveContactPromptDismiss -> dismissSavePrompt()
-
-            is MainIntent.TapPending -> handlePendingTap(intent.id)
-
-            MainIntent.SwipeWalletNext -> switchToNextWallet()
-
-            MainIntent.SwipeWalletPrevious -> switchToPreviousWallet()
         }
     }
 
@@ -425,7 +390,7 @@ class MainViewModel internal constructor(
                             walletTarget = currentWalletTarget
                         )
                         if (existingForCurrentWallet != null) {
-                            openPendingEntry(existingForCurrentWallet.id)
+                            requestTransactionDetailNavigation(existingForCurrentWallet.id)
                             return
                         }
 
@@ -845,13 +810,13 @@ class MainViewModel internal constructor(
             return
         }
 
-        // If this invoice is already pending for the current wallet, just ensure chip is visible
+        // If this invoice is already pending for the current wallet, open that session entry.
         pendingTracker.findByInvoiceAndWallet(
             paymentRequest = summary.paymentRequest,
             walletTarget = currentWalletTarget
         )
             ?.let { existing ->
-                pendingTracker.makeVisible(existing.id)
+                requestTransactionDetailNavigation(existing.id)
                 return
             }
 
@@ -1211,6 +1176,8 @@ class MainViewModel internal constructor(
             handlePendingRetryDismiss()
             return
         }
+        if (record.status != PendingStatus.Waiting) return
+
         pendingRetry = null
         val amountOverrideMsats = if (record.summary.amountMsats == null) {
             record.amountMsats
@@ -1255,7 +1222,7 @@ class MainViewModel internal constructor(
     private fun handlePendingRetryViewPending() {
         val recordId = pendingRetry?.recordId ?: return
         pendingRetry = null
-        openPendingEntry(recordId)
+        requestTransactionDetailNavigation(recordId)
     }
 
     private fun handlePendingRetryDismiss() {
@@ -1263,8 +1230,32 @@ class MainViewModel internal constructor(
         _uiState.value = MainUiState.Active
     }
 
-    private fun handlePendingTap(id: String) {
-        openPendingEntry(id)
+    private fun handleTransactionDetailNavigationHandled(id: String) {
+        if (_transactionDetailNavigationTarget.value == id) {
+            _transactionDetailNavigationTarget.value = null
+        }
+    }
+
+    private fun handleSessionTransactionsOpened() {
+        newSessionTransactionIds.clear()
+        knownSessionTransactionIds += pendingTracker.displayItems.value.map { it.id }
+        _newSessionTransactionCount.value = 0
+    }
+
+    private fun refreshNewSessionTransactionCount(items: List<SessionTransactionItem>) {
+        val ids = items.map { it.id }
+        val unseenIds = ids.filterNot { it in knownSessionTransactionIds }
+        if (unseenIds.isEmpty()) return
+
+        knownSessionTransactionIds += unseenIds
+        newSessionTransactionIds += unseenIds
+        _newSessionTransactionCount.value = newSessionTransactionIds.size
+    }
+
+    private fun requestTransactionDetailNavigation(id: String) {
+        if (pendingTracker.get(id) == null) return
+        _uiState.value = MainUiState.Active
+        _transactionDetailNavigationTarget.value = id
     }
 
     private fun showPendingRetryPrompt(
@@ -1278,49 +1269,9 @@ class MainViewModel internal constructor(
             paymentSource = paymentSource,
             continuation = continuation
         )
-        _uiState.value = MainUiState.PendingRetry(source)
-    }
-
-    private fun openPendingEntry(id: String) {
-        val record = pendingTracker.get(id) ?: return
-        val currencyState = currencyManager.state.value
-
-        // Mark this entry as open
-        openPendingId = id
-
-        when (record.status) {
-            PendingStatus.Waiting -> {
-                // Still waiting - show loading with watching mode enabled
-                // User can watch as long as they want and tap to dismiss
-                _uiState.value = MainUiState.Loading(isWatchingPending = true)
-            }
-
-            PendingStatus.Success -> {
-                showSuccessForPending(record, currencyState)
-            }
-
-            PendingStatus.Failure -> {
-                val error = record.error ?: AppError.Unexpected(null)
-                showPaymentError(error, emitEvent = false)
-            }
-        }
-    }
-
-    /**
-     * Shows the success screen for a pending entry.
-     */
-    private fun showSuccessForPending(record: PendingRecord, currencyState: CurrencyState) {
-        val paid = record.paidMsats ?: record.amountMsats
-        val fee = record.feeMsats ?: 0L
-        val showBlinkFeeHint = record.walletTarget?.type == WalletType.BLINK
-        showPaymentSuccess(
-            CompletedPayment(
-                amountMsats = paid,
-                feeMsats = fee,
-                showBlinkFeeHint = showBlinkFeeHint,
-                wasAlreadyPaid = false
-            ),
-            currencyState = currencyState
+        _uiState.value = MainUiState.PendingRetry(
+            source = source,
+            id = record.id
         )
     }
 
@@ -1398,22 +1349,15 @@ class MainViewModel internal constructor(
         currencyState: CurrencyState = currencyManager.state.value
     ) {
         lastPaymentResult = payment
-        rememberRecentTransactionResult(RecentTransactionResult.Success(payment))
         _uiState.value = payment.toUiState(currencyState)
     }
 
     private fun showPaymentError(error: AppError, emitEvent: Boolean) {
         lastPaymentResult = null
-        rememberRecentTransactionResult(RecentTransactionResult.Error(error))
         _uiState.value = MainUiState.Error(error)
         if (emitEvent) {
             _events.tryEmit(MainEvent.ShowError(error))
         }
-    }
-
-    private fun rememberRecentTransactionResult(result: RecentTransactionResult) {
-        recentTransactionResult = result
-        _hasRecentTransactionResult.value = true
     }
 
     private fun startPayment(
@@ -1505,9 +1449,13 @@ class MainViewModel internal constructor(
                 request.state.collect { state ->
                     when (state) {
                         PayInvoiceRequestState.Loading -> {
-                            // Only show Loading if not already returned to Active (pending chip visible)
+                            // Only show Loading if not already returned to Active.
                             val record = pendingTracker.get(pendingId)
-                            if (record?.visible != true) {
+                            val currentState = _uiState.value
+                            if (
+                                record?.visible != true &&
+                                currentState is MainUiState.Loading
+                            ) {
                                 _uiState.value = MainUiState.Loading()
                             }
                         }
@@ -1572,24 +1520,23 @@ class MainViewModel internal constructor(
             )
         }
         clearPaymentSessionState()
+        pendingTracker.markSuccess(
+            id = pendingId,
+            paidMsats = paidMsats,
+            feeMsats = feeMsats,
+            wasAlreadyPaid = wasAlreadyPaid
+        )
 
-        // Remove any other pending requests for the same invoice (from other wallets)
-        // since the invoice can only be paid once
-        pendingTracker.removeOthersForSameInvoice(pendingId, summary.paymentRequest)
-
-        // Check if user is currently viewing this pending entry OR if chip isn't visible yet
-        val isOpen = openPendingId == pendingId
-        val chipVisible = record?.visible == true
-
-        if (!wasAlreadyPaid && chipVisible && !isOpen) {
-            // Chip is showing but user isn't viewing it - update in place, stay on Active
+        val shouldShowResult = shouldShowDirectPaymentResult(
+            pendingId = pendingId,
+            recordVisible = record?.visible == true
+        )
+        if (!shouldShowResult) {
             if (vibrateOnPayment) haptics.notifyPaymentSuccess()
-            pendingTracker.markSuccess(pendingId, paidMsats, feeMsats)
+            pendingContactContexts.remove(pendingId)
             return
         }
 
-        // Either: fast response (chip not visible yet) OR user is viewing this entry
-        // Show success screen and remove the pending record
         if (vibrateOnPayment) haptics.notifyPaymentSuccess()
         val showBlinkFeeHint = !wasAlreadyPaid && record?.walletTarget?.type == WalletType.BLINK
         showPaymentSuccess(
@@ -1600,10 +1547,14 @@ class MainViewModel internal constructor(
                 wasAlreadyPaid = wasAlreadyPaid
             )
         )
-        // Clear openPendingId since we're showing the result directly
-        if (isOpen) openPendingId = null
-        pendingTracker.remove(pendingId)
+        _transactionDetailNavigationTarget.value = pendingId
         pendingContactContexts.remove(pendingId)
+    }
+
+    private fun shouldShowDirectPaymentResult(pendingId: String, recordVisible: Boolean): Boolean {
+        val currentState = _uiState.value
+        return currentState is MainUiState.Loading &&
+            !recordVisible
     }
 
     private fun handleSuccessfulPaymentMemory(
@@ -1676,22 +1627,19 @@ class MainViewModel internal constructor(
 
         val record = pendingTracker.get(pendingId)
         clearPaymentSessionState()
+        pendingTracker.markFailure(pendingId, error)
 
-        // Check if user is currently viewing this pending entry OR if chip isn't visible yet
-        val isOpen = openPendingId == pendingId
-        val chipVisible = record?.visible == true
-
-        if (chipVisible && !isOpen) {
-            // Chip is showing but user isn't viewing it - update in place, stay on Active
-            pendingTracker.markFailure(pendingId, error)
+        val shouldShowResult = shouldShowDirectPaymentResult(
+            pendingId = pendingId,
+            recordVisible = record?.visible == true
+        )
+        if (!shouldShowResult) {
+            pendingContactContexts.remove(pendingId)
             return
         }
 
-        // Either: fast failure (chip not visible yet) OR user is viewing this entry
-        // Show error screen and remove the pending record
         showPaymentError(error, emitEvent = true)
-        if (isOpen) openPendingId = null
-        pendingTracker.remove(pendingId)
+        _transactionDetailNavigationTarget.value = pendingId
         pendingContactContexts.remove(pendingId)
     }
 
@@ -1711,12 +1659,10 @@ class MainViewModel internal constructor(
         // Make the chip visible immediately since we need user awareness
         pendingTracker.makeVisible(pendingId)
 
-        // Only return to Active if user is NOT explicitly watching this pending entry
-        val isWatchingThis = openPendingId == pendingId
-        if (!isWatchingThis) {
+        val currentState = _uiState.value
+        if (currentState is MainUiState.Loading) {
             _uiState.value = MainUiState.Active
         }
-        // If watching, stay in Loading(isWatchingPending=true) - user can dismiss when ready
 
         // Start background verification polling
         val paymentHash = error.paymentHash ?: summary.paymentHash
@@ -1727,37 +1673,8 @@ class MainViewModel internal constructor(
     }
 
     private fun handleDismissResult() {
-        val id = openPendingId
-        openPendingId = null
-
-        if (id != null) {
-            val record = pendingTracker.get(id)
-            if (record != null && record.status != PendingStatus.Waiting) {
-                // Resolved (success/failure) - remove the pending entry
-                pendingTracker.remove(id)
-                pendingContactContexts.remove(id)
-            }
-            // If still waiting, keep the chip visible (don't remove)
-        }
-
+        _transactionDetailNavigationTarget.value = null
         _uiState.value = MainUiState.Active
-    }
-
-    private fun handleReviewLastResult() {
-        openPendingId = null
-        when (val result = recentTransactionResult) {
-            is RecentTransactionResult.Success -> {
-                lastPaymentResult = result.payment
-                _uiState.value = result.payment.toUiState(currencyManager.state.value)
-            }
-
-            is RecentTransactionResult.Error -> {
-                lastPaymentResult = null
-                _uiState.value = MainUiState.Error(result.error)
-            }
-
-            null -> Unit
-        }
     }
 
     private fun refreshManualAmountState(preserveInput: Boolean = false) {
@@ -1813,7 +1730,6 @@ class MainViewModel internal constructor(
         pendingInvoice = null
         manualEntryContext = null
         pendingPayment = null
-        pendingRetry = null
         manualAmount.reset(
             ManualAmountConfig(info = state.info, exchangeRate = state.exchangeRate),
             clearInput = true
@@ -1893,11 +1809,6 @@ private data class PendingRetryChoice(
     val paymentSource: PaymentRequestSource,
     val continuation: PendingRetryContinuation?
 )
-
-private sealed interface RecentTransactionResult {
-    data class Success(val payment: CompletedPayment) : RecentTransactionResult
-    data class Error(val error: AppError) : RecentTransactionResult
-}
 
 private data class CompletedPayment(
     val amountMsats: Long,

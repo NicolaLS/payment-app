@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,16 +32,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import lasr.shared.generated.resources.Res
 import lasr.shared.generated.resources.app_name_long
+import lasr.shared.generated.resources.open_shortcuts_contacts
 import lasr.shared.generated.resources.point_camera_message_subtitle
 import lasr.shared.generated.resources.resolving_payment_subtitle
 import lasr.shared.generated.resources.resolving_payment_title
-import lasr.shared.generated.resources.tap_dismiss_pending
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.domain.model.ContactRole
@@ -55,11 +57,10 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 import xyz.lilsus.papp.presentation.main.components.PendingRetryBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ResultLayout
-import xyz.lilsus.papp.presentation.main.components.ReviewLastResultIconButton
+import xyz.lilsus.papp.presentation.main.components.SessionTransactionsIconButton
 import xyz.lilsus.papp.presentation.main.components.SettingsIconButton
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
 import xyz.lilsus.papp.presentation.main.contacts.ContactsBottomSheet
-import xyz.lilsus.papp.presentation.main.contacts.ContactsIconButton
 import xyz.lilsus.papp.presentation.main.contacts.ContactsUiState
 import xyz.lilsus.papp.presentation.main.contacts.PaySheetTab
 import xyz.lilsus.papp.presentation.main.contacts.SaveContactBottomSheet
@@ -69,12 +70,13 @@ import xyz.lilsus.papp.presentation.theme.AppTheme
 @Composable
 fun MainScreen(
     onNavigateSettings: () -> Unit,
+    onNavigateWalletSettings: () -> Unit,
     onNavigateConnectWallet: (String) -> Unit,
     uiState: MainUiState,
     wallets: List<WalletInfo> = emptyList(),
-    pendingPayments: List<PendingPaymentItem>,
+    sessionTransactions: List<SessionTransactionItem>,
+    newSessionTransactionCount: Int = 0,
     contactsState: ContactsUiState = ContactsUiState(),
-    hasRecentTransactionResult: Boolean = false,
     snackbarHostState: SnackbarHostState,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountPreset: (DisplayAmount) -> Unit = {},
@@ -86,9 +88,8 @@ fun MainScreen(
     onPendingRetryCreateNewInvoice: () -> Unit = {},
     onPendingRetryViewPending: () -> Unit = {},
     onPendingRetryDismiss: () -> Unit = {},
-    onReviewLastResult: () -> Unit = {},
+    onOpenTransactions: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
-    onPendingTap: (String) -> Unit = {},
     onContactsOpen: () -> Unit = {},
     onContactsDismiss: () -> Unit = {},
     onPaySheetTabSelected: (PaySheetTab) -> Unit = {},
@@ -117,31 +118,46 @@ fun MainScreen(
         }
     }
 
-    val isWatchingPending = uiState is MainUiState.Loading && uiState.isWatchingPending
     val isDismissable = uiState is MainUiState.Success ||
-        uiState is MainUiState.Error ||
-        isWatchingPending
+        uiState is MainUiState.Error
     val contentState = if (isResolvingLoading && !showResolvingContent) {
         MainUiState.Active
     } else {
         uiState
     }
-    val showActiveContent = contentState.showsActiveContent()
     val showBottomActions = contentState !is MainUiState.Success &&
         contentState !is MainUiState.Error
-    val showReviewLastResultAction = showBottomActions &&
-        hasRecentTransactionResult &&
-        showActiveContent
-    var revealReviewLastResultAction by remember { mutableStateOf(false) }
-    LaunchedEffect(showReviewLastResultAction) {
-        if (showReviewLastResultAction) {
-            revealReviewLastResultAction = false
-            delay(REVIEW_LAST_RESULT_REVEAL_DELAY_MS)
-            revealReviewLastResultAction = true
+    val showTransactionAction = showBottomActions &&
+        sessionTransactions.isNotEmpty() &&
+        contentState == MainUiState.Active
+    val transactionAttentionKey = sessionTransactions.fold(sessionTransactions.size) { acc, item ->
+        31 * acc + item.id.hashCode() + item.status.hashCode()
+    }
+    var revealTransactionAction by remember { mutableStateOf(false) }
+    LaunchedEffect(showTransactionAction) {
+        if (showTransactionAction) {
+            revealTransactionAction = false
+            delay(TRANSACTION_ACTION_REVEAL_DELAY_MS)
+            revealTransactionAction = true
         } else {
-            revealReviewLastResultAction = false
+            revealTransactionAction = false
         }
     }
+    val openContactsLabel = stringResource(Res.string.open_shortcuts_contacts)
+    val activeContentModifier = Modifier.then(
+        if (contentState == MainUiState.Active) {
+            Modifier.semantics {
+                customActions = listOf(
+                    CustomAccessibilityAction(openContactsLabel) {
+                        onContactsOpen()
+                        true
+                    }
+                )
+            }
+        } else {
+            Modifier
+        }
+    )
 
     Scaffold(
         modifier = modifier.testTag(MaestroTags.Payment.SCREEN),
@@ -154,20 +170,20 @@ fun MainScreen(
                 )
             }
         },
-        bottomBar = {
+        floatingActionButton = {
             if (showBottomActions) {
                 MainBottomActions(
-                    showShortcutAction = showActiveContent,
-                    showReviewLastResultAction = revealReviewLastResultAction,
-                    onContactsClick = onContactsOpen,
-                    onReviewLastResult = onReviewLastResult,
+                    showTransactionAction = revealTransactionAction,
+                    newSessionTransactionCount = newSessionTransactionCount,
+                    transactionAttentionKey = transactionAttentionKey,
+                    onOpenTransactions = onOpenTransactions,
                     onNavigateSettings = onNavigateSettings
                 )
             }
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
+            modifier = activeContentModifier
                 .tapToDismiss(
                     enabled = isDismissable,
                     onDismiss = onResultDismiss
@@ -191,23 +207,6 @@ fun MainScreen(
                         result = state
                     )
 
-                    state is MainUiState.Loading && state.isWatchingPending -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .testTag(MaestroTags.Payment.WATCHING_PENDING)
-                                .padding(top = 24.dp, start = 24.dp, end = 24.dp),
-                            contentAlignment = Alignment.TopCenter
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.tap_dismiss_pending),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
                     state is MainUiState.Loading && state.kind == LoadingKind.Resolving -> {
                         ResolvingPaymentLayout(modifier = Modifier.fillMaxSize())
                     }
@@ -216,8 +215,7 @@ fun MainScreen(
                         title = stringResource(Res.string.app_name_long),
                         subtitle = stringResource(Res.string.point_camera_message_subtitle),
                         wallets = wallets,
-                        pendingPayments = pendingPayments,
-                        onPendingTap = onPendingTap
+                        onWalletClick = onNavigateWalletSettings
                     )
                 }
             }
@@ -243,8 +241,12 @@ fun MainScreen(
     }
 
     if (uiState is MainUiState.PendingRetry) {
+        val retryTransaction = sessionTransactions.firstOrNull {
+            it.id == uiState.id
+        }
         PendingRetryBottomSheet(
             source = uiState.source,
+            status = retryTransaction?.status ?: PendingStatus.Waiting,
             onRetrySameInvoice = onPendingRetrySameInvoice,
             onCreateNewInvoice = onPendingRetryCreateNewInvoice,
             onViewPending = onPendingRetryViewPending,
@@ -278,37 +280,30 @@ fun MainScreen(
 
 @Composable
 private fun MainBottomActions(
-    showShortcutAction: Boolean,
-    showReviewLastResultAction: Boolean,
-    onContactsClick: () -> Unit,
-    onReviewLastResult: () -> Unit,
+    showTransactionAction: Boolean,
+    newSessionTransactionCount: Int,
+    transactionAttentionKey: Int,
+    onOpenTransactions: () -> Unit,
     onNavigateSettings: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 16.dp),
-        contentAlignment = Alignment.BottomEnd
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        AnimatedVisibility(
+            visible = showTransactionAction,
+            enter = fadeIn(
+                animationSpec = tween(durationMillis = TRANSACTION_ACTION_FADE_IN_MS)
+            ),
+            exit = fadeOut()
         ) {
-            AnimatedVisibility(
-                visible = showReviewLastResultAction,
-                enter = fadeIn(
-                    animationSpec = tween(durationMillis = REVIEW_LAST_RESULT_FADE_IN_MS)
-                ),
-                exit = fadeOut()
-            ) {
-                ReviewLastResultIconButton(onReviewLastResult = onReviewLastResult)
-            }
-            if (showShortcutAction) {
-                ContactsIconButton(onClick = onContactsClick)
-            }
-            SettingsIconButton(onNavigateSettings = onNavigateSettings)
+            SessionTransactionsIconButton(
+                badgeCount = newSessionTransactionCount,
+                attentionKey = transactionAttentionKey,
+                onClick = onOpenTransactions
+            )
         }
+        SettingsIconButton(onNavigateSettings = onNavigateSettings)
     }
 }
 
@@ -346,15 +341,8 @@ fun Modifier.tapToDismiss(enabled: Boolean, onDismiss: () -> Unit) = clickable(
 ) { onDismiss() }
 
 private const val RESOLVING_PAYMENT_INDICATOR_DELAY_MS = 1_000L
-private const val REVIEW_LAST_RESULT_REVEAL_DELAY_MS = 120L
-private const val REVIEW_LAST_RESULT_FADE_IN_MS = 700
-
-private fun MainUiState.showsActiveContent(): Boolean = when {
-    this is MainUiState.Success || this is MainUiState.Error -> false
-    this is MainUiState.Loading && isWatchingPending -> false
-    this is MainUiState.Loading && kind == LoadingKind.Resolving -> false
-    else -> true
-}
+private const val TRANSACTION_ACTION_REVEAL_DELAY_MS = 120L
+private const val TRANSACTION_ACTION_FADE_IN_MS = 700
 
 @Preview
 @Composable
@@ -362,12 +350,13 @@ fun MainScreenPreviewSuccess() {
     AppTheme {
         MainScreen(
             onNavigateSettings = {},
+            onNavigateWalletSettings = {},
             onNavigateConnectWallet = {},
             uiState = MainUiState.Success(
                 amountPaid = DisplayAmount(12345, DisplayCurrency.Satoshi),
                 feePaid = DisplayAmount(69, DisplayCurrency.Satoshi)
             ),
-            pendingPayments = emptyList(),
+            sessionTransactions = emptyList(),
             snackbarHostState = remember { SnackbarHostState() }
         )
     }
@@ -379,6 +368,7 @@ fun MainScreenPreviewEnterAmount() {
     AppTheme {
         MainScreen(
             onNavigateSettings = {},
+            onNavigateWalletSettings = {},
             onNavigateConnectWallet = {},
             uiState = MainUiState.EnterAmount(
                 entry = ManualAmountUiState(
@@ -389,7 +379,7 @@ fun MainScreenPreviewEnterAmount() {
                     allowDecimal = false
                 )
             ),
-            pendingPayments = emptyList(),
+            sessionTransactions = emptyList(),
             snackbarHostState = remember { SnackbarHostState() }
         )
     }
@@ -401,11 +391,12 @@ fun MainScreenPreviewConfirm() {
     AppTheme {
         MainScreen(
             onNavigateSettings = {},
+            onNavigateWalletSettings = {},
             onNavigateConnectWallet = {},
             uiState = MainUiState.Confirm(
                 amount = DisplayAmount(500_000, DisplayCurrency.Satoshi)
             ),
-            pendingPayments = emptyList(),
+            sessionTransactions = emptyList(),
             snackbarHostState = remember { SnackbarHostState() }
         )
     }

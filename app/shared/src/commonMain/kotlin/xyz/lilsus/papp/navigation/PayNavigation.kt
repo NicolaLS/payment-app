@@ -1,12 +1,21 @@
 package xyz.lilsus.papp.navigation
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -16,18 +25,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
+import androidx.navigation.toRoute
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Job
@@ -38,9 +55,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import lasr.shared.generated.resources.Res
+import lasr.shared.generated.resources.tap_dismiss_pending
 import lasr.shared.generated.resources.toast_bitcoin_address
 import lasr.shared.generated.resources.toast_bolt12_not_supported
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.DisplayAmount
 import xyz.lilsus.papp.navigation.DonationNavigation.events
 import xyz.lilsus.papp.navigation.PaymentDeepLinkEvents.events as paymentDeepLinkEvents
 import xyz.lilsus.papp.navigation.PaymentInputSource
@@ -49,7 +70,12 @@ import xyz.lilsus.papp.presentation.main.MainEvent
 import xyz.lilsus.papp.presentation.main.MainIntent
 import xyz.lilsus.papp.presentation.main.MainScreen
 import xyz.lilsus.papp.presentation.main.MainUiState
+import xyz.lilsus.papp.presentation.main.PendingStatus
+import xyz.lilsus.papp.presentation.main.SessionTransactionItem
 import xyz.lilsus.papp.presentation.main.ToastMessage
+import xyz.lilsus.papp.presentation.main.components.ResultLayout
+import xyz.lilsus.papp.presentation.main.components.SessionTransactionsScreen
+import xyz.lilsus.papp.presentation.main.components.hero.Hero
 import xyz.lilsus.papp.presentation.main.rememberMainViewModel
 import xyz.lilsus.papp.presentation.main.scan.CameraPreviewHost
 import xyz.lilsus.papp.presentation.main.scan.QrScannerMode
@@ -59,6 +85,15 @@ import xyz.lilsus.papp.presentation.main.scan.rememberQrScannerController
 @Serializable
 object Pay
 
+@Serializable
+private object PayHome
+
+@Serializable
+private object PayTransactions
+
+@Serializable
+private data class PayTransactionDetail(val transactionId: String)
+
 /** Fraction of screen height needed to drag for full zoom range. */
 private const val ZOOM_DRAG_RANGE = 0.4f
 private const val ZOOM_STEP = 0.01f
@@ -66,28 +101,74 @@ private const val PREVIEW_REVEAL_DELAY_MS = 220L
 private const val SCANNER_AUTO_RESTART_DELAY_MS = 350L
 private const val MAX_SCANNER_AUTO_RESTARTS = 5
 
-/** Horizontal swipe threshold in pixels to trigger wallet switch. */
-private const val SWIPE_THRESHOLD = 100f
+/** Upward drag distance in pixels that opens shortcuts and contacts. */
+private const val CONTACTS_SWIPE_THRESHOLD = -96f
 
 fun NavGraphBuilder.paymentScreen(
+    navController: NavController,
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToWalletSettings: () -> Unit = {},
     onNavigateToShortcutCreate: () -> Unit = {},
     onNavigateToContactsSettings: () -> Unit = {},
     onNavigateToConnectWallet: (String) -> Unit = {}
 ) {
-    composable<Pay> {
-        MainScreenEntry(
-            onNavigateToSettings = onNavigateToSettings,
-            onNavigateToShortcutCreate = onNavigateToShortcutCreate,
-            onNavigateToContactsSettings = onNavigateToContactsSettings,
-            onNavigateToConnectWallet = onNavigateToConnectWallet
-        )
+    navigation<Pay>(startDestination = PayHome) {
+        composable<PayHome> {
+            PayGraphViewModelOwner(navController) {
+                MainScreenEntry(
+                    onNavigateToTransactions = {
+                        navController.navigate(PayTransactions) {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToTransactionDetail = { id ->
+                        navController.navigate(PayTransactionDetail(transactionId = id))
+                    },
+                    onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToWalletSettings = onNavigateToWalletSettings,
+                    onNavigateToShortcutCreate = onNavigateToShortcutCreate,
+                    onNavigateToContactsSettings = onNavigateToContactsSettings,
+                    onNavigateToConnectWallet = onNavigateToConnectWallet
+                )
+            }
+        }
+        composable<PayTransactions> {
+            PayGraphViewModelOwner(navController) {
+                SessionTransactionsEntry(
+                    onBack = { navController.popBackStack() },
+                    onTransactionSelected = { id ->
+                        navController.navigate(PayTransactionDetail(transactionId = id))
+                    }
+                )
+            }
+        }
+        composable<PayTransactionDetail> { backStackEntry ->
+            PayGraphViewModelOwner(navController) {
+                SessionTransactionDetailEntry(
+                    backStackEntry = backStackEntry,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PayGraphViewModelOwner(navController: NavController, content: @Composable () -> Unit) {
+    val payBackStackEntry = remember(navController) {
+        navController.getBackStackEntry(Pay)
+    }
+    CompositionLocalProvider(LocalViewModelStoreOwner provides payBackStackEntry) {
+        content()
     }
 }
 
 @Composable
 private fun MainScreenEntry(
+    onNavigateToTransactions: () -> Unit,
+    onNavigateToTransactionDetail: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToWalletSettings: () -> Unit,
     onNavigateToShortcutCreate: () -> Unit,
     onNavigateToContactsSettings: () -> Unit,
     onNavigateToConnectWallet: (String) -> Unit
@@ -109,6 +190,7 @@ private fun MainScreenEntry(
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     var scannerMode by remember { mutableStateOf(QrScannerMode.Near) }
     var modeBeforeZoomGesture by remember { mutableStateOf<QrScannerMode?>(null) }
+    var zoomGestureActive by remember { mutableStateOf(false) }
     var previewRevealJob by remember { mutableStateOf<Job?>(null) }
     var scannerRestartRequest by remember { mutableStateOf(0) }
     var scannerAutoRestartAttempts by remember { mutableStateOf(0) }
@@ -120,10 +202,12 @@ private fun MainScreenEntry(
     var dragStartPosition by remember { mutableStateOf(Offset.Zero) }
 
     val uiState by viewModel.uiState.collectAsState()
-    val pendingPayments by viewModel.pendingPayments.collectAsState()
+    val sessionTransactions by viewModel.sessionTransactions.collectAsState()
+    val newSessionTransactionCount by viewModel.newSessionTransactionCount.collectAsState()
+    val transactionDetailNavigationTarget by
+        viewModel.transactionDetailNavigationTarget.collectAsState()
     val wallets by viewModel.wallets.collectAsState()
     val contactsState by viewModel.contactsUiState.collectAsState()
-    val hasRecentTransactionResult by viewModel.hasRecentTransactionResult.collectAsState()
     val scannerShouldRun =
         screenResumed &&
             uiState == MainUiState.Active &&
@@ -230,7 +314,15 @@ private fun MainScreenEntry(
         }
     }
 
+    LaunchedEffect(transactionDetailNavigationTarget) {
+        transactionDetailNavigationTarget?.let { id ->
+            onNavigateToTransactionDetail(id)
+            viewModel.dispatch(MainIntent.TransactionDetailNavigationHandled(id))
+        }
+    }
+
     fun endZoomGesture() {
+        zoomGestureActive = false
         hidePreview()
         restoreScannerModeAfterZoomGesture()
     }
@@ -270,6 +362,7 @@ private fun MainScreenEntry(
     }
 
     fun beginZoomGesture(startPosition: Offset) {
+        zoomGestureActive = true
         val originalMode = scannerMode
         modeBeforeZoomGesture = originalMode
         if (
@@ -281,7 +374,10 @@ private fun MainScreenEntry(
 
         previewPrepared = true
         previewRevealRequested = false
-        if (!startScannerIfNeeded()) return
+        if (!startScannerIfNeeded()) {
+            zoomGestureActive = false
+            return
+        }
         dragStartPosition = startPosition
         scope.launch { zoomFraction.snapTo(0f) }
         scannerController.resume()
@@ -353,27 +449,24 @@ private fun MainScreenEntry(
         }
     }
 
-    // Track horizontal swipe for wallet switching
-    var swipeStartX by remember { mutableStateOf(0f) }
-
-    val canSwipeWallets = uiState == MainUiState.Active && wallets.size > 1
+    var contactsSwipeDragY by remember { mutableStateOf(0f) }
+    val canSwipeOpenContacts = uiState == MainUiState.Active && !contactsState.isOpen
 
     val gestureModifier = Modifier
         .fillMaxSize()
         .onSizeChanged { containerSize = it }
-        .pointerInput(canSwipeWallets) {
-            if (!canSwipeWallets) return@pointerInput
-            detectHorizontalDragGestures(
-                onDragStart = { offset -> swipeStartX = offset.x },
-                onDragEnd = { },
-                onHorizontalDrag = { change, _ ->
-                    val totalDrag = change.position.x - swipeStartX
-                    if (totalDrag > SWIPE_THRESHOLD) {
-                        viewModel.dispatch(MainIntent.SwipeWalletPrevious)
-                        swipeStartX = change.position.x
-                    } else if (totalDrag < -SWIPE_THRESHOLD) {
-                        viewModel.dispatch(MainIntent.SwipeWalletNext)
-                        swipeStartX = change.position.x
+        .pointerInput(canSwipeOpenContacts, zoomGestureActive) {
+            if (!canSwipeOpenContacts) return@pointerInput
+            detectVerticalDragGestures(
+                onDragStart = { contactsSwipeDragY = 0f },
+                onDragEnd = { contactsSwipeDragY = 0f },
+                onDragCancel = { contactsSwipeDragY = 0f },
+                onVerticalDrag = { _, dragAmount ->
+                    if (zoomGestureActive) return@detectVerticalDragGestures
+                    contactsSwipeDragY += dragAmount
+                    if (contactsSwipeDragY <= CONTACTS_SWIPE_THRESHOLD) {
+                        contactsSwipeDragY = 0f
+                        viewModel.dispatch(MainIntent.OpenContacts)
                     }
                 }
             )
@@ -409,12 +502,13 @@ private fun MainScreenEntry(
     Box(modifier = gestureModifier) {
         MainScreen(
             onNavigateSettings = onNavigateToSettings,
+            onNavigateWalletSettings = onNavigateToWalletSettings,
             onNavigateConnectWallet = onNavigateToConnectWallet,
-            uiState = uiState,
+            uiState = uiState.asPaymentHomeState(),
             wallets = wallets,
-            pendingPayments = pendingPayments,
+            sessionTransactions = sessionTransactions,
+            newSessionTransactionCount = newSessionTransactionCount,
             contactsState = contactsState,
-            hasRecentTransactionResult = hasRecentTransactionResult,
             snackbarHostState = snackbarHostState,
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))
@@ -436,9 +530,8 @@ private fun MainScreenEntry(
                 viewModel.dispatch(MainIntent.PendingRetryViewPending)
             },
             onPendingRetryDismiss = { viewModel.dispatch(MainIntent.PendingRetryDismiss) },
-            onReviewLastResult = { viewModel.dispatch(MainIntent.ReviewLastResult) },
+            onOpenTransactions = onNavigateToTransactions,
             onResultDismiss = { viewModel.dispatch(MainIntent.DismissResult) },
-            onPendingTap = { id -> viewModel.dispatch(MainIntent.TapPending(id)) },
             onContactsOpen = { viewModel.dispatch(MainIntent.OpenContacts) },
             onContactsDismiss = { viewModel.dispatch(MainIntent.DismissContacts) },
             onPaySheetTabSelected = { tab ->
@@ -504,6 +597,123 @@ private fun MainScreenEntry(
             )
         }
     }
+}
+
+@Composable
+private fun SessionTransactionsEntry(onBack: () -> Unit, onTransactionSelected: (String) -> Unit) {
+    val viewModel = rememberMainViewModel()
+    val sessionTransactions by viewModel.sessionTransactions.collectAsState()
+
+    LaunchedEffect(viewModel) {
+        viewModel.dispatch(MainIntent.SessionTransactionsOpened)
+    }
+
+    SessionTransactionsScreen(
+        modifier = Modifier.fillMaxSize(),
+        transactions = sessionTransactions,
+        onBack = onBack,
+        onTransactionSelected = onTransactionSelected
+    )
+}
+
+@Composable
+private fun SessionTransactionDetailEntry(backStackEntry: NavBackStackEntry, onBack: () -> Unit) {
+    val route = backStackEntry.toRoute<PayTransactionDetail>()
+    val viewModel = rememberMainViewModel()
+    val sessionTransactions by viewModel.sessionTransactions.collectAsState()
+    val transactionExists = sessionTransactions.any { it.id == route.transactionId }
+
+    LaunchedEffect(route.transactionId, transactionExists) {
+        if (!transactionExists) {
+            onBack()
+        }
+    }
+
+    DisposableEffect(viewModel, route.transactionId) {
+        onDispose {
+            viewModel.dispatch(MainIntent.DismissResult)
+        }
+    }
+
+    sessionTransactions.firstOrNull { it.id == route.transactionId }?.let { transaction ->
+        SessionTransactionDetailScreen(
+            transaction = transaction,
+            onDismiss = onBack
+        )
+    }
+}
+
+@Composable
+private fun SessionTransactionDetailScreen(
+    transaction: SessionTransactionItem,
+    onDismiss: () -> Unit
+) {
+    val detailState = transaction.toDetailUiState()
+    Scaffold { paddingValues ->
+        Column(
+            modifier = Modifier
+                .clickable(
+                    indication = null,
+                    interactionSource = null
+                ) { onDismiss() }
+                .fillMaxSize()
+                .padding(paddingValues),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Hero(
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
+                uiState = detailState
+            )
+            when (detailState) {
+                is MainUiState.Success,
+                is MainUiState.Error -> ResultLayout(
+                    modifier = Modifier.fillMaxSize(),
+                    result = detailState
+                )
+
+                else -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 24.dp, start = 24.dp, end = 24.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Text(
+                        text = stringResource(Res.string.tap_dismiss_pending),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun SessionTransactionItem.toDetailUiState(): MainUiState = when (status) {
+    PendingStatus.Waiting -> MainUiState.Loading()
+
+    PendingStatus.Success -> {
+        val paidAmount = resultAmount ?: amount
+        MainUiState.Success(
+            amountPaid = paidAmount,
+            feePaid = fee ?: paidAmount.zero(),
+            showBlinkFeeHint = showBlinkFeeHint && !wasAlreadyPaid,
+            wasAlreadyPaid = wasAlreadyPaid
+        )
+    }
+
+    PendingStatus.Failure -> MainUiState.Error(
+        error ?: AppError.Unexpected(errorMessage)
+    )
+}
+
+private fun DisplayAmount.zero(): DisplayAmount = DisplayAmount(0, currency)
+
+private fun MainUiState.asPaymentHomeState(): MainUiState = when (this) {
+    is MainUiState.Success,
+    is MainUiState.Error -> MainUiState.Active
+
+    else -> this
 }
 
 private fun quantizeZoom(value: Float): Float =

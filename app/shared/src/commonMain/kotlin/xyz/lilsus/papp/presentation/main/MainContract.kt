@@ -46,7 +46,8 @@ sealed interface ToastMessage {
 sealed interface MainIntent {
     data class QrCodeScanned(val rawValue: String) : MainIntent
     data class PaymentDeepLinkReceived(val rawValue: String) : MainIntent
-    data object ReviewLastResult : MainIntent
+    data class TransactionDetailNavigationHandled(val id: String) : MainIntent
+    data object SessionTransactionsOpened : MainIntent
     data object DismissResult : MainIntent
     data class ManualAmountKeyPress(val key: ManualAmountKey) : MainIntent
     data class ManualAmountPreset(val amount: DisplayAmount) : MainIntent
@@ -77,15 +78,6 @@ sealed interface MainIntent {
     data class SaveContactPromptRoleSelected(val role: ContactRole?) : MainIntent
     data object SaveContactPromptSave : MainIntent
     data object SaveContactPromptDismiss : MainIntent
-
-    /** Tap a pending payment chip - shows result if ready, does nothing if still waiting */
-    data class TapPending(val id: String) : MainIntent
-
-    /** Swipe to switch to next wallet (swipe left). */
-    data object SwipeWalletNext : MainIntent
-
-    /** Swipe to switch to previous wallet (swipe right). */
-    data object SwipeWalletPrevious : MainIntent
 }
 
 /**

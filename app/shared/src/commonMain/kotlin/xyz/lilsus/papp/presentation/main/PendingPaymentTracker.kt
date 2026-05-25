@@ -23,6 +23,7 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.WalletPaymentTarget
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.presentation.main.PendingPaymentTracker.Companion.PENDING_NOTICE_DELAY_MS
 
@@ -46,8 +47,8 @@ class PendingPaymentTracker(
     private val verificationJobs = mutableMapOf<String, Job>()
     private val requests = mutableMapOf<String, PayInvoiceRequest>()
 
-    private val _displayItems = MutableStateFlow<List<PendingPaymentItem>>(emptyList())
-    val displayItems: StateFlow<List<PendingPaymentItem>> = _displayItems.asStateFlow()
+    private val _displayItems = MutableStateFlow<List<SessionTransactionItem>>(emptyList())
+    val displayItems: StateFlow<List<SessionTransactionItem>> = _displayItems.asStateFlow()
 
     private val _events = MutableSharedFlow<PendingEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<PendingEvent> = _events.asSharedFlow()
@@ -75,8 +76,9 @@ class PendingPaymentTracker(
             paymentHash = summary.paymentHash
         )
         records.update { it + (id to record) }
+        refreshDisplayItems()
 
-        // After delay, if still waiting, show chip
+        // After delay, if still waiting, return attention to the session transaction list.
         val visibilityJob = scope.launch {
             delay(PENDING_NOTICE_DELAY_MS)
             val current = records.value[id]
@@ -101,7 +103,8 @@ class PendingPaymentTracker(
         status: PendingStatus,
         error: AppError? = null,
         paidMsats: Long? = null,
-        feeMsats: Long? = null
+        feeMsats: Long? = null,
+        wasAlreadyPaid: Boolean? = null
     ) {
         records.update { currentRecords ->
             currentRecords[id]?.let { record ->
@@ -109,7 +112,8 @@ class PendingPaymentTracker(
                     status = status,
                     error = error ?: record.error,
                     paidMsats = paidMsats ?: record.paidMsats,
-                    feeMsats = feeMsats ?: record.feeMsats
+                    feeMsats = feeMsats ?: record.feeMsats,
+                    wasAlreadyPaid = wasAlreadyPaid ?: record.wasAlreadyPaid
                 )
                 currentRecords + (id to updated)
             } ?: currentRecords
@@ -123,8 +127,14 @@ class PendingPaymentTracker(
     /**
      * Marks a pending payment as successful.
      */
-    fun markSuccess(id: String, paidMsats: Long, feeMsats: Long) {
-        updateStatus(id, PendingStatus.Success, paidMsats = paidMsats, feeMsats = feeMsats)
+    fun markSuccess(id: String, paidMsats: Long, feeMsats: Long, wasAlreadyPaid: Boolean = false) {
+        updateStatus(
+            id = id,
+            status = PendingStatus.Success,
+            paidMsats = paidMsats,
+            feeMsats = feeMsats,
+            wasAlreadyPaid = wasAlreadyPaid
+        )
     }
 
     /**
@@ -164,7 +174,8 @@ class PendingPaymentTracker(
     ): PendingRecord? = records.value
         .values
         .firstOrNull {
-            it.summary.paymentRequest == paymentRequest &&
+            it.status == PendingStatus.Waiting &&
+                it.summary.paymentRequest == paymentRequest &&
                 it.walletTarget == walletTarget
         }
 
@@ -181,29 +192,6 @@ class PendingPaymentTracker(
             it.status == PendingStatus.Waiting &&
                 it.dynamicSourceKey == dynamicSourceKey
         }
-
-    /**
-     * Removes a pending record.
-     */
-    fun remove(id: String) {
-        if (records.value[id] == null) return
-        records.update { it - id }
-        verificationJobs.remove(id)?.cancel()
-        visibilityJobs.remove(id)?.cancel()
-        requests.remove(id)?.cancel()
-        refreshDisplayItems()
-    }
-
-    /**
-     * Removes all pending records for the same invoice except the given one.
-     * Called when one wallet successfully pays - the invoice can only be paid once.
-     */
-    fun removeOthersForSameInvoice(excludeId: String, paymentRequest: String) {
-        val toRemove = records.value.values
-            .filter { it.id != excludeId && it.summary.paymentRequest == paymentRequest }
-            .map { it.id }
-        toRemove.forEach { remove(it) }
-    }
 
     /**
      * Sets the PayInvoiceRequest for a pending record.
@@ -262,9 +250,20 @@ class PendingPaymentTracker(
                     is PaymentLookupResult.Settled -> {
                         val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
                         val feeMsats = result.invoice.feesPaidMsats ?: 0L
-                        markSuccess(id, paidMsats, feeMsats)
+                        markSuccess(
+                            id = id,
+                            paidMsats = paidMsats,
+                            feeMsats = feeMsats,
+                            wasAlreadyPaid = result.invoice.wasAlreadyPaid
+                        )
                         _events.tryEmit(
-                            PendingEvent.Settled(id, result.invoice, paidMsats, feeMsats)
+                            PendingEvent.Settled(
+                                id = id,
+                                invoice = result.invoice,
+                                paidMsats = paidMsats,
+                                feeMsats = feeMsats,
+                                wasAlreadyPaid = result.invoice.wasAlreadyPaid
+                            )
                         )
                         return@launch
                     }
@@ -323,9 +322,10 @@ class PendingPaymentTracker(
     fun refreshDisplayItems() {
         val currencyState = currencyManager.state.value
         _displayItems.value = records.value.values
-            .filter { it.visible }
+            .sortedByDescending { it.createdAtMs }
             .map { record ->
-                PendingPaymentItem(
+                val resultAmountMsats = record.paidMsats ?: record.amountMsats
+                SessionTransactionItem(
                     id = record.id,
                     amount = currencyManager.convertMsatsToDisplay(
                         record.amountMsats,
@@ -333,10 +333,17 @@ class PendingPaymentTracker(
                     ),
                     status = record.status,
                     createdAtMs = record.createdAtMs,
+                    resultAmount = currencyManager.convertMsatsToDisplay(
+                        resultAmountMsats,
+                        currencyState
+                    ),
                     fee = record.feeMsats?.let {
                         currencyManager.convertMsatsToDisplay(it, currencyState)
                     },
-                    errorMessage = record.error?.let { errorMessageFor(it) }
+                    error = record.error,
+                    errorMessage = record.error?.let { errorMessageFor(it) },
+                    showBlinkFeeHint = record.walletTarget?.type == WalletType.BLINK,
+                    wasAlreadyPaid = record.wasAlreadyPaid
                 )
             }
     }
@@ -391,7 +398,7 @@ class PendingPaymentTracker(
  * Events emitted by PendingPaymentTracker.
  */
 sealed class PendingEvent {
-    /** A pending chip became visible after the delay. */
+    /** A pending transaction became visible after the delay. */
     data class BecameVisible(val id: String) : PendingEvent()
 
     /** A pending payment was verified as settled. */
@@ -399,7 +406,8 @@ sealed class PendingEvent {
         val id: String,
         val invoice: PaidInvoice,
         val paidMsats: Long,
-        val feeMsats: Long
+        val feeMsats: Long,
+        val wasAlreadyPaid: Boolean
     ) : PendingEvent()
 
     /** A pending payment was verified as failed. */
@@ -433,5 +441,6 @@ data class PendingRecord(
     val error: AppError? = null,
     val paidMsats: Long? = null,
     val feeMsats: Long? = null,
-    val visible: Boolean = false
+    val visible: Boolean = false,
+    val wasAlreadyPaid: Boolean = false
 )

@@ -7,13 +7,10 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 sealed class MainUiState {
     object Active : MainUiState()
     object Detected : MainUiState()
-    data class Loading(
-        val kind: LoadingKind = LoadingKind.Paying,
-        val isWatchingPending: Boolean = false
-    ) : MainUiState()
+    data class Loading(val kind: LoadingKind = LoadingKind.Paying) : MainUiState()
     data class EnterAmount(val entry: ManualAmountUiState) : MainUiState()
     data class Confirm(val amount: DisplayAmount) : MainUiState()
-    data class PendingRetry(val source: PendingRetrySource) : MainUiState()
+    data class PendingRetry(val source: PendingRetrySource, val id: String) : MainUiState()
     data class Success(
         val amountPaid: DisplayAmount,
         val feePaid: DisplayAmount,
@@ -34,20 +31,22 @@ enum class PendingRetrySource {
     Dynamic
 }
 
-/**
- * A pending payment chip displayed in the bottom area.
- * Shows status inline - no navigation to detail screen.
- */
-data class PendingPaymentItem(
+data class SessionTransactionItem(
     val id: String,
     val amount: DisplayAmount,
     val status: PendingStatus,
     /** Timestamp when payment was initiated (epoch millis) */
     val createdAtMs: Long,
+    /** Amount to show on the result screen. This can differ from [amount] for already-paid invoices. */
+    val resultAmount: DisplayAmount? = null,
     /** Fee paid, available when status is Success */
     val fee: DisplayAmount? = null,
+    /** Error value, available when status is Failure */
+    val error: AppError? = null,
     /** Error message, available when status is Failure */
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val showBlinkFeeHint: Boolean = false,
+    val wasAlreadyPaid: Boolean = false
 )
 
 enum class PendingStatus {

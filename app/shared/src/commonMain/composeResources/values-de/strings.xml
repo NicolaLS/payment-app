@@ -5,6 +5,7 @@
     <string name="action_clear_search">Suche löschen</string>
     <string name="tap_continue">Zum Fortfahren tippen…</string>
     <string name="tap_dismiss_pending">Tippen zum Schließen. Zahlung läuft im Hintergrund weiter.</string>
+    <string name="open_shortcuts_contacts">Shortcuts und Kontakte öffnen</string>
     <string name="point_camera_message_subtitle">Richte die Kamera auf eine Rechnung.</string>
     <string name="resolving_payment_title">Zahlung wird vorbereitet</string>
     <string name="resolving_payment_subtitle">Es wurde noch keine Zahlung gesendet.</string>
@@ -18,9 +19,22 @@
     <string name="pending_retry_bolt11_body">Diese Rechnung wird bereits mit einer anderen Wallet bezahlt. Du kannst es auch mit dieser Wallet versuchen. Nur eine Zahlung kann erfolgreich sein.</string>
     <string name="pending_retry_dynamic_title">Zahlung bereits ausstehend</string>
     <string name="pending_retry_dynamic_body">Für diese Anfrage läuft bereits eine Zahlung. Versuche dieselbe Rechnung erneut, um eine doppelte Zahlung zu vermeiden, oder erstelle eine neue Rechnung, wenn du wirklich eine weitere Zahlung möchtest.</string>
+    <string name="pending_retry_resolved_title">Zahlung abgeschlossen</string>
+    <string name="pending_retry_resolved_dynamic_body">Eine Zahlung für diese Anfrage wurde gerade abgeschlossen. Du kannst sie prüfen oder eine neue Zahlung erstellen, wenn du erneut bezahlen möchtest.</string>
+    <string name="pending_retry_resolved_bolt11_body">Eine Zahlung für diese Rechnung wurde gerade abgeschlossen. Du kannst das Ergebnis prüfen.</string>
     <string name="pending_retry_same_invoice">Dieselbe Rechnung erneut versuchen</string>
     <string name="pending_retry_create_new_invoice">Neue Rechnung erstellen</string>
+    <string name="pending_retry_create_new_payment">Neue Zahlung erstellen</string>
     <string name="pending_retry_view_pending">Ausstehende Zahlung anzeigen</string>
+    <string name="pending_retry_view_resolved">Abgeschlossene Zahlung anzeigen</string>
+    <string name="session_transactions_title">Transaktionen</string>
+    <string name="session_transactions_empty">Noch keine Transaktionen.</string>
+    <string name="view_session_transactions">Transaktionen dieser Sitzung anzeigen</string>
+    <string name="transaction_status_pending">Ausstehend</string>
+    <string name="transaction_status_success">Bezahlt</string>
+    <string name="transaction_status_failure">Fehlgeschlagen</string>
+    <string name="transaction_fee">Gebühr %1$s</string>
+    <string name="active_wallet_chip_description">Aktive Wallet: %1$s. Öffnet die Wallet-Einstellungen.</string>
     <string name="enter_amount_title">Betrag eingeben</string>
     <string name="enter_amount_range_min">Min %1$s</string>
     <string name="enter_amount_range_max">Max %1$s</string>
@@ -152,7 +166,6 @@
     <string name="result_already_paid_title">Bereits bezahlt</string>
     <string name="result_already_paid_message">Es wurde keine Zahlung gesendet. Diese Rechnung wurde bereits bezahlt.</string>
     <string name="result_error_title">Fehler</string>
-    <string name="review_last_transaction">Letzte Transaktion anzeigen</string>
     <!-- Blink-Wallet-Strings -->
     <string name="add_blink_wallet_title">Blink-Wallet hinzufügen</string>
     <string name="add_blink_wallet_description">Verbinde deine Blink-Wallet mit einem API-Schlüssel. Du kannst einen unter dashboard.blink.sv erstellen.</string>
@@ -251,7 +264,6 @@
     <string name="settings_contacts">Kontakte</string>
     <string name="settings_contacts_subtitle">Gespeicherte Kontakte</string>
     <string name="settings_payments_ask_save_contacts">Nachfragen, ob neue Kontakte gespeichert werden sollen</string>
-    <string name="contacts_handle">Shortcuts</string>
     <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
     <string name="pay_sheet_contacts_tab">Kontakte</string>
     <string name="shortcuts_title">Shortcuts</string>

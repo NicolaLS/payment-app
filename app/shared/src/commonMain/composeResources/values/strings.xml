@@ -5,6 +5,7 @@
     <string name="action_clear_search">Clear search</string>
     <string name="tap_continue">Tap to continue…</string>
     <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
+    <string name="open_shortcuts_contacts">Open shortcuts and contacts</string>
     <string name="app_name_long" translatable="false">Lasr</string>
     <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
     <string name="resolving_payment_title">Preparing payment</string>
@@ -19,9 +20,22 @@
     <string name="pending_retry_bolt11_body">This invoice is already being paid with another wallet. You can safely try it with this wallet too. Only one payment can succeed.</string>
     <string name="pending_retry_dynamic_title">Payment already pending</string>
     <string name="pending_retry_dynamic_body">You already have a pending payment for this request. Retry the same invoice to avoid paying twice, or create a new invoice if you really want another payment.</string>
+    <string name="pending_retry_resolved_title">Payment resolved</string>
+    <string name="pending_retry_resolved_dynamic_body">A payment for this request just resolved. You can review it, or create a new payment if you want to pay again.</string>
+    <string name="pending_retry_resolved_bolt11_body">A payment for this invoice just resolved. You can review the result.</string>
     <string name="pending_retry_same_invoice">Retry same invoice</string>
     <string name="pending_retry_create_new_invoice">Create new invoice</string>
+    <string name="pending_retry_create_new_payment">Create new payment</string>
     <string name="pending_retry_view_pending">View pending payment</string>
+    <string name="pending_retry_view_resolved">View resolved payment</string>
+    <string name="session_transactions_title">Transactions</string>
+    <string name="session_transactions_empty">No transactions yet.</string>
+    <string name="view_session_transactions">View session transactions</string>
+    <string name="transaction_status_pending">Pending</string>
+    <string name="transaction_status_success">Paid</string>
+    <string name="transaction_status_failure">Failed</string>
+    <string name="transaction_fee">Fee %1$s</string>
+    <string name="active_wallet_chip_description">Active wallet: %1$s. Opens wallet settings.</string>
     <string name="enter_amount_title">Enter amount</string>
     <string name="enter_amount_range_min">Min %1$s</string>
     <string name="enter_amount_range_max">Max %1$s</string>
@@ -140,8 +154,6 @@
     <string name="result_already_paid_title">Already Paid</string>
     <string name="result_already_paid_message">No payment was sent. This invoice was already paid.</string>
     <string name="result_error_title">Error</string>
-    <string name="review_last_transaction">Review last transaction</string>
-    <string name="contacts_handle">Shortcuts</string>
     <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
     <string name="pay_sheet_contacts_tab">Contacts</string>
     <string name="shortcuts_title">Shortcuts</string>

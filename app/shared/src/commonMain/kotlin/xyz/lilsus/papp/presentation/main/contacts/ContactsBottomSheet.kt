@@ -12,17 +12,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -35,10 +32,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -49,7 +42,6 @@ import lasr.shared.generated.resources.Res
 import lasr.shared.generated.resources.contacts_add
 import lasr.shared.generated.resources.contacts_alias_label
 import lasr.shared.generated.resources.contacts_empty
-import lasr.shared.generated.resources.contacts_handle
 import lasr.shared.generated.resources.contacts_invalid_address
 import lasr.shared.generated.resources.contacts_no_matching_contacts
 import lasr.shared.generated.resources.contacts_not_now
@@ -70,31 +62,6 @@ import xyz.lilsus.papp.presentation.common.ContactEditorError
 import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ContactRoleChips
-
-@Composable
-fun ContactsIconButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val label = stringResource(Res.string.contacts_handle)
-    Surface(
-        modifier = modifier.size(48.dp),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        tonalElevation = 2.dp
-    ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier
-                .fillMaxSize()
-                .testTag(MaestroTags.Payment.CONTACTS_HANDLE)
-        ) {
-            Icon(
-                imageVector = LightningBoltIcon,
-                contentDescription = label,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -430,25 +397,6 @@ private fun ContactListItem.toContactListEntry(): ContactListEntry = ContactList
     address = address,
     roles = roles
 )
-
-private val LightningBoltIcon: ImageVector = ImageVector.Builder(
-    name = "LightningBolt",
-    defaultWidth = 24.dp,
-    defaultHeight = 24.dp,
-    viewportWidth = 24f,
-    viewportHeight = 24f
-).apply {
-    path(fill = SolidColor(Color.Black)) {
-        moveTo(13f, 2f)
-        lineTo(4f, 14f)
-        horizontalLineTo(11f)
-        lineTo(10f, 22f)
-        lineTo(20f, 9f)
-        horizontalLineTo(13f)
-        lineTo(13f, 2f)
-        close()
-    }
-}.build()
 
 @Composable
 private fun ErrorText(error: ContactEditorError) {

@@ -25,6 +25,7 @@ import xyz.lilsus.papp.navigation.navigateToAddWallet
 import xyz.lilsus.papp.navigation.navigateToConnectWallet
 import xyz.lilsus.papp.navigation.navigateToSettings
 import xyz.lilsus.papp.navigation.navigateToSettingsContacts
+import xyz.lilsus.papp.navigation.navigateToSettingsManageWallets
 import xyz.lilsus.papp.navigation.navigateToSettingsShortcutCreateContactPicker
 import xyz.lilsus.papp.navigation.onboardingScreen
 import xyz.lilsus.papp.navigation.paymentScreen
@@ -118,7 +119,11 @@ fun App() {
                 }
             )
             paymentScreen(
+                navController = navController,
                 onNavigateToSettings = { navController.navigateToSettings() },
+                onNavigateToWalletSettings = {
+                    navController.navigateToSettingsManageWallets()
+                },
                 onNavigateToShortcutCreate = {
                     navController.navigateToSettingsShortcutCreateContactPicker()
                 },
