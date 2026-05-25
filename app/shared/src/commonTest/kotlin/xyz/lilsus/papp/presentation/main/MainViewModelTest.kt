@@ -36,6 +36,7 @@ import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.lnurl.LnurlPayMetadata
 import xyz.lilsus.papp.domain.lnurl.LnurlPayParams
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.DisplayCurrency
 import xyz.lilsus.papp.domain.model.PaidInvoice
@@ -589,6 +590,85 @@ class MainViewModelTest {
             } as MainUiState.Success
             assertTrue(success.wasAlreadyPaid)
             assertFalse(success.showBlinkFeeHint)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun recentSuccessfulTransactionCanBeReviewedAfterDismiss() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = RecordingNwcWalletRepository()
+        val viewModel = createViewModel(parser, repository)
+        try {
+            assertFalse(viewModel.hasRecentTransactionResult.value)
+
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+
+            viewModel.uiState.firstWithTimeout { it is MainUiState.Success }
+            assertTrue(viewModel.hasRecentTransactionResult.value)
+
+            viewModel.dispatch(MainIntent.DismissResult)
+            viewModel.uiState.firstWithTimeout { it == MainUiState.Active }
+
+            viewModel.dispatch(MainIntent.ReviewLastResult)
+            val replayed = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Success
+            } as MainUiState.Success
+
+            assertEquals(250L, replayed.amountPaid.minor)
+            assertTrue(viewModel.hasRecentTransactionResult.value)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
+    @Test
+    fun recentFailedTransactionCanBeReviewedAfterDismiss() = runBlocking {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = null,
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = FailingNwcWalletRepository(
+            AppError.AuthenticationFailure("API key not found")
+        )
+        val viewModel = createViewModel(parser, repository)
+        try {
+            assertFalse(viewModel.hasRecentTransactionResult.value)
+
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+
+            val error = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Error
+            } as MainUiState.Error
+            assertTrue(error.error is AppError.AuthenticationFailure)
+            assertTrue(viewModel.hasRecentTransactionResult.value)
+
+            viewModel.dispatch(MainIntent.DismissResult)
+            viewModel.uiState.firstWithTimeout { it == MainUiState.Active }
+
+            viewModel.dispatch(MainIntent.ReviewLastResult)
+            val replayed = viewModel.uiState.firstWithTimeout {
+                it is MainUiState.Error
+            } as MainUiState.Error
+
+            assertTrue(replayed.error is AppError.AuthenticationFailure)
+            assertTrue(viewModel.hasRecentTransactionResult.value)
         } finally {
             viewModel.clear()
         }
@@ -1299,6 +1379,26 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
             completion.complete(result)
         }
     }
+}
+
+private class FailingNwcWalletRepository(private val error: AppError) : NwcWalletRepository {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
+        val request = startPayInvoiceRequest(invoice, amountMsats, walletTarget)
+        request.state.first { it is PayInvoiceRequestState.Failure }
+        throw AppErrorException(error)
+    }
+
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest =
+        object : PayInvoiceRequest {
+            override val state: StateFlow<PayInvoiceRequestState> = MutableStateFlow(
+                PayInvoiceRequestState.Failure(error)
+            )
+
+            override fun cancel() {}
+        }
+
+    override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult =
+        PaymentLookupResult.NotFound
 }
 
 private class UnconfirmedNwcWalletRepository(private val lookupResult: suspend () -> PaymentLookupResult) : NwcWalletRepository {

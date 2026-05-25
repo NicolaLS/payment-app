@@ -11,6 +11,7 @@ object MaestroTags {
         const val SCREEN = "payment_screen"
         const val ACTIVE_CONTENT = "payment_active_content"
         const val SETTINGS_BUTTON = "payment_settings_button"
+        const val REVIEW_LAST_RESULT_BUTTON = "payment_review_last_result_button"
         const val ACTIVE_WALLET_NAME = "payment_active_wallet_name"
         const val PENDING_CHIP = "payment_pending_chip"
         const val WATCHING_PENDING = "payment_watching_pending"

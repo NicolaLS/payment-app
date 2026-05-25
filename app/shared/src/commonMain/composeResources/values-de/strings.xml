@@ -152,6 +152,7 @@
     <string name="result_already_paid_title">Bereits bezahlt</string>
     <string name="result_already_paid_message">Es wurde keine Zahlung gesendet. Diese Rechnung wurde bereits bezahlt.</string>
     <string name="result_error_title">Fehler</string>
+    <string name="review_last_transaction">Letzte Transaktion anzeigen</string>
     <!-- Blink-Wallet-Strings -->
     <string name="add_blink_wallet_title">Blink-Wallet hinzufügen</string>
     <string name="add_blink_wallet_description">Verbinde deine Blink-Wallet mit einem API-Schlüssel. Du kannst einen unter dashboard.blink.sv erstellen.</string>

@@ -140,6 +140,7 @@
     <string name="result_already_paid_title">Already Paid</string>
     <string name="result_already_paid_message">No payment was sent. This invoice was already paid.</string>
     <string name="result_error_title">Error</string>
+    <string name="review_last_transaction">Review last transaction</string>
     <string name="contacts_handle">Shortcuts</string>
     <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
     <string name="pay_sheet_contacts_tab">Contacts</string>

@@ -1,6 +1,10 @@
 package xyz.lilsus.papp.presentation.main
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +55,7 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 import xyz.lilsus.papp.presentation.main.components.PendingRetryBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ResultLayout
+import xyz.lilsus.papp.presentation.main.components.ReviewLastResultIconButton
 import xyz.lilsus.papp.presentation.main.components.SettingsIconButton
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
 import xyz.lilsus.papp.presentation.main.contacts.ContactsBottomSheet
@@ -69,6 +74,7 @@ fun MainScreen(
     wallets: List<WalletInfo> = emptyList(),
     pendingPayments: List<PendingPaymentItem>,
     contactsState: ContactsUiState = ContactsUiState(),
+    hasRecentTransactionResult: Boolean = false,
     snackbarHostState: SnackbarHostState,
     onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
     onManualAmountPreset: (DisplayAmount) -> Unit = {},
@@ -80,6 +86,7 @@ fun MainScreen(
     onPendingRetryCreateNewInvoice: () -> Unit = {},
     onPendingRetryViewPending: () -> Unit = {},
     onPendingRetryDismiss: () -> Unit = {},
+    onReviewLastResult: () -> Unit = {},
     onResultDismiss: () -> Unit = {},
     onPendingTap: (String) -> Unit = {},
     onContactsOpen: () -> Unit = {},
@@ -122,6 +129,19 @@ fun MainScreen(
     val showActiveContent = contentState.showsActiveContent()
     val showBottomActions = contentState !is MainUiState.Success &&
         contentState !is MainUiState.Error
+    val showReviewLastResultAction = showBottomActions &&
+        hasRecentTransactionResult &&
+        showActiveContent
+    var revealReviewLastResultAction by remember { mutableStateOf(false) }
+    LaunchedEffect(showReviewLastResultAction) {
+        if (showReviewLastResultAction) {
+            revealReviewLastResultAction = false
+            delay(REVIEW_LAST_RESULT_REVEAL_DELAY_MS)
+            revealReviewLastResultAction = true
+        } else {
+            revealReviewLastResultAction = false
+        }
+    }
 
     Scaffold(
         modifier = modifier.testTag(MaestroTags.Payment.SCREEN),
@@ -138,7 +158,9 @@ fun MainScreen(
             if (showBottomActions) {
                 MainBottomActions(
                     showShortcutAction = showActiveContent,
+                    showReviewLastResultAction = revealReviewLastResultAction,
                     onContactsClick = onContactsOpen,
+                    onReviewLastResult = onReviewLastResult,
                     onNavigateSettings = onNavigateSettings
                 )
             }
@@ -257,7 +279,9 @@ fun MainScreen(
 @Composable
 private fun MainBottomActions(
     showShortcutAction: Boolean,
+    showReviewLastResultAction: Boolean,
     onContactsClick: () -> Unit,
+    onReviewLastResult: () -> Unit,
     onNavigateSettings: () -> Unit
 ) {
     Box(
@@ -271,6 +295,15 @@ private fun MainBottomActions(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            AnimatedVisibility(
+                visible = showReviewLastResultAction,
+                enter = fadeIn(
+                    animationSpec = tween(durationMillis = REVIEW_LAST_RESULT_FADE_IN_MS)
+                ),
+                exit = fadeOut()
+            ) {
+                ReviewLastResultIconButton(onReviewLastResult = onReviewLastResult)
+            }
             if (showShortcutAction) {
                 ContactsIconButton(onClick = onContactsClick)
             }
@@ -313,6 +346,8 @@ fun Modifier.tapToDismiss(enabled: Boolean, onDismiss: () -> Unit) = clickable(
 ) { onDismiss() }
 
 private const val RESOLVING_PAYMENT_INDICATOR_DELAY_MS = 1_000L
+private const val REVIEW_LAST_RESULT_REVEAL_DELAY_MS = 120L
+private const val REVIEW_LAST_RESULT_FADE_IN_MS = 700
 
 private fun MainUiState.showsActiveContent(): Boolean = when {
     this is MainUiState.Success || this is MainUiState.Error -> false

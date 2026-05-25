@@ -123,6 +123,7 @@ private fun MainScreenEntry(
     val pendingPayments by viewModel.pendingPayments.collectAsState()
     val wallets by viewModel.wallets.collectAsState()
     val contactsState by viewModel.contactsUiState.collectAsState()
+    val hasRecentTransactionResult by viewModel.hasRecentTransactionResult.collectAsState()
     val scannerShouldRun =
         screenResumed &&
             uiState == MainUiState.Active &&
@@ -410,6 +411,7 @@ private fun MainScreenEntry(
             wallets = wallets,
             pendingPayments = pendingPayments,
             contactsState = contactsState,
+            hasRecentTransactionResult = hasRecentTransactionResult,
             snackbarHostState = snackbarHostState,
             onManualAmountKeyPress = { key ->
                 viewModel.dispatch(MainIntent.ManualAmountKeyPress(key))
@@ -431,6 +433,7 @@ private fun MainScreenEntry(
                 viewModel.dispatch(MainIntent.PendingRetryViewPending)
             },
             onPendingRetryDismiss = { viewModel.dispatch(MainIntent.PendingRetryDismiss) },
+            onReviewLastResult = { viewModel.dispatch(MainIntent.ReviewLastResult) },
             onResultDismiss = { viewModel.dispatch(MainIntent.DismissResult) },
             onPendingTap = { id -> viewModel.dispatch(MainIntent.TapPending(id)) },
             onContactsOpen = { viewModel.dispatch(MainIntent.OpenContacts) },

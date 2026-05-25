@@ -151,6 +151,7 @@
     <string name="result_already_paid_title">Ya pagada</string>
     <string name="result_already_paid_message">No se envió ningún pago. Esta factura ya fue pagada.</string>
     <string name="result_error_title">Error</string>
+    <string name="review_last_transaction">Ver última transacción</string>
     <!-- Cadenas de billetera Blink -->
     <string name="add_blink_wallet_title">Añadir billetera Blink</string>
     <string name="add_blink_wallet_description">Conecta tu billetera Blink usando una clave API. Puedes crear una en dashboard.blink.sv.</string>
