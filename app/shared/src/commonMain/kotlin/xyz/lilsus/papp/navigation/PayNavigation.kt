@@ -129,6 +129,9 @@ private fun MainScreenEntry(
             uiState == MainUiState.Active &&
             !contactsState.isOpen &&
             cameraPermission.hasPermission
+    val canSelectScannerMode =
+        scannerController.supportsManualModeSelection &&
+            scannerShouldRun
     val keepPreviewWarm =
         scannerShouldRun &&
             scannerMode == QrScannerMode.Far
@@ -469,11 +472,8 @@ private fun MainScreenEntry(
                 viewModel.dispatch(MainIntent.SaveContactPromptDismiss)
             },
             scannerMode = scannerMode,
-            showScannerModeSelector = scannerController.supportsManualModeSelection,
-            onToggleScannerMode = if (
-                scannerController.supportsManualModeSelection &&
-                uiState == MainUiState.Active
-            ) {
+            showScannerModeSelector = canSelectScannerMode,
+            onToggleScannerMode = if (canSelectScannerMode) {
                 {
                     updateScannerMode(
                         if (scannerMode == QrScannerMode.Near) {
