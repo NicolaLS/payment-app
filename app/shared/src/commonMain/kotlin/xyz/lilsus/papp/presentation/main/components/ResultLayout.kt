@@ -15,7 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import lasr.shared.generated.resources.Res
@@ -60,17 +63,21 @@ fun ResultLayout(result: MainUiState, modifier: Modifier = Modifier) {
                         textAlign = TextAlign.Center
                     )
                 } else {
+                    val paidTitle = stringResource(Res.string.result_paid_title)
+                    val amountPaid = formatter.format(result.amountPaid)
+                    val paidSummary = buildAnnotatedString {
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.tertiary)) {
+                            append(paidTitle)
+                        }
+                        append(" ")
+                        append(amountPaid)
+                    }
                     Text(
                         modifier = Modifier.testTag(MaestroTags.Payment.RESULT_SUCCESS),
-                        text = stringResource(Res.string.result_paid_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = formatter.format(result.amountPaid),
+                        text = paidSummary,
                         style = MaterialTheme.typography.displaySmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
