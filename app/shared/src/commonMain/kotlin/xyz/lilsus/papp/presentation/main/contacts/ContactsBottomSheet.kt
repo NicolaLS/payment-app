@@ -15,12 +15,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -70,33 +72,26 @@ import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ContactRoleChips
 
 @Composable
-fun ContactsHandle(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun ContactsIconButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val label = stringResource(Res.string.contacts_handle)
     Surface(
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .testTag(MaestroTags.Payment.CONTACTS_HANDLE)
-            .clickable(
-                role = Role.Button,
-                onClickLabel = label,
-                onClick = onClick
-            ),
-        shape = MaterialTheme.shapes.small,
+        modifier = modifier.size(48.dp),
+        shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         tonalElevation = 2.dp
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag(MaestroTags.Payment.CONTACTS_HANDLE)
         ) {
             Icon(
                 imageVector = LightningBoltIcon,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                contentDescription = label,
+                modifier = Modifier.size(20.dp)
             )
-            Text(label, style = MaterialTheme.typography.labelLarge)
         }
     }
 }

@@ -2,6 +2,7 @@ package xyz.lilsus.papp.presentation.main
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,9 +51,10 @@ import xyz.lilsus.papp.presentation.main.components.ManualAmountKey
 import xyz.lilsus.papp.presentation.main.components.ManualAmountUiState
 import xyz.lilsus.papp.presentation.main.components.PendingRetryBottomSheet
 import xyz.lilsus.papp.presentation.main.components.ResultLayout
-import xyz.lilsus.papp.presentation.main.components.SettingsFAB
+import xyz.lilsus.papp.presentation.main.components.SettingsIconButton
 import xyz.lilsus.papp.presentation.main.components.hero.Hero
 import xyz.lilsus.papp.presentation.main.contacts.ContactsBottomSheet
+import xyz.lilsus.papp.presentation.main.contacts.ContactsIconButton
 import xyz.lilsus.papp.presentation.main.contacts.ContactsUiState
 import xyz.lilsus.papp.presentation.main.contacts.PaySheetTab
 import xyz.lilsus.papp.presentation.main.contacts.SaveContactBottomSheet
@@ -116,6 +119,7 @@ fun MainScreen(
     } else {
         uiState
     }
+    val showActiveContent = contentState.showsActiveContent()
 
     Scaffold(
         modifier = modifier.testTag(MaestroTags.Payment.SCREEN),
@@ -128,7 +132,13 @@ fun MainScreen(
                 )
             }
         },
-        floatingActionButton = { SettingsFAB(onNavigateSettings) }
+        bottomBar = {
+            MainBottomActions(
+                showShortcutAction = showActiveContent,
+                onContactsClick = onContactsOpen,
+                onNavigateSettings = onNavigateSettings
+            )
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -181,8 +191,7 @@ fun MainScreen(
                         subtitle = stringResource(Res.string.point_camera_message_subtitle),
                         wallets = wallets,
                         pendingPayments = pendingPayments,
-                        onPendingTap = onPendingTap,
-                        onContactsClick = onContactsOpen
+                        onPendingTap = onPendingTap
                     )
                 }
             }
@@ -242,6 +251,31 @@ fun MainScreen(
 }
 
 @Composable
+private fun MainBottomActions(
+    showShortcutAction: Boolean,
+    onContactsClick: () -> Unit,
+    onNavigateSettings: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 16.dp),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (showShortcutAction) {
+                ContactsIconButton(onClick = onContactsClick)
+            }
+            SettingsIconButton(onNavigateSettings = onNavigateSettings)
+        }
+    }
+}
+
+@Composable
 private fun ResolvingPaymentLayout(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.padding(top = 16.dp, start = 24.dp, end = 24.dp),
@@ -275,6 +309,13 @@ fun Modifier.tapToDismiss(enabled: Boolean, onDismiss: () -> Unit) = clickable(
 ) { onDismiss() }
 
 private const val RESOLVING_PAYMENT_INDICATOR_DELAY_MS = 1_000L
+
+private fun MainUiState.showsActiveContent(): Boolean = when {
+    this is MainUiState.Success || this is MainUiState.Error -> false
+    this is MainUiState.Loading && isWatchingPending -> false
+    this is MainUiState.Loading && kind == LoadingKind.Resolving -> false
+    else -> true
+}
 
 @Preview
 @Composable
