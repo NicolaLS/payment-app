@@ -117,10 +117,10 @@ kover {
                     packages(
                         "lasr.shared.generated.resources",
                         "xyz.lilsus.papp.data.blink.graphql",
-                        "xyz.lilsus.papp.e2e",
+                        "xyz.lilsus.papp.e2e"
                     )
                     classes(
-                        "xyz.lilsus.papp.E2eMainActivity*",
+                        "xyz.lilsus.papp.E2eMainActivity*"
                     )
                 }
             }

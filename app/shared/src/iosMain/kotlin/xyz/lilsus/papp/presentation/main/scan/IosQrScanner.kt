@@ -397,10 +397,7 @@ private class IosQrScannerController : QrScannerController {
     }
 
     @OptIn(ExperimentalForeignApi::class)
-    private fun resetFocusAndExposure(
-        device: AVCaptureDevice,
-        centered: Boolean
-    ) {
+    private fun resetFocusAndExposure(device: AVCaptureDevice, centered: Boolean) {
         memScoped {
             val errorPtr = alloc<ObjCObjectVar<NSError?>>()
             if (device.lockForConfiguration(errorPtr.ptr)) {
@@ -901,10 +898,7 @@ private class IosQrScannerController : QrScannerController {
         return snappedBackToDefault || largeZoomJump
     }
 
-    private fun runAutofocusPulse(
-        device: AVCaptureDevice,
-        centered: Boolean
-    ) {
+    private fun runAutofocusPulse(device: AVCaptureDevice, centered: Boolean) {
         memScoped {
             val errorPtr = alloc<ObjCObjectVar<NSError?>>()
             var shouldRestoreContinuous = false
@@ -928,10 +922,7 @@ private class IosQrScannerController : QrScannerController {
         }
     }
 
-    private fun runFocusRecovery(
-        device: AVCaptureDevice,
-        centered: Boolean
-    ) {
+    private fun runFocusRecovery(device: AVCaptureDevice, centered: Boolean) {
         runAutofocusPulse(
             device = device,
             centered = centered
@@ -1004,9 +995,7 @@ private class IosQrScannerController : QrScannerController {
             )}$fallbackSuffix"
     }
 
-    private fun buildReusedCameraSummary(
-        configuration: SelectedCameraConfiguration
-    ): String {
+    private fun buildReusedCameraSummary(configuration: SelectedCameraConfiguration): String {
         val fallbackSuffix =
             configuration.fallbackReason?.let { "; fallback=$it" }.orEmpty()
         return "QR scanner configuration: mode=${configuration.mode.name.lowercase()}; " +
@@ -1037,7 +1026,9 @@ private class IosQrScannerController : QrScannerController {
         val switchFactors = device.virtualDeviceSwitchOverVideoZoomFactors as? List<NSNumber>
             ?: emptyList()
         val supportsFocus = device.isFocusModeSupported(AVCaptureFocusModeContinuousAutoFocus)
-        val supportsExposure = device.isExposureModeSupported(AVCaptureExposureModeContinuousAutoExposure)
+        val supportsExposure = device.isExposureModeSupported(
+            AVCaptureExposureModeContinuousAutoExposure
+        )
         return "deviceType=${device.deviceType}; " +
             "switchZooms=${switchFactors.joinToString(prefix = "[", postfix = "]")}; " +
             "minFocusMm=${device.minimumFocusDistance}; " +
@@ -1200,9 +1191,8 @@ private val BACK_CAMERA_DEVICE_TYPES = listOf(
     AVCaptureDeviceTypeBuiltInUltraWideCamera
 )
 
-private fun AVCaptureDevice.profileName(suffix: String): String =
-    when (deviceType) {
-        AVCaptureDeviceTypeBuiltInDualWideCamera -> "dual-wide-$suffix"
-        AVCaptureDeviceTypeBuiltInTripleCamera -> "triple-$suffix"
-        else -> suffix
-    }
+private fun AVCaptureDevice.profileName(suffix: String): String = when (deviceType) {
+    AVCaptureDeviceTypeBuiltInDualWideCamera -> "dual-wide-$suffix"
+    AVCaptureDeviceTypeBuiltInTripleCamera -> "triple-$suffix"
+    else -> suffix
+}
