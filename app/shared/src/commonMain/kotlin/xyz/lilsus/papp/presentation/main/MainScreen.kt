@@ -120,6 +120,8 @@ fun MainScreen(
         uiState
     }
     val showActiveContent = contentState.showsActiveContent()
+    val showBottomActions = contentState !is MainUiState.Success &&
+        contentState !is MainUiState.Error
 
     Scaffold(
         modifier = modifier.testTag(MaestroTags.Payment.SCREEN),
@@ -133,11 +135,13 @@ fun MainScreen(
             }
         },
         bottomBar = {
-            MainBottomActions(
-                showShortcutAction = showActiveContent,
-                onContactsClick = onContactsOpen,
-                onNavigateSettings = onNavigateSettings
-            )
+            if (showBottomActions) {
+                MainBottomActions(
+                    showShortcutAction = showActiveContent,
+                    onContactsClick = onContactsOpen,
+                    onNavigateSettings = onNavigateSettings
+                )
+            }
         }
     ) { paddingValues ->
         Column(
