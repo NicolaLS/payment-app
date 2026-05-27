@@ -1,11 +1,13 @@
 package xyz.lilsus.papp.presentation.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import xyz.lilsus.papp.domain.model.ThemePreference
 
 private val lightScheme = lightColorScheme(
@@ -95,12 +97,16 @@ fun AppTheme(
         ThemePreference.Dark -> true
     }
     val colorScheme = if (darkTheme) darkScheme else lightScheme
+    ApplyAppSystemBars(darkTheme = darkTheme)
     MaterialTheme(
         colorScheme = colorScheme,
         typography = AppTypography,
         shapes = AppShapes
     ) {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
             content()
         }
     }
