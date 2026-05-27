@@ -15,7 +15,7 @@ import platform.UIKit.UIBarButtonItemStyle
 import platform.UIKit.UIBarButtonSystemItem
 import platform.UIKit.UIToolbar
 
-actual fun numericKeyboardPlatformImeOptions(
+actual fun doneKeyboardPlatformImeOptions(
     doneLabel: String,
     onDone: () -> Unit
 ): PlatformImeOptions? = PlatformImeOptions {

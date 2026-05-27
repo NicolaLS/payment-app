@@ -105,7 +105,7 @@ import xyz.lilsus.papp.presentation.common.ContactListContent
 import xyz.lilsus.papp.presentation.common.ContactListEntry
 import xyz.lilsus.papp.presentation.common.ShortcutEditorError
 import xyz.lilsus.papp.presentation.common.ThresholdSlider
-import xyz.lilsus.papp.presentation.common.numericKeyboardPlatformImeOptions
+import xyz.lilsus.papp.presentation.common.doneKeyboardPlatformImeOptions
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -696,7 +696,7 @@ private fun ShortcutSettingsEditorContent(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
                 imeAction = ImeAction.Done,
-                platformImeOptions = numericKeyboardPlatformImeOptions(
+                platformImeOptions = doneKeyboardPlatformImeOptions(
                     doneLabel = doneLabel,
                     onDone = finishAmountEditing
                 )

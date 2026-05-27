@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -27,9 +29,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import lasr.shared.generated.resources.Res
@@ -52,6 +56,7 @@ import lasr.shared.generated.resources.connect_wallet_warning_legacy_nip04
 import lasr.shared.generated.resources.connect_wallet_warning_legacy_nip04_default
 import lasr.shared.generated.resources.connect_wallet_warning_missing_nip44
 import lasr.shared.generated.resources.connect_wallet_warning_missing_pay_invoice
+import lasr.shared.generated.resources.keyboard_done
 import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatformTools
 import xyz.lilsus.papp.MaestroTags
@@ -61,6 +66,7 @@ import xyz.lilsus.papp.domain.model.supportsNip44
 import xyz.lilsus.papp.domain.model.supportsPayInvoice
 import xyz.lilsus.papp.domain.model.usesLegacyEncryption
 import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
+import xyz.lilsus.papp.presentation.common.doneKeyboardPlatformImeOptions
 import xyz.lilsus.papp.presentation.common.errorMessageFor
 import xyz.lilsus.papp.presentation.common.rememberRetainedInstance
 
@@ -208,6 +214,10 @@ private fun DiscoveryDetails(
     onSetActiveChange: (Boolean) -> Unit
 ) {
     val discovery = state.discovery ?: return
+    val focusManager = LocalFocusManager.current
+    val finishAliasEditing = { focusManager.clearFocus(force = true) }
+    val doneLabel = stringResource(Res.string.keyboard_done)
+
     Column(
         modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_DETAILS),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -219,7 +229,18 @@ private fun DiscoveryDetails(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(MaestroTags.NwcWallet.DIALOG_ALIAS_FIELD),
-            enabled = !state.isSaving
+            enabled = !state.isSaving,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Done,
+                platformImeOptions = doneKeyboardPlatformImeOptions(
+                    doneLabel = doneLabel,
+                    onDone = finishAliasEditing
+                )
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { finishAliasEditing() }
+            )
         )
 
         Row(

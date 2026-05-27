@@ -57,7 +57,9 @@ class ConnectWalletViewModel internal constructor(
             runCatching { discoverWallet(trimmed) }
                 .onSuccess { discovery ->
                     _uiState.update { current ->
-                        val aliasSuggestion = discovery.aliasSuggestion.orEmpty()
+                        val aliasSuggestion = discovery.aliasSuggestion
+                            .orEmpty()
+                            .toSingleLineInput()
                         val alias = current.aliasInput.ifBlank { aliasSuggestion }
                         current.copy(
                             discovery = discovery,
@@ -97,7 +99,7 @@ class ConnectWalletViewModel internal constructor(
     }
 
     fun updateAlias(alias: String) {
-        _uiState.update { it.copy(aliasInput = alias) }
+        _uiState.update { it.copy(aliasInput = alias.toSingleLineInput()) }
     }
 
     fun updateSetActive(setActive: Boolean) {
@@ -140,6 +142,8 @@ class ConnectWalletViewModel internal constructor(
         scope.cancel()
     }
 }
+
+private fun String.toSingleLineInput(): String = replace(Regex("[\\r\\n]+"), " ")
 
 data class ConnectWalletUiState(
     val uri: String = "",

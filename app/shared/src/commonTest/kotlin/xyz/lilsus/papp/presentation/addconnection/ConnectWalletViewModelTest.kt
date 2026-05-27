@@ -97,6 +97,18 @@ class ConnectWalletViewModelTest {
         }
     }
 
+    @Test
+    fun updateAliasKeepsAliasSingleLine() {
+        val viewModel = createViewModel()
+        try {
+            viewModel.updateAlias("My\nWallet\r\nAlias")
+
+            assertEquals("My Wallet Alias", viewModel.uiState.value.aliasInput)
+        } finally {
+            viewModel.clear()
+        }
+    }
+
     private fun createViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Unconfined): ConnectWalletViewModel = ConnectWalletViewModel(
         discoverWallet = discoverWallet,
         setWalletConnection = setWalletConnection,
