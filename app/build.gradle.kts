@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ktlint)
     alias(libs.plugins.apollo) apply false
+    alias(libs.plugins.mokkery) apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 

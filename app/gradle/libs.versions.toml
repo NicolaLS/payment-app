@@ -24,6 +24,7 @@ ktor = "3.4.0"
 androidx-window = "1.5.1"
 apollo = "4.4.3"
 qrose = "1.1.2"
+mokkery = "3.4.1"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -77,3 +78,4 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
+mokkery = { id = "dev.mokkery", version.ref = "mokkery" }

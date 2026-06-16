@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.apollo)
+    alias(libs.plugins.mokkery)
     id("org.jetbrains.kotlinx.kover")
 }
 
