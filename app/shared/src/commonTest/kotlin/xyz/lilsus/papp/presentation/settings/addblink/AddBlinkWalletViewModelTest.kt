@@ -2,6 +2,12 @@
 
 package xyz.lilsus.papp.presentation.settings.addblink
 
+import dev.mokkery.answering.calls
+import dev.mokkery.answering.throws
+import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
+import dev.mokkery.mock
+import dev.mokkery.verifySuspend
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -16,17 +22,16 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
-import xyz.lilsus.papp.domain.model.BlinkContact
 import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.BlinkWalletAccountRepository
 import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
 
 class AddBlinkWalletViewModelTest {
     @Test
     fun submitWithEmptyAliasShowsError() {
-        val context = createTestContext()
+        val repository = mock<BlinkWalletAccountRepository>()
+        val context = createTestContext(repository)
 
         context.viewModel.updateAlias("   ")
         context.viewModel.updateApiKey("blink_key")
@@ -41,7 +46,8 @@ class AddBlinkWalletViewModelTest {
 
     @Test
     fun submitWithEmptyApiKeyShowsError() {
-        val context = createTestContext()
+        val repository = mock<BlinkWalletAccountRepository>()
+        val context = createTestContext(repository)
 
         context.viewModel.updateAlias("My Wallet")
         context.viewModel.updateApiKey("   ")
@@ -57,7 +63,13 @@ class AddBlinkWalletViewModelTest {
     @Test
     fun submitWithValidCredentialsEmitsSuccess() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
-        val repository = FakeBlinkWalletAccountRepository()
+        val repository = mock<BlinkWalletAccountRepository>()
+        everySuspend { repository.connect(apiKey = any<String>(), alias = any<String>()) } calls { (apiKey: String, alias: String) ->
+            WalletConnection(
+                alias = alias,
+                walletPublicKey = ""
+            )
+        }
         val context = createTestContext(repository = repository, dispatcher = dispatcher)
 
         context.viewModel.updateAlias(" My Wallet ")
@@ -69,19 +81,24 @@ class AddBlinkWalletViewModelTest {
 
         val event = eventDeferred.await() as AddBlinkWalletEvent.Success
         assertEquals("My Wallet", event.connection.alias)
-        assertEquals("full_key", repository.lastApiKey)
-        assertEquals("My Wallet", repository.lastAlias)
-
+        verifySuspend {
+            repository.connect("full_key", "My Wallet")
+        }
         context.viewModel.clear()
     }
 
     @Test
     fun submitWithReadOnlyApiKeyShowsPermissionDeniedError() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
+        val repository = mock<BlinkWalletAccountRepository>()
+        everySuspend {
+            repository.connect(
+                any<String>(),
+                any<String>()
+            )
+        } throws AppErrorException(AppError.BlinkError(BlinkErrorType.PermissionDenied))
         val context = createTestContext(
-            repository = FakeBlinkWalletAccountRepository(
-                error = AppError.BlinkError(BlinkErrorType.PermissionDenied)
-            ),
+            repository = repository,
             dispatcher = dispatcher
         )
 
@@ -101,7 +118,7 @@ class AddBlinkWalletViewModelTest {
     }
 
     private fun createTestContext(
-        repository: FakeBlinkWalletAccountRepository = FakeBlinkWalletAccountRepository(),
+        repository: BlinkWalletAccountRepository,
         dispatcher: CoroutineDispatcher = Dispatchers.Unconfined
     ): TestContext {
         val viewModel = AddBlinkWalletViewModel(
@@ -112,28 +129,4 @@ class AddBlinkWalletViewModelTest {
     }
 
     private data class TestContext(val viewModel: AddBlinkWalletViewModel)
-
-    private class FakeBlinkWalletAccountRepository(private val error: AppError? = null) : BlinkWalletAccountRepository {
-        var lastApiKey: String? = null
-            private set
-        var lastAlias: String? = null
-            private set
-
-        override suspend fun connect(apiKey: String, alias: String): WalletConnection {
-            error?.let { throw AppErrorException(it) }
-            lastApiKey = apiKey
-            lastAlias = alias
-            return WalletConnection(
-                walletPublicKey = "blink-test-wallet",
-                alias = alias,
-                type = WalletType.BLINK
-            )
-        }
-
-        override suspend fun getCachedDefaultWalletId(walletId: String): String? = error("Not used by AddBlinkWalletViewModel")
-
-        override suspend fun refreshDefaultWalletId(walletId: String): String = error("Not used by AddBlinkWalletViewModel")
-
-        override suspend fun fetchContacts(walletId: String): List<BlinkContact> = error("Not used by AddBlinkWalletViewModel")
-    }
 }
