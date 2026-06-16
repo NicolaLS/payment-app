@@ -114,6 +114,7 @@ kotlin {
             implementation(libs.ktor.client.websockets)
             implementation(libs.apollo.runtime)
             implementation(libs.qrose)
+            implementation(libs.uri.kmp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

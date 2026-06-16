@@ -1,8 +1,8 @@
 package xyz.lilsus.papp.domain.lnurl
 
+import com.eygraber.uri.Uri
 import fr.acinq.bitcoin.Bech32
 import kotlin.math.min
-import xyz.lilsus.papp.domain.util.decodeUrlComponent
 
 class LightningInputParser {
 
@@ -59,7 +59,7 @@ class LightningInputParser {
                 val query = withoutScheme.substring(queryIndex + 1)
                 val lightningParam = parseQuery(query)["lightning"]
                 if (!lightningParam.isNullOrBlank()) {
-                    val decoded = decodeUrlComponent(lightningParam)
+                    val decoded = Uri.decode(lightningParam, convertPlus = true)
                     return parseInternal(decoded, allowBitcoinScheme = false)
                 }
             }
@@ -332,7 +332,10 @@ class LightningInputParser {
                         else -> return@let null
                     }
                 } ?: return@mapNotNull null
-                decodeUrlComponent(key).lowercase() to decodeUrlComponent(value)
+                Uri.decode(key, convertPlus = true).lowercase() to Uri.decode(
+                    value,
+                    convertPlus = true
+                )
             }
             .toMap()
     }

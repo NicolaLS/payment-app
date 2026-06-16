@@ -9,12 +9,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import com.eygraber.uri.Uri
 import kotlinx.coroutines.flow.flowOf
 import org.koin.mp.KoinPlatformTools
 import xyz.lilsus.papp.domain.model.ThemePreference
 import xyz.lilsus.papp.domain.usecases.ObserveOnboardingRequiredUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
-import xyz.lilsus.papp.domain.util.decodeUrlComponent
 import xyz.lilsus.papp.navigation.DeepLinkEvents
 import xyz.lilsus.papp.navigation.Onboarding
 import xyz.lilsus.papp.navigation.Pay
@@ -171,8 +171,11 @@ private fun extractBitcoinLightningParameter(uri: String): String? {
         .mapNotNull { pair ->
             if (pair.isEmpty()) return@mapNotNull null
             val parts = pair.split('=', limit = 2)
-            val key = decodeUrlComponent(parts[0]).lowercase()
-            val value = parts.getOrNull(1)?.let(::decodeUrlComponent).orEmpty()
+            val key = Uri.decode(parts[0], convertPlus = true).lowercase()
+            val value = parts.getOrNull(1)?.let { s ->
+                Uri.decode(s, convertPlus = true)
+            }
+                .orEmpty()
             key to value
         }
         .firstOrNull { (key, value) ->

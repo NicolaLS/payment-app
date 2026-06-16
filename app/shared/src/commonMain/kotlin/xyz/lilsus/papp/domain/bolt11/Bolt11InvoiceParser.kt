@@ -1,7 +1,7 @@
 package xyz.lilsus.papp.domain.bolt11
 
+import com.eygraber.uri.Uri
 import fr.acinq.bitcoin.Bech32
-import xyz.lilsus.papp.domain.util.decodeUrlComponent
 
 /**
  * Minimal BOLT11 parser that extracts the optional amount (in millisatoshis) and the memo/description.
@@ -115,6 +115,7 @@ open class Bolt11InvoiceParser {
             val paymentHash: String?,
             val payeeNodePubKey: String?
         ) : TaggedFieldsResult()
+
         data class Failure(val reason: String) : TaggedFieldsResult()
     }
 
@@ -278,7 +279,8 @@ open class Bolt11InvoiceParser {
                             }
                         } ?: return@firstNotNullOfOrNull null
                         if (key.equals("lightning", ignoreCase = true) && value.isNotEmpty()) {
-                            decodeUrlComponent(value)
+                            val decoded = Uri.decode(value, convertPlus = true)
+                            decoded
                         } else {
                             null
                         }
