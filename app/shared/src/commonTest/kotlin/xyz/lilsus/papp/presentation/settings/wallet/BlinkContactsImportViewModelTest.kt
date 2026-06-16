@@ -3,6 +3,10 @@
 package xyz.lilsus.papp.presentation.settings.wallet
 
 import com.russhwolf.settings.MapSettings
+import dev.mokkery.answering.returns
+import dev.mokkery.everySuspend
+import dev.mokkery.matcher.any
+import dev.mokkery.mock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.CoroutineDispatcher
@@ -14,7 +18,6 @@ import kotlinx.coroutines.test.runTest
 import xyz.lilsus.papp.data.settings.ContactsRepositoryImpl
 import xyz.lilsus.papp.domain.lnurl.LightningAddress
 import xyz.lilsus.papp.domain.model.BlinkContact
-import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.repository.BlinkWalletAccountRepository
 import xyz.lilsus.papp.domain.usecases.FetchBlinkContactsUseCase
 import xyz.lilsus.papp.domain.usecases.GetContactsUseCase
@@ -132,7 +135,8 @@ class BlinkContactsImportViewModelTest {
         )
     ): TestContext {
         val contactsRepository = ContactsRepositoryImpl(MapSettings())
-        val blinkRepository = FakeBlinkWalletAccountRepository(blinkContacts)
+        val blinkRepository = mock<BlinkWalletAccountRepository>()
+        everySuspend { blinkRepository.fetchContacts(any<String>()) } returns blinkContacts
         val viewModel = BlinkContactsImportViewModel(
             walletId = TEST_WALLET_ID,
             fetchBlinkContacts = FetchBlinkContactsUseCase(blinkRepository),
@@ -144,16 +148,6 @@ class BlinkContactsImportViewModelTest {
     }
 
     private data class TestContext(val viewModel: BlinkContactsImportViewModel, val contactsRepository: ContactsRepositoryImpl)
-
-    private class FakeBlinkWalletAccountRepository(private val contacts: List<BlinkContact>) : BlinkWalletAccountRepository {
-        override suspend fun connect(apiKey: String, alias: String): WalletConnection = error("Not used by BlinkContactsImportViewModel")
-
-        override suspend fun getCachedDefaultWalletId(walletId: String): String? = error("Not used by BlinkContactsImportViewModel")
-
-        override suspend fun refreshDefaultWalletId(walletId: String): String = error("Not used by BlinkContactsImportViewModel")
-
-        override suspend fun fetchContacts(walletId: String): List<BlinkContact> = contacts
-    }
 
     private companion object {
         private const val TEST_WALLET_ID = "blink-test-wallet"
