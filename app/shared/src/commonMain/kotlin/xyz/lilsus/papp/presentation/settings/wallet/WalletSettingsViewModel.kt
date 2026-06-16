@@ -15,16 +15,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
-import xyz.lilsus.papp.domain.usecases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
+import xyz.lilsus.papp.domain.usecases.RemoveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 
 class WalletSettingsViewModel internal constructor(
     private val observeWallets: ObserveWalletsUseCase,
     private val observeActiveWallet: ObserveWalletConnectionUseCase,
     private val setActiveWallet: SetActiveWalletUseCase,
-    private val clearWalletConnection: ClearWalletConnectionUseCase,
+    private val removeWalletConnection: RemoveWalletConnectionUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -64,7 +64,7 @@ class WalletSettingsViewModel internal constructor(
 
     fun removeWallet(pubKey: String) {
         scope.launch {
-            clearWalletConnection(pubKey)
+            removeWalletConnection(pubKey)
             _events.emit(WalletSettingsEvent.WalletRemoved(pubKey))
         }
     }

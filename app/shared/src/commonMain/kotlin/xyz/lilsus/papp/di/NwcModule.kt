@@ -46,7 +46,6 @@ import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.service.PaymentService
 import xyz.lilsus.papp.domain.usecases.ClearLanguageOverrideUseCase
-import xyz.lilsus.papp.domain.usecases.ClearWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.ConnectBlinkWalletUseCase
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.DeleteShortcutUseCase
@@ -75,6 +74,7 @@ import xyz.lilsus.papp.domain.usecases.RecordContactPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RecordShortcutPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RefreshBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.RefreshLanguagePreferenceUseCase
+import xyz.lilsus.papp.domain.usecases.RemoveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
@@ -249,7 +249,7 @@ val nwcModule = module {
     factory { DiscoverWalletUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
     factory { SetActiveWalletUseCase(repository = get()) }
-    factory { ClearWalletConnectionUseCase(repository = get()) }
+    factory { RemoveWalletConnectionUseCase(repository = get()) }
     factory { SetPaymentConfirmationModeUseCase(repository = get()) }
     factory { SetPaymentConfirmationThresholdUseCase(repository = get()) }
     factory { SetConfirmManualEntryUseCase(repository = get()) }
@@ -330,7 +330,7 @@ val nwcModule = module {
             observeWallets = get(),
             observeActiveWallet = get(),
             setActiveWallet = get(),
-            clearWalletConnection = get()
+            removeWalletConnection = get()
         )
     }
 
