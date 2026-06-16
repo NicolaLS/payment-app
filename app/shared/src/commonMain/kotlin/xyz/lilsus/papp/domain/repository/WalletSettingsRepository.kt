@@ -23,7 +23,7 @@ interface WalletSettingsRepository {
 
     suspend fun setActiveWallet(walletPublicKey: String)
 
-    suspend fun removeWallet(walletPublicKey: String)
+    suspend fun removeWallet(walletPublicKey: String): Boolean
 
     suspend fun getWallets(): List<WalletConnection>
 

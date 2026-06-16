@@ -2006,11 +2006,14 @@ private class FakeWalletSettingsRepository : WalletSettingsRepository {
         connections.value = stored.value.firstOrNull { it.walletPublicKey == walletPublicKey }
     }
 
-    override suspend fun removeWallet(walletPublicKey: String) {
+    override suspend fun removeWallet(walletPublicKey: String): Boolean {
+        stored.value.firstOrNull { it.walletPublicKey == walletPublicKey }
+            ?: return false
         stored.value = stored.value.filterNot { it.walletPublicKey == walletPublicKey }
         if (connections.value?.walletPublicKey == walletPublicKey) {
             connections.value = null
         }
+        return true
     }
 
     override suspend fun getWallets(): List<WalletConnection> = stored.value

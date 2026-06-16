@@ -70,9 +70,9 @@ class WalletSettingsRepositoryImpl(
         }
     }
 
-    override suspend fun removeWallet(walletPublicKey: String) {
+    override suspend fun removeWallet(walletPublicKey: String): Boolean {
         val wallet = state.value.wallets.firstOrNull { it.walletPublicKey == walletPublicKey }
-            ?: return
+            ?: return false
         updateState { current ->
             val remaining = current.wallets.filterNot { it.walletPublicKey == walletPublicKey }
             val nextActive = when {
@@ -86,6 +86,7 @@ class WalletSettingsRepositoryImpl(
             )
         }
         onWalletRemoved(wallet)
+        return true
     }
 
     override suspend fun clearWalletConnection() {

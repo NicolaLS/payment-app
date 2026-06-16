@@ -163,13 +163,15 @@ class ConnectWalletViewModelTest {
             activeFlow.value = active
         }
 
-        override suspend fun removeWallet(walletPublicKey: String) {
+        override suspend fun removeWallet(walletPublicKey: String): Boolean {
+            storedWallets.firstOrNull { it.walletPublicKey == walletPublicKey } ?: return false
             storedWallets.removeAll { it.walletPublicKey == walletPublicKey }
             if (active?.walletPublicKey == walletPublicKey) {
                 active = storedWallets.firstOrNull()
             }
             walletsFlow.value = storedWallets.toList()
             activeFlow.value = active
+            return true
         }
 
         override suspend fun getWallets(): List<WalletConnection> = storedWallets.toList()

@@ -27,6 +27,7 @@ import xyz.lilsus.papp.domain.model.BlinkErrorType
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletPaymentTarget
+import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
 
@@ -354,7 +355,7 @@ class BlinkPaymentRepositoryTest {
         assertTrue(capturedApiKeys.contains(wallet2ApiKey))
     }
 
-    private fun createTestContext(paymentResponseJson: String): TestContext = createTestContextWithHandler { request ->
+    private suspend fun createTestContext(paymentResponseJson: String): TestContext = createTestContextWithHandler { request ->
         if (request.operation is DefaultWalletIdQuery) {
             request.responseFromJson(defaultWalletResponseJson())
         } else {
@@ -362,7 +363,7 @@ class BlinkPaymentRepositoryTest {
         }
     }
 
-    private fun createTestContextWithHandler(handler: (ApolloRequest<*>) -> ApolloResponse<*>): TestContext {
+    private suspend fun createTestContextWithHandler(handler: (ApolloRequest<*>) -> ApolloResponse<*>): TestContext {
         val settings = MapSettings()
         val credentialStore = BlinkCredentialStore(settings)
         val transport = BlinkApolloTestTransport(handler)
@@ -380,6 +381,14 @@ class BlinkPaymentRepositoryTest {
 
         credentialStore.storeApiKey(TEST_WALLET_ID, TEST_API_KEY)
         repository.setActiveWallet(TEST_WALLET_ID)
+        walletSettingsRepository.saveWalletConnection(
+            WalletConnection(
+                alias = "test blink wallet",
+                walletPublicKey = TEST_WALLET_ID,
+                type = WalletType.BLINK
+            ),
+            activate = true
+        )
 
         return TestContext(
             repository = repository,
@@ -422,12 +431,15 @@ class BlinkPaymentRepositoryTest {
             activeWalletState.value = walletsState.value.find { it.walletPublicKey == walletPublicKey }
         }
 
-        override suspend fun removeWallet(walletPublicKey: String) {
+        override suspend fun removeWallet(walletPublicKey: String): Boolean {
+            walletsState.value.firstOrNull { it.walletPublicKey == walletPublicKey }
+                ?: return false
             removedWallets.add(walletPublicKey)
             walletsState.value = walletsState.value.filterNot { it.walletPublicKey == walletPublicKey }
             if (activeWalletState.value?.walletPublicKey == walletPublicKey) {
                 activeWalletState.value = walletsState.value.firstOrNull()
             }
+            return true
         }
 
         override suspend fun clearWalletConnection() {

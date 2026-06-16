@@ -116,13 +116,15 @@ class NwcConnectionManagerTest {
             }
         }
 
-        override suspend fun removeWallet(walletPublicKey: String) {
+        override suspend fun removeWallet(walletPublicKey: String): Boolean {
+            walletsState.value.firstOrNull { it.walletPublicKey == walletPublicKey } ?: return false
             walletsState.value = walletsState.value.filterNot {
                 it.walletPublicKey == walletPublicKey
             }
             if (activeWalletState.value?.walletPublicKey == walletPublicKey) {
                 activeWalletState.value = walletsState.value.firstOrNull()
             }
+            return true
         }
 
         override suspend fun getWallets(): List<WalletConnection> = walletsState.value
