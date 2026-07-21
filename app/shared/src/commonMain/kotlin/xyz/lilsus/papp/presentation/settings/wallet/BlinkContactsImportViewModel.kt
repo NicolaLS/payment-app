@@ -23,7 +23,6 @@ import xyz.lilsus.papp.domain.usecases.GetContactsUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 
 class BlinkContactsImportViewModel internal constructor(
-    private val walletId: String,
     private val fetchBlinkContacts: FetchBlinkContactsUseCase,
     private val getContacts: GetContactsUseCase,
     private val saveContact: SaveContactUseCase,
@@ -56,7 +55,7 @@ class BlinkContactsImportViewModel internal constructor(
                 val existingAddressKeys = getContacts()
                     .map { it.address.importKey() }
                     .toSet()
-                val items = fetchBlinkContacts(walletId)
+                val items = fetchBlinkContacts()
                     .mapNotNull { contact -> toImportItem(contact, existingAddressKeys) }
                     .distinctBy { it.id }
                     .sortedWith(

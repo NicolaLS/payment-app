@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.data.exchange.currentTimeMillis
 import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
@@ -39,12 +38,10 @@ import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentShortcut
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.ShortcutAmount
-import xyz.lilsus.papp.domain.model.WalletPaymentTarget
+import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
-import xyz.lilsus.papp.domain.model.toPaymentTarget
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
-import xyz.lilsus.papp.domain.usecases.GetActiveWalletTargetUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
@@ -52,7 +49,6 @@ import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
-import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.RecordContactPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RecordShortcutPaymentUseCase
@@ -77,8 +73,6 @@ class MainViewModel internal constructor(
     private val payInvoice: PayInvoiceUseCase,
     lookupPayment: LookupPaymentUseCase,
     private val observeWalletConnection: ObserveWalletConnectionUseCase,
-    private val observeWallets: ObserveWalletsUseCase,
-    private val getActiveWalletTarget: GetActiveWalletTargetUseCase,
     private val observeCurrencyPreference: ObserveCurrencyPreferenceUseCase,
     private val currencyManager: CurrencyManager,
     private val bolt11Parser: Bolt11InvoiceParser,
@@ -123,9 +117,6 @@ class MainViewModel internal constructor(
     val newSessionTransactionCount: StateFlow<Int> =
         _newSessionTransactionCount.asStateFlow()
 
-    private val _wallets = MutableStateFlow<List<WalletInfo>>(emptyList())
-    val wallets: StateFlow<List<WalletInfo>> = _wallets.asStateFlow()
-
     private val _contactsUiState = MutableStateFlow(ContactsUiState())
     val contactsUiState: StateFlow<ContactsUiState> = _contactsUiState.asStateFlow()
 
@@ -140,18 +131,27 @@ class MainViewModel internal constructor(
     private var vibrateOnScan: Boolean = true
     private var vibrateOnPayment: Boolean = true
     private val pendingCollectionJobs = mutableMapOf<String, Job>()
-    private var currentWalletTarget: WalletPaymentTarget? = null
+    private var currentWalletType: WalletType? = null
     private var contacts: List<Contact> = emptyList()
     private var shortcuts: List<PaymentShortcut> = emptyList()
     private var contactPreferences: ContactPreferences = ContactPreferences()
     private val pendingContactContexts = mutableMapOf<String, PaymentContactContext>()
     private var pendingSaveContact: PendingSaveContact? = null
     private var paymentAdmissionInProgress: Boolean = false
+    private var observedWallet: WalletConnection? = null
+    private var hasObservedWallet: Boolean = false
 
     init {
         scope.launch {
             observeWalletConnection().collectLatest { connection ->
-                currentWalletTarget = connection?.toPaymentTarget()
+                if (hasObservedWallet && observedWallet != null && connection != observedWallet) {
+                    pendingTracker.stopWaitingForWalletChange().forEach { id ->
+                        pendingCollectionJobs.remove(id)?.cancel()
+                    }
+                }
+                observedWallet = connection
+                hasObservedWallet = true
+                currentWalletType = connection?.type
                 if (connection == null && _uiState.value is MainUiState.Success) {
                     _uiState.value = MainUiState.Active
                 }
@@ -188,18 +188,6 @@ class MainViewModel internal constructor(
                 refreshNewSessionTransactionCount(items)
             }
         }
-        scope.launch {
-            combine(observeWallets(), observeWalletConnection()) { all, active ->
-                all.map { wallet ->
-                    WalletInfo(
-                        pubKey = wallet.walletPublicKey,
-                        displayName = wallet.alias?.takeIf { it.isNotBlank() }
-                            ?: abbreviateKey(wallet.walletPublicKey),
-                        isActive = wallet.walletPublicKey == active?.walletPublicKey
-                    )
-                }
-            }.collect { _wallets.value = it }
-        }
         observeContacts?.let { useCase ->
             scope.launch {
                 useCase().collectLatest {
@@ -222,9 +210,6 @@ class MainViewModel internal constructor(
             }
         }
     }
-
-    private fun abbreviateKey(key: String): String =
-        if (key.length > 8) "${key.take(4)}…${key.takeLast(4)}" else key
 
     private fun handlePendingEvent(event: PendingEvent) {
         when (event) {
@@ -280,8 +265,6 @@ class MainViewModel internal constructor(
             MainIntent.ConfirmPaymentDismiss -> handleConfirmPaymentDismiss()
 
             MainIntent.ConfirmPaymentSubmit -> handleConfirmPaymentSubmit()
-
-            MainIntent.PendingRetrySameInvoice -> handlePendingRetrySameInvoice()
 
             MainIntent.PendingRetryCreateNewInvoice -> handlePendingRetryCreateNewInvoice()
 
@@ -385,25 +368,11 @@ class MainViewModel internal constructor(
                             return
                         }
 
-                        val existingForCurrentWallet = pendingTracker.findByInvoiceAndWallet(
-                            paymentRequest = summary.paymentRequest,
-                            walletTarget = currentWalletTarget
-                        )
-                        if (existingForCurrentWallet != null) {
-                            requestTransactionDetailNavigation(existingForCurrentWallet.id)
-                            return
-                        }
-
                         val existingPending = pendingTracker.findWaitingByPaymentRequest(
                             summary.paymentRequest
                         )
                         if (existingPending != null) {
-                            showPendingRetryPrompt(
-                                record = existingPending,
-                                source = PendingRetrySource.Bolt11,
-                                paymentSource = source,
-                                continuation = null
-                            )
+                            requestTransactionDetailNavigation(existingPending.id)
                             return
                         }
 
@@ -419,8 +388,6 @@ class MainViewModel internal constructor(
                         if (existingPending != null) {
                             showPendingRetryPrompt(
                                 record = existingPending,
-                                source = PendingRetrySource.Dynamic,
-                                paymentSource = source,
                                 continuation = PendingRetryContinuation.Lnurl(
                                     endpoint = target.endpoint,
                                     source = LnurlSource.Lnurl,
@@ -453,8 +420,6 @@ class MainViewModel internal constructor(
                         if (existingPending != null) {
                             showPendingRetryPrompt(
                                 record = existingPending,
-                                source = PendingRetrySource.Dynamic,
-                                paymentSource = source,
                                 continuation = PendingRetryContinuation.LightningAddress(
                                     address = target.address,
                                     sourceKey = sourceKey,
@@ -810,11 +775,7 @@ class MainViewModel internal constructor(
             return
         }
 
-        // If this invoice is already pending for the current wallet, open that session entry.
-        pendingTracker.findByInvoiceAndWallet(
-            paymentRequest = summary.paymentRequest,
-            walletTarget = currentWalletTarget
-        )
+        pendingTracker.findWaitingByPaymentRequest(summary.paymentRequest)
             ?.let { existing ->
                 requestTransactionDetailNavigation(existing.id)
                 return
@@ -1170,30 +1131,6 @@ class MainViewModel internal constructor(
         )
     }
 
-    private fun handlePendingRetrySameInvoice() {
-        val choice = pendingRetry ?: return
-        val record = pendingTracker.get(choice.recordId) ?: run {
-            handlePendingRetryDismiss()
-            return
-        }
-        if (record.status != PendingStatus.Waiting) return
-
-        pendingRetry = null
-        val amountOverrideMsats = if (record.summary.amountMsats == null) {
-            record.amountMsats
-        } else {
-            null
-        }
-        requestPayment(
-            summary = record.summary,
-            amountOverrideMsats = amountOverrideMsats,
-            origin = record.origin,
-            source = choice.paymentSource,
-            dynamicSourceKey = record.dynamicSourceKey,
-            contactContext = pendingContactContexts[record.id]
-        )
-    }
-
     private fun handlePendingRetryCreateNewInvoice() {
         val continuation = pendingRetry?.continuation ?: return
         pendingRetry = null
@@ -1260,19 +1197,13 @@ class MainViewModel internal constructor(
 
     private fun showPendingRetryPrompt(
         record: PendingRecord,
-        source: PendingRetrySource,
-        paymentSource: PaymentRequestSource,
-        continuation: PendingRetryContinuation?
+        continuation: PendingRetryContinuation
     ) {
         pendingRetry = PendingRetryChoice(
             recordId = record.id,
-            paymentSource = paymentSource,
             continuation = continuation
         )
-        _uiState.value = MainUiState.PendingRetry(
-            source = source,
-            id = record.id
-        )
+        _uiState.value = MainUiState.PendingRetry(id = record.id)
     }
 
     private fun requestPayment(
@@ -1368,52 +1299,18 @@ class MainViewModel internal constructor(
         contactContext: PaymentContactContext? = null
     ) {
         _uiState.value = MainUiState.Loading()
-        scope.launch {
-            val walletTarget = try {
-                getActiveWalletTarget()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: AppErrorException) {
-                clearPaymentSessionState()
-                emitError(error.error)
-                return@launch
-            } catch (error: Throwable) {
-                clearPaymentSessionState()
-                emitError(AppError.Unexpected(error.message))
-                return@launch
-            }
-
-            if (walletTarget == null) {
-                clearPaymentSessionState()
-                emitError(AppError.MissingWalletConnection)
-                return@launch
-            }
-
-            startPaymentWithWallet(
-                summary = summary,
-                amountOverrideMsats = amountOverrideMsats,
-                origin = origin,
-                walletTarget = walletTarget,
-                dynamicSourceKey = dynamicSourceKey,
-                contactContext = contactContext
-            )
+        val walletType = currentWalletType
+        if (walletType == null) {
+            clearPaymentSessionState()
+            emitError(AppError.MissingWalletConnection)
+            return
         }
-    }
-
-    private fun startPaymentWithWallet(
-        summary: Bolt11InvoiceSummary,
-        amountOverrideMsats: Long?,
-        origin: PendingOrigin,
-        walletTarget: WalletPaymentTarget,
-        dynamicSourceKey: String? = null,
-        contactContext: PaymentContactContext? = null
-    ) {
         val amountMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
         val pendingId = pendingTracker.register(
             summary = summary,
             amountMsats = amountMsats,
             origin = origin,
-            walletTarget = walletTarget,
+            walletType = walletType,
             dynamicSourceKey = dynamicSourceKey
         )
         contactContext?.let { pendingContactContexts[pendingId] = it }
@@ -1422,8 +1319,7 @@ class MainViewModel internal constructor(
             val request = try {
                 payInvoice(
                     invoice = summary.paymentRequest,
-                    amountMsats = amountOverrideMsats,
-                    walletTarget = walletTarget
+                    amountMsats = amountOverrideMsats
                 )
             } catch (error: AppErrorException) {
                 handlePaymentFailure(
@@ -1539,7 +1435,7 @@ class MainViewModel internal constructor(
         }
 
         if (vibrateOnPayment) haptics.notifyPaymentSuccess()
-        val showBlinkFeeHint = !wasAlreadyPaid && record?.walletTarget?.type == WalletType.BLINK
+        val showBlinkFeeHint = !wasAlreadyPaid && record?.walletType == WalletType.BLINK
         showPaymentSuccess(
             CompletedPayment(
                 amountMsats = paidMsats,
@@ -1809,8 +1705,7 @@ private data class PendingPayment(
 
 private data class PendingRetryChoice(
     val recordId: String,
-    val paymentSource: PaymentRequestSource,
-    val continuation: PendingRetryContinuation?
+    val continuation: PendingRetryContinuation
 )
 
 private data class CompletedPayment(

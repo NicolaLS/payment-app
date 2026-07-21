@@ -3,29 +3,17 @@ package xyz.lilsus.papp.domain.repository
 import kotlinx.coroutines.flow.Flow
 import xyz.lilsus.papp.domain.model.WalletConnection
 
-/**
- * Abstraction for persisting wallet connections and the active wallet selection.
- */
+/** Persists the app's single optional wallet connection. */
 interface WalletSettingsRepository {
     /**
-     * Emits the full list of stored wallet connections.
-     */
-    val wallets: Flow<List<WalletConnection>>
-
-    /**
-     * Emits the currently active wallet connection, or `null` if none is configured.
+     * Emits the connected wallet, or `null` if none is configured.
      */
     val walletConnection: Flow<WalletConnection?>
 
     suspend fun getWalletConnection(): WalletConnection?
 
-    suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean = true)
-
-    suspend fun setActiveWallet(walletPublicKey: String)
-
-    suspend fun removeWallet(walletPublicKey: String): Boolean
-
-    suspend fun getWallets(): List<WalletConnection>
+    /** Saves [connection]. Fails if another wallet is already connected. */
+    suspend fun saveWalletConnection(connection: WalletConnection)
 
     suspend fun clearWalletConnection()
 }

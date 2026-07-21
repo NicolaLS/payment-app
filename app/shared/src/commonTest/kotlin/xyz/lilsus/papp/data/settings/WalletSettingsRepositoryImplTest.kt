@@ -5,58 +5,86 @@ package xyz.lilsus.papp.data.settings
 import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 
 class WalletSettingsRepositoryImplTest {
 
     @Test
-    fun removeWalletCallsRemovalHookWithRemovedWallet() = runTest {
-        val removed = mutableListOf<WalletConnection>()
-        val repository = createRepository { removed.add(it) }
-        val blinkWallet = walletConnection("blink-wallet", WalletType.BLINK)
-
-        repository.saveWalletConnection(blinkWallet, activate = true)
-        repository.removeWallet(blinkWallet.walletPublicKey)
-
-        assertEquals(listOf(blinkWallet), removed)
-    }
-
-    @Test
-    fun clearWalletConnectionCallsRemovalHookForAllWallets() = runTest {
-        val removed = mutableListOf<WalletConnection>()
-        val repository = createRepository { removed.add(it) }
-        val nwcWallet = walletConnection("nwc-wallet", WalletType.NWC)
-        val blinkWallet = walletConnection("blink-wallet", WalletType.BLINK)
-
-        repository.saveWalletConnection(nwcWallet, activate = false)
-        repository.saveWalletConnection(blinkWallet, activate = true)
-        repository.clearWalletConnection()
-
-        assertEquals(setOf(nwcWallet, blinkWallet), removed.toSet())
-    }
-
-    @Test
-    fun loadsPersistedWalletSynchronouslyOnConstruction() = runTest {
+    fun savesAndLoadsTheConnectedWallet() = runTest {
         val settings = MapSettings()
         val wallet = walletConnection("nwc-wallet", WalletType.NWC)
-        val writer = WalletSettingsRepositoryImpl(settings = settings)
-        writer.saveWalletConnection(wallet, activate = true)
+        WalletSettingsRepositoryImpl(settings = settings).saveWalletConnection(wallet)
 
-        val reader = WalletSettingsRepositoryImpl(settings = settings)
-        val active = reader.getWalletConnection()
+        val restored = WalletSettingsRepositoryImpl(settings = settings).getWalletConnection()
 
-        assertEquals(wallet.walletPublicKey, active?.walletPublicKey)
-        assertEquals(wallet.type, active?.type)
+        assertEquals(wallet, restored)
     }
 
-    private fun createRepository(onRemoved: suspend (WalletConnection) -> Unit): WalletSettingsRepositoryImpl {
+    @Test
+    fun rejectsConnectingASecondWallet() = runTest {
+        val repository = WalletSettingsRepositoryImpl(settings = MapSettings())
+        val first = walletConnection("nwc-wallet", WalletType.NWC)
+        repository.saveWalletConnection(first)
+
+        val exception = assertFailsWith<AppErrorException> {
+            repository.saveWalletConnection(walletConnection("blink-wallet", WalletType.BLINK))
+        }
+
+        assertEquals(AppError.WalletAlreadyConnected, exception.error)
+        assertEquals(first, repository.getWalletConnection())
+    }
+
+    @Test
+    fun clearRemovesTheWalletAndCallsTheRemovalHook() = runTest {
+        val removed = mutableListOf<WalletConnection>()
+        val settings = MapSettings()
         val repository = WalletSettingsRepositoryImpl(
-            settings = MapSettings(),
-            onWalletRemoved = onRemoved
+            settings = settings,
+            onWalletRemoved = { removed.add(it) }
         )
-        return repository
+        val wallet = walletConnection("blink-wallet", WalletType.BLINK)
+        repository.saveWalletConnection(wallet)
+
+        repository.clearWalletConnection()
+
+        assertNull(repository.getWalletConnection())
+        assertNull(settings.getStringOrNull("wallet.connection"))
+        assertEquals(listOf(wallet), removed)
+    }
+
+    @Test
+    fun migratesThePreviouslyActiveLegacyWalletAndDiscardsTheOthers() = runTest {
+        val settings = MapSettings(
+            "wallet.list" to """[
+                {"walletPublicKey":"first","alias":"First","type":"NWC"},
+                {"walletPublicKey":"second","alias":"Second","type":"BLINK"}
+            ]
+            """.trimIndent(),
+            "wallet.active" to "second"
+        )
+        var retained: WalletConnection? = null
+        var discarded: List<WalletConnection> = emptyList()
+
+        val repository = WalletSettingsRepositoryImpl(
+            settings = settings,
+            onLegacyWalletsMigrated = { migratedRetained, migratedDiscarded ->
+                retained = migratedRetained
+                discarded = migratedDiscarded
+            }
+        )
+
+        assertEquals("second", repository.getWalletConnection()?.walletPublicKey)
+        assertEquals("second", retained?.walletPublicKey)
+        assertEquals(listOf("first"), discarded.map { it.walletPublicKey })
+        assertNull(settings.getStringOrNull("wallet.list"))
+        assertNull(settings.getStringOrNull("wallet.active"))
     }
 
     private fun walletConnection(id: String, type: WalletType): WalletConnection = WalletConnection(

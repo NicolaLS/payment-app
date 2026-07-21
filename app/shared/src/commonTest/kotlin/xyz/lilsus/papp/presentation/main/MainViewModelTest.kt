@@ -16,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.runBlocking
@@ -47,7 +46,6 @@ import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.PaymentPreferences
 import xyz.lilsus.papp.domain.model.Result
 import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.model.exchange.ExchangeRate
 import xyz.lilsus.papp.domain.repository.ContactsRepository
@@ -59,7 +57,6 @@ import xyz.lilsus.papp.domain.repository.PaymentPreferencesRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
-import xyz.lilsus.papp.domain.usecases.GetActiveWalletTargetUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
@@ -68,7 +65,6 @@ import xyz.lilsus.papp.domain.usecases.ObserveCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObservePaymentPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
-import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.RecordContactPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RecordShortcutPaymentUseCase
@@ -91,7 +87,7 @@ class MainViewModelTest {
         walletSettingsRepository = FakeWalletSettingsRepository()
         walletConnection = ObserveWalletConnectionUseCase(walletSettingsRepository)
         runBlocking {
-            walletSettingsRepository.saveWalletConnection(nwcWallet("default-wallet"), true)
+            walletSettingsRepository.saveWalletConnection(nwcWallet("default-wallet"))
         }
     }
 
@@ -894,6 +890,42 @@ class MainViewModelTest {
     }
 
     @Test
+    fun disconnectingWalletStopsInFlightPaymentAsUnconfirmed() = runTest {
+        val parser = FakeBolt11InvoiceParser(
+            mapOf(
+                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
+                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
+                    paymentHash = "payment-hash",
+                    amountMsats = 250_000L,
+                    memo = Bolt11Memo.None
+                )
+            )
+        )
+        val repository = BlockingNwcWalletRepository()
+        val viewModel = createViewModel(
+            parser = parser,
+            repository = repository,
+            dispatcherOverride = StandardTestDispatcher(testScheduler)
+        )
+        try {
+            runCurrent()
+            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
+            runCurrent()
+            assertEquals(listOf(AMOUNT_PAYMENT_REQUEST to null), repository.invoices)
+
+            walletSettingsRepository.clearWalletConnection()
+            runCurrent()
+
+            val transaction = viewModel.sessionTransactions.value.single()
+            assertEquals(PendingStatus.Failure, transaction.status)
+            assertTrue(transaction.error is AppError.PaymentUnconfirmed)
+        } finally {
+            repository.completeIfNeeded()
+            viewModel.clear()
+        }
+    }
+
+    @Test
     fun ignoresNewInvoiceWhilePaymentInFlight() {
         runBlocking {
             val parser = FakeBolt11InvoiceParser(
@@ -1000,199 +1032,7 @@ class MainViewModelTest {
     }
 
     @Test
-    fun blinkVerificationUsesWalletPublicKeyAsLookupContext() = runTest {
-        val paymentHash = "blink-hash-1"
-        val parser = FakeBolt11InvoiceParser(
-            mapOf(
-                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
-                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
-                    paymentHash = paymentHash,
-                    amountMsats = 250_000L,
-                    memo = Bolt11Memo.None
-                )
-            )
-        )
-        val repository = UnconfirmedNwcWalletRepository {
-            PaymentLookupResult.Settled(PaidInvoice(preimage = "preimage", feesPaidMsats = null))
-        }
-        walletSettingsRepository.saveWalletConnection(
-            blinkWallet("blink-wallet-1"),
-            activate = true
-        )
-        val viewModel = createViewModel(
-            parser = parser,
-            repository = repository,
-            dispatcherOverride = UnconfinedTestDispatcher(testScheduler)
-        )
-        try {
-            runCurrent()
-            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-            runCurrent()
-
-            val lookup = repository.lookupCalls.single()
-            assertEquals(paymentHash, lookup.paymentHash)
-            assertEquals(WalletPaymentTarget.Blink("blink-wallet-1"), lookup.walletTarget)
-        } finally {
-            viewModel.clear()
-        }
-    }
-
-    @Test
-    fun coldStartPaymentStoresConcreteWalletBeforeWalletObserverEmits() = runTest {
-        val paymentHash = "blink-hash-cold-start"
-        val parser = FakeBolt11InvoiceParser(
-            mapOf(
-                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
-                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
-                    paymentHash = paymentHash,
-                    amountMsats = 250_000L,
-                    memo = Bolt11Memo.None
-                )
-            )
-        )
-        val repository = UnconfirmedNwcWalletRepository {
-            PaymentLookupResult.Pending
-        }
-        walletSettingsRepository.saveWalletConnection(
-            blinkWallet("blink-wallet-cold-start"),
-            activate = true
-        )
-        walletSettingsRepository.holdWalletConnectionFlow()
-        val viewModel = createViewModel(
-            parser = parser,
-            repository = repository,
-            dispatcherOverride = StandardTestDispatcher(testScheduler)
-        )
-        try {
-            runCurrent()
-            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-            runCurrent()
-
-            val lookup = repository.lookupCalls.single()
-            assertEquals(paymentHash, lookup.paymentHash)
-            assertEquals(
-                WalletPaymentTarget.Blink("blink-wallet-cold-start"),
-                lookup.walletTarget
-            )
-        } finally {
-            viewModel.clear()
-        }
-    }
-
-    @Test
-    fun sameInvoiceOnDifferentBlinkWalletsPromptsThenRetriesSameInvoice() = runTest {
-        val parser = FakeBolt11InvoiceParser(
-            mapOf(
-                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
-                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
-                    paymentHash = "blink-hash-2",
-                    amountMsats = 250_000L,
-                    memo = Bolt11Memo.None
-                )
-            )
-        )
-        val repository = UnconfirmedNwcWalletRepository {
-            PaymentLookupResult.Pending
-        }
-        val wallet1 = blinkWallet("blink-wallet-1")
-        val wallet2 = blinkWallet("blink-wallet-2")
-        walletSettingsRepository.saveWalletConnection(wallet1, activate = true)
-        walletSettingsRepository.saveWalletConnection(wallet2, activate = false)
-
-        val viewModel = createViewModel(
-            parser = parser,
-            repository = repository,
-            dispatcherOverride = UnconfinedTestDispatcher(testScheduler)
-        )
-        try {
-            runCurrent()
-
-            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-            runCurrent()
-
-            walletSettingsRepository.setActiveWallet(wallet2.walletPublicKey)
-            runCurrent()
-
-            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-            runCurrent()
-
-            assertEquals(1, repository.startedInvoices.size)
-            val retry = viewModel.uiState.value as MainUiState.PendingRetry
-            assertEquals(PendingRetrySource.Bolt11, retry.source)
-
-            viewModel.dispatch(MainIntent.PendingRetrySameInvoice)
-            runCurrent()
-
-            assertEquals(2, repository.startedInvoices.size)
-            assertEquals(
-                listOf(
-                    WalletPaymentTarget.Blink(wallet1.walletPublicKey),
-                    WalletPaymentTarget.Blink(wallet2.walletPublicKey)
-                ),
-                repository.lookupCalls.map { it.walletTarget }
-            )
-        } finally {
-            viewModel.clear()
-        }
-    }
-
-    @Test
-    fun pendingRetryViewPendingRequestsTransactionDetailNavigation() = runTest {
-        val parser = FakeBolt11InvoiceParser(
-            mapOf(
-                AMOUNT_INVOICE_INPUT to Bolt11InvoiceSummary(
-                    paymentRequest = AMOUNT_PAYMENT_REQUEST,
-                    paymentHash = "blink-hash-view-pending",
-                    amountMsats = 250_000L,
-                    memo = Bolt11Memo.None
-                )
-            )
-        )
-        val repository = UnconfirmedNwcWalletRepository {
-            PaymentLookupResult.Pending
-        }
-        val wallet1 = blinkWallet("blink-wallet-1")
-        val wallet2 = blinkWallet("blink-wallet-2")
-        walletSettingsRepository.saveWalletConnection(wallet1, activate = true)
-        walletSettingsRepository.saveWalletConnection(wallet2, activate = false)
-
-        val viewModel = createViewModel(
-            parser = parser,
-            repository = repository,
-            dispatcherOverride = UnconfinedTestDispatcher(testScheduler)
-        )
-        try {
-            runCurrent()
-
-            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-            runCurrent()
-            val pendingId = viewModel.sessionTransactions
-                .firstWithTimeout { it.isNotEmpty() }
-                .first()
-                .id
-
-            walletSettingsRepository.setActiveWallet(wallet2.walletPublicKey)
-            runCurrent()
-
-            viewModel.dispatch(MainIntent.QrCodeScanned(AMOUNT_INVOICE_INPUT))
-            runCurrent()
-
-            val retry = viewModel.uiState.value as MainUiState.PendingRetry
-            assertEquals(PendingRetrySource.Bolt11, retry.source)
-            assertEquals(pendingId, retry.id)
-
-            viewModel.dispatch(MainIntent.PendingRetryViewPending)
-            runCurrent()
-
-            viewModel.transactionDetailNavigationTarget.firstWithTimeout { it == pendingId }
-            assertEquals(MainUiState.Active, viewModel.uiState.value)
-        } finally {
-            viewModel.clear()
-        }
-    }
-
-    @Test
-    fun repeatedLnurlPromptCanRetryStoredInvoiceWithoutFetchingNewInvoice() = runTest {
+    fun repeatedLnurlPromptCanRequestANewInvoice() = runTest {
         val amountMsats = 50_000L
         val lnurlInvoice = "lnbc1lnurlpending"
         val params = LnurlPayParams(
@@ -1221,11 +1061,6 @@ class MainViewModelTest {
         val repository = UnconfirmedNwcWalletRepository {
             PaymentLookupResult.Pending
         }
-        val wallet1 = blinkWallet("blink-wallet-1")
-        val wallet2 = blinkWallet("blink-wallet-2")
-        walletSettingsRepository.saveWalletConnection(wallet1, activate = true)
-        walletSettingsRepository.saveWalletConnection(wallet2, activate = false)
-
         val viewModel = createViewModel(
             parser = parser,
             repository = repository,
@@ -1242,22 +1077,18 @@ class MainViewModelTest {
             assertEquals(1, lnurlRepository.invoiceRequestCount)
             assertEquals(listOf(lnurlInvoice to null), repository.startedInvoices)
 
-            walletSettingsRepository.setActiveWallet(wallet2.walletPublicKey)
-            runCurrent()
-
             viewModel.dispatch(MainIntent.QrCodeScanned(LNURL_INPUT))
             runCurrent()
 
-            val retry = viewModel.uiState.value as MainUiState.PendingRetry
-            assertEquals(PendingRetrySource.Dynamic, retry.source)
+            assertTrue(viewModel.uiState.value is MainUiState.PendingRetry)
             assertEquals(1, lnurlRepository.endpointFetchCount)
             assertEquals(1, lnurlRepository.invoiceRequestCount)
 
-            viewModel.dispatch(MainIntent.PendingRetrySameInvoice)
+            viewModel.dispatch(MainIntent.PendingRetryCreateNewInvoice)
             runCurrent()
 
-            assertEquals(1, lnurlRepository.endpointFetchCount)
-            assertEquals(1, lnurlRepository.invoiceRequestCount)
+            assertEquals(2, lnurlRepository.endpointFetchCount)
+            assertEquals(2, lnurlRepository.invoiceRequestCount)
             assertEquals(
                 listOf(lnurlInvoice to null, lnurlInvoice to null),
                 repository.startedInvoices
@@ -1321,7 +1152,6 @@ class MainViewModelTest {
             viewModel.dispatch(MainIntent.QrCodeScanned(address))
             runCurrent()
             val retry = viewModel.uiState.value as MainUiState.PendingRetry
-            assertEquals(PendingRetrySource.Dynamic, retry.source)
             assertEquals(pendingId, retry.id)
 
             repository.complete()
@@ -1332,10 +1162,6 @@ class MainViewModelTest {
                 }
             }
             assertTrue(viewModel.uiState.value is MainUiState.PendingRetry)
-
-            viewModel.dispatch(MainIntent.PendingRetrySameInvoice)
-            runCurrent()
-            assertEquals(listOf(addressInvoice to null), repository.invoices)
 
             viewModel.dispatch(MainIntent.PendingRetryCreateNewInvoice)
             runCurrent()
@@ -1369,8 +1195,7 @@ class MainViewModelTest {
             )
         }
         walletSettingsRepository.saveWalletConnection(
-            blinkWallet("blink-wallet-1"),
-            activate = true
+            blinkWallet("blink-wallet-1")
         )
         val viewModel = createViewModel(
             parser = parser,
@@ -1417,8 +1242,7 @@ class MainViewModelTest {
             }
         }
         walletSettingsRepository.saveWalletConnection(
-            blinkWallet("blink-wallet-1"),
-            activate = true
+            blinkWallet("blink-wallet-1")
         )
         val viewModel = createViewModel(
             parser = parser,
@@ -1647,14 +1471,10 @@ class MainViewModelTest {
                 exchangeRate = null
             )
         )
-        val observeWallets = ObserveWalletsUseCase(walletSettingsRepository)
-        val getActiveWalletTarget = GetActiveWalletTargetUseCase(walletSettingsRepository)
         return MainViewModel(
             payInvoice = payInvoice,
             lookupPayment = lookupPayment,
             observeWalletConnection = walletConnection,
-            observeWallets = observeWallets,
-            getActiveWalletTarget = getActiveWalletTarget,
             observeCurrencyPreference = observeCurrencyPreference,
             currencyManager = currencyManager,
             bolt11Parser = parser,
@@ -1695,23 +1515,22 @@ private class RecordingNwcWalletRepository(private val result: PaidInvoice = Pai
     var lastAmountMsats: Long? = null
         private set
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
         lastInvoice = invoice
         lastAmountMsats = amountMsats
-        val request = startPayInvoiceRequest(invoice, amountMsats, walletTarget)
+        val request = startPayInvoiceRequest(invoice, amountMsats)
         val state = request.state.first { it is PayInvoiceRequestState.Success } as
             PayInvoiceRequestState.Success
         return state.invoice
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         lastInvoice = invoice
         lastAmountMsats = amountMsats
         return ImmediatePayInvoiceRequest(result)
     }
 
-    override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult =
-        PaymentLookupResult.NotFound
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.NotFound
 }
 
 private class BlockingNwcWalletRepository : NwcWalletRepository {
@@ -1719,20 +1538,19 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
     private val recorded = mutableListOf<Pair<String, Long?>>()
     val invoices: List<Pair<String, Long?>> get() = recorded.toList()
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
-        val request = startPayInvoiceRequest(invoice, amountMsats, walletTarget)
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        val request = startPayInvoiceRequest(invoice, amountMsats)
         val state = request.state.first { it is PayInvoiceRequestState.Success } as
             PayInvoiceRequestState.Success
         return state.invoice
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         recorded += invoice to amountMsats
         return DeferredPayInvoiceRequest(completion)
     }
 
-    override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult =
-        PaymentLookupResult.NotFound
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.NotFound
 
     fun complete(result: PaidInvoice = PaidInvoice(preimage = "blocking-preimage", feesPaidMsats = null)) {
         completeIfNeeded(result)
@@ -1748,18 +1566,16 @@ private class BlockingNwcWalletRepository : NwcWalletRepository {
 private class DeferredFailingNwcWalletRepository : NwcWalletRepository {
     private val failure = CompletableDeferred<AppError>()
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
-        val request = startPayInvoiceRequest(invoice, amountMsats, walletTarget)
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        val request = startPayInvoiceRequest(invoice, amountMsats)
         val state = request.state.first { it is PayInvoiceRequestState.Failure } as
             PayInvoiceRequestState.Failure
         throw AppErrorException(state.error)
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest =
-        DeferredFailurePayInvoiceRequest(failure)
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest = DeferredFailurePayInvoiceRequest(failure)
 
-    override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult =
-        PaymentLookupResult.Pending
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.Pending
 
     fun fail(error: AppError) {
         if (!failure.isCompleted) {
@@ -1773,38 +1589,36 @@ private class DeferredFailingNwcWalletRepository : NwcWalletRepository {
 }
 
 private class FailingNwcWalletRepository(private val error: AppError) : NwcWalletRepository {
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
-        val request = startPayInvoiceRequest(invoice, amountMsats, walletTarget)
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        val request = startPayInvoiceRequest(invoice, amountMsats)
         request.state.first { it is PayInvoiceRequestState.Failure }
         throw AppErrorException(error)
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest =
-        object : PayInvoiceRequest {
-            override val state: StateFlow<PayInvoiceRequestState> = MutableStateFlow(
-                PayInvoiceRequestState.Failure(error)
-            )
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest = object : PayInvoiceRequest {
+        override val state: StateFlow<PayInvoiceRequestState> = MutableStateFlow(
+            PayInvoiceRequestState.Failure(error)
+        )
 
-            override fun cancel() {}
-        }
+        override fun cancel() {}
+    }
 
-    override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult =
-        PaymentLookupResult.NotFound
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult = PaymentLookupResult.NotFound
 }
 
 private class UnconfirmedNwcWalletRepository(private val lookupResult: suspend () -> PaymentLookupResult) : NwcWalletRepository {
-    data class LookupCall(val paymentHash: String, val walletTarget: WalletPaymentTarget?)
+    data class LookupCall(val paymentHash: String)
 
     private val _startedInvoices = MutableStateFlow<List<Pair<String, Long?>>>(emptyList())
     private val _lookupCalls = MutableStateFlow<List<LookupCall>>(emptyList())
     val startedInvoices: List<Pair<String, Long?>> get() = _startedInvoices.value
     val lookupCalls: List<LookupCall> get() = _lookupCalls.value
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
         error("payInvoice is not used by MainViewModel")
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         _startedInvoices.update { it + (invoice to amountMsats) }
         return object : PayInvoiceRequest {
             private val mutable = MutableStateFlow<PayInvoiceRequestState>(
@@ -1822,8 +1636,8 @@ private class UnconfirmedNwcWalletRepository(private val lookupResult: suspend (
         }
     }
 
-    override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult {
-        _lookupCalls.update { it + LookupCall(paymentHash, walletTarget) }
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
+        _lookupCalls.update { it + LookupCall(paymentHash) }
         return lookupResult()
     }
 }
@@ -1982,41 +1796,13 @@ private class DeferredExchangeRateRepository(private val completion: Completable
 
 private class FakeWalletSettingsRepository : WalletSettingsRepository {
     private val connections = MutableStateFlow<WalletConnection?>(null)
-    private val stored = MutableStateFlow<List<WalletConnection>>(emptyList())
-    private val walletConnectionFlowEnabled = MutableStateFlow(true)
-
-    override val wallets: Flow<List<WalletConnection>> = stored
-    override val walletConnection: Flow<WalletConnection?> =
-        combine(connections, walletConnectionFlowEnabled) { connection, enabled ->
-            if (enabled) connection else null
-        }
+    override val walletConnection = connections
 
     override suspend fun getWalletConnection(): WalletConnection? = connections.value
 
-    override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
-        stored.value = stored.value.filterNot {
-            it.walletPublicKey == connection.walletPublicKey
-        } + connection
-        if (activate || connections.value == null) {
-            connections.value = connection
-        }
+    override suspend fun saveWalletConnection(connection: WalletConnection) {
+        connections.value = connection
     }
-
-    override suspend fun setActiveWallet(walletPublicKey: String) {
-        connections.value = stored.value.firstOrNull { it.walletPublicKey == walletPublicKey }
-    }
-
-    override suspend fun removeWallet(walletPublicKey: String): Boolean {
-        stored.value.firstOrNull { it.walletPublicKey == walletPublicKey }
-            ?: return false
-        stored.value = stored.value.filterNot { it.walletPublicKey == walletPublicKey }
-        if (connections.value?.walletPublicKey == walletPublicKey) {
-            connections.value = null
-        }
-        return true
-    }
-
-    override suspend fun getWallets(): List<WalletConnection> = stored.value
 
     override suspend fun clearWalletConnection() {
         connections.value = null
@@ -2024,12 +1810,6 @@ private class FakeWalletSettingsRepository : WalletSettingsRepository {
 
     fun reset() {
         connections.value = null
-        stored.value = emptyList()
-        walletConnectionFlowEnabled.value = true
-    }
-
-    fun holdWalletConnectionFlow() {
-        walletConnectionFlowEnabled.value = false
     }
 }
 

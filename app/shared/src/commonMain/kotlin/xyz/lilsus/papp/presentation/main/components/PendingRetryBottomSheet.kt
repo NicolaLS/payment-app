@@ -21,37 +21,29 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import lasr.shared.generated.resources.Res
-import lasr.shared.generated.resources.pending_retry_bolt11_body
-import lasr.shared.generated.resources.pending_retry_bolt11_title
 import lasr.shared.generated.resources.pending_retry_create_new_invoice
 import lasr.shared.generated.resources.pending_retry_create_new_payment
 import lasr.shared.generated.resources.pending_retry_dynamic_body
 import lasr.shared.generated.resources.pending_retry_dynamic_title
-import lasr.shared.generated.resources.pending_retry_resolved_bolt11_body
 import lasr.shared.generated.resources.pending_retry_resolved_dynamic_body
 import lasr.shared.generated.resources.pending_retry_resolved_title
-import lasr.shared.generated.resources.pending_retry_same_invoice
 import lasr.shared.generated.resources.pending_retry_view_pending
 import lasr.shared.generated.resources.pending_retry_view_resolved
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.MaestroTags
 import xyz.lilsus.papp.enableMaestroTestTagsAsResourceId
-import xyz.lilsus.papp.presentation.main.PendingRetrySource
 import xyz.lilsus.papp.presentation.main.PendingStatus
 import xyz.lilsus.papp.presentation.theme.AppTheme
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun PendingRetryBottomSheet(
-    source: PendingRetrySource,
     status: PendingStatus,
-    onRetrySameInvoice: () -> Unit,
     onCreateNewInvoice: () -> Unit,
     onViewPending: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val isDynamic = source == PendingRetrySource.Dynamic
     val isResolved = status != PendingStatus.Waiting
 
     ModalBottomSheet(
@@ -70,10 +62,8 @@ fun PendingRetryBottomSheet(
                 text = stringResource(
                     if (isResolved) {
                         Res.string.pending_retry_resolved_title
-                    } else if (isDynamic) {
-                        Res.string.pending_retry_dynamic_title
                     } else {
-                        Res.string.pending_retry_bolt11_title
+                        Res.string.pending_retry_dynamic_title
                     }
                 ),
                 style = MaterialTheme.typography.headlineSmall,
@@ -84,14 +74,10 @@ fun PendingRetryBottomSheet(
 
             Text(
                 text = stringResource(
-                    if (isResolved && isDynamic) {
+                    if (isResolved) {
                         Res.string.pending_retry_resolved_dynamic_body
-                    } else if (isResolved) {
-                        Res.string.pending_retry_resolved_bolt11_body
-                    } else if (isDynamic) {
-                        Res.string.pending_retry_dynamic_body
                     } else {
-                        Res.string.pending_retry_bolt11_body
+                        Res.string.pending_retry_dynamic_body
                     }
                 ),
                 style = MaterialTheme.typography.bodyMedium,
@@ -105,40 +91,23 @@ fun PendingRetryBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (!isResolved) {
+                if (isResolved) {
                     Button(
-                        onClick = onRetrySameInvoice,
+                        onClick = onCreateNewInvoice,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag(MaestroTags.Payment.PENDING_RETRY_SAME_INVOICE_BUTTON)
+                            .testTag(MaestroTags.Payment.PENDING_RETRY_CREATE_NEW_INVOICE_BUTTON)
                     ) {
-                        Text(stringResource(Res.string.pending_retry_same_invoice))
+                        Text(stringResource(Res.string.pending_retry_create_new_payment))
                     }
-                }
-
-                if (isDynamic) {
-                    if (isResolved) {
-                        Button(
-                            onClick = onCreateNewInvoice,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag(
-                                    MaestroTags.Payment.PENDING_RETRY_CREATE_NEW_INVOICE_BUTTON
-                                )
-                        ) {
-                            Text(stringResource(Res.string.pending_retry_create_new_payment))
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = onCreateNewInvoice,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag(
-                                    MaestroTags.Payment.PENDING_RETRY_CREATE_NEW_INVOICE_BUTTON
-                                )
-                        ) {
-                            Text(stringResource(Res.string.pending_retry_create_new_invoice))
-                        }
+                } else {
+                    OutlinedButton(
+                        onClick = onCreateNewInvoice,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(MaestroTags.Payment.PENDING_RETRY_CREATE_NEW_INVOICE_BUTTON)
+                    ) {
+                        Text(stringResource(Res.string.pending_retry_create_new_invoice))
                     }
                 }
 
@@ -169,9 +138,7 @@ fun PendingRetryBottomSheet(
 private fun PendingRetryBottomSheetPreview() {
     AppTheme {
         PendingRetryBottomSheet(
-            source = PendingRetrySource.Dynamic,
             status = PendingStatus.Waiting,
-            onRetrySameInvoice = {},
             onCreateNewInvoice = {},
             onViewPending = {},
             onDismiss = {}

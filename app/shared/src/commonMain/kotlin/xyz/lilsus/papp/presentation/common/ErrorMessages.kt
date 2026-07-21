@@ -31,6 +31,7 @@ import lasr.shared.generated.resources.error_timeout
 import lasr.shared.generated.resources.error_unexpected_generic
 import lasr.shared.generated.resources.error_unexpected_with_details
 import lasr.shared.generated.resources.error_unrecognized_input
+import lasr.shared.generated.resources.error_wallet_already_connected
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.papp.domain.model.AppError
@@ -42,6 +43,8 @@ import xyz.lilsus.papp.domain.model.BlinkErrorType
 @Composable
 fun errorMessageFor(error: AppError): String = when (error) {
     AppError.MissingWalletConnection -> stringResource(Res.string.error_missing_wallet_connection)
+
+    AppError.WalletAlreadyConnected -> stringResource(Res.string.error_wallet_already_connected)
 
     is AppError.PaymentRejected -> {
         val message = error.message?.takeUnless { it.isBlank() }
@@ -152,6 +155,8 @@ fun errorMessageFor(error: AppError): String = when (error) {
  */
 suspend fun getErrorMessageFor(error: AppError): String = when (error) {
     AppError.MissingWalletConnection -> getString(Res.string.error_missing_wallet_connection)
+
+    AppError.WalletAlreadyConnected -> getString(Res.string.error_wallet_already_connected)
 
     is AppError.PaymentRejected -> {
         val message = error.message?.takeUnless { it.isBlank() }

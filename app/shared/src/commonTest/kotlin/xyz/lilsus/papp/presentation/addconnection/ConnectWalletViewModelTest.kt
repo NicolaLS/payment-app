@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -24,7 +24,6 @@ import xyz.lilsus.papp.domain.model.toMetadataSnapshot
 import xyz.lilsus.papp.domain.repository.WalletDiscoveryRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
-import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.SetWalletConnectionUseCase
 
 class ConnectWalletViewModelTest {
@@ -32,7 +31,6 @@ class ConnectWalletViewModelTest {
     private val discoveryRepository = FakeWalletDiscoveryRepository()
     private val discoverWallet = DiscoverWalletUseCase(discoveryRepository)
     private val setWalletConnection = SetWalletConnectionUseCase(walletRepository)
-    private val getWallets = GetWalletsUseCase(walletRepository)
 
     @AfterTest
     fun tearDown() {
@@ -44,7 +42,6 @@ class ConnectWalletViewModelTest {
     fun loadEmitsDiscoveryAndAliasSuggestion() {
         runTest {
             val dispatcher = StandardTestDispatcher(testScheduler)
-            walletRepository.saveWalletConnection(EXISTING_WALLET, activate = true)
             discoveryRepository.stub(VALID_URI, TEST_DISCOVERY)
             val viewModel = createViewModel(dispatcher)
             try {
@@ -55,7 +52,6 @@ class ConnectWalletViewModelTest {
                 assertEquals(VALID_URI, state.uri)
                 assertEquals(TEST_DISCOVERY, state.discovery)
                 assertEquals(TEST_DISCOVERY.aliasSuggestion, state.aliasInput)
-                assertTrue(state.setActive)
             } finally {
                 viewModel.clear()
             }
@@ -74,7 +70,6 @@ class ConnectWalletViewModelTest {
 
                 assertNotNull(viewModel.uiState.value.discovery)
                 viewModel.updateAlias(" My Wallet \n")
-                viewModel.updateSetActive(true)
 
                 val eventDeferred = async {
                     viewModel.events.first { it is ConnectWalletEvent.Success }
@@ -112,7 +107,6 @@ class ConnectWalletViewModelTest {
     private fun createViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Unconfined): ConnectWalletViewModel = ConnectWalletViewModel(
         discoverWallet = discoverWallet,
         setWalletConnection = setWalletConnection,
-        getWallets = getWallets,
         dispatcher = dispatcher
     )
 
@@ -132,62 +126,26 @@ class ConnectWalletViewModelTest {
     }
 
     private class FakeWalletSettingsRepository : WalletSettingsRepository {
-        private var active: WalletConnection? = null
-        private val storedWallets = mutableListOf<WalletConnection>()
-        private val walletsFlow = kotlinx.coroutines.flow.MutableStateFlow<List<WalletConnection>>(
-            emptyList()
-        )
-        private val activeFlow = kotlinx.coroutines.flow.MutableStateFlow<WalletConnection?>(null)
+        private val walletFlow = MutableStateFlow<WalletConnection?>(null)
         var lastSavedAlias: String? = null
         var lastSavedMetadata: WalletMetadataSnapshot? = null
 
-        override val wallets: Flow<List<WalletConnection>> = walletsFlow
-        override val walletConnection: Flow<WalletConnection?> = activeFlow
+        override val walletConnection = walletFlow
 
-        override suspend fun getWalletConnection(): WalletConnection? = active
+        override suspend fun getWalletConnection(): WalletConnection? = walletFlow.value
 
-        override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
-            storedWallets.removeAll { it.walletPublicKey == connection.walletPublicKey }
-            storedWallets.add(connection)
-            if (activate) {
-                active = connection
-            }
-            walletsFlow.value = storedWallets.toList()
-            activeFlow.value = active
+        override suspend fun saveWalletConnection(connection: WalletConnection) {
+            walletFlow.value = connection
             lastSavedAlias = connection.alias
             lastSavedMetadata = connection.metadata
         }
 
-        override suspend fun setActiveWallet(walletPublicKey: String) {
-            active = storedWallets.firstOrNull { it.walletPublicKey == walletPublicKey }
-            activeFlow.value = active
-        }
-
-        override suspend fun removeWallet(walletPublicKey: String): Boolean {
-            storedWallets.firstOrNull { it.walletPublicKey == walletPublicKey } ?: return false
-            storedWallets.removeAll { it.walletPublicKey == walletPublicKey }
-            if (active?.walletPublicKey == walletPublicKey) {
-                active = storedWallets.firstOrNull()
-            }
-            walletsFlow.value = storedWallets.toList()
-            activeFlow.value = active
-            return true
-        }
-
-        override suspend fun getWallets(): List<WalletConnection> = storedWallets.toList()
-
         override suspend fun clearWalletConnection() {
-            storedWallets.clear()
-            active = null
-            walletsFlow.value = emptyList()
-            activeFlow.value = null
+            walletFlow.value = null
         }
 
         fun reset() {
-            storedWallets.clear()
-            active = null
-            walletsFlow.value = emptyList()
-            activeFlow.value = null
+            walletFlow.value = null
             lastSavedAlias = null
             lastSavedMetadata = null
         }
@@ -211,16 +169,6 @@ class ConnectWalletViewModelTest {
             notifications = emptySet(),
             network = "mainnet",
             color = null
-        )
-        private val EXISTING_WALLET = WalletConnection(
-            uri =
-                "nostr+walletconnect://c889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d0" +
-                    "?relay=wss://relay.example.com" +
-                    "&secret=f1a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3d",
-            walletPublicKey = "c889ff5b1513b641e2a139f661a661364979c5beee91842f8f0ef42ab558e9d0",
-            relayUrl = "wss://relay.example.com",
-            lud16 = null,
-            alias = "Existing"
         )
     }
 }

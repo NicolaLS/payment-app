@@ -34,7 +34,7 @@ fun NavGraphBuilder.connectWalletDialog(navController: NavController) {
             onSuccess = {
                 // Try to pop back to settings manage wallets screen
                 val popped = navController.popBackStack(
-                    route = SettingsManageWallets,
+                    route = SettingsManageWallet,
                     inclusive = false
                 )
                 if (!popped) {

@@ -39,8 +39,8 @@ import lasr.shared.generated.resources.settings_footer_repo
 import lasr.shared.generated.resources.settings_footer_version
 import lasr.shared.generated.resources.settings_language
 import lasr.shared.generated.resources.settings_language_subtitle
-import lasr.shared.generated.resources.settings_manage_wallets
-import lasr.shared.generated.resources.settings_manage_wallets_subtitle
+import lasr.shared.generated.resources.settings_manage_wallet
+import lasr.shared.generated.resources.settings_manage_wallet_subtitle
 import lasr.shared.generated.resources.settings_payments
 import lasr.shared.generated.resources.settings_payments_subtitle
 import lasr.shared.generated.resources.settings_theme
@@ -61,7 +61,7 @@ import xyz.lilsus.papp.presentation.theme.AppTheme
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onManageWallets: () -> Unit,
+    onManageWallet: () -> Unit,
     onPayments: () -> Unit,
     onContacts: () -> Unit,
     onCurrency: () -> Unit,
@@ -77,12 +77,12 @@ fun SettingsScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val entries = listOf(
         SettingsEntry(
-            title = stringResource(Res.string.settings_manage_wallets),
+            title = stringResource(Res.string.settings_manage_wallet),
             subtitle = walletSubtitle ?: stringResource(
-                Res.string.settings_manage_wallets_subtitle
+                Res.string.settings_manage_wallet_subtitle
             ),
-            testTag = MaestroTags.Settings.MANAGE_WALLETS_ROW,
-            onClick = onManageWallets
+            testTag = MaestroTags.Settings.MANAGE_WALLET_ROW,
+            onClick = onManageWallet
         ),
         SettingsEntry(
             title = stringResource(Res.string.settings_payments),
@@ -240,7 +240,7 @@ private fun SettingsScreenPreview() {
     AppTheme {
         SettingsScreen(
             onBack = {},
-            onManageWallets = {},
+            onManageWallet = {},
             onPayments = {},
             onContacts = {},
             onCurrency = {},

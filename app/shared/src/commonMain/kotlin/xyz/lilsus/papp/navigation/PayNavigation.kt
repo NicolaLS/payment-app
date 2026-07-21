@@ -107,7 +107,6 @@ private const val CONTACTS_SWIPE_THRESHOLD = -96f
 fun NavGraphBuilder.paymentScreen(
     navController: NavController,
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToWalletSettings: () -> Unit = {},
     onNavigateToShortcutCreate: () -> Unit = {},
     onNavigateToContactsSettings: () -> Unit = {},
     onNavigateToConnectWallet: (String) -> Unit = {}
@@ -125,7 +124,6 @@ fun NavGraphBuilder.paymentScreen(
                         navController.navigate(PayTransactionDetail(transactionId = id))
                     },
                     onNavigateToSettings = onNavigateToSettings,
-                    onNavigateToWalletSettings = onNavigateToWalletSettings,
                     onNavigateToShortcutCreate = onNavigateToShortcutCreate,
                     onNavigateToContactsSettings = onNavigateToContactsSettings,
                     onNavigateToConnectWallet = onNavigateToConnectWallet
@@ -168,7 +166,6 @@ private fun MainScreenEntry(
     onNavigateToTransactions: () -> Unit,
     onNavigateToTransactionDetail: (String) -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToWalletSettings: () -> Unit,
     onNavigateToShortcutCreate: () -> Unit,
     onNavigateToContactsSettings: () -> Unit,
     onNavigateToConnectWallet: (String) -> Unit
@@ -206,7 +203,6 @@ private fun MainScreenEntry(
     val newSessionTransactionCount by viewModel.newSessionTransactionCount.collectAsState()
     val transactionDetailNavigationTarget by
         viewModel.transactionDetailNavigationTarget.collectAsState()
-    val wallets by viewModel.wallets.collectAsState()
     val contactsState by viewModel.contactsUiState.collectAsState()
     val scannerShouldRun =
         screenResumed &&
@@ -502,10 +498,8 @@ private fun MainScreenEntry(
     Box(modifier = gestureModifier) {
         MainScreen(
             onNavigateSettings = onNavigateToSettings,
-            onNavigateWalletSettings = onNavigateToWalletSettings,
             onNavigateConnectWallet = onNavigateToConnectWallet,
             uiState = uiState.asPaymentHomeState(),
-            wallets = wallets,
             sessionTransactions = sessionTransactions,
             newSessionTransactionCount = newSessionTransactionCount,
             contactsState = contactsState,
@@ -520,9 +514,6 @@ private fun MainScreenEntry(
             onManualAmountDismiss = { viewModel.dispatch(MainIntent.ManualAmountDismiss) },
             onConfirmPaymentSubmit = { viewModel.dispatch(MainIntent.ConfirmPaymentSubmit) },
             onConfirmPaymentDismiss = { viewModel.dispatch(MainIntent.ConfirmPaymentDismiss) },
-            onPendingRetrySameInvoice = {
-                viewModel.dispatch(MainIntent.PendingRetrySameInvoice)
-            },
             onPendingRetryCreateNewInvoice = {
                 viewModel.dispatch(MainIntent.PendingRetryCreateNewInvoice)
             },

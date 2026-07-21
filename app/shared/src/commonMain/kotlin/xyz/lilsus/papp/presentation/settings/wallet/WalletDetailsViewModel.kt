@@ -18,7 +18,6 @@ import xyz.lilsus.papp.domain.usecases.GetBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.RefreshBlinkDefaultWalletIdUseCase
 
 class WalletDetailsViewModel internal constructor(
-    private val walletId: String,
     private val walletSettingsRepository: WalletSettingsRepository,
     private val getBlinkDefaultWalletId: GetBlinkDefaultWalletIdUseCase,
     private val refreshBlinkDefaultWalletId: RefreshBlinkDefaultWalletIdUseCase,
@@ -26,13 +25,12 @@ class WalletDetailsViewModel internal constructor(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
-    private val _uiState = MutableStateFlow(WalletDetailsUiState(walletId = walletId))
+    private val _uiState = MutableStateFlow(WalletDetailsUiState())
     val uiState: StateFlow<WalletDetailsUiState> = _uiState.asStateFlow()
 
     init {
         scope.launch {
-            val wallet = walletSettingsRepository.getWallets()
-                .firstOrNull { it.walletPublicKey == walletId }
+            val wallet = walletSettingsRepository.getWalletConnection()
             if (wallet == null) {
                 _uiState.update {
                     it.copy(
@@ -46,9 +44,10 @@ class WalletDetailsViewModel internal constructor(
             _uiState.update {
                 it.copy(
                     alias = wallet.alias,
+                    connectionId = wallet.walletPublicKey,
                     walletType = wallet.type,
                     blinkDefaultWalletId = if (wallet.type == WalletType.BLINK) {
-                        getBlinkDefaultWalletId(walletId)
+                        getBlinkDefaultWalletId()
                     } else {
                         null
                     }
@@ -63,7 +62,7 @@ class WalletDetailsViewModel internal constructor(
         scope.launch {
             _uiState.update { it.copy(isRefreshing = true, error = null) }
             try {
-                val defaultWalletId = refreshBlinkDefaultWalletId(walletId)
+                val defaultWalletId = refreshBlinkDefaultWalletId()
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,
@@ -94,7 +93,7 @@ class WalletDetailsViewModel internal constructor(
 }
 
 data class WalletDetailsUiState(
-    val walletId: String,
+    val connectionId: String = "",
     val alias: String? = null,
     val walletType: WalletType = WalletType.NWC,
     val blinkDefaultWalletId: String? = null,

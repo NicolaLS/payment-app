@@ -107,7 +107,6 @@ Endpoints:
 
 - `GET /health`
 - `GET /get-nwc-uri?node=payer`
-- `GET /wallets?nodes=payer,receiver`
 - `POST /create-invoice`
 - `POST /wait-invoice-paid`
 - `POST /invoice-status`
@@ -119,13 +118,6 @@ Manual helpers:
 e2e/bin/nwc-uri              # payer NWC URI
 e2e/bin/nwc-uri receiver     # receiver NWC URI
 e2e/bin/invoice 21           # receiver invoice for 21 sats
-```
-
-For multi-wallet Maestro fixtures, run `flows/utils/get_nwc_uri.js` with:
-
-```text
-NWC_NODES=payer,receiver
-NWC_ACTIVE_NODE=payer
 ```
 
 ## Flow Contract
@@ -141,7 +133,7 @@ The NWC flows use:
 `get_nwc_uri.js` emits the fixture JSON expected by the app:
 
 ```text
-e2eProfile       new_user | nwc_user | blink_user | multi_user | slow_internet_user
+e2eProfile       new_user | nwc_user | blink_user | slow_internet_user
 e2eReset         true clears E2E wallet storage before applying fixtures
 e2eFixtureJson   JSON fixture data with concrete wallet values
 e2ePaymentInput  payment input to inject for a payment test run

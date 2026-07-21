@@ -21,13 +21,11 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletDiscovery
 import xyz.lilsus.papp.domain.model.toMetadataSnapshot
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
-import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.SetWalletConnectionUseCase
 
 class ConnectWalletViewModel internal constructor(
     private val discoverWallet: DiscoverWalletUseCase,
     private val setWalletConnection: SetWalletConnectionUseCase,
-    private val getWallets: GetWalletsUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -53,7 +51,6 @@ class ConnectWalletViewModel internal constructor(
 
         activeDiscoveryJob = scope.launch {
             _uiState.update { it.copy(uri = trimmed, isDiscoveryLoading = true, error = null) }
-            val defaultSetActive = runCatching { getWallets().isNotEmpty() }.getOrDefault(false)
             runCatching { discoverWallet(trimmed) }
                 .onSuccess { discovery ->
                     _uiState.update { current ->
@@ -65,14 +62,7 @@ class ConnectWalletViewModel internal constructor(
                             discovery = discovery,
                             aliasInput = alias,
                             isDiscoveryLoading = false,
-                            error = null,
-                            setActive = if (current.discovery ==
-                                null
-                            ) {
-                                defaultSetActive || current.setActive
-                            } else {
-                                current.setActive
-                            }
+                            error = null
                         )
                     }
                 }
@@ -102,10 +92,6 @@ class ConnectWalletViewModel internal constructor(
         _uiState.update { it.copy(aliasInput = alias.toSingleLineInput()) }
     }
 
-    fun updateSetActive(setActive: Boolean) {
-        _uiState.update { it.copy(setActive = setActive) }
-    }
-
     fun confirm() {
         val state = _uiState.value
         if (state.uri.isBlank() || state.discovery == null) {
@@ -117,7 +103,6 @@ class ConnectWalletViewModel internal constructor(
                 setWalletConnection(
                     uri = state.uri,
                     alias = state.aliasInput,
-                    activate = state.setActive,
                     metadata = state.discovery.toMetadataSnapshot()
                 )
             }.onSuccess { connection ->
@@ -150,7 +135,6 @@ data class ConnectWalletUiState(
     val isDiscoveryLoading: Boolean = false,
     val discovery: WalletDiscovery? = null,
     val aliasInput: String = "",
-    val setActive: Boolean = true,
     val isSaving: Boolean = false,
     val error: AppError? = null
 )

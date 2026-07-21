@@ -15,14 +15,10 @@
     <string name="confirm_payment_title">Zahlung bestätigen</string>
     <string name="pay_button">Bezahlen</string>
     <string name="dismiss_button">Schließen</string>
-    <string name="pending_retry_bolt11_title">Rechnung bereits ausstehend</string>
-    <string name="pending_retry_bolt11_body">Diese Rechnung wird bereits mit einer anderen Wallet bezahlt. Du kannst es auch mit dieser Wallet versuchen. Nur eine Zahlung kann erfolgreich sein.</string>
     <string name="pending_retry_dynamic_title">Zahlung bereits ausstehend</string>
-    <string name="pending_retry_dynamic_body">Für diese Anfrage läuft bereits eine Zahlung. Versuche dieselbe Rechnung erneut, um eine doppelte Zahlung zu vermeiden, oder erstelle eine neue Rechnung, wenn du wirklich eine weitere Zahlung möchtest.</string>
+    <string name="pending_retry_dynamic_body">Für diese Anfrage läuft bereits eine Zahlung. Zeige sie an, um eine doppelte Zahlung zu vermeiden, oder erstelle eine neue Rechnung für eine weitere Zahlung.</string>
     <string name="pending_retry_resolved_title">Zahlung abgeschlossen</string>
     <string name="pending_retry_resolved_dynamic_body">Eine Zahlung für diese Anfrage wurde gerade abgeschlossen. Du kannst sie prüfen oder eine neue Zahlung erstellen, wenn du erneut bezahlen möchtest.</string>
-    <string name="pending_retry_resolved_bolt11_body">Eine Zahlung für diese Rechnung wurde gerade abgeschlossen. Du kannst das Ergebnis prüfen.</string>
-    <string name="pending_retry_same_invoice">Dieselbe Rechnung erneut versuchen</string>
     <string name="pending_retry_create_new_invoice">Neue Rechnung erstellen</string>
     <string name="pending_retry_create_new_payment">Neue Zahlung erstellen</string>
     <string name="pending_retry_view_pending">Ausstehende Zahlung anzeigen</string>
@@ -34,11 +30,11 @@
     <string name="transaction_status_success">Bezahlt</string>
     <string name="transaction_status_failure">Fehlgeschlagen</string>
     <string name="transaction_fee">Gebühr %1$s</string>
-    <string name="active_wallet_chip_description">Aktive Wallet: %1$s. Öffnet die Wallet-Einstellungen.</string>
     <string name="enter_amount_title">Betrag eingeben</string>
     <string name="enter_amount_range_min">Min %1$s</string>
     <string name="enter_amount_range_max">Max %1$s</string>
     <string name="error_missing_wallet_connection">Verbinde zuerst eine Wallet.</string>
+    <string name="error_wallet_already_connected">Trenne deine aktuelle Wallet, bevor du eine andere verbindest.</string>
     <string name="error_payment_rejected_generic">Zahlung wurde abgewiesen.</string>
     <string name="error_payment_rejected_message">Zahlung wurde abgewiesen: %1$s</string>
     <string name="error_network_unavailable">Keine Internetverbindung. Prüfe dein Netzwerk.</string>
@@ -62,8 +58,8 @@
     <string name="error_blink_rate_limited">Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.</string>
     <string name="error_blink_invalid_api_key">Ungültiger oder widerrufener API-Schlüssel. Erstelle einen neuen Schlüssel, um fortzufahren.</string>
     <string name="error_blink_invalid_api_key_wallet_removed">Authentifizierungsfehler: Dein API-Schlüssel ist ungültig oder wurde widerrufen. Deine Wallet wurde automatisch entfernt, damit du sie mit einem neuen Schlüssel wieder verbinden kannst.</string>
-    <string name="settings_manage_wallets">Wallets verwalten</string>
-    <string name="settings_manage_wallets_subtitle">Nicht verbunden</string>
+    <string name="settings_manage_wallet">Wallet</string>
+    <string name="settings_manage_wallet_subtitle">Nicht verbunden</string>
     <string name="settings_payments">Zahlungen</string>
     <string name="settings_payments_subtitle">Bestätigungen und Shortcuts</string>
     <string name="settings_currency">Währung</string>
@@ -98,14 +94,12 @@
     <string name="settings_currency_aud">Australischer Dollar</string>
     <string name="settings_currency_chf">Schweizer Franken</string>
     <string name="settings_currency_jpy">Japanischer Yen</string>
-    <string name="settings_manage_wallets_title">Wallets</string>
-    <string name="settings_manage_wallets_placeholder">Noch keine Wallet verbunden. Jetzt hinzufügen, um Zahlungen zu
+    <string name="settings_manage_wallet_title">Wallet</string>
+    <string name="settings_manage_wallet_placeholder">Noch keine Wallet verbunden. Jetzt hinzufügen, um Zahlungen zu
         senden.
     </string>
-    <string name="settings_manage_wallets_add">Wallet hinzufügen</string>
-    <string name="settings_manage_wallets_remove">Wallet entfernen</string>
-    <string name="settings_manage_wallets_set_active">Als aktiv festlegen</string>
-    <string name="settings_manage_wallets_active">Aktive Wallet</string>
+    <string name="settings_manage_wallet_add">Wallet hinzufügen</string>
+    <string name="settings_manage_wallet_remove">Wallet entfernen</string>
     <string name="settings_donate_title">Gefällt dir Lasr?</string>
     <string name="settings_donate_subtitle">Hilf uns zu wachsen und besser zu werden, indem du unsere Entwicklung unterstützt.</string>
     <string name="settings_donate_tier_small">1k 🎁</string>
@@ -129,7 +123,6 @@
     <string name="connect_wallet_cancel">Abbrechen</string>
     <string name="connect_wallet_confirm">Wallet hinzufügen</string>
     <string name="connect_wallet_alias_label">Wallet-Alias (optional)</string>
-    <string name="connect_wallet_set_active">Als aktive Wallet festlegen</string>
     <string name="connect_wallet_details_pubkey">Wallet Public Key</string>
     <string name="connect_wallet_details_relay">Primärer Relay</string>
     <string name="connect_wallet_details_lud16">Lightning-Adresse</string>
@@ -300,7 +293,6 @@
     <string name="contacts_add">Kontakt hinzufügen</string>
     <string name="contacts_search_label">Kontakte suchen</string>
     <string name="contacts_import_blink">Aus Blink importieren</string>
-    <string name="contacts_import_blink_choose_wallet">Blink-Wallet auswählen</string>
     <string name="contacts_alias_label">Alias</string>
     <string name="contacts_address_label">Lightning-Adresse</string>
     <string name="contacts_role_label">Labels</string>

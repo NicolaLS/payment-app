@@ -1,12 +1,11 @@
 package xyz.lilsus.papp.domain.usecases
 
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
-import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 
 /**
  * Use case responsible for paying a Lightning invoice via the connected wallet.
- * Routes to the appropriate payment provider (NWC or Blink) based on the active wallet.
+ * Routes to the appropriate payment provider (NWC or Blink) based on the connected wallet.
  */
 class PayInvoiceUseCase(private val paymentProvider: PaymentProvider) {
     /**
@@ -15,13 +14,9 @@ class PayInvoiceUseCase(private val paymentProvider: PaymentProvider) {
      * payment happens in the background. Callers should cancel the request when they no longer
      * need updates.
      */
-    operator fun invoke(
-        invoice: String,
-        amountMsats: Long? = null,
-        walletTarget: WalletPaymentTarget? = null
-    ): PayInvoiceRequest = paymentProvider.startPayInvoiceRequest(
-        invoice = invoice,
-        amountMsats = amountMsats,
-        walletTarget = walletTarget
-    )
+    operator fun invoke(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
+        paymentProvider.startPayInvoiceRequest(
+            invoice = invoice,
+            amountMsats = amountMsats
+        )
 }

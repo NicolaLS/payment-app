@@ -1,11 +1,10 @@
 const serviceUrl = readEnv("TEST_WALLET_SERVICE_URL", "http://127.0.0.1:8082").replace(/\/$/, "");
 const node = readEnv("NWC_NODE", "payer");
 const label = readEnv("NWC_LABEL", `papp-e2e-${node}`);
-const nodes = readEnv("NWC_NODES", "").trim();
 
-const response = nodes
-  ? http.get(`${serviceUrl}/wallets?nodes=${encodeURIComponent(nodes)}`)
-  : http.get(`${serviceUrl}/get-nwc-uri?node=${encodeURIComponent(node)}&label=${encodeURIComponent(label)}`);
+const response = http.get(
+  `${serviceUrl}/get-nwc-uri?node=${encodeURIComponent(node)}&label=${encodeURIComponent(label)}`
+);
 
 const body = json(response.body);
 if (response.status !== 200) {
@@ -14,35 +13,26 @@ if (response.status !== 200) {
   );
 }
 
-const wallets = nodes ? walletFixtures(body.wallets || []) : walletFixtures([body]);
-if (wallets.length === 0) {
-  throw new Error("NWC URI lookup did not return any wallets.");
+const wallet = walletFixture(body);
+if (!wallet) {
+  throw new Error("NWC URI lookup did not return a wallet.");
 }
 
-output.nwcUri = wallets[0].uri;
-output.nwcWallets = JSON.stringify(wallets);
+output.nwcUri = wallet.uri;
 output.nwcFixtureJson = JSON.stringify({
-  wallets,
+  wallet,
 });
 
-function walletFixtures(items) {
-  const activeNode = readEnv("NWC_ACTIVE_NODE", "").trim();
-  return items
-    .filter((item) => item && item.uri)
-    .map((item, index) => {
-      const itemNode = item.node || node;
-      const wallet = {
-        type: "nwc",
-        uri: rewriteRelayForDevice(item.uri),
-        alias: `${itemNode} NWC`,
-      };
-      if (activeNode && activeNode === itemNode) {
-        wallet.active = true;
-      } else if (!activeNode && index === 0 && items.length > 1) {
-        wallet.active = true;
-      }
-      return wallet;
-    });
+function walletFixture(item) {
+  if (!item || !item.uri) {
+    return null;
+  }
+  const itemNode = item.node || node;
+  return {
+    type: "nwc",
+    uri: rewriteRelayForDevice(item.uri),
+    alias: `${itemNode} NWC`,
+  };
 }
 
 function rewriteRelayForDevice(uri) {

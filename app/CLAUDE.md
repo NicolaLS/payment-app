@@ -82,7 +82,7 @@ The app follows Clean Architecture with three main layers:
 2. `LightningInputParser` routes to appropriate handler (BOLT11, LNURL, Lightning Address)
 3. Amount entry if zero-amount invoice or LNURL range
 4. Confirmation check based on user preferences
-5. `PaymentService` routes to NWC or Blink based on active wallet type
+5. `PaymentService` routes to NWC or Blink based on the connected wallet type
 6. `PendingPaymentTracker` manages async completion with timeout verification
 
 ### Wallet Types

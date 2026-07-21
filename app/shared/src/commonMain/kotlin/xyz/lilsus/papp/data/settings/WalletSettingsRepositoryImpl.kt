@@ -4,127 +4,102 @@ import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletMetadataSnapshot
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 
-private const val KEY_WALLETS = "wallet.list"
-private const val KEY_ACTIVE_PUBKEY = "wallet.active"
+private const val KEY_WALLET = "wallet.connection"
+private const val LEGACY_KEY_WALLETS = "wallet.list"
+private const val LEGACY_KEY_ACTIVE_PUBKEY = "wallet.active"
 
 class WalletSettingsRepositoryImpl(
     private val settings: Settings,
-    private val onWalletRemoved: suspend (WalletConnection) -> Unit = {}
+    private val onWalletRemoved: suspend (WalletConnection) -> Unit = {},
+    private val onLegacyWalletsMigrated: (
+        retained: WalletConnection?,
+        discarded: List<WalletConnection>
+    ) -> Unit = { _, _ -> }
 ) : WalletSettingsRepository {
 
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = false
     }
+    private val mutex = Mutex()
+    private val loadedWallet = loadWallet()
+    private val state = MutableStateFlow(loadedWallet.wallet)
 
-    private val state = MutableStateFlow(loadState())
-
-    override val wallets: Flow<List<WalletConnection>> = state
-        .asStateFlow()
-        .map { it.wallets }
-        .distinctUntilChanged()
-
-    override val walletConnection: Flow<WalletConnection?> = state
-        .asStateFlow()
-        .map { it.activeWallet() }
-        .distinctUntilChanged()
-
-    override suspend fun getWalletConnection(): WalletConnection? = state.value.activeWallet()
-
-    override suspend fun getWallets(): List<WalletConnection> = state.value.wallets
-
-    override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
-        updateState { current ->
-            val existing = current.wallets.filterNot {
-                it.walletPublicKey ==
-                    connection.walletPublicKey
-            }
-            val updatedWallets = existing + connection
-            current.copy(
-                wallets = updatedWallets,
-                activePubKey = when {
-                    activate -> connection.walletPublicKey
-                    current.activePubKey == connection.walletPublicKey -> connection.walletPublicKey
-                    else -> current.activePubKey
-                }
+    init {
+        loadedWallet.legacyWallets?.let { legacyWallets ->
+            onLegacyWalletsMigrated(
+                loadedWallet.wallet,
+                legacyWallets.filterNot { it == loadedWallet.wallet }
             )
+            persist(loadedWallet.wallet)
+            settings.remove(LEGACY_KEY_WALLETS)
+            settings.remove(LEGACY_KEY_ACTIVE_PUBKEY)
         }
     }
 
-    override suspend fun setActiveWallet(walletPublicKey: String) {
-        updateState { current ->
-            if (current.wallets.none { it.walletPublicKey == walletPublicKey }) {
-                current
-            } else {
-                current.copy(activePubKey = walletPublicKey)
-            }
-        }
-    }
+    override val walletConnection: Flow<WalletConnection?> = state.asStateFlow()
 
-    override suspend fun removeWallet(walletPublicKey: String): Boolean {
-        val wallet = state.value.wallets.firstOrNull { it.walletPublicKey == walletPublicKey }
-            ?: return false
-        updateState { current ->
-            val remaining = current.wallets.filterNot { it.walletPublicKey == walletPublicKey }
-            val nextActive = when {
-                remaining.isEmpty() -> null
-                current.activePubKey == walletPublicKey -> remaining.first().walletPublicKey
-                else -> current.activePubKey
+    override suspend fun getWalletConnection(): WalletConnection? = state.value
+
+    override suspend fun saveWalletConnection(connection: WalletConnection) {
+        mutex.withLock {
+            val current = state.value
+            if (current != null && current != connection) {
+                throw AppErrorException(AppError.WalletAlreadyConnected)
             }
-            current.copy(
-                wallets = remaining,
-                activePubKey = nextActive
-            )
+            if (current == connection) return
+            persist(connection)
+            state.value = connection
         }
-        onWalletRemoved(wallet)
-        return true
     }
 
     override suspend fun clearWalletConnection() {
-        val walletsToRemove = state.value.wallets
-        updateState { WalletState() }
-        walletsToRemove.forEach { onWalletRemoved(it) }
+        val removed = mutex.withLock {
+            val current = state.value ?: return
+            persist(null)
+            state.value = null
+            current
+        }
+        onWalletRemoved(removed)
     }
 
-    private fun updateState(transform: (WalletState) -> WalletState) {
-        val current = state.value
-        val newState = transform(current).normalise()
-        if (newState == current) return
-        persist(newState)
-        state.value = newState
-    }
+    private fun loadWallet(): LoadedWallet {
+        settings.getStringOrNull(KEY_WALLET)?.let { persisted ->
+            val wallet = runCatching {
+                json.decodeFromString<StoredWallet>(persisted).toDomain()
+            }.getOrNull()
+            return LoadedWallet(wallet = wallet)
+        }
 
-    private fun loadState(): WalletState {
-        val persisted = settings.getStringOrNull(KEY_WALLETS) ?: return WalletState()
-        val wallets = runCatching {
-            json.decodeFromString<List<StoredWallet>>(persisted)
+        val legacyPersisted = settings.getStringOrNull(LEGACY_KEY_WALLETS)
+            ?: return LoadedWallet(wallet = null)
+        val legacyWallets = runCatching {
+            json.decodeFromString<List<StoredWallet>>(legacyPersisted)
         }.getOrElse { emptyList() }
             .map { it.toDomain() }
-        val activeKey = settings.getStringOrNull(KEY_ACTIVE_PUBKEY)
-        val resolvedActive = activeKey?.takeIf { key -> wallets.any { it.walletPublicKey == key } }
-            ?: wallets.firstOrNull()?.walletPublicKey
-        return WalletState(wallets = wallets, activePubKey = resolvedActive).normalise()
+        val activeKey = settings.getStringOrNull(LEGACY_KEY_ACTIVE_PUBKEY)
+        val retained = legacyWallets.firstOrNull { it.walletPublicKey == activeKey }
+            ?: legacyWallets.firstOrNull()
+        return LoadedWallet(wallet = retained, legacyWallets = legacyWallets)
     }
 
-    private fun persist(state: WalletState) {
-        if (state.wallets.isEmpty()) {
-            settings.remove(KEY_WALLETS)
-            settings.remove(KEY_ACTIVE_PUBKEY)
-            return
+    private fun persist(wallet: WalletConnection?) {
+        if (wallet == null) {
+            settings.remove(KEY_WALLET)
+        } else {
+            settings.putString(KEY_WALLET, json.encodeToString(wallet.toStored()))
         }
-        val stored = state.wallets.map { it.toStored() }
-        settings.putString(KEY_WALLETS, json.encodeToString(stored))
-        val activeKey = state.activePubKey ?: state.wallets.first().walletPublicKey
-        settings.putString(KEY_ACTIVE_PUBKEY, activeKey)
     }
 
     private fun WalletConnection.toStored(): StoredWallet = StoredWallet(
@@ -147,22 +122,10 @@ class WalletSettingsRepositoryImpl(
         type = type?.let { runCatching { WalletType.valueOf(it) }.getOrNull() } ?: WalletType.NWC
     )
 
-    private data class WalletState(
-        val wallets: List<WalletConnection> = emptyList(),
-        val activePubKey: String? = null
-    ) {
-        fun activeWallet(): WalletConnection? =
-            activePubKey?.let { key -> wallets.firstOrNull { it.walletPublicKey == key } }
-                ?: wallets.firstOrNull()
-
-        fun normalise(): WalletState {
-            if (wallets.isEmpty()) return WalletState()
-            val activeKey =
-                activePubKey?.takeIf { key -> wallets.any { it.walletPublicKey == key } }
-                    ?: wallets.first().walletPublicKey
-            return copy(activePubKey = activeKey)
-        }
-    }
+    private data class LoadedWallet(
+        val wallet: WalletConnection?,
+        val legacyWallets: List<WalletConnection>? = null
+    )
 
     @Serializable
     private data class StoredWallet(

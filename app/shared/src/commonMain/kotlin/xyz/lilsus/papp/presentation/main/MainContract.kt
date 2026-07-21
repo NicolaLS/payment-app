@@ -55,7 +55,6 @@ sealed interface MainIntent {
     data object ManualAmountDismiss : MainIntent
     data object ConfirmPaymentSubmit : MainIntent
     data object ConfirmPaymentDismiss : MainIntent
-    data object PendingRetrySameInvoice : MainIntent
     data object PendingRetryCreateNewInvoice : MainIntent
     data object PendingRetryViewPending : MainIntent
     data object PendingRetryDismiss : MainIntent
@@ -79,8 +78,3 @@ sealed interface MainIntent {
     data object SaveContactPromptSave : MainIntent
     data object SaveContactPromptDismiss : MainIntent
 }
-
-/**
- * Represents a wallet for display in the wallet indicator.
- */
-data class WalletInfo(val pubKey: String, val displayName: String, val isActive: Boolean)

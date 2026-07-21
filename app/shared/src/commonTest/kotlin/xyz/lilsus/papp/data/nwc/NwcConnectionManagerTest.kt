@@ -5,7 +5,6 @@ package xyz.lilsus.papp.data.nwc
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -23,7 +22,7 @@ class NwcConnectionManagerTest {
         var createCalls = 0
         NwcConnectionManager(
             appLifecycle = FakeAppLifecycleObserver(isInForeground = true),
-            walletSettings = FakeWalletSettingsRepository(activeWallet = blinkWallet()),
+            walletSettings = FakeWalletSettingsRepository(wallet = blinkWallet()),
             clientFactory = failingFactory { createCalls += 1 },
             scope = backgroundScope
         )
@@ -38,13 +37,13 @@ class NwcConnectionManagerTest {
         var createCalls = 0
         val manager = NwcConnectionManager(
             appLifecycle = FakeAppLifecycleObserver(isInForeground = true),
-            walletSettings = FakeWalletSettingsRepository(activeWallet = null),
+            walletSettings = FakeWalletSettingsRepository(wallet = blinkWallet()),
             clientFactory = failingFactory { createCalls += 1 },
             scope = backgroundScope
         )
 
         val exception = assertFailsWith<AppErrorException> {
-            manager.getClient(blinkWallet())
+            manager.getClient()
         }
 
         assertEquals(AppError.MissingWalletConnection, exception.error)
@@ -56,13 +55,13 @@ class NwcConnectionManagerTest {
         var createCalls = 0
         val manager = NwcConnectionManager(
             appLifecycle = FakeAppLifecycleObserver(isInForeground = true),
-            walletSettings = FakeWalletSettingsRepository(activeWallet = null),
+            walletSettings = FakeWalletSettingsRepository(wallet = nwcWallet(uri = "")),
             clientFactory = failingFactory { createCalls += 1 },
             scope = backgroundScope
         )
 
         val exception = assertFailsWith<AppErrorException> {
-            manager.getClient(nwcWallet(uri = ""))
+            manager.getClient()
         }
 
         assertEquals(AppError.InvalidWalletUri("NWC wallet URI is empty"), exception.error)
@@ -91,47 +90,19 @@ class NwcConnectionManagerTest {
         override val isInForeground = MutableStateFlow(isInForeground)
     }
 
-    private class FakeWalletSettingsRepository(activeWallet: WalletConnection?) : WalletSettingsRepository {
+    private class FakeWalletSettingsRepository(wallet: WalletConnection?) : WalletSettingsRepository {
 
-        private val activeWalletState = MutableStateFlow(activeWallet)
-        private val walletsState = MutableStateFlow(activeWallet?.let(::listOf) ?: emptyList())
+        private val walletState = MutableStateFlow(wallet)
+        override val walletConnection = walletState
 
-        override val wallets: Flow<List<WalletConnection>> = walletsState
-        override val walletConnection: Flow<WalletConnection?> = activeWalletState
+        override suspend fun getWalletConnection(): WalletConnection? = walletState.value
 
-        override suspend fun getWalletConnection(): WalletConnection? = activeWalletState.value
-
-        override suspend fun saveWalletConnection(connection: WalletConnection, activate: Boolean) {
-            walletsState.value = walletsState.value.filterNot {
-                it.walletPublicKey == connection.walletPublicKey
-            } + connection
-            if (activate) {
-                activeWalletState.value = connection
-            }
+        override suspend fun saveWalletConnection(connection: WalletConnection) {
+            walletState.value = connection
         }
-
-        override suspend fun setActiveWallet(walletPublicKey: String) {
-            activeWalletState.value = walletsState.value.firstOrNull {
-                it.walletPublicKey == walletPublicKey
-            }
-        }
-
-        override suspend fun removeWallet(walletPublicKey: String): Boolean {
-            walletsState.value.firstOrNull { it.walletPublicKey == walletPublicKey } ?: return false
-            walletsState.value = walletsState.value.filterNot {
-                it.walletPublicKey == walletPublicKey
-            }
-            if (activeWalletState.value?.walletPublicKey == walletPublicKey) {
-                activeWalletState.value = walletsState.value.firstOrNull()
-            }
-            return true
-        }
-
-        override suspend fun getWallets(): List<WalletConnection> = walletsState.value
 
         override suspend fun clearWalletConnection() {
-            walletsState.value = emptyList()
-            activeWalletState.value = null
+            walletState.value = null
         }
     }
 }

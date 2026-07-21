@@ -4,7 +4,7 @@ appId: xyz.lilsus.papp.e2e
     clearState: true
     clearKeychain: true
 - runFlow:
-    file: "../common/select_wallet.yaml"
+    file: "../common/select_wallet_type.yaml"
     env:
         ID: onboarding_wallet_choice_nwc_option
 - assertVisible:

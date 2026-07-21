@@ -10,7 +10,6 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
-import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.repository.BlinkWalletRepository
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
@@ -27,28 +26,7 @@ class BlinkPaymentRepository(
     private val scope: CoroutineScope
 ) : BlinkWalletRepository {
 
-    private var activeWalletId: String? = null
-
-    /**
-     * Sets the active Blink wallet ID for payments.
-     * Must be called before making payments.
-     */
-    fun setActiveWallet(walletId: String?) {
-        activeWalletId = walletId
-    }
-
-    fun startPayInvoiceRequest(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
-        startPayInvoiceRequest(
-            invoice = invoice,
-            amountMsats = amountMsats,
-            walletTarget = null
-        )
-
-    override fun startPayInvoiceRequest(
-        invoice: String,
-        amountMsats: Long?,
-        walletTarget: WalletPaymentTarget?
-    ): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         require(invoice.isNotBlank()) { "Invoice must not be blank" }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero" }
@@ -56,27 +34,15 @@ class BlinkPaymentRepository(
 
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(PayInvoiceRequestState.Loading)
 
-        // Capture wallet ID at request time to avoid race conditions if user switches wallets
-        val walletIdAtRequestTime = try {
-            walletTarget.blinkWalletIdOrNull() ?: activeWalletId
-        } catch (e: AppErrorException) {
-            stateFlow.value = PayInvoiceRequestState.Failure(e.error)
-            return object : PayInvoiceRequest {
-                override val state = stateFlow
-                override fun cancel() = Unit
-            }
-        }
-
         val job = scope.launch {
             try {
                 val result = payInvoice(
                     invoice = invoice,
-                    amountMsats = amountMsats,
-                    walletTarget = walletIdAtRequestTime?.let(WalletPaymentTarget::Blink)
+                    amountMsats = amountMsats
                 )
                 stateFlow.value = PayInvoiceRequestState.Success(result)
             } catch (e: AppErrorException) {
-                val finalError = handlePotentialAuthError(e.error, walletIdAtRequestTime)
+                val finalError = handlePotentialAuthError(e.error)
                 stateFlow.value = PayInvoiceRequestState.Failure(finalError)
             } catch (e: Exception) {
                 stateFlow.value = PayInvoiceRequestState.Failure(
@@ -98,51 +64,34 @@ class BlinkPaymentRepository(
      * When an API key is invalid or revoked, removes the wallet and API key,
      * then returns an error indicating the wallet was removed.
      *
-     * @param walletId The wallet ID that was used for this payment request.
      */
-    private suspend fun handlePotentialAuthError(error: AppError, walletId: String?): AppError {
+    private suspend fun handlePotentialAuthError(error: AppError): AppError {
         if (error !is AppError.BlinkError || error.type != BlinkErrorType.InvalidApiKey) {
             return error
         }
 
-        if (walletId == null) return error
-
-        // Remove the wallet and API key
-        credentialStore.removeApiKey(walletId)
-        credentialStore.removeDefaultWalletId(walletId)
-        walletSettingsRepository.removeWallet(walletId)
+        walletSettingsRepository.clearWalletConnection()
 
         return AppError.BlinkError(BlinkErrorType.InvalidApiKeyWalletRemoved)
     }
 
-    suspend fun payInvoice(invoice: String, amountMsats: Long? = null): PaidInvoice = payInvoice(
-        invoice = invoice,
-        amountMsats = amountMsats,
-        walletTarget = null
-    )
-
-    override suspend fun payInvoice(
-        invoice: String,
-        amountMsats: Long?,
-        walletTarget: WalletPaymentTarget?
-    ): PaidInvoice {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
         if (!networkConnectivity.isNetworkAvailable()) {
             throw AppErrorException(AppError.NetworkUnavailable)
         }
 
-        val walletId = walletTarget.blinkWalletIdOrNull() ?: activeWalletId
-            ?: throw AppErrorException(AppError.MissingWalletConnection)
+        requireBlinkConnection()
 
-        val apiKey = credentialStore.getApiKey(walletId)
+        val apiKey = credentialStore.getApiKey()
             ?: throw AppErrorException(
                 AppError.AuthenticationFailure(
                     "API key not found. Please reconnect your Blink wallet."
                 )
             )
 
-        val blinkWalletId = credentialStore.getDefaultWalletId(walletId)
+        val blinkWalletId = credentialStore.getDefaultWalletId()
             ?: apiClient.fetchDefaultWalletId(apiKey).also {
-                credentialStore.storeDefaultWalletId(walletId, it)
+                credentialStore.storeDefaultWalletId(it)
             }
 
         val result = try {
@@ -190,23 +139,17 @@ class BlinkPaymentRepository(
         )
     }
 
-    override suspend fun lookupPayment(
-        paymentHash: String,
-        walletTarget: WalletPaymentTarget?
-    ): PaymentLookupResult {
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
         if (!networkConnectivity.isNetworkAvailable()) {
             return PaymentLookupResult.LookupError(AppError.NetworkUnavailable)
         }
 
-        // Use provided wallet ID or fall back to active wallet
-        val walletId = try {
-            walletTarget.blinkWalletIdOrNull() ?: activeWalletId
-        } catch (e: AppErrorException) {
-            return PaymentLookupResult.LookupError(e.error)
+        val wallet = walletSettingsRepository.getWalletConnection()
+        if (wallet?.isBlink != true) {
+            return PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
         }
-            ?: return PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
 
-        val apiKey = credentialStore.getApiKey(walletId)
+        val apiKey = credentialStore.getApiKey()
             ?: return PaymentLookupResult.LookupError(
                 AppError.AuthenticationFailure("API key not found")
             )
@@ -230,10 +173,10 @@ class BlinkPaymentRepository(
             PaymentLookupResult.LookupError(e.error)
         }
     }
-}
 
-private fun WalletPaymentTarget?.blinkWalletIdOrNull(): String? = when (this) {
-    is WalletPaymentTarget.Blink -> walletId
-    is WalletPaymentTarget.Nwc -> throw AppErrorException(AppError.MissingWalletConnection)
-    null -> null
+    private suspend fun requireBlinkConnection() {
+        if (walletSettingsRepository.getWalletConnection()?.isBlink != true) {
+            throw AppErrorException(AppError.MissingWalletConnection)
+        }
+    }
 }

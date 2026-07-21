@@ -70,10 +70,8 @@ import xyz.lilsus.papp.presentation.theme.AppTheme
 @Composable
 fun MainScreen(
     onNavigateSettings: () -> Unit,
-    onNavigateWalletSettings: () -> Unit,
     onNavigateConnectWallet: (String) -> Unit,
     uiState: MainUiState,
-    wallets: List<WalletInfo> = emptyList(),
     sessionTransactions: List<SessionTransactionItem>,
     newSessionTransactionCount: Int = 0,
     contactsState: ContactsUiState = ContactsUiState(),
@@ -84,7 +82,6 @@ fun MainScreen(
     onManualAmountDismiss: () -> Unit = {},
     onConfirmPaymentSubmit: () -> Unit = {},
     onConfirmPaymentDismiss: () -> Unit = {},
-    onPendingRetrySameInvoice: () -> Unit = {},
     onPendingRetryCreateNewInvoice: () -> Unit = {},
     onPendingRetryViewPending: () -> Unit = {},
     onPendingRetryDismiss: () -> Unit = {},
@@ -224,9 +221,7 @@ fun MainScreen(
 
                     else -> BottomLayout(
                         title = stringResource(Res.string.app_name_long),
-                        subtitle = stringResource(Res.string.point_camera_message_subtitle),
-                        wallets = wallets,
-                        onWalletClick = onNavigateWalletSettings
+                        subtitle = stringResource(Res.string.point_camera_message_subtitle)
                     )
                 }
             }
@@ -256,9 +251,7 @@ fun MainScreen(
             it.id == uiState.id
         }
         PendingRetryBottomSheet(
-            source = uiState.source,
             status = retryTransaction?.status ?: PendingStatus.Waiting,
-            onRetrySameInvoice = onPendingRetrySameInvoice,
             onCreateNewInvoice = onPendingRetryCreateNewInvoice,
             onViewPending = onPendingRetryViewPending,
             onDismiss = onPendingRetryDismiss
@@ -361,7 +354,6 @@ fun MainScreenPreviewSuccess() {
     AppTheme {
         MainScreen(
             onNavigateSettings = {},
-            onNavigateWalletSettings = {},
             onNavigateConnectWallet = {},
             uiState = MainUiState.Success(
                 amountPaid = DisplayAmount(12345, DisplayCurrency.Satoshi),
@@ -379,7 +371,6 @@ fun MainScreenPreviewEnterAmount() {
     AppTheme {
         MainScreen(
             onNavigateSettings = {},
-            onNavigateWalletSettings = {},
             onNavigateConnectWallet = {},
             uiState = MainUiState.EnterAmount(
                 entry = ManualAmountUiState(
@@ -402,7 +393,6 @@ fun MainScreenPreviewConfirm() {
     AppTheme {
         MainScreen(
             onNavigateSettings = {},
-            onNavigateWalletSettings = {},
             onNavigateConnectWallet = {},
             uiState = MainUiState.Confirm(
                 amount = DisplayAmount(500_000, DisplayCurrency.Satoshi)

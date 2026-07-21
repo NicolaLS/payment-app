@@ -83,7 +83,7 @@ fun WalletDetailsScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
-                text = state.alias?.takeIf { it.isNotBlank() } ?: state.walletId,
+                text = state.alias?.takeIf { it.isNotBlank() } ?: state.connectionId,
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
@@ -110,7 +110,7 @@ fun WalletDetailsScreen(
                         label = stringResource(
                             Res.string.settings_wallet_details_connection_id
                         ),
-                        value = state.walletId
+                        value = state.connectionId
                     )
                 }
             }
@@ -246,7 +246,7 @@ private fun WalletDetailsScreenPreview() {
     AppTheme {
         WalletDetailsScreen(
             state = WalletDetailsUiState(
-                walletId = "blink-123",
+                connectionId = "blink",
                 alias = "Blink Wallet",
                 walletType = WalletType.BLINK,
                 blinkDefaultWalletId = "wallet-987"

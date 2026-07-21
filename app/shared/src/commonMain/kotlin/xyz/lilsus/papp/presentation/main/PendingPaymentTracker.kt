@@ -22,7 +22,6 @@ import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
-import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.presentation.main.PendingPaymentTracker.Companion.PENDING_NOTICE_DELAY_MS
@@ -61,7 +60,7 @@ class PendingPaymentTracker(
         summary: Bolt11InvoiceSummary,
         amountMsats: Long,
         origin: PendingOrigin,
-        walletTarget: WalletPaymentTarget?,
+        walletType: WalletType?,
         dynamicSourceKey: String? = null
     ): String {
         val id = "pending-${currentTimeMillis()}-${records.value.size}"
@@ -71,7 +70,7 @@ class PendingPaymentTracker(
             amountMsats = amountMsats,
             origin = origin,
             createdAtMs = currentTimeMillis(),
-            walletTarget = walletTarget,
+            walletType = walletType,
             dynamicSourceKey = dynamicSourceKey,
             paymentHash = summary.paymentHash
         )
@@ -170,23 +169,33 @@ class PendingPaymentTracker(
     }
 
     /**
+     * Stops payments whose originating wallet was disconnected. Their outcome may still be
+     * unknown, so they remain in the session list as unconfirmed instead of being retried or
+     * looked up against a subsequently connected wallet.
+     */
+    fun stopWaitingForWalletChange(): List<String> {
+        val waitingIds = records.value.values
+            .filter { it.status == PendingStatus.Waiting }
+            .map { it.id }
+        waitingIds.forEach { id ->
+            verificationJobs.remove(id)?.cancel()
+            visibilityJobs.remove(id)?.cancel()
+            requests.remove(id)?.cancel()
+            val record = records.value[id] ?: return@forEach
+            val error = AppError.PaymentUnconfirmed(
+                paymentHash = record.paymentHash,
+                message = "Wallet disconnected while payment was in progress"
+            )
+            markFailure(id, error)
+            _events.tryEmit(PendingEvent.Failed(id, error))
+        }
+        return waitingIds
+    }
+
+    /**
      * Gets a pending record by ID.
      */
     fun get(id: String): PendingRecord? = records.value[id]
-
-    /**
-     * Finds a pending record for a given invoice and wallet.
-     */
-    fun findByInvoiceAndWallet(
-        paymentRequest: String,
-        walletTarget: WalletPaymentTarget?
-    ): PendingRecord? = records.value
-        .values
-        .firstOrNull {
-            it.status == PendingStatus.Waiting &&
-                it.summary.paymentRequest == paymentRequest &&
-                it.walletTarget == walletTarget
-        }
 
     fun findWaitingByPaymentRequest(paymentRequest: String): PendingRecord? = records.value
         .values
@@ -236,9 +245,7 @@ class PendingPaymentTracker(
     ) {
         verificationJobs.remove(id)?.cancel()
 
-        // Capture wallet context at verification start to ensure we look up on the correct wallet
         val record = records.value[id] ?: return
-        val walletTarget = record.walletTarget
 
         val job = scope.launch {
             val startedAt = TimeSource.Monotonic.markNow()
@@ -252,7 +259,7 @@ class PendingPaymentTracker(
 
                 val attemptStart = TimeSource.Monotonic.markNow()
                 val result = withTimeoutOrNull(remaining) {
-                    lookupPayment(paymentHash, walletTarget)
+                    lookupPayment(paymentHash)
                 } ?: break
 
                 when (result) {
@@ -352,7 +359,7 @@ class PendingPaymentTracker(
                     },
                     error = record.error,
                     errorMessage = record.error?.let { errorMessageFor(it) },
-                    showBlinkFeeHint = record.walletTarget?.type == WalletType.BLINK,
+                    showBlinkFeeHint = record.walletType == WalletType.BLINK,
                     wasAlreadyPaid = record.wasAlreadyPaid,
                     preimage = record.preimage
                 )
@@ -445,7 +452,7 @@ data class PendingRecord(
     val amountMsats: Long,
     val origin: PendingOrigin,
     val createdAtMs: Long,
-    val walletTarget: WalletPaymentTarget?,
+    val walletType: WalletType?,
     val dynamicSourceKey: String?,
     val paymentHash: String?,
     val status: PendingStatus = PendingStatus.Waiting,

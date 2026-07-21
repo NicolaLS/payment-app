@@ -1,6 +1,5 @@
 package xyz.lilsus.papp.presentation.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -15,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,12 +24,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,11 +38,9 @@ import lasr.shared.generated.resources.contact_shortcuts_title
 import lasr.shared.generated.resources.contacts_add
 import lasr.shared.generated.resources.contacts_address_label
 import lasr.shared.generated.resources.contacts_alias_label
-import lasr.shared.generated.resources.contacts_cancel
 import lasr.shared.generated.resources.contacts_delete
 import lasr.shared.generated.resources.contacts_empty
 import lasr.shared.generated.resources.contacts_import_blink
-import lasr.shared.generated.resources.contacts_import_blink_choose_wallet
 import lasr.shared.generated.resources.contacts_invalid_address
 import lasr.shared.generated.resources.contacts_no_matching_contacts
 import lasr.shared.generated.resources.contacts_role_label
@@ -70,8 +64,6 @@ fun ContactsSettingsScreen(
     onBack: () -> Unit,
     onAddContact: () -> Unit,
     onImportBlinkContacts: () -> Unit,
-    onBlinkWalletSelected: (String) -> Unit,
-    onBlinkWalletChooserDismiss: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onEditContact: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -101,13 +93,6 @@ fun ContactsSettingsScreen(
                 .consumeWindowInsets(padding)
                 .navigationBarsPadding()
                 .padding(AppListDefaults.ScreenPadding)
-        )
-    }
-    state.blinkWalletChooser?.let { chooser ->
-        BlinkWalletChooserDialog(
-            chooser = chooser,
-            onWalletSelected = onBlinkWalletSelected,
-            onDismiss = onBlinkWalletChooserDismiss
         )
     }
 }
@@ -175,7 +160,7 @@ private fun SettingsListContent(
                 modifier = Modifier.padding(start = 8.dp)
             )
         }
-        if (state.hasBlinkWallets) {
+        if (state.hasBlinkWallet) {
             OutlinedButton(
                 onClick = onImportBlinkContacts,
                 modifier = Modifier.fillMaxWidth()
@@ -203,65 +188,6 @@ private fun SettingsListContent(
                 }
             )
         )
-    }
-}
-
-@Composable
-private fun BlinkWalletChooserDialog(
-    chooser: BlinkWalletChooser,
-    onWalletSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(Res.string.contacts_import_blink_choose_wallet)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                chooser.wallets.forEach { wallet ->
-                    BlinkWalletChoiceRow(
-                        wallet = wallet,
-                        onClick = { onWalletSelected(wallet.walletId) }
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.contacts_cancel))
-            }
-        }
-    )
-}
-
-@Composable
-private fun BlinkWalletChoiceRow(wallet: BlinkWalletImportOption, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        tonalElevation = 1.dp,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = wallet.displayName,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = abbreviateWalletId(wallet.subtitle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
     }
 }
 
@@ -393,12 +319,6 @@ private fun ContactShortcutRow(shortcut: ContactShortcutItem) {
             }
         }
     }
-}
-
-private fun abbreviateWalletId(value: String): String = if (value.length <= 16) {
-    value
-} else {
-    value.take(8) + "…" + value.takeLast(4)
 }
 
 private fun ContactSettingsItem.toContactListEntry(): ContactListEntry = ContactListEntry(

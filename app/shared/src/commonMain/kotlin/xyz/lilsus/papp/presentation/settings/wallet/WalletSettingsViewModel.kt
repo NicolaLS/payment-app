@@ -5,25 +5,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
-import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.RemoveWalletConnectionUseCase
-import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 
 class WalletSettingsViewModel internal constructor(
-    private val observeWallets: ObserveWalletsUseCase,
-    private val observeActiveWallet: ObserveWalletConnectionUseCase,
-    private val setActiveWallet: SetActiveWalletUseCase,
+    observeWalletConnection: ObserveWalletConnectionUseCase,
     private val removeWalletConnection: RemoveWalletConnectionUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
@@ -32,40 +25,17 @@ class WalletSettingsViewModel internal constructor(
     private val _uiState = MutableStateFlow(WalletSettingsUiState())
     val uiState: StateFlow<WalletSettingsUiState> = _uiState.asStateFlow()
 
-    private val _events = MutableSharedFlow<WalletSettingsEvent>(extraBufferCapacity = 4)
-    val events: SharedFlow<WalletSettingsEvent> = _events.asSharedFlow()
-
     init {
         scope.launch {
-            combine(
-                observeWallets(),
-                observeActiveWallet()
-            ) { wallets, active ->
-                WalletSettingsUiState(
-                    wallets = wallets.map {
-                        it.toDisplay(
-                            isActive =
-                                it.walletPublicKey == active?.walletPublicKey
-                        )
-                    }
-                )
-            }.collect { state ->
-                _uiState.value = state
+            observeWalletConnection().collectLatest { connection ->
+                _uiState.value = WalletSettingsUiState(connection?.toDisplay())
             }
         }
     }
 
-    fun selectWallet(pubKey: String) {
+    fun disconnectWallet() {
         scope.launch {
-            setActiveWallet(pubKey)
-            _events.emit(WalletSettingsEvent.WalletActivated(pubKey))
-        }
-    }
-
-    fun removeWallet(pubKey: String) {
-        scope.launch {
-            removeWalletConnection(pubKey)
-            _events.emit(WalletSettingsEvent.WalletRemoved(pubKey))
+            removeWalletConnection()
         }
     }
 
@@ -73,33 +43,23 @@ class WalletSettingsViewModel internal constructor(
         scope.cancel()
     }
 
-    private fun WalletConnection.toDisplay(isActive: Boolean): WalletRow = WalletRow(
-        wallet = WalletDisplay(
-            pubKey = walletPublicKey,
-            relay = relayUrl,
-            lud16 = lud16,
-            alias = alias,
-            type = type
-        ),
-        isActive = isActive
+    private fun WalletConnection.toDisplay(): WalletDisplay = WalletDisplay(
+        connectionId = walletPublicKey,
+        relay = relayUrl,
+        lud16 = lud16,
+        alias = alias,
+        type = type
     )
 }
 
-data class WalletSettingsUiState(val wallets: List<WalletRow> = emptyList()) {
-    val hasWallets: Boolean get() = wallets.isNotEmpty()
+data class WalletSettingsUiState(val wallet: WalletDisplay? = null) {
+    val hasWallet: Boolean get() = wallet != null
 }
 
-data class WalletRow(val wallet: WalletDisplay, val isActive: Boolean)
-
 data class WalletDisplay(
-    val pubKey: String,
+    val connectionId: String,
     val relay: String?,
     val lud16: String?,
     val alias: String?,
     val type: WalletType = WalletType.NWC
 )
-
-sealed interface WalletSettingsEvent {
-    data class WalletRemoved(val pubKey: String) : WalletSettingsEvent
-    data class WalletActivated(val pubKey: String) : WalletSettingsEvent
-}

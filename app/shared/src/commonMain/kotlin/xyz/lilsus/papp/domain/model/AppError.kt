@@ -31,6 +31,9 @@ sealed class AppError {
      */
     data object MissingWalletConnection : AppError()
 
+    /** A wallet must be disconnected before another one can be connected. */
+    data object WalletAlreadyConnected : AppError()
+
     /**
      * The wallet rejected the payment request.
      */

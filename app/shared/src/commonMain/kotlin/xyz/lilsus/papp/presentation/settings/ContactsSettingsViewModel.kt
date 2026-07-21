@@ -20,18 +20,17 @@ import xyz.lilsus.papp.domain.model.ContactRole
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.PaymentShortcut
 import xyz.lilsus.papp.domain.model.ShortcutAmount
-import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
-import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 import xyz.lilsus.papp.presentation.common.ContactEditorError
 
 class ContactsSettingsViewModel internal constructor(
     observeContacts: ObserveContactsUseCase,
-    observeWallets: ObserveWalletsUseCase,
+    observeWalletConnection: ObserveWalletConnectionUseCase,
     observeShortcuts: ObserveShortcutsUseCase,
     private val saveContact: SaveContactUseCase,
     private val updateContact: UpdateContactUseCase,
@@ -44,7 +43,7 @@ class ContactsSettingsViewModel internal constructor(
     private val durableAutoSaveScope = autoSaveScope ?: scope
     private var contacts: List<Contact> = emptyList()
     private var shortcuts: List<PaymentShortcut> = emptyList()
-    private var blinkWallets: List<BlinkWalletImportOption> = emptyList()
+    private var hasBlinkWallet: Boolean = false
     private var editorAutoSaveRevision: Int = 0
     private var pendingContactEditorId: String? = null
 
@@ -67,10 +66,8 @@ class ContactsSettingsViewModel internal constructor(
             }
         }
         scope.launch {
-            observeWallets().collectLatest { wallets ->
-                blinkWallets = wallets
-                    .filter { it.isBlink }
-                    .map { it.toBlinkImportOption() }
+            observeWalletConnection().collectLatest { wallet ->
+                hasBlinkWallet = wallet?.isBlink == true
                 refresh()
             }
         }
@@ -96,27 +93,11 @@ class ContactsSettingsViewModel internal constructor(
     }
 
     fun startBlinkContactsImport() {
-        when (blinkWallets.size) {
-            0 -> Unit
-
-            1 -> openBlinkContactsImport(blinkWallets.first().walletId)
-
-            else -> {
-                _uiState.value = _uiState.value.copy(
-                    blinkWalletChooser = BlinkWalletChooser(blinkWallets)
-                )
+        if (hasBlinkWallet) {
+            scope.launch {
+                _events.emit(ContactsSettingsEvent.OpenBlinkContactsImport)
             }
         }
-    }
-
-    fun selectBlinkWalletForImport(walletId: String) {
-        if (blinkWallets.none { it.walletId == walletId }) return
-        _uiState.value = _uiState.value.copy(blinkWalletChooser = null)
-        openBlinkContactsImport(walletId)
-    }
-
-    fun dismissBlinkWalletChooser() {
-        _uiState.value = _uiState.value.copy(blinkWalletChooser = null)
     }
 
     fun startEditContact(id: String) {
@@ -259,10 +240,7 @@ class ContactsSettingsViewModel internal constructor(
         _uiState.value = _uiState.value.copy(
             contacts = contactItems,
             contactEditor = refreshedEditor,
-            blinkWallets = blinkWallets,
-            blinkWalletChooser = _uiState.value.blinkWalletChooser
-                ?.takeIf { blinkWallets.size > 1 }
-                ?.copy(wallets = blinkWallets)
+            hasBlinkWallet = hasBlinkWallet
         )
     }
 
@@ -287,19 +265,6 @@ class ContactsSettingsViewModel internal constructor(
                 )
             }
     }
-
-    private fun openBlinkContactsImport(walletId: String) {
-        scope.launch {
-            _events.emit(ContactsSettingsEvent.OpenBlinkContactsImport(walletId))
-        }
-    }
-
-    private fun WalletConnection.toBlinkImportOption(): BlinkWalletImportOption =
-        BlinkWalletImportOption(
-            walletId = walletPublicKey,
-            displayName = alias?.takeIf { it.isNotBlank() } ?: "Blink wallet",
-            subtitle = walletPublicKey
-        )
 
     private fun parseAddress(raw: String): LightningAddress? =
         when (val result = lightningInputParser.parse(raw.trim())) {
@@ -350,18 +315,7 @@ data class ContactsSettingsUiState(
     val contacts: List<ContactSettingsItem> = emptyList(),
     val contactEditor: ContactSettingsEditor? = null,
     val query: String = "",
-    val blinkWallets: List<BlinkWalletImportOption> = emptyList(),
-    val blinkWalletChooser: BlinkWalletChooser? = null
-) {
-    val hasBlinkWallets: Boolean get() = blinkWallets.isNotEmpty()
-}
-
-data class BlinkWalletChooser(val wallets: List<BlinkWalletImportOption>)
-
-data class BlinkWalletImportOption(
-    val walletId: String,
-    val displayName: String,
-    val subtitle: String
+    val hasBlinkWallet: Boolean = false
 )
 
 data class ContactSettingsItem(
@@ -389,7 +343,7 @@ data class ContactShortcutItem(
 )
 
 sealed interface ContactsSettingsEvent {
-    data class OpenBlinkContactsImport(val walletId: String) : ContactsSettingsEvent
+    data object OpenBlinkContactsImport : ContactsSettingsEvent
     data class CreateShortcutForContact(val contactId: String) : ContactsSettingsEvent
     data object CloseContactEditor : ContactsSettingsEvent
 }

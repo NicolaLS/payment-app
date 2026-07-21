@@ -7,11 +7,10 @@ enum E2ELaunchSeeder {
     private static let resetKey = "e2eReset"
     private static let fixtureKey = "e2eFixtureJson"
     private static let paymentInputKey = "e2ePaymentInput"
-    private static let walletListKey = "wallet.list"
-    private static let activeWalletKey = "wallet.active"
+    private static let walletConnectionKey = "wallet.connection"
     private static let onboardingCompletedKey = "onboarding.completed"
-    private static let blinkApiKeyPrefix = "blink.apikey."
-    private static let blinkDefaultWalletPrefix = "blink.defaultWallet."
+    private static let blinkApiKeyKey = "blink.apikey"
+    private static let blinkDefaultWalletKey = "blink.defaultWallet"
 
     static func apply() {
         let launch = Launch(
@@ -27,36 +26,12 @@ enum E2ELaunchSeeder {
             UserDefaults.standard.removeObject(forKey: onboardingCompletedKey)
         }
 
-        var storedWallets: [[String: Any]] = []
-        var firstWalletId: String?
-        var explicitActiveId: String?
-
-        for wallet in launch.fixture.wallets {
+        if let wallet = launch.fixture.wallet {
             let stored = storedWallet(wallet, service: service)
-            guard let walletId = stored["walletPublicKey"] as? String else {
-                fatalError("E2E wallet fixture did not produce a wallet id")
-            }
-            if firstWalletId == nil {
-                firstWalletId = walletId
-            }
-            if wallet.active == true ||
-                launch.fixture.activeWallet == walletId ||
-                launch.fixture.activeWallet == (stored["alias"] as? String) {
-                explicitActiveId = walletId
-            }
-            storedWallets.append(stored)
-        }
-
-        if !storedWallets.isEmpty {
             Keychain.putString(
                 service: service,
-                account: walletListKey,
-                value: jsonString(storedWallets)
-            )
-            Keychain.putString(
-                service: service,
-                account: activeWalletKey,
-                value: explicitActiveId ?? firstWalletId ?? ""
+                account: walletConnectionKey,
+                value: jsonString(stored)
             )
             if launch.fixture.completeOnboarding {
                 UserDefaults.standard.set(true, forKey: onboardingCompletedKey)
@@ -69,13 +44,16 @@ enum E2ELaunchSeeder {
                     "\(network.policy ?? "default") (\(network.latencyMillis ?? 0)ms latency)"
             )
         }
-        NSLog("LasrE2E applied profile \(launch.profile) with \(storedWallets.count) wallet(s)")
+        NSLog(
+            "LasrE2E applied profile \(launch.profile) with " +
+                (launch.fixture.wallet == nil ? "no wallet" : "one wallet")
+        )
     }
 
     static func dispatchPaymentInputIfPresent() {
         guard let input = stringValue(paymentInputKey), !input.isEmpty else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            PaymentDeepLinkEvents.shared.emit(input: input)
+            PaymentDeepLinkEvents.shared.emit(input: input, source: PaymentInputSource.deeplink)
         }
     }
 
@@ -102,22 +80,20 @@ enum E2ELaunchSeeder {
             return stored
 
         case "blink":
-            let walletId = wallet.walletPublicKey?.trimmedNonEmpty ??
-                "blink-e2e-\((wallet.alias?.stableToken).flatMap { $0.isEmpty ? nil : $0 } ?? "wallet")"
             guard let apiKey = wallet.apiKey?.trimmedNonEmpty else {
                 fatalError("Blink wallet fixture requires apiKey")
             }
-            Keychain.putString(service: service, account: blinkApiKeyPrefix + walletId, value: apiKey)
+            Keychain.putString(service: service, account: blinkApiKeyKey, value: apiKey)
             if let defaultWalletId = wallet.defaultWalletId?.trimmedNonEmpty {
                 Keychain.putString(
                     service: service,
-                    account: blinkDefaultWalletPrefix + walletId,
+                    account: blinkDefaultWalletKey,
                     value: defaultWalletId
                 )
             }
             return [
                 "uri": "",
-                "walletPublicKey": walletId,
+                "walletPublicKey": "blink",
                 "alias": wallet.alias?.trimmedNonEmpty ?? "Blink E2E",
                 "type": "BLINK",
             ]
@@ -129,16 +105,14 @@ enum E2ELaunchSeeder {
 
     private static func validate(_ launch: Launch) {
         let profile = launch.profile
-        let types = Set(launch.fixture.wallets.map { $0.type.lowercased() })
+        let type = launch.fixture.wallet?.type.lowercased()
         switch profile {
         case "new_user":
             return
         case "nwc_user":
-            precondition(types.contains("nwc"), "Profile nwc_user requires an nwc wallet fixture")
+            precondition(type == "nwc", "Profile nwc_user requires an nwc wallet fixture")
         case "blink_user":
-            precondition(types.contains("blink"), "Profile blink_user requires a blink wallet fixture")
-        case "multi_user":
-            precondition(launch.fixture.wallets.count > 1, "Profile multi_user requires at least two wallet fixtures")
+            precondition(type == "blink", "Profile blink_user requires a blink wallet fixture")
         case "slow_internet_user":
             precondition(launch.fixture.network != nil, "Profile slow_internet_user requires a network fixture")
         default:
@@ -195,14 +169,12 @@ private struct Launch {
 }
 
 private struct Fixture: Decodable {
-    var wallets: [WalletFixture] = []
-    var activeWallet: String?
+    var wallet: WalletFixture?
     var completeOnboarding: Bool = true
     var network: NetworkFixture?
 
     private enum CodingKeys: String, CodingKey {
-        case wallets
-        case activeWallet
+        case wallet
         case completeOnboarding
         case network
     }
@@ -212,8 +184,7 @@ private struct Fixture: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        wallets = try container.decodeIfPresent([WalletFixture].self, forKey: .wallets) ?? []
-        activeWallet = try container.decodeIfPresent(String.self, forKey: .activeWallet)
+        wallet = try container.decodeIfPresent(WalletFixture.self, forKey: .wallet)
         completeOnboarding = try container.decodeIfPresent(Bool.self, forKey: .completeOnboarding) ?? true
         network = try container.decodeIfPresent(NetworkFixture.self, forKey: .network)
     }
@@ -228,10 +199,8 @@ private struct WalletFixture: Decodable {
     var type: String
     var alias: String?
     var uri: String?
-    var walletPublicKey: String?
     var apiKey: String?
     var defaultWalletId: String?
-    var active: Bool?
 }
 
 private struct NwcFixture {
@@ -299,10 +268,4 @@ private extension String {
         return value.isEmpty ? nil : value
     }
 
-    var stableToken: String {
-        lowercased()
-            .map { $0.isLetter || $0.isNumber ? String($0) : "-" }
-            .joined()
-            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    }
 }

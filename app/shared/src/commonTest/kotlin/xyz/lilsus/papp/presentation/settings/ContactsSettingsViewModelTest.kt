@@ -23,35 +23,31 @@ import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.usecases.DeleteContactUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
-import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
+import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 import xyz.lilsus.papp.domain.usecases.UpdateContactUseCase
 
 class ContactsSettingsViewModelTest {
     @Test
-    fun blinkImportHiddenWhenThereAreNoBlinkWallets() = runTest {
+    fun blinkImportHiddenWhenTheConnectedWalletIsNotBlink() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(
             dispatcher = dispatcher,
-            wallets = listOf(nwcWallet("nwc-1"))
+            wallet = nwcWallet("nwc-1")
         )
         advanceUntilIdle()
 
-        assertEquals(false, context.viewModel.uiState.value.hasBlinkWallets)
-        assertEquals(emptyList(), context.viewModel.uiState.value.blinkWallets)
+        assertEquals(false, context.viewModel.uiState.value.hasBlinkWallet)
 
         context.viewModel.clear()
     }
 
     @Test
-    fun blinkImportWithOneBlinkWalletOpensImportDirectly() = runTest {
+    fun blinkImportWithConnectedBlinkWalletOpensImport() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(
             dispatcher = dispatcher,
-            wallets = listOf(
-                nwcWallet("nwc-1"),
-                blinkWallet("blink-1", "Personal Blink")
-            )
+            wallet = blinkWallet("blink-1", "Personal Blink")
         )
         advanceUntilIdle()
 
@@ -60,42 +56,9 @@ class ContactsSettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            ContactsSettingsEvent.OpenBlinkContactsImport("blink-1"),
+            ContactsSettingsEvent.OpenBlinkContactsImport,
             eventDeferred.await()
         )
-        assertNull(context.viewModel.uiState.value.blinkWalletChooser)
-
-        context.viewModel.clear()
-    }
-
-    @Test
-    fun blinkImportWithMultipleBlinkWalletsRequiresWalletSelection() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val context = createTestContext(
-            dispatcher = dispatcher,
-            wallets = listOf(
-                blinkWallet("blink-1", "Personal Blink"),
-                blinkWallet("blink-2", "Business Blink")
-            )
-        )
-        advanceUntilIdle()
-
-        context.viewModel.startBlinkContactsImport()
-        val chooser = assertNotNull(context.viewModel.uiState.value.blinkWalletChooser)
-        assertEquals(
-            listOf("Personal Blink", "Business Blink"),
-            chooser.wallets.map { it.displayName }
-        )
-
-        val eventDeferred = async { context.viewModel.events.first() }
-        context.viewModel.selectBlinkWalletForImport("blink-2")
-        advanceUntilIdle()
-
-        assertEquals(
-            ContactsSettingsEvent.OpenBlinkContactsImport("blink-2"),
-            eventDeferred.await()
-        )
-        assertNull(context.viewModel.uiState.value.blinkWalletChooser)
 
         context.viewModel.clear()
     }
@@ -105,7 +68,7 @@ class ContactsSettingsViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(
             dispatcher = dispatcher,
-            wallets = emptyList()
+            wallet = null
         )
         context.contactsRepository.saveContact(
             address = LightningAddress("alice", "blink.sv"),
@@ -148,7 +111,7 @@ class ContactsSettingsViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(
             dispatcher = dispatcher,
-            wallets = emptyList()
+            wallet = null
         )
         context.contactsRepository.saveContact(
             address = LightningAddress("bob", "blink.sv"),
@@ -180,7 +143,7 @@ class ContactsSettingsViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(
             dispatcher = dispatcher,
-            wallets = emptyList()
+            wallet = null
         )
         advanceUntilIdle()
 
@@ -214,7 +177,7 @@ class ContactsSettingsViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(
             dispatcher = dispatcher,
-            wallets = emptyList()
+            wallet = null
         )
         val contact = context.contactsRepository.saveContact(
             address = LightningAddress("alice", "blink.sv"),
@@ -246,7 +209,7 @@ class ContactsSettingsViewModelTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val context = createTestContext(
             dispatcher = dispatcher,
-            wallets = emptyList()
+            wallet = null
         )
         val contact = context.contactsRepository.saveContact(
             address = LightningAddress("alice", "blink.sv"),
@@ -279,15 +242,13 @@ class ContactsSettingsViewModelTest {
         context.viewModel.clear()
     }
 
-    private suspend fun createTestContext(dispatcher: CoroutineDispatcher, wallets: List<WalletConnection>): TestContext {
+    private suspend fun createTestContext(dispatcher: CoroutineDispatcher, wallet: WalletConnection?): TestContext {
         val contactsRepository = ContactsRepositoryImpl(MapSettings())
         val walletRepository = WalletSettingsRepositoryImpl(MapSettings())
-        wallets.forEachIndexed { index, wallet ->
-            walletRepository.saveWalletConnection(wallet, activate = index == 0)
-        }
+        wallet?.let { walletRepository.saveWalletConnection(it) }
         val viewModel = ContactsSettingsViewModel(
             observeContacts = ObserveContactsUseCase(contactsRepository),
-            observeWallets = ObserveWalletsUseCase(walletRepository),
+            observeWalletConnection = ObserveWalletConnectionUseCase(walletRepository),
             observeShortcuts = ObserveShortcutsUseCase(contactsRepository),
             saveContact = SaveContactUseCase(contactsRepository),
             updateContact = UpdateContactUseCase(contactsRepository),

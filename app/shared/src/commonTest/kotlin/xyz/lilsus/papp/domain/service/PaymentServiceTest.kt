@@ -21,7 +21,6 @@ import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
 import xyz.lilsus.papp.domain.model.WalletConnection
-import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
@@ -29,10 +28,10 @@ import xyz.lilsus.papp.platform.NetworkConnectivity
 class PaymentServiceTest {
 
     @Test
-    fun startPayInvoiceRequestRoutesImmediatelyToActiveNwcWallet() = runTest {
+    fun startPayInvoiceRequestRoutesImmediatelyToConnectedNwcWallet() = runTest {
         val settings = MapSettings()
         val walletSettings = WalletSettingsRepositoryImpl(settings = settings)
-        walletSettings.saveWalletConnection(nwcWallet("pubkey-1"), activate = true)
+        walletSettings.saveWalletConnection(nwcWallet("pubkey-1"))
 
         val nwcRepository = RecordingNwcWalletRepository()
         val paymentService = PaymentService(
@@ -49,10 +48,10 @@ class PaymentServiceTest {
     }
 
     @Test
-    fun payInvoiceRoutesImmediatelyToActiveNwcWallet() = runTest {
+    fun payInvoiceRoutesImmediatelyToConnectedNwcWallet() = runTest {
         val settings = MapSettings()
         val walletSettings = WalletSettingsRepositoryImpl(settings = settings)
-        walletSettings.saveWalletConnection(nwcWallet("pubkey-2"), activate = true)
+        walletSettings.saveWalletConnection(nwcWallet("pubkey-2"))
 
         val nwcRepository = RecordingNwcWalletRepository()
         val paymentService = PaymentService(
@@ -97,7 +96,7 @@ class PaymentServiceTest {
         var startCalls: Int = 0
         var payCalls: Int = 0
 
-        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
             startCalls += 1
             return object : PayInvoiceRequest {
                 override val state = MutableStateFlow<PayInvoiceRequestState>(
@@ -108,12 +107,12 @@ class PaymentServiceTest {
             }
         }
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?, walletTarget: WalletPaymentTarget?): PaidInvoice {
+        override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
             payCalls += 1
             return PaidInvoice(preimage = null, feesPaidMsats = null)
         }
 
-        override suspend fun lookupPayment(paymentHash: String, walletTarget: WalletPaymentTarget?): PaymentLookupResult =
+        override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult =
             PaymentLookupResult.LookupError(AppError.Unexpected("unused"))
     }
 }

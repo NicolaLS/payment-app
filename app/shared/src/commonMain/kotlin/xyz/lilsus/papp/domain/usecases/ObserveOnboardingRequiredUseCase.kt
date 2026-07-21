@@ -19,14 +19,13 @@ class ObserveOnboardingRequiredUseCase(
     private val walletSettingsRepository: WalletSettingsRepository
 ) {
     operator fun invoke(): Flow<Boolean> = flow {
-        val hadWalletsWhenObserved = walletSettingsRepository.getWallets().isNotEmpty()
+        val hadWalletWhenObserved = walletSettingsRepository.getWalletConnection() != null
 
         combine(
             onboardingRepository.hasCompletedOnboarding,
-            walletSettingsRepository.wallets
-        ) { hasCompleted, wallets ->
-            val hasWallets = wallets.isNotEmpty()
-            if (!hasCompleted && hasWallets && hadWalletsWhenObserved) {
+            walletSettingsRepository.walletConnection
+        ) { hasCompleted, wallet ->
+            if (!hasCompleted && wallet != null && hadWalletWhenObserved) {
                 onboardingRepository.markOnboardingCompleted()
                 false
             } else {

@@ -15,14 +15,10 @@
     <string name="confirm_payment_title">Confirmar pago</string>
     <string name="pay_button">Pagar</string>
     <string name="dismiss_button">Cerrar</string>
-    <string name="pending_retry_bolt11_title">Factura ya pendiente</string>
-    <string name="pending_retry_bolt11_body">Esta factura ya se está pagando con otra billetera. También puedes intentarlo con esta billetera. Solo un pago puede completarse.</string>
     <string name="pending_retry_dynamic_title">Pago ya pendiente</string>
-    <string name="pending_retry_dynamic_body">Ya tienes un pago pendiente para esta solicitud. Reintenta la misma factura para evitar pagar dos veces, o crea una factura nueva si realmente quieres otro pago.</string>
+    <string name="pending_retry_dynamic_body">Ya tienes un pago pendiente para esta solicitud. Revísalo para evitar pagar dos veces, o crea una factura nueva si quieres hacer otro pago.</string>
     <string name="pending_retry_resolved_title">Pago resuelto</string>
     <string name="pending_retry_resolved_dynamic_body">Un pago para esta solicitud acaba de resolverse. Puedes revisarlo o crear un pago nuevo si quieres pagar otra vez.</string>
-    <string name="pending_retry_resolved_bolt11_body">Un pago para esta factura acaba de resolverse. Puedes revisar el resultado.</string>
-    <string name="pending_retry_same_invoice">Reintentar misma factura</string>
     <string name="pending_retry_create_new_invoice">Crear factura nueva</string>
     <string name="pending_retry_create_new_payment">Crear pago nuevo</string>
     <string name="pending_retry_view_pending">Ver pago pendiente</string>
@@ -34,11 +30,11 @@
     <string name="transaction_status_success">Pagado</string>
     <string name="transaction_status_failure">Fallido</string>
     <string name="transaction_fee">Comisión %1$s</string>
-    <string name="active_wallet_chip_description">Billetera activa: %1$s. Abre los ajustes de billetera.</string>
     <string name="enter_amount_title">Introduce el importe</string>
     <string name="enter_amount_range_min">Mín %1$s</string>
     <string name="enter_amount_range_max">Máx %1$s</string>
     <string name="error_missing_wallet_connection">Conecta una billetera para continuar.</string>
+    <string name="error_wallet_already_connected">Desconecta tu billetera actual antes de conectar otra.</string>
     <string name="error_payment_rejected_generic">El pago fue rechazado.</string>
     <string name="error_payment_rejected_message">El pago fue rechazado: %1$s</string>
     <string name="error_network_unavailable">Sin conexión a internet. Verifica tu red.</string>
@@ -62,8 +58,8 @@
     <string name="error_blink_rate_limited">Demasiadas solicitudes. Espera un momento e intenta de nuevo.</string>
     <string name="error_blink_invalid_api_key">Clave API inválida o revocada. Crea una nueva clave para continuar.</string>
     <string name="error_blink_invalid_api_key_wallet_removed">Error de autenticación: Tu clave API es inválida o fue revocada. Tu billetera fue eliminada automáticamente para que puedas reconectarla con una nueva clave.</string>
-    <string name="settings_manage_wallets">Gestionar billeteras</string>
-    <string name="settings_manage_wallets_subtitle">Sin conexión</string>
+    <string name="settings_manage_wallet">Billetera</string>
+    <string name="settings_manage_wallet_subtitle">Sin conexión</string>
     <string name="settings_payments">Pagos</string>
     <string name="settings_payments_subtitle">Confirmaciones y accesos directos</string>
     <string name="settings_currency">Moneda</string>
@@ -98,14 +94,12 @@
     <string name="settings_currency_aud">Dólar australiano</string>
     <string name="settings_currency_chf">Franco suizo</string>
     <string name="settings_currency_jpy">Yen japonés</string>
-    <string name="settings_manage_wallets_title">Billeteras</string>
-    <string name="settings_manage_wallets_placeholder">Aún no hay una billetera conectada. Añade una para comenzar a
+    <string name="settings_manage_wallet_title">Billetera</string>
+    <string name="settings_manage_wallet_placeholder">Aún no hay una billetera conectada. Añade una para comenzar a
         pagar.
     </string>
-    <string name="settings_manage_wallets_add">Añadir billetera</string>
-    <string name="settings_manage_wallets_remove">Eliminar billetera</string>
-    <string name="settings_manage_wallets_set_active">Establecer como activa</string>
-    <string name="settings_manage_wallets_active">Billetera activa</string>
+    <string name="settings_manage_wallet_add">Añadir billetera</string>
+    <string name="settings_manage_wallet_remove">Eliminar billetera</string>
     <string name="settings_donate_title">¿Te gusta Lasr?</string>
     <string name="settings_donate_subtitle">Ayúdanos a crecer y mejorar apoyando nuestro desarrollo.</string>
     <string name="settings_donate_tier_small">1k 🎁</string>
@@ -129,7 +123,6 @@
     <string name="connect_wallet_cancel">Cancelar</string>
     <string name="connect_wallet_confirm">Añadir billetera</string>
     <string name="connect_wallet_alias_label">Alias de la billetera (opcional)</string>
-    <string name="connect_wallet_set_active">Establecer como billetera activa</string>
     <string name="connect_wallet_details_pubkey">Clave pública de la billetera</string>
     <string name="connect_wallet_details_relay">Relé principal</string>
     <string name="connect_wallet_details_lud16">Dirección Lightning</string>
@@ -299,7 +292,6 @@
     <string name="contacts_add">Añadir contacto</string>
     <string name="contacts_search_label">Buscar contactos</string>
     <string name="contacts_import_blink">Importar desde Blink</string>
-    <string name="contacts_import_blink_choose_wallet">Elige una billetera Blink</string>
     <string name="contacts_alias_label">Alias</string>
     <string name="contacts_address_label">Dirección Lightning</string>
     <string name="contacts_role_label">Etiquetas</string>

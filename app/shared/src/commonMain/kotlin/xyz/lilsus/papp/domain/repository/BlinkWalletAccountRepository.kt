@@ -3,15 +3,13 @@ package xyz.lilsus.papp.domain.repository
 import xyz.lilsus.papp.domain.model.BlinkContact
 import xyz.lilsus.papp.domain.model.WalletConnection
 
-/**
- * Manages Blink wallet account credentials and wallet-specific settings.
- */
+/** Manages the single Blink wallet connection and its credentials. */
 interface BlinkWalletAccountRepository {
     suspend fun connect(apiKey: String, alias: String): WalletConnection
 
-    suspend fun getCachedDefaultWalletId(walletId: String): String?
+    suspend fun getCachedDefaultWalletId(): String?
 
-    suspend fun refreshDefaultWalletId(walletId: String): String
+    suspend fun refreshDefaultWalletId(): String
 
-    suspend fun fetchContacts(walletId: String): List<BlinkContact>
+    suspend fun fetchContacts(): List<BlinkContact>
 }

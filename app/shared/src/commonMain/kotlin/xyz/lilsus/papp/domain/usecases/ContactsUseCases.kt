@@ -73,6 +73,5 @@ class SetAskToSaveContactsUseCase(private val repository: ContactsRepository) {
 }
 
 class FetchBlinkContactsUseCase(private val repository: BlinkWalletAccountRepository) {
-    suspend operator fun invoke(walletId: String): List<BlinkContact> =
-        repository.fetchContacts(walletId)
+    suspend operator fun invoke(): List<BlinkContact> = repository.fetchContacts()
 }

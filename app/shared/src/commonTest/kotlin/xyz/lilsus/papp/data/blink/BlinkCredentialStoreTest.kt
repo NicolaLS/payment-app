@@ -7,51 +7,46 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Tests for BlinkCredentialStore.
- * Verifies secure storage operations for Blink API keys.
- */
 class BlinkCredentialStoreTest {
 
     @Test
-    fun apiKeyCanBeStoredOverwrittenAndRemoved() {
-        val settings = MapSettings()
-        val store = BlinkCredentialStore(settings)
+    fun storesOverwritesAndClearsTheConnectionCredentials() {
+        val store = BlinkCredentialStore(MapSettings())
 
-        store.storeApiKey("wallet-123", "blink_api_key_secret")
-        assertEquals("blink_api_key_secret", store.getApiKey("wallet-123"))
-        assertTrue(store.hasApiKey("wallet-123"))
+        store.storeApiKey("blink_api_key_secret")
+        store.storeDefaultWalletId("wallet-id")
+        assertEquals("blink_api_key_secret", store.getApiKey())
+        assertEquals("wallet-id", store.getDefaultWalletId())
+        assertTrue(store.hasApiKey())
 
-        store.storeApiKey("wallet-123", "new-key")
-        assertEquals("new-key", store.getApiKey("wallet-123"))
-        store.removeApiKey("wallet-123")
+        store.storeApiKey("new-key")
+        store.clear()
 
-        assertNull(store.getApiKey("wallet-123"))
-        assertFalse(store.hasApiKey("wallet-123"))
+        assertNull(store.getApiKey())
+        assertNull(store.getDefaultWalletId())
+        assertFalse(store.hasApiKey())
     }
 
     @Test
-    fun apiKeysAreScopedPerWallet() {
-        val settings = MapSettings()
+    fun migratesOnlyTheRetainedLegacyWalletCredentials() {
+        val settings = MapSettings(
+            "blink.apikey.retained" to "retained-key",
+            "blink.defaultWallet.retained" to "retained-wallet-id",
+            "blink.apikey.discarded" to "discarded-key",
+            "blink.defaultWallet.discarded" to "discarded-wallet-id"
+        )
         val store = BlinkCredentialStore(settings)
 
-        store.storeApiKey("wallet-1", "key-1")
-        store.storeApiKey("wallet-2", "key-2")
-        store.removeApiKey("wallet-1")
+        store.migrateLegacyWallets(
+            retainedWalletId = "retained",
+            discardedWalletIds = listOf("discarded")
+        )
 
-        assertNull(store.getApiKey("wallet-1"))
-        assertEquals("key-2", store.getApiKey("wallet-2"))
-    }
-
-    @Test
-    fun returnsEmptyResultsForMissingOrBlankWalletIds() {
-        val settings = MapSettings()
-        val store = BlinkCredentialStore(settings)
-
-        assertNull(store.getApiKey("unknown-wallet"))
-        assertFalse(store.hasApiKey(""))
-        assertNull(store.getApiKey(""))
-        assertFalse(store.hasApiKey("   "))
-        assertNull(store.getApiKey("   "))
+        assertEquals("retained-key", store.getApiKey())
+        assertEquals("retained-wallet-id", store.getDefaultWalletId())
+        assertNull(settings.getStringOrNull("blink.apikey.retained"))
+        assertNull(settings.getStringOrNull("blink.defaultWallet.retained"))
+        assertNull(settings.getStringOrNull("blink.apikey.discarded"))
+        assertNull(settings.getStringOrNull("blink.defaultWallet.discarded"))
     }
 }

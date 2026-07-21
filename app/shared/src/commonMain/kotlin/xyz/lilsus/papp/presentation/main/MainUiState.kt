@@ -10,7 +10,7 @@ sealed class MainUiState {
     data class Loading(val kind: LoadingKind = LoadingKind.Paying) : MainUiState()
     data class EnterAmount(val entry: ManualAmountUiState) : MainUiState()
     data class Confirm(val amount: DisplayAmount) : MainUiState()
-    data class PendingRetry(val source: PendingRetrySource, val id: String) : MainUiState()
+    data class PendingRetry(val id: String) : MainUiState()
     data class Success(
         val amountPaid: DisplayAmount,
         val feePaid: DisplayAmount,
@@ -25,11 +25,6 @@ sealed class MainUiState {
 enum class LoadingKind {
     Resolving,
     Paying
-}
-
-enum class PendingRetrySource {
-    Bolt11,
-    Dynamic
 }
 
 data class SessionTransactionItem(

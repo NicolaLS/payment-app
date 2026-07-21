@@ -12,7 +12,6 @@ object MaestroTags {
         const val ACTIVE_CONTENT = "payment_active_content"
         const val SETTINGS_BUTTON = "payment_settings_button"
         const val SESSION_TRANSACTIONS_BUTTON = "payment_session_transactions_button"
-        const val ACTIVE_WALLET_NAME = "payment_active_wallet_name"
         const val CONTACTS_SHEET = "payment_contacts_sheet"
         const val CONTACTS_SEARCH = "payment_contacts_search"
         const val CONTACTS_ADD_BUTTON = "payment_contacts_add_button"
@@ -29,8 +28,6 @@ object MaestroTags {
         const val MANUAL_AMOUNT_BACKSPACE_KEY = "payment_manual_amount_key_backspace"
 
         const val PENDING_RETRY_SHEET = "payment_pending_retry_sheet"
-        const val PENDING_RETRY_SAME_INVOICE_BUTTON =
-            "payment_pending_retry_same_invoice_button"
         const val PENDING_RETRY_CREATE_NEW_INVOICE_BUTTON =
             "payment_pending_retry_create_new_invoice_button"
         const val PENDING_RETRY_VIEW_PENDING_BUTTON =
@@ -94,7 +91,6 @@ object MaestroTags {
         const val DIALOG_DETAILS = "nwc_wallet_dialog_details"
         const val DIALOG_WARNING = "nwc_wallet_dialog_warning"
         const val DIALOG_ALIAS_FIELD = "nwc_wallet_dialog_alias_field"
-        const val DIALOG_SET_ACTIVE_CHECKBOX = "nwc_wallet_dialog_set_active_checkbox"
         const val DIALOG_RETRY_BUTTON = "nwc_wallet_dialog_retry_button"
         const val DIALOG_CONFIRM_BUTTON = "nwc_wallet_dialog_confirm_button"
         const val DIALOG_CANCEL_BUTTON = "nwc_wallet_dialog_cancel_button"
@@ -104,7 +100,7 @@ object MaestroTags {
         const val BACK_BUTTON = "settings_back_button"
 
         const val SCREEN = "settings_screen"
-        const val MANAGE_WALLETS_ROW = "settings_manage_wallets_row"
+        const val MANAGE_WALLET_ROW = "settings_manage_wallet_row"
         const val PAYMENTS_ROW = "settings_payments_row"
         const val CONTACTS_ROW = "settings_contacts_row"
         const val CURRENCY_ROW = "settings_currency_row"
@@ -123,19 +119,13 @@ object MaestroTags {
 
         const val CONTACTS_SCREEN = "settings_contacts_screen"
 
-        const val MANAGE_WALLETS_SCREEN = "settings_manage_wallets_screen"
-        const val MANAGE_WALLETS_ADD_BUTTON = "settings_manage_wallets_add_button"
-        const val MANAGE_WALLETS_EMPTY = "settings_manage_wallets_empty"
+        const val MANAGE_WALLET_SCREEN = "settings_manage_wallet_screen"
+        const val MANAGE_WALLET_ADD_BUTTON = "settings_manage_wallet_add_button"
+        const val MANAGE_WALLET_EMPTY = "settings_manage_wallet_empty"
 
         fun walletRow(label: String): String = "settings_wallet_row_${label.stableTagToken()}"
-        fun walletActiveBadge(label: String): String =
-            "settings_wallet_active_${label.stableTagToken()}"
-
         fun walletRemoveButton(label: String): String =
             "settings_wallet_remove_${label.stableTagToken()}"
-
-        fun walletSetActiveButton(label: String): String =
-            "settings_wallet_set_active_${label.stableTagToken()}"
     }
 }
 

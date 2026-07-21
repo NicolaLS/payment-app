@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.util.Log
 import io.github.nicolals.nwc.NwcConnectionUri
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.mp.KoinPlatformTools
@@ -57,7 +56,6 @@ private enum class E2eProfile(val id: String) {
     NEW_USER("new_user"),
     NWC_USER("nwc_user"),
     BLINK_USER("blink_user"),
-    MULTI_USER("multi_user"),
     SLOW_INTERNET_USER("slow_internet_user");
 
     companion object {
@@ -68,8 +66,7 @@ private enum class E2eProfile(val id: String) {
 
 @Serializable
 private data class E2eFixture(
-    val wallets: List<E2eWalletFixture> = emptyList(),
-    val activeWallet: String? = null,
+    val wallet: E2eWalletFixture? = null,
     val completeOnboarding: Boolean = true,
     val network: E2eNetworkFixture? = null
 )
@@ -82,60 +79,33 @@ private data class E2eWalletFixture(
     val type: String,
     val alias: String? = null,
     val uri: String? = null,
-    val walletPublicKey: String? = null,
     val apiKey: String? = null,
-    val defaultWalletId: String? = null,
-    @SerialName("active")
-    val activeHint: Boolean = false
+    val defaultWalletId: String? = null
 )
 
 private object E2eFixtureSeeder {
     suspend fun apply(launch: E2eLaunch) {
         val koin = KoinPlatformTools.defaultContext().get()
-        val wallets = koin.get<WalletSettingsRepository>()
+        val walletSettings = koin.get<WalletSettingsRepository>()
         val onboarding = koin.get<OnboardingRepository>()
         val blinkCredentials = koin.get<BlinkCredentialStore>()
 
         if (launch.reset) {
-            wallets.clearWalletConnection()
+            walletSettings.clearWalletConnection()
         }
 
         validate(launch)
 
-        val activeHint = launch.fixture.activeWallet
-        var firstWalletKey: String? = null
-        var explicitActiveKey: String? = null
-
-        launch.fixture.wallets.forEach { wallet ->
+        launch.fixture.wallet?.let { wallet ->
             val connection = when (wallet.type.trim().lowercase()) {
                 "nwc" -> wallet.toNwcConnection()
                 "blink" -> wallet.toBlinkConnection(blinkCredentials)
                 else -> error("Unsupported E2E wallet type: ${wallet.type}")
             }
-
-            if (firstWalletKey == null) {
-                firstWalletKey = connection.walletPublicKey
-            }
-            if (
-                wallet.activeHint ||
-                activeHint == connection.walletPublicKey ||
-                activeHint == connection.alias
-            ) {
-                explicitActiveKey = connection.walletPublicKey
-            }
-
-            wallets.saveWalletConnection(
-                connection = connection,
-                activate = launch.fixture.wallets.size == 1
-            )
+            walletSettings.saveWalletConnection(connection)
         }
 
-        val resolvedActive = explicitActiveKey ?: firstWalletKey
-        if (resolvedActive != null) {
-            wallets.setActiveWallet(resolvedActive)
-        }
-
-        if (launch.fixture.wallets.isNotEmpty() && launch.fixture.completeOnboarding) {
+        if (launch.fixture.wallet != null && launch.fixture.completeOnboarding) {
             onboarding.markOnboardingCompleted()
         }
 
@@ -148,25 +118,22 @@ private object E2eFixtureSeeder {
         }
         Log.i(
             TAG,
-            "Applied profile ${launch.profile.id} with ${launch.fixture.wallets.size} wallet(s)"
+            "Applied profile ${launch.profile.id} with " +
+                if (launch.fixture.wallet == null) "no wallet" else "one wallet"
         )
     }
 
     private fun validate(launch: E2eLaunch) {
-        val types = launch.fixture.wallets.map { it.type.trim().lowercase() }
+        val type = launch.fixture.wallet?.type?.trim()?.lowercase()
         when (launch.profile) {
             E2eProfile.NEW_USER -> Unit
 
-            E2eProfile.NWC_USER -> require("nwc" in types) {
+            E2eProfile.NWC_USER -> require(type == "nwc") {
                 "Profile nwc_user requires an nwc wallet fixture"
             }
 
-            E2eProfile.BLINK_USER -> require("blink" in types) {
+            E2eProfile.BLINK_USER -> require(type == "blink") {
                 "Profile blink_user requires a blink wallet fixture"
-            }
-
-            E2eProfile.MULTI_USER -> require(launch.fixture.wallets.size > 1) {
-                "Profile multi_user requires at least two wallet fixtures"
             }
 
             E2eProfile.SLOW_INTERNET_USER -> require(launch.fixture.network != null) {
@@ -192,21 +159,19 @@ private fun E2eWalletFixture.toNwcConnection(): WalletConnection {
 private fun E2eWalletFixture.toBlinkConnection(
     credentials: BlinkCredentialStore
 ): WalletConnection {
-    val walletId = walletPublicKey?.trim()?.takeIf { it.isNotBlank() }
-        ?: "blink-e2e-${alias.orEmpty().ifBlank { "wallet" }.stableToken()}"
     val trimmedApiKey = apiKey?.trim().orEmpty()
     require(trimmedApiKey.isNotBlank()) {
         "Blink wallet fixture requires apiKey"
     }
 
-    credentials.storeApiKey(walletId, trimmedApiKey)
+    credentials.storeApiKey(trimmedApiKey)
     defaultWalletId
         ?.trim()
         ?.takeIf { it.isNotBlank() }
-        ?.let { credentials.storeDefaultWalletId(walletId, it) }
+        ?.let(credentials::storeDefaultWalletId)
 
     return WalletConnection(
-        walletPublicKey = walletId,
+        walletPublicKey = "blink",
         alias = alias?.trim()?.takeIf { it.isNotBlank() } ?: "Blink E2E",
         type = WalletType.BLINK
     )
@@ -221,9 +186,3 @@ private fun Bundle.boolean(key: String): Boolean = when (val raw = get(key)) {
     is String -> raw.equals("true", ignoreCase = true)
     else -> false
 }
-
-private fun String.stableToken(): String = lowercase()
-    .map { char -> if (char.isLetterOrDigit()) char else '-' }
-    .joinToString(separator = "")
-    .trim('-')
-    .ifBlank { "wallet" }

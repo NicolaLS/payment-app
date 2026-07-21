@@ -79,6 +79,8 @@ tasks.register<Exec>("buildE2eIos") {
         "generic/platform=iOS Simulator",
         "-derivedDataPath",
         derivedDataPath.path,
+        "ARCHS=arm64",
+        "ONLY_ACTIVE_ARCH=YES",
         "build"
     )
 }

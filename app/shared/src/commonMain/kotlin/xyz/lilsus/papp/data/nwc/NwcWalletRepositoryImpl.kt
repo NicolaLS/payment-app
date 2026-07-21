@@ -15,9 +15,7 @@ import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.model.PayInvoiceRequestState
 import xyz.lilsus.papp.domain.model.PaymentLookupResult
-import xyz.lilsus.papp.domain.model.WalletPaymentTarget
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
-import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
 
 /**
@@ -27,24 +25,13 @@ import xyz.lilsus.papp.platform.NetworkConnectivity
  * connection thrashing and ensuring reliable background cleanup.
  */
 class NwcWalletRepositoryImpl(
-    private val walletSettingsRepository: WalletSettingsRepository,
     private val connectionManager: NwcConnectionManager,
     private val scope: CoroutineScope,
     private val networkConnectivity: NetworkConnectivity,
     private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS
 ) : NwcWalletRepository {
 
-    suspend fun payInvoice(invoice: String, amountMsats: Long? = null): PaidInvoice = payInvoice(
-        invoice = invoice,
-        amountMsats = amountMsats,
-        walletTarget = null
-    )
-
-    override suspend fun payInvoice(
-        invoice: String,
-        amountMsats: Long?,
-        walletTarget: WalletPaymentTarget?
-    ): PaidInvoice {
+    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
@@ -54,7 +41,7 @@ class NwcWalletRepositoryImpl(
             throw AppErrorException(AppError.NetworkUnavailable)
         }
 
-        val client = getClient(walletTarget)
+        val client = connectionManager.getClient()
         val result = client.payInvoice(
             invoice = invoice,
             amount = amountMsats?.let { Amount.fromMsats(it) },
@@ -72,18 +59,7 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    fun startPayInvoiceRequest(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
-        startPayInvoiceRequest(
-            invoice = invoice,
-            amountMsats = amountMsats,
-            walletTarget = null
-        )
-
-    override fun startPayInvoiceRequest(
-        invoice: String,
-        amountMsats: Long?,
-        walletTarget: WalletPaymentTarget?
-    ): PayInvoiceRequest {
+    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
         require(invoice.isNotBlank()) { "Invoice must not be blank." }
         if (amountMsats != null) {
             require(amountMsats > 0) { "Amount must be greater than zero." }
@@ -95,8 +71,7 @@ class NwcWalletRepositoryImpl(
             try {
                 val paidInvoice = payInvoice(
                     invoice = invoice,
-                    amountMsats = amountMsats,
-                    walletTarget = walletTarget
+                    amountMsats = amountMsats
                 )
                 stateFlow.value = PayInvoiceRequestState.Success(paidInvoice)
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -121,10 +96,7 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    override suspend fun lookupPayment(
-        paymentHash: String,
-        walletTarget: WalletPaymentTarget?
-    ): PaymentLookupResult {
+    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
         require(paymentHash.isNotBlank()) { "Payment hash must not be blank." }
 
         if (!networkConnectivity.isNetworkAvailable()) {
@@ -132,7 +104,7 @@ class NwcWalletRepositoryImpl(
         }
 
         return try {
-            val client = getClient(walletTarget)
+            val client = connectionManager.getClient()
             val result = client.lookupInvoice(
                 params = LookupInvoiceParams(paymentHash = paymentHash),
                 timeoutMs = LOOKUP_TIMEOUT_MILLIS
@@ -193,24 +165,5 @@ class NwcWalletRepositoryImpl(
         } catch (e: AppErrorException) {
             PaymentLookupResult.LookupError(e.error)
         }
-    }
-
-    private suspend fun getClient(walletTarget: WalletPaymentTarget? = null): NwcClient {
-        val connection = when (walletTarget) {
-            is WalletPaymentTarget.Nwc -> {
-                // Find wallet by URI
-                walletSettingsRepository.getWallets()
-                    .firstOrNull { it.isNwc && it.uri == walletTarget.uri }
-                    ?: throw AppErrorException(AppError.MissingWalletConnection)
-            }
-
-            is WalletPaymentTarget.Blink -> throw AppErrorException(
-                AppError.MissingWalletConnection
-            )
-
-            null -> null
-        }
-
-        return connectionManager.getClient(connection)
     }
 }

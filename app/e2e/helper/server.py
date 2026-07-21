@@ -178,8 +178,6 @@ class Handler(BaseHTTPRequestHandler):
                 self.handle_health()
             elif self.command == "GET" and parsed.path == "/get-nwc-uri":
                 self.handle_get_nwc_uri(query)
-            elif self.command == "GET" and parsed.path == "/wallets":
-                self.handle_wallets(query)
             elif self.command == "POST" and parsed.path == "/create-invoice":
                 self.handle_create_invoice()
             elif self.command == "POST" and parsed.path == "/invoice-status":
@@ -233,16 +231,6 @@ class Handler(BaseHTTPRequestHandler):
         budget_interval = first(query.get("budget_interval"), "1d")
         uri = create_or_get_nwc_uri(node, label, budget_msat, budget_interval)
         self.write_json(200, {"uri": uri, "node": node, "label": label, "relay": PUBLIC_RELAY_URL})
-
-    def handle_wallets(self, query):
-        requested = first(query.get("nodes"), "payer,receiver")
-        nodes = [node.strip() for node in requested.split(",") if node.strip()]
-        wallets = []
-        for node in nodes:
-            label = f"papp-e2e-{node}"
-            uri = create_or_get_nwc_uri(node, label, "100000000", "1d")
-            wallets.append({"node": node, "label": label, "uri": uri})
-        self.write_json(200, {"wallets": wallets, "relay": PUBLIC_RELAY_URL})
 
     def handle_create_invoice(self):
         body = self.read_json()

@@ -50,7 +50,7 @@ class ObserveOnboardingRequiredUseCaseTest {
     fun repairsMissingCompletionFlagWhenWalletAlreadyExists() = runTest {
         val onboardingRepository = OnboardingRepositoryImpl(settings = MapSettings())
         val walletRepository = WalletSettingsRepositoryImpl(settings = MapSettings())
-        walletRepository.saveWalletConnection(existingWallet(), activate = true)
+        walletRepository.saveWalletConnection(existingWallet())
         val useCase = ObserveOnboardingRequiredUseCase(
             onboardingRepository = onboardingRepository,
             walletSettingsRepository = walletRepository
@@ -76,7 +76,7 @@ class ObserveOnboardingRequiredUseCaseTest {
         }
         advanceUntilIdle()
 
-        walletRepository.saveWalletConnection(existingWallet(), activate = true)
+        walletRepository.saveWalletConnection(existingWallet())
         advanceUntilIdle()
 
         assertTrue(onboardingRequired)

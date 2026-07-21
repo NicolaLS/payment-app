@@ -5,16 +5,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +45,6 @@ import lasr.shared.generated.resources.connect_wallet_details_pubkey
 import lasr.shared.generated.resources.connect_wallet_details_relay
 import lasr.shared.generated.resources.connect_wallet_loading
 import lasr.shared.generated.resources.connect_wallet_retry
-import lasr.shared.generated.resources.connect_wallet_set_active
 import lasr.shared.generated.resources.connect_wallet_title
 import lasr.shared.generated.resources.connect_wallet_warning_heading
 import lasr.shared.generated.resources.connect_wallet_warning_legacy_nip04
@@ -111,7 +106,6 @@ fun ConnectWalletDialog(
             ConnectWalletDialogContent(
                 state = state,
                 onAliasChange = viewModel::updateAlias,
-                onSetActiveChange = viewModel::updateSetActive,
                 onRetryDiscovery = viewModel::retryDiscovery
             )
         },
@@ -147,7 +141,6 @@ fun ConnectWalletDialog(
 private fun ConnectWalletDialogContent(
     state: ConnectWalletUiState,
     onAliasChange: (String) -> Unit,
-    onSetActiveChange: (Boolean) -> Unit,
     onRetryDiscovery: () -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -167,8 +160,7 @@ private fun ConnectWalletDialogContent(
 
             state.discovery != null -> DiscoveryDetails(
                 state = state,
-                onAliasChange = onAliasChange,
-                onSetActiveChange = onSetActiveChange
+                onAliasChange = onAliasChange
             )
 
             else -> Unit
@@ -208,11 +200,7 @@ private fun DiscoveryLoading() {
 }
 
 @Composable
-private fun DiscoveryDetails(
-    state: ConnectWalletUiState,
-    onAliasChange: (String) -> Unit,
-    onSetActiveChange: (Boolean) -> Unit
-) {
+private fun DiscoveryDetails(state: ConnectWalletUiState, onAliasChange: (String) -> Unit) {
     val discovery = state.discovery ?: return
     val focusManager = LocalFocusManager.current
     val finishAliasEditing = { focusManager.clearFocus(force = true) }
@@ -242,26 +230,6 @@ private fun DiscoveryDetails(
                 onDone = { finishAliasEditing() }
             )
         )
-
-        Row(
-            modifier = Modifier
-                .heightIn(48.dp)
-                .toggleable(
-                    value = state.setActive,
-                    role = Role.Checkbox,
-                    onValueChange = { onSetActiveChange(it) },
-                    enabled = !state.isSaving
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Checkbox(
-                checked = state.setActive,
-                onCheckedChange = null,
-                modifier = Modifier.testTag(MaestroTags.NwcWallet.DIALOG_SET_ACTIVE_CHECKBOX)
-            )
-            Text(text = stringResource(Res.string.connect_wallet_set_active))
-        }
 
         WalletSummary(discovery)
 

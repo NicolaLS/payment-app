@@ -3,6 +3,15 @@
 This directory is the actual Kotlin Multiplatform app workspace. Run Gradle, Android,
 iOS, and local test commands from here.
 
+## Wallet Connection Scope
+
+Lasr currently supports one connected wallet at a time, either Blink or NWC. Earlier
+versions supported multiple wallets. Although that can be useful, it was implemented
+before there was demonstrated user demand and added substantial complexity to payment
+state, safeguards, testing, and the UI. We removed it to keep the payment experience
+reliable and straightforward. Multi-wallet support may be added again if actual user
+demand justifies that complexity.
+
 ## Layout
 
 - `shared/`: shared Compose Multiplatform code and iOS framework module

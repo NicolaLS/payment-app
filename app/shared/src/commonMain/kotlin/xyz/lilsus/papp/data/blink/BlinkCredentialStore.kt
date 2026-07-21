@@ -2,80 +2,55 @@ package xyz.lilsus.papp.data.blink
 
 import com.russhwolf.settings.Settings
 
-/**
- * Secure storage for Blink API keys.
- * Uses platform-appropriate secure storage (Android Keystore / iOS Keychain).
- *
- * API keys are stored with wallet ID as the key prefix to support multiple Blink wallets.
- */
+/** Secure storage for the single optional Blink connection. */
 class BlinkCredentialStore(private val secureSettings: Settings) {
 
-    /**
-     * Stores an API key for the given wallet ID.
-     * The key is encrypted using platform-secure storage.
-     */
-    fun storeApiKey(walletId: String, apiKey: String) {
-        require(walletId.isNotBlank()) { "Wallet ID must not be blank" }
+    fun storeApiKey(apiKey: String) {
         require(apiKey.isNotBlank()) { "API key must not be blank" }
-        secureSettings.putString(keyFor(walletId), apiKey)
+        secureSettings.putString(KEY_API_KEY, apiKey)
     }
 
-    /**
-     * Stores the Blink default wallet ID for the given wallet ID.
-     */
-    fun storeDefaultWalletId(walletId: String, defaultWalletId: String) {
-        require(walletId.isNotBlank()) { "Wallet ID must not be blank" }
+    fun storeDefaultWalletId(defaultWalletId: String) {
         require(defaultWalletId.isNotBlank()) { "Default wallet ID must not be blank" }
-        secureSettings.putString(defaultWalletKeyFor(walletId), defaultWalletId)
+        secureSettings.putString(KEY_DEFAULT_WALLET, defaultWalletId)
     }
+
+    fun getApiKey(): String? = secureSettings.getStringOrNull(KEY_API_KEY)
+
+    fun getDefaultWalletId(): String? = secureSettings.getStringOrNull(KEY_DEFAULT_WALLET)
+
+    fun clear() {
+        secureSettings.remove(KEY_API_KEY)
+        secureSettings.remove(KEY_DEFAULT_WALLET)
+    }
+
+    fun hasApiKey(): Boolean = getApiKey() != null
 
     /**
-     * Retrieves the API key for the given wallet ID.
-     * @return The API key, or null if not found.
+     * Moves credentials from the former per-wallet key format and removes credentials belonging
+     * to wallets discarded by the one-wallet migration.
      */
-    fun getApiKey(walletId: String): String? {
-        if (walletId.isBlank()) return null
-        return secureSettings.getStringOrNull(keyFor(walletId))
+    fun migrateLegacyWallets(retainedWalletId: String?, discardedWalletIds: List<String>) {
+        if (retainedWalletId != null) {
+            secureSettings.getStringOrNull(legacyApiKey(retainedWalletId))?.let(::storeApiKey)
+            secureSettings.getStringOrNull(legacyDefaultWalletKey(retainedWalletId))
+                ?.let(::storeDefaultWalletId)
+        }
+        (discardedWalletIds + listOfNotNull(retainedWalletId)).forEach { walletId ->
+            secureSettings.remove(legacyApiKey(walletId))
+            secureSettings.remove(legacyDefaultWalletKey(walletId))
+        }
     }
 
-    /**
-     * Retrieves the default Blink wallet ID for the given wallet ID.
-     * @return The default wallet ID, or null if not found.
-     */
-    fun getDefaultWalletId(walletId: String): String? {
-        if (walletId.isBlank()) return null
-        return secureSettings.getStringOrNull(defaultWalletKeyFor(walletId))
-    }
+    private fun legacyApiKey(walletId: String): String = "$LEGACY_API_KEY_PREFIX$walletId"
 
-    /**
-     * Removes the API key for the given wallet ID.
-     */
-    fun removeApiKey(walletId: String) {
-        if (walletId.isBlank()) return
-        secureSettings.remove(keyFor(walletId))
-    }
+    private fun legacyDefaultWalletKey(walletId: String): String =
+        "$LEGACY_DEFAULT_WALLET_PREFIX$walletId"
 
-    /**
-     * Removes the default wallet ID for the given wallet ID.
-     */
-    fun removeDefaultWalletId(walletId: String) {
-        if (walletId.isBlank()) return
-        secureSettings.remove(defaultWalletKeyFor(walletId))
-    }
-
-    /**
-     * Checks if an API key exists for the given wallet ID.
-     */
-    fun hasApiKey(walletId: String): Boolean {
-        if (walletId.isBlank()) return false
-        return secureSettings.getStringOrNull(keyFor(walletId)) != null
-    }
-
-    private fun keyFor(walletId: String): String = "$KEY_PREFIX$walletId"
-    private fun defaultWalletKeyFor(walletId: String): String = "$DEFAULT_WALLET_PREFIX$walletId"
-
-    companion object {
-        private const val KEY_PREFIX = "blink.apikey."
-        private const val DEFAULT_WALLET_PREFIX = "blink.defaultWallet."
+    private companion object {
+        const val KEY_API_KEY = "blink.apikey"
+        const val KEY_DEFAULT_WALLET = "blink.defaultWallet"
+        const val LEGACY_API_KEY_PREFIX = "blink.apikey."
+        const val LEGACY_DEFAULT_WALLET_PREFIX = "blink.defaultWallet."
     }
 }

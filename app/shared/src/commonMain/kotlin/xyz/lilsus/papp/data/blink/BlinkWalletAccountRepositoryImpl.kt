@@ -1,6 +1,5 @@
 package xyz.lilsus.papp.data.blink
 
-import kotlin.random.Random
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkContact
@@ -13,11 +12,11 @@ import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 class BlinkWalletAccountRepositoryImpl(
     private val apiClient: BlinkApiClient,
     private val credentialStore: BlinkCredentialStore,
-    private val walletSettingsRepository: WalletSettingsRepository,
-    private val walletIdGenerator: () -> String = ::generateBlinkWalletId
+    private val walletSettingsRepository: WalletSettingsRepository
 ) : BlinkWalletAccountRepository {
 
     override suspend fun connect(apiKey: String, alias: String): WalletConnection {
+        ensureNoWalletConnected()
         val trimmedApiKey = apiKey.trim()
         val trimmedAlias = alias.trim()
 
@@ -34,67 +33,60 @@ class BlinkWalletAccountRepositoryImpl(
         }
 
         val defaultWalletId = apiClient.fetchDefaultWalletId(trimmedApiKey)
-        val walletId = walletIdGenerator()
-
-        credentialStore.storeApiKey(walletId, trimmedApiKey)
-        credentialStore.storeDefaultWalletId(walletId, defaultWalletId)
+        ensureNoWalletConnected()
+        credentialStore.storeApiKey(trimmedApiKey)
+        credentialStore.storeDefaultWalletId(defaultWalletId)
 
         val connection = WalletConnection(
-            walletPublicKey = walletId,
+            walletPublicKey = BLINK_CONNECTION_ID,
             alias = trimmedAlias,
             type = WalletType.BLINK
         )
-        walletSettingsRepository.saveWalletConnection(connection, activate = true)
+        try {
+            walletSettingsRepository.saveWalletConnection(connection)
+        } catch (error: Throwable) {
+            credentialStore.clear()
+            throw error
+        }
         return connection
     }
 
-    override suspend fun getCachedDefaultWalletId(walletId: String): String? {
-        val wallet = walletSettingsRepository.getWallets()
-            .firstOrNull { it.walletPublicKey == walletId }
-            ?: return null
-        if (!wallet.isBlink) return null
-        return credentialStore.getDefaultWalletId(walletId)
+    override suspend fun getCachedDefaultWalletId(): String? {
+        requireBlinkConnection()
+        return credentialStore.getDefaultWalletId()
     }
 
-    override suspend fun refreshDefaultWalletId(walletId: String): String {
-        val wallet = walletSettingsRepository.getWallets()
-            .firstOrNull { it.walletPublicKey == walletId }
-            ?: throw AppErrorException(AppError.MissingWalletConnection)
-        if (!wallet.isBlink) {
-            throw AppErrorException(AppError.MissingWalletConnection)
-        }
-
-        val apiKey = credentialStore.getApiKey(walletId)
+    override suspend fun refreshDefaultWalletId(): String {
+        requireBlinkConnection()
+        val apiKey = credentialStore.getApiKey()
             ?: throw AppErrorException(AppError.AuthenticationFailure("API key not found"))
         val defaultWalletId = apiClient.fetchDefaultWalletId(apiKey)
-        credentialStore.storeDefaultWalletId(walletId, defaultWalletId)
+        credentialStore.storeDefaultWalletId(defaultWalletId)
         return defaultWalletId
     }
 
-    override suspend fun fetchContacts(walletId: String): List<BlinkContact> {
-        val wallet = walletSettingsRepository.getWallets()
-            .firstOrNull { it.walletPublicKey == walletId }
-            ?: throw AppErrorException(AppError.MissingWalletConnection)
-        if (!wallet.isBlink) {
-            throw AppErrorException(AppError.MissingWalletConnection)
-        }
-
-        val apiKey = credentialStore.getApiKey(walletId)
+    override suspend fun fetchContacts(): List<BlinkContact> {
+        requireBlinkConnection()
+        val apiKey = credentialStore.getApiKey()
             ?: throw AppErrorException(AppError.AuthenticationFailure("API key not found"))
         return apiClient.fetchContacts(apiKey)
     }
 
-    private companion object {
-        private const val HEX_CHARS = "0123456789abcdef"
-        private const val REQUIRED_SCOPE = "WRITE"
-
-        private fun generateBlinkWalletId(): String {
-            val randomPart = buildString {
-                repeat(32) {
-                    append(HEX_CHARS[Random.nextInt(HEX_CHARS.length)])
-                }
-            }
-            return "blink-$randomPart"
+    private suspend fun ensureNoWalletConnected() {
+        if (walletSettingsRepository.getWalletConnection() != null) {
+            throw AppErrorException(AppError.WalletAlreadyConnected)
         }
+    }
+
+    private suspend fun requireBlinkConnection(): WalletConnection {
+        val wallet = walletSettingsRepository.getWalletConnection()
+            ?: throw AppErrorException(AppError.MissingWalletConnection)
+        if (!wallet.isBlink) throw AppErrorException(AppError.MissingWalletConnection)
+        return wallet
+    }
+
+    private companion object {
+        const val BLINK_CONNECTION_ID = "blink"
+        const val REQUIRED_SCOPE = "WRITE"
     }
 }

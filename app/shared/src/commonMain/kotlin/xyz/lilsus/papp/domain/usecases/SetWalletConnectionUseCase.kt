@@ -11,9 +11,11 @@ class SetWalletConnectionUseCase(private val repository: WalletSettingsRepositor
     suspend operator fun invoke(
         uri: String,
         alias: String?,
-        activate: Boolean = true,
         metadata: WalletMetadataSnapshot? = null
     ): WalletConnection {
+        if (repository.getWalletConnection() != null) {
+            throw AppErrorException(AppError.WalletAlreadyConnected)
+        }
         val trimmed = uri.trim()
         if (trimmed.isEmpty()) {
             throw AppErrorException(AppError.InvalidWalletUri())
@@ -29,7 +31,7 @@ class SetWalletConnectionUseCase(private val repository: WalletSettingsRepositor
             alias = alias?.takeIf { it.isNotBlank() }?.trim(),
             metadata = metadata
         )
-        repository.saveWalletConnection(connection, activate = activate)
+        repository.saveWalletConnection(connection)
         return connection
     }
 }

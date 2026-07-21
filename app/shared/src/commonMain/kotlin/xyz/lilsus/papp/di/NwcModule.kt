@@ -52,11 +52,9 @@ import xyz.lilsus.papp.domain.usecases.DeleteShortcutUseCase
 import xyz.lilsus.papp.domain.usecases.DiscoverWalletUseCase
 import xyz.lilsus.papp.domain.usecases.FetchBlinkContactsUseCase
 import xyz.lilsus.papp.domain.usecases.FetchLnurlPayParamsUseCase
-import xyz.lilsus.papp.domain.usecases.GetActiveWalletTargetUseCase
 import xyz.lilsus.papp.domain.usecases.GetBlinkDefaultWalletIdUseCase
 import xyz.lilsus.papp.domain.usecases.GetContactsUseCase
 import xyz.lilsus.papp.domain.usecases.GetExchangeRateUseCase
-import xyz.lilsus.papp.domain.usecases.GetWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.LookupPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactPreferencesUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveContactsUseCase
@@ -68,7 +66,6 @@ import xyz.lilsus.papp.domain.usecases.ObserveSecondaryCurrencyPreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveShortcutsUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveThemePreferenceUseCase
 import xyz.lilsus.papp.domain.usecases.ObserveWalletConnectionUseCase
-import xyz.lilsus.papp.domain.usecases.ObserveWalletsUseCase
 import xyz.lilsus.papp.domain.usecases.PayInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.RecordContactPaymentUseCase
 import xyz.lilsus.papp.domain.usecases.RecordShortcutPaymentUseCase
@@ -79,7 +76,6 @@ import xyz.lilsus.papp.domain.usecases.RequestLnurlInvoiceUseCase
 import xyz.lilsus.papp.domain.usecases.ResolveLightningAddressUseCase
 import xyz.lilsus.papp.domain.usecases.SaveContactUseCase
 import xyz.lilsus.papp.domain.usecases.SaveShortcutUseCase
-import xyz.lilsus.papp.domain.usecases.SetActiveWalletUseCase
 import xyz.lilsus.papp.domain.usecases.SetAskToSaveContactsUseCase
 import xyz.lilsus.papp.domain.usecases.SetConfirmManualEntryUseCase
 import xyz.lilsus.papp.domain.usecases.SetConfirmShortcutPaymentsUseCase
@@ -129,16 +125,23 @@ val nwcModule = module {
             onWalletRemoved = { wallet ->
                 when (wallet.type) {
                     WalletType.BLINK -> {
-                        blinkCredentialStore.removeApiKey(wallet.walletPublicKey)
-                        blinkCredentialStore.removeDefaultWalletId(wallet.walletPublicKey)
+                        blinkCredentialStore.clear()
                     }
 
                     WalletType.NWC -> {
                         if (wallet.uri.isNotBlank()) {
-                            koinScope.get<NwcConnectionManager>().evict(wallet.uri)
+                            koinScope.get<NwcConnectionManager>().evict()
                         }
                     }
                 }
+            },
+            onLegacyWalletsMigrated = { retained, discarded ->
+                blinkCredentialStore.migrateLegacyWallets(
+                    retainedWalletId = retained?.takeIf { it.isBlink }?.walletPublicKey,
+                    discardedWalletIds = discarded.filter { it.isBlink }.map {
+                        it.walletPublicKey
+                    }
+                )
             }
         )
     }
@@ -175,7 +178,6 @@ val nwcModule = module {
 
     single<NwcWalletRepository> {
         NwcWalletRepositoryImpl(
-            walletSettingsRepository = get(),
             connectionManager = get(),
             scope = get(),
             networkConnectivity = get()
@@ -188,10 +190,6 @@ val nwcModule = module {
             httpClient = get()
         )
     }
-    // TODO(wallet-metadata): Re-introduce metadata refresh only with safe stale-write handling.
-    // Metadata can change over time (encryption/capabilities/policy), but metadata-only refreshes
-    // must never reactivate removed/inactive wallets; implement timestamped refresh + guarded writes.
-
     // Blink wallet support
     single { BlinkCredentialStore(secureSettings = get()) }
     single { BlinkApiClient() }
@@ -235,11 +233,8 @@ val nwcModule = module {
     factory { ObservePaymentPreferencesUseCase(repository = get()) }
     factory { ObserveCurrencyPreferenceUseCase(repository = get()) }
     factory { ObserveSecondaryCurrencyPreferenceUseCase(repository = get()) }
-    factory { GetActiveWalletTargetUseCase(repository = get()) }
     factory { ObserveLanguagePreferenceUseCase(repository = get()) }
     factory { ObserveThemePreferenceUseCase(repository = get()) }
-    factory { ObserveWalletsUseCase(repository = get()) }
-    factory { GetWalletsUseCase(repository = get()) }
     factory {
         ObserveOnboardingRequiredUseCase(
             onboardingRepository = get(),
@@ -248,7 +243,6 @@ val nwcModule = module {
     }
     factory { DiscoverWalletUseCase(repository = get()) }
     factory { SetWalletConnectionUseCase(repository = get()) }
-    factory { SetActiveWalletUseCase(repository = get()) }
     factory { RemoveWalletConnectionUseCase(repository = get()) }
     factory { SetPaymentConfirmationModeUseCase(repository = get()) }
     factory { SetPaymentConfirmationThresholdUseCase(repository = get()) }
@@ -301,8 +295,6 @@ val nwcModule = module {
             payInvoice = get(),
             lookupPayment = get(),
             observeWalletConnection = get(),
-            observeWallets = get(),
-            getActiveWalletTarget = get(),
             observeCurrencyPreference = get(),
             currencyManager = get(),
             bolt11Parser = get(),
@@ -327,9 +319,7 @@ val nwcModule = module {
 
     factory {
         WalletSettingsViewModel(
-            observeWallets = get(),
-            observeActiveWallet = get(),
-            setActiveWallet = get(),
+            observeWalletConnection = get(),
             removeWalletConnection = get()
         )
     }
@@ -376,7 +366,7 @@ val nwcModule = module {
     factory {
         ContactsSettingsViewModel(
             observeContacts = get(),
-            observeWallets = get(),
+            observeWalletConnection = get(),
             observeShortcuts = get(),
             saveContact = get(),
             updateContact = get(),
@@ -387,9 +377,8 @@ val nwcModule = module {
         )
     }
 
-    factory { (walletId: String) ->
+    factory {
         BlinkContactsImportViewModel(
-            walletId = walletId,
             fetchBlinkContacts = get(),
             getContacts = get(),
             saveContact = get(),
@@ -426,8 +415,7 @@ val nwcModule = module {
     factory {
         ConnectWalletViewModel(
             discoverWallet = get(),
-            setWalletConnection = get(),
-            getWallets = get()
+            setWalletConnection = get()
         )
     }
 

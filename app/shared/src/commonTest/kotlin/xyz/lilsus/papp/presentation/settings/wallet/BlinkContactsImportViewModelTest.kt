@@ -136,9 +136,8 @@ class BlinkContactsImportViewModelTest {
     ): TestContext {
         val contactsRepository = ContactsRepositoryImpl(MapSettings())
         val blinkRepository = mock<BlinkWalletAccountRepository>()
-        everySuspend { blinkRepository.fetchContacts(any<String>()) } returns blinkContacts
+        everySuspend { blinkRepository.fetchContacts() } returns blinkContacts
         val viewModel = BlinkContactsImportViewModel(
-            walletId = TEST_WALLET_ID,
             fetchBlinkContacts = FetchBlinkContactsUseCase(blinkRepository),
             getContacts = GetContactsUseCase(contactsRepository),
             saveContact = SaveContactUseCase(contactsRepository),
@@ -148,8 +147,4 @@ class BlinkContactsImportViewModelTest {
     }
 
     private data class TestContext(val viewModel: BlinkContactsImportViewModel, val contactsRepository: ContactsRepositoryImpl)
-
-    private companion object {
-        private const val TEST_WALLET_ID = "blink-test-wallet"
-    }
 }

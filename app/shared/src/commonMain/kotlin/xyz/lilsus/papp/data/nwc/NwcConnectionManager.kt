@@ -16,8 +16,8 @@ import xyz.lilsus.papp.platform.AppLifecycleObserver
 /**
  * Manages NWC client instances with caching and lifecycle awareness.
  *
- * Clients are cached by wallet URI and reused across operations. The active NWC wallet's
- * client is proactively created on startup for faster first payment. Clients are
+ * The connected wallet's client is reused across operations and proactively created on startup.
+ * It is
  * closed when the app goes to background to release resources.
  *
  * Note: NwcClient auto-connects when created and handles reconnection internally,
@@ -29,7 +29,7 @@ class NwcConnectionManager(
     private val clientFactory: NwcClientFactory,
     scope: CoroutineScope
 ) {
-    private val clients = mutableMapOf<String, NwcClient>()
+    private var client: NwcClient? = null
     private val mutex = Mutex()
 
     init {
@@ -52,16 +52,13 @@ class NwcConnectionManager(
     }
 
     /**
-     * Returns a cached or new NWC client for the given connection.
-     *
-     * If a specific connection is provided, returns a client for that connection.
-     * Otherwise, returns a client for the currently active wallet.
+     * Returns the cached client or creates one for the connected wallet.
      *
      * The client auto-connects on creation and handles reconnection internally,
      * so the returned client is ready to use (operations will wait for connection).
      */
-    suspend fun getClient(specificConnection: WalletConnection? = null): NwcClient {
-        val connection = specificConnection ?: walletSettings.getWalletConnection()
+    suspend fun getClient(): NwcClient {
+        val connection = walletSettings.getWalletConnection()
             ?: throw AppErrorException(AppError.MissingWalletConnection)
         return getOrCreateClient(connection)
     }
@@ -71,11 +68,9 @@ class NwcConnectionManager(
      * Client creation is synchronous, so we can safely do everything inside the mutex.
      */
     private suspend fun getOrCreateClient(connection: WalletConnection): NwcClient {
-        val walletUri = connection.requireNwcUri()
+        connection.requireNwcUri()
         return mutex.withLock {
-            clients.getOrPut(walletUri) {
-                clientFactory.create(connection)
-            }
+            client ?: clientFactory.create(connection).also { client = it }
         }
     }
 
@@ -84,29 +79,22 @@ class NwcConnectionManager(
      * Called when the app goes to background.
      */
     suspend fun disconnectAll() {
-        val clientsToClose = mutex.withLock {
-            val copy = clients.values.toList()
-            clients.clear()
-            copy
+        val clientToClose = mutex.withLock {
+            val current = client
+            client = null
+            current
         }
         // Close clients outside the mutex. Errors are ignored since close()
         // is best-effort cleanup and failures are non-actionable.
-        clientsToClose.forEach { client ->
-            runCatching { client.close() }
-        }
+        clientToClose?.let { runCatching { it.close() } }
     }
 
     /**
-     * Evicts and closes the cached client for the given wallet URI.
+     * Evicts and closes the cached client.
      * Called when a wallet is removed so its credentials and websocket
      * are not retained in memory until the app backgrounds.
      */
-    suspend fun evict(walletUri: String) {
-        val client = mutex.withLock { clients.remove(walletUri) }
-        if (client != null) {
-            runCatching { client.close() }
-        }
-    }
+    suspend fun evict() = disconnectAll()
 }
 
 private fun WalletConnection.requireNwcUri(): String {
