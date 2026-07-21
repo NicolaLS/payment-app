@@ -1,12 +1,12 @@
 [versions]
 agp = "9.3.0"
 ktlint = "14.2.0"
-androidx-activity = "1.12.2"
+androidx-activity = "1.13.0"
 androidx-appcompat = "1.7.1"
-androidx-core = "1.17.0"
-androidx-lifecycle = "2.9.6"
+androidx-core = "1.19.0"
+androidx-lifecycle = "2.11.0"
 # AndroidX lifecycle (for lifecycle-process); Compose Multiplatform lifecycle uses different versioning
-androidx-lifecycle-android = "2.9.4"
+androidx-lifecycle-android = "2.11.0"
 composeMultiplatform = "1.10.0"
 composeMaterial3 = "1.9.0"
 composeMaterialIconsExtended = "1.7.3"
