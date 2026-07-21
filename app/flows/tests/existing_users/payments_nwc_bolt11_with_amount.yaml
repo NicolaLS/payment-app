@@ -1,25 +1,11 @@
 appId: xyz.lilsus.papp.e2e
 ---
-- runScript: ../../utils/get_nwc_uri.js
-- launchApp:
-    clearState: true
-    clearKeychain: true
-    permissions:
-      all: allow
-    arguments:
-      e2eProfile: "nwc_user"
-      e2eReset: true
-      e2eFixtureJson: "${output.nwcFixtureJson}"
-
-- assertVisible:
-    id: "payment_screen"
+- runFlow: ../new_users/onboarding_complete_nwc.yaml
 
 - runScript: ../../utils/create_invoice.js
 - launchApp:
     arguments:
       e2ePaymentInput: "${output.bolt11}"
-- tapOn:
-    text: "Pay"
-    optional: true
+      e2ePaymentInputSource: "camera"
 
 - runScript: ../../utils/assert_invoice_paid.js

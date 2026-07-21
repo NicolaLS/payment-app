@@ -16,7 +16,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.window.layout.WindowMetricsCalculator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import xyz.lilsus.papp.e2e.applyE2eLaunchArguments
 import xyz.lilsus.papp.e2e.e2ePaymentInput
 import xyz.lilsus.papp.navigation.DeepLinkEvents
 import xyz.lilsus.papp.navigation.PaymentDeepLinkEvents
@@ -30,7 +29,6 @@ class E2eMainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         enforceOrientationForCurrentWindow()
-        applyE2eLaunchArguments(intent)
 
         setContent {
             App()
@@ -44,7 +42,6 @@ class E2eMainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        applyE2eLaunchArguments(intent)
         dispatchE2ePaymentInput(intent)
         intent.data?.let(::handleDeepLink)
     }
@@ -107,7 +104,7 @@ class E2eMainActivity : AppCompatActivity() {
         val paymentInput = intent.e2ePaymentInput() ?: return
         lifecycleScope.launch {
             delay(500)
-            PaymentDeepLinkEvents.emit(paymentInput)
+            PaymentDeepLinkEvents.emit(paymentInput.value, paymentInput.source)
         }
     }
 

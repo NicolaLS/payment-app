@@ -130,14 +130,14 @@ The NWC flows use:
 - `flows/utils/create_invoice.js`
 - `flows/utils/assert_invoice_paid.js`
 
-`get_nwc_uri.js` emits the fixture JSON expected by the app:
-
 ```text
-e2eProfile       new_user | nwc_user | blink_user | slow_internet_user
-e2eReset         true clears E2E wallet storage before applying fixtures
-e2eFixtureJson   JSON fixture data with concrete wallet values
 e2ePaymentInput  payment input to inject for a payment test run
 e2ePaymentInputSource  deep_link (default) | camera
 ```
+
+Wallet state is established through the normal onboarding flows. Payment input injection remains
+available so a flow can exercise the post-camera-scan path without relying on virtual camera input.
+`camera` follows the user's payment confirmation policy, while `deep_link` always requires
+confirmation. This hook simulates scanner output; it does not test camera capture or QR detection.
 
 Public deep-link tests should live in a separate release-oriented suite.

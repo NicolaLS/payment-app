@@ -13,27 +13,11 @@ if (response.status !== 200) {
   );
 }
 
-const wallet = walletFixture(body);
-if (!wallet) {
+if (!body || !body.uri) {
   throw new Error("NWC URI lookup did not return a wallet.");
 }
 
-output.nwcUri = wallet.uri;
-output.nwcFixtureJson = JSON.stringify({
-  wallet,
-});
-
-function walletFixture(item) {
-  if (!item || !item.uri) {
-    return null;
-  }
-  const itemNode = item.node || node;
-  return {
-    type: "nwc",
-    uri: rewriteRelayForDevice(item.uri),
-    alias: `${itemNode} NWC`,
-  };
-}
+output.nwcUri = rewriteRelayForDevice(body.uri);
 
 function rewriteRelayForDevice(uri) {
   const relay = resolveDeviceRelay();
