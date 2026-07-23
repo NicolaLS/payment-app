@@ -10,7 +10,7 @@ runs:
       run: |
         set -euo pipefail
 
-        wrapper="app/gradle/wrapper/gradle-wrapper.jar"
+        wrapper="gradle/wrapper/gradle-wrapper.jar"
         wrappers="$(find . -path '*/gradle-wrapper.jar' -type f | sort)"
         if [ "$wrappers" != "./$wrapper" ]; then
           echo "Unexpected Gradle wrapper jars:"

@@ -17,10 +17,12 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+kls_database.db
 app/kls_database.db
 
 # Generated app artifacts
 *.apk
 *.aab
 *.apks
-app/composeApp/release/
+.envrc.local
+**/.env.local

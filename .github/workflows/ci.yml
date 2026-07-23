@@ -9,31 +9,18 @@ env:
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "LICENSE"
-      - "assets/**"
-      - "test.apks"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "LICENSE"
-      - "assets/**"
-      - "test.apks"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  code-style:
-    name: Code Style (ktlint)
+  skeleton:
+    name: RAYL skeleton
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: app
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -50,83 +37,5 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Run ktlint
-        run: ./gradlew ktlintCheck
-
-  android-lint:
-    name: Android Lint
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: app
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Validate Gradle wrapper
-        uses: ./.github/actions/validate-gradle-wrapper
-
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Run Android Lint
-        run: ./gradlew :androidApp:lintDebug
-
-      - name: Upload lint results
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: lint-results
-          path: app/androidApp/build/reports/lint-results-debug.html
-          retention-days: 14
-
-  build:
-    name: Build & Test (Android)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: app
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Validate Gradle wrapper
-        uses: ./.github/actions/validate-gradle-wrapper
-
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Build Android Debug
-        run: ./gradlew :androidApp:assembleDebug
-
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v7
-        with:
-          name: debug-apk
-          path: app/androidApp/build/outputs/apk/debug/*.apk
-          retention-days: 14
-
-      - name: Run Unit Tests
-        run: ./gradlew :composeApp:allTests :androidApp:testDebugUnitTest
-
-      - name: Upload test results
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results
-          path: app/composeApp/build/reports/tests/
-          retention-days: 14
+      - name: Validate root project
+        run: ./gradlew projects ktlintCheck

@@ -1,43 +1,40 @@
-# Lasr
+# RAYL
 
-Lasr is a fast Lightning checkout app for Android and iOS. It connects to the wallet you
-already use, scans payment requests, and pays through Nostr Wallet Connect.
+RAYL is a suite of focused, open-source Lightning payment apps. Each app keeps
+the same fast checkout idea while compiling exactly one wallet provider or
+protocol integration.
 
-The app is built for in-person payments where the flow should stay simple: scan a QR code,
-review only when needed, and keep moving.
+The first two products are:
 
-## What It Supports
+- **Blip** — connects to Blink with an API key.
+- **Lasr** — connects through Nostr Wallet Connect.
 
-- BOLT11 invoices, with or without an amount
-- LNURL-pay
-- Lightning Addresses (LUD16)
-- Nostr Wallet Connect wallet links
-- Android and iOS from one Kotlin Multiplatform codebase
+Flint, Quark, Nutrino, and Femto currently reserve the future Spark, Ark,
+Cashu, and Fedimint product shapes.
 
-## Wallet Connections
+## Repository
 
-Lasr does not custody funds. It connects to an external Lightning wallet through NWC, so
-wallet permissions, balances, budgets, and payment limits stay with the wallet provider.
+RAYL is one Kotlin Multiplatform monorepo:
 
-Wallet connections can be added with `nostr+walletconnect://...` links.
+```text
+apps/<app>/shared
+apps/<app>/androidApp
+apps/<app>/iosApp
+foundation/ui
+```
 
-## Privacy and Safety
+The Gradle root is this directory. App implementations own provider behavior,
+credentials, storage, and release configuration. Shared foundation code is
+limited to behavior proven identical by multiple real apps.
 
-Lasr is intentionally narrow: it focuses on scanning and paying. The app should be used
-with wallets or NWC connections that have spending limits appropriate for quick checkout
-payments.
+The frozen combined application remains available at the signed `papp-final`
+tag and on the protected `papp-legacy` branch.
 
-- [Privacy Policy](privacy-policy.md)
-- [Terms and Conditions](terms-and-conditions.md)
+## Development status
 
-## Development
-
-The app workspace lives in [`app/`](app/). Build, test, and IDE commands should be run
-from that directory.
-
-- [Build and run the app](app/README.md)
-- [Release builds](docs/release.md)
-- [E2E and Maestro testing](docs/e2e.md)
+The suite extraction is in progress. See
+[IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) for the active task plan and
+tracked progress.
 
 ## License
 
