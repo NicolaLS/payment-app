@@ -21,7 +21,7 @@ Status key: `DONE`, `IN PROGRESS`, `NOT STARTED`
 | P0.2 Adopt ACINQ in legacy app | DONE | Commit `6e57bfd` removes the handwritten BOLT11 parser and uses ACINQ payment primitives. |
 | P0.3 Freeze gate | DONE | Signed tag `papp-final` and protected branch `papp-legacy` point to `6e57bfd` on GitHub. |
 | Milestone 1 — RAYL skeleton | DONE | GitHub repository and Gradle root are `rayl`; all six app shapes exist; `./gradlew projects ktlintCheck` passes from the Git root. |
-| Milestone 2 — Blip extraction | IN PROGRESS | Bootstrap the standalone Blink-only app under `apps/blip`. |
+| Milestone 2 — Blip extraction | IN PROGRESS | Android debug implementation candidate is ready for manual testing; milestone-only iOS/release validation and the manual capability/visual checklist remain. |
 | Milestone 3 — Lasr extraction | NOT STARTED | Explicitly outside the current implementation run. |
 
 Progress is updated in this table and in task-local completion notes as work is
@@ -48,6 +48,25 @@ current evidence.
   They remain recoverable from `papp-final`.
 - Verified the skeleton from the Git root with
   `./gradlew projects ktlintCheck`.
+
+#### 2026-07-23 — Blip Android implementation candidate
+
+| Blip task | Status | Current evidence / remaining gate |
+| --- | --- | --- |
+| B1 Bootstrap | DONE | Independent shared, Android, and iOS shell projects exist with Blip IDs/namespaces; the Xcode workspace lists `BlipApp`; Android debug resolves ACINQ/Apollo/SQLDelight and assembles. |
+| B2 Decisions and boundaries | DONE | ADRs 0001–0006 record layer, money/outcome, lifecycle, persistence/vault, protocol/privacy, and intentionally-small-test decisions. `verifyBlipArchitecture` enforces the pure-domain, NWC, and no-migrated-test boundaries. |
+| B3 Visual product | IMPLEMENTED — MANUAL CHECK PENDING | App-owned Compose onboarding, scanner hero, payment states, transactions, settings, contacts, shortcuts, themes, and typography use the established product tokens/resources. Android visual comparison remains part of the user/QA handoff. |
+| B4 Core and persistence | DONE | Validated values, fixed-point currency conversion/rate snapshots, SQLDelight connection/attempt/contact/shortcut storage, bounded transitions, duplicate policy, typed preferences, and Android Keystore AES-GCM credential storage are wired. No tests were migrated or added. |
+| B5 Blink provisioning | DONE | Ephemeral redacted API-key entry, stable provider-code mapping, generated account/default-wallet discovery, connection generations, refresh, contact import, disconnect, and reconnect are wired. |
+| B6 Input/protocol trust | DONE | One resolver handles all origins using ACINQ BOLT11/BOLT12/Bech32/hash APIs, BIP21, strict LNURL/Lightning-address policy, amount/metadata checks, and explicit unsupported classifications. |
+| B7 Payment coordinator | DONE | One serialized coordinator writes attempts before provider I/O, preserves pending/unknown, blocks repeated invoice hashes, and reconciles with the original connection and wallet generation. |
+| B8 Complete Android product wiring | IMPLEMENTED — MANUAL CHECK PENDING | Onboarding, scan/paste/manual/app-link input, amount/confirmation/payment/result, transaction detail, contacts/shortcuts, currency/rates, preferences, haptics, donation, language/theme, and wallet management are connected through typed routes and separate feature states. |
+| B9 Platform boundaries | ANDROID DONE; IOS DEFERRED | CameraX/ML Kit, clipboard, haptics, lifecycle, locale, app links, secure storage, backup/network policy, and packaging are wired on Android. The independent iOS shell is structural only until the milestone-close platform pass. |
+| B10 Verify/close | IN PROGRESS | `verifyBlipArchitecture`, `ktlintCheck`, and `:apps:blip:androidApp:assembleDebug` pass. APK/dependency/manifest inspection finds no NWC implementation or scheme. User/QA manual Android testing is next; iOS/release and the full manual matrix remain milestone-close work. |
+
+This checkpoint intentionally stops at the Android debug handoff requested for
+manual testing. It does not claim the Milestone 2 exit gate: the plan still
+requires the dedicated iOS/release pass and manual capability/visual sign-off.
 
 ## 1. Goal
 

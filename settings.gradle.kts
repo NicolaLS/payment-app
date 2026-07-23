@@ -31,3 +31,6 @@ dependencyResolutionManagement {
         maven("https://central.sonatype.com/repository/maven-snapshots/")
     }
 }
+
+include(":apps:blip:shared")
+include(":apps:blip:androidApp")

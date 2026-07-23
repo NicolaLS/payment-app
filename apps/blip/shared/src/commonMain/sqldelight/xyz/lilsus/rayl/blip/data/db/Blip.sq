@@ -1,0 +1,217 @@
+CREATE TABLE connection_profile (
+    id TEXT NOT NULL PRIMARY KEY,
+    alias TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    wallet_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE payment_attempt (
+    id TEXT NOT NULL PRIMARY KEY,
+    connection_id TEXT NOT NULL,
+    request TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    payment_hash TEXT NOT NULL,
+    amount_msat INTEGER NOT NULL,
+    origin TEXT NOT NULL,
+    state TEXT NOT NULL,
+    provider_correlation TEXT,
+    created_at INTEGER NOT NULL,
+    submitted_at INTEGER,
+    updated_at INTEGER NOT NULL,
+    fees_msat INTEGER,
+    preimage TEXT,
+    failure_code TEXT,
+    FOREIGN KEY (connection_id) REFERENCES connection_profile(id)
+);
+
+CREATE INDEX payment_attempt_fingerprint
+ON payment_attempt(fingerprint);
+
+CREATE INDEX payment_attempt_state
+ON payment_attempt(state);
+
+CREATE TABLE payment_transition (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    attempt_id TEXT NOT NULL,
+    state TEXT NOT NULL,
+    occurred_at INTEGER NOT NULL,
+    detail_code TEXT,
+    FOREIGN KEY (attempt_id) REFERENCES payment_attempt(id)
+);
+
+CREATE TABLE contact (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    lightning_address TEXT NOT NULL,
+    source TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX contact_lightning_address
+ON contact(lightning_address);
+
+CREATE TABLE shortcut (
+    id TEXT NOT NULL PRIMARY KEY,
+    contact_id TEXT,
+    label TEXT NOT NULL,
+    lightning_address TEXT NOT NULL,
+    amount_msat INTEGER,
+    currency_code TEXT,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (contact_id) REFERENCES contact(id)
+);
+
+selectConnection:
+SELECT * FROM connection_profile
+WHERE status != 'DISCONNECTED'
+ORDER BY created_at DESC
+LIMIT 1;
+
+selectConnectionById:
+SELECT * FROM connection_profile
+WHERE id = ?;
+
+insertConnection:
+INSERT INTO connection_profile(
+    id,
+    alias,
+    account_id,
+    wallet_id,
+    status,
+    created_at
+)
+VALUES (?, ?, ?, ?, ?, ?);
+
+disconnectConnection:
+UPDATE connection_profile
+SET status = 'DISCONNECTED'
+WHERE id = ?;
+
+updateConnectionWallet:
+UPDATE connection_profile
+SET wallet_id = ?,
+    status = ?
+WHERE id = ?;
+
+updateConnectionStatus:
+UPDATE connection_profile
+SET status = ?
+WHERE id = ?;
+
+insertAttempt:
+INSERT INTO payment_attempt(
+    id,
+    connection_id,
+    request,
+    fingerprint,
+    payment_hash,
+    amount_msat,
+    origin,
+    state,
+    provider_correlation,
+    created_at,
+    submitted_at,
+    updated_at,
+    fees_msat,
+    preimage,
+    failure_code
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectAttempt:
+SELECT * FROM payment_attempt
+WHERE id = ?;
+
+selectAttempts:
+SELECT * FROM payment_attempt
+ORDER BY created_at DESC;
+
+selectNonFinalAttempts:
+SELECT * FROM payment_attempt
+WHERE state IN ('CREATED', 'SUBMITTED', 'PENDING', 'UNKNOWN')
+ORDER BY created_at ASC;
+
+selectAttemptsByFingerprint:
+SELECT * FROM payment_attempt
+WHERE fingerprint = ?
+ORDER BY created_at DESC;
+
+selectAttemptsByPaymentHash:
+SELECT * FROM payment_attempt
+WHERE payment_hash = ?
+ORDER BY created_at DESC;
+
+updateAttemptState:
+UPDATE payment_attempt
+SET state = :state,
+    provider_correlation = COALESCE(:provider_correlation, provider_correlation),
+    submitted_at = COALESCE(:submitted_at, submitted_at),
+    updated_at = :updated_at,
+    fees_msat = :fees_msat,
+    preimage = :preimage,
+    failure_code = :failure_code
+WHERE id = :id;
+
+insertTransition:
+INSERT INTO payment_transition(
+    attempt_id,
+    state,
+    occurred_at,
+    detail_code
+)
+VALUES (?, ?, ?, ?);
+
+trimTransitions:
+DELETE FROM payment_transition
+WHERE attempt_id = ?
+  AND id NOT IN (
+      SELECT id
+      FROM payment_transition
+      WHERE attempt_id = ?
+      ORDER BY occurred_at DESC
+      LIMIT 20
+  );
+
+selectContacts:
+SELECT * FROM contact
+ORDER BY name COLLATE NOCASE;
+
+selectContactByAddress:
+SELECT * FROM contact
+WHERE lightning_address = ?;
+
+insertContact:
+INSERT OR REPLACE INTO contact(
+    id,
+    name,
+    lightning_address,
+    source,
+    created_at
+)
+VALUES (?, ?, ?, ?, ?);
+
+deleteContact:
+DELETE FROM contact
+WHERE id = ?;
+
+selectShortcuts:
+SELECT * FROM shortcut
+ORDER BY created_at DESC;
+
+insertShortcut:
+INSERT OR REPLACE INTO shortcut(
+    id,
+    contact_id,
+    label,
+    lightning_address,
+    amount_msat,
+    currency_code,
+    created_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+deleteShortcut:
+DELETE FROM shortcut
+WHERE id = ?;
