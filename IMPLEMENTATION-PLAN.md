@@ -21,7 +21,7 @@ Status key: `DONE`, `IN PROGRESS`, `NOT STARTED`
 | P0.2 Adopt ACINQ in legacy app | DONE | Commit `6e57bfd` removes the handwritten BOLT11 parser and uses ACINQ payment primitives. |
 | P0.3 Freeze gate | DONE | Signed tag `papp-final` and protected branch `papp-legacy` point to `6e57bfd` on GitHub. |
 | Milestone 1 — RAYL skeleton | DONE | GitHub repository and Gradle root are `rayl`; all six app shapes exist; `./gradlew projects ktlintCheck` passes from the Git root. |
-| Milestone 2 — Blip extraction | IN PROGRESS | Android debug implementation candidate is ready for manual testing; milestone-only iOS/release validation and the manual capability/visual checklist remain. |
+| Milestone 2 — Blip extraction | REVIEW CHECKPOINT | Android debug candidate is installed and launches on a physical device. The functional iOS debug app also builds. Manual product/visual review is next; release validation is explicitly deferred and must not be run during implementation review. |
 | Milestone 3 — Lasr extraction | NOT STARTED | Explicitly outside the current implementation run. |
 
 Progress is updated in this table and in task-local completion notes as work is
@@ -55,18 +55,19 @@ current evidence.
 | --- | --- | --- |
 | B1 Bootstrap | DONE | Independent shared, Android, and iOS shell projects exist with Blip IDs/namespaces; the Xcode workspace lists `BlipApp`; Android debug resolves ACINQ/Apollo/SQLDelight and assembles. |
 | B2 Decisions and boundaries | DONE | ADRs 0001–0006 record layer, money/outcome, lifecycle, persistence/vault, protocol/privacy, and intentionally-small-test decisions. `verifyBlipArchitecture` enforces the pure-domain, NWC, and no-migrated-test boundaries. |
-| B3 Visual product | IMPLEMENTED — MANUAL CHECK PENDING | App-owned Compose onboarding, scanner hero, payment states, transactions, settings, contacts, shortcuts, themes, and typography use the established product tokens/resources. Android visual comparison remains part of the user/QA handoff. |
+| B3 Visual product | IMPLEMENTED — MANUAL CHECK PENDING | App-owned Compose onboarding, scanner hero, payment states, transactions, settings, editable contacts/shortcuts, themes, typography, Android/iOS icons, and resources use the established product assets. Visual comparison remains part of the user/QA handoff. |
 | B4 Core and persistence | DONE | Validated values, fixed-point currency conversion/rate snapshots, SQLDelight connection/attempt/contact/shortcut storage, bounded transitions, duplicate policy, typed preferences, and Android Keystore AES-GCM credential storage are wired. No tests were migrated or added. |
 | B5 Blink provisioning | DONE | Ephemeral redacted API-key entry, stable provider-code mapping, generated account/default-wallet discovery, connection generations, refresh, contact import, disconnect, and reconnect are wired. |
 | B6 Input/protocol trust | DONE | One resolver handles all origins using ACINQ BOLT11/BOLT12/Bech32/hash APIs, BIP21, strict LNURL/Lightning-address policy, amount/metadata checks, and explicit unsupported classifications. |
 | B7 Payment coordinator | DONE | One serialized coordinator writes attempts before provider I/O, preserves pending/unknown, blocks repeated invoice hashes, and reconciles with the original connection and wallet generation. |
-| B8 Complete Android product wiring | IMPLEMENTED — MANUAL CHECK PENDING | Onboarding, scan/paste/manual/app-link input, amount/confirmation/payment/result, transaction detail, contacts/shortcuts, currency/rates, preferences, haptics, donation, language/theme, and wallet management are connected through typed routes and separate feature states. |
-| B9 Platform boundaries | ANDROID DONE; IOS DEFERRED | CameraX/ML Kit, clipboard, haptics, lifecycle, locale, app links, secure storage, backup/network policy, and packaging are wired on Android. The independent iOS shell is structural only until the milestone-close platform pass. |
-| B10 Verify/close | IN PROGRESS | `verifyBlipArchitecture`, `ktlintCheck`, and `:apps:blip:androidApp:assembleDebug` pass. APK/dependency/manifest inspection finds no NWC implementation or scheme. User/QA manual Android testing is next; iOS/release and the full manual matrix remain milestone-close work. |
+| B8 Complete product wiring | IMPLEMENTED — MANUAL CHECK PENDING | Onboarding, scan/paste/manual/app-link input, amount/confirmation/payment/result, transaction detail, editable contacts/shortcuts (including fiat-at-payment-time shortcuts), currency/rates, preferences, haptics, donation, language/theme, and wallet management are connected through typed routes and separate feature states. |
+| B9 Platform boundaries | DEBUG IMPLEMENTATION DONE | Android uses CameraX/ML Kit, Keystore, private preferences, clipboard, haptics, locale and lifecycle adapters. iOS now uses AVFoundation, Keychain, SQLDelight Native, `NSUserDefaults`, clipboard/haptics, a Compose host, and queued standard payment links. Both advertise only `lightning`, `bitcoin`, and `lnurl`. |
+| B10 Verify/close | REVIEW CHECKPOINT | `verifyBlipArchitecture`, formatting, and `:apps:blip:androidApp:assembleDebug` pass; the APK installs and cold-starts on a physical Android device. The iOS debug framework and application build. No tests were migrated or added. User/QA manual capability and visual review is next. Release validation is deferred and must not be run for this review checkpoint. |
 
-This checkpoint intentionally stops at the Android debug handoff requested for
-manual testing. It does not claim the Milestone 2 exit gate: the plan still
-requires the dedicated iOS/release pass and manual capability/visual sign-off.
+This checkpoint intentionally stops at the debug handoff requested for manual
+testing. It does not claim the final Milestone 2 exit gate: user/QA capability
+and visual sign-off remain, and release validation is deferred to an explicitly
+requested later checkpoint.
 
 ## 1. Goal
 
@@ -233,12 +234,12 @@ not routinely run release builds, iOS builds, Kotlin/Native links, every-target
 test tasks, full project checks that transitively build all targets, or the
 complete validation matrix for each task or commit.
 
-Cross-target, iOS, and release validation happens once at the explicit
-milestone-close gates and later release-readiness work. It is not part of the
-inner development loop and must not be added to individual task acceptance
-criteria. A platform-specific exception may be investigated when Android debug
-cannot exercise the code at all, but it must remain narrow and must not expand
-into routine all-target validation.
+Cross-target or iOS debug validation happens only when explicitly requested at
+a milestone or when Android cannot exercise platform-specific implementation.
+Release builds are separate release-readiness work: never run an Android or iOS
+release build merely because an implementation milestone is closing. They
+require an explicit user request. None of these tasks belongs in the inner
+development loop or individual task acceptance criteria.
 
 ## 4. Prerequisite gate: adopt the ACINQ KMP stack
 

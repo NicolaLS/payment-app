@@ -1,6 +1,5 @@
 package xyz.lilsus.rayl.blip.presentation
 
-import fr.acinq.lightning.MilliSatoshi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -142,7 +141,8 @@ sealed interface PayMode {
         val pending: PendingAmount,
         val minSats: Long? = null,
         val maxSats: Long? = null,
-        val suggestedSats: Long? = null
+        val suggestedValue: String? = null,
+        val suggestedCurrency: CurrencyCode = CurrencyCode.Sat
     ) : PayMode
 
     data class Confirm(val draft: PaymentDraft) : PayMode
@@ -165,7 +165,8 @@ sealed interface PayAction {
     data class Resolve(
         val input: String,
         val origin: PaymentOrigin,
-        val suggestedSats: Long? = null
+        val suggestedValue: String? = null,
+        val suggestedCurrency: CurrencyCode = CurrencyCode.Sat
     ) : PayAction
 
     data class SubmitAmount(
@@ -218,28 +219,56 @@ class PayStore(private val runtime: BlipRuntime, private val scope: CoroutineSco
             val resolution = runtime.inputResolver.resolve(action.input, action.origin)
             when {
                 resolution is InputResolution.NeedsLnurlAmount &&
-                    action.suggestedSats != null -> {
-                    val amount = action.suggestedSats.toMilliSatoshiOrNull()
-                    if (amount == null) {
+                    action.suggestedValue != null -> {
+                    val converted = runtime.exchangeRates.toMilliSatoshi(
+                        action.suggestedValue,
+                        action.suggestedCurrency
+                    )
+                    if (converted == null) {
                         showFailure(PaymentFailure.InvalidRequest)
                     } else {
-                        handleResolution(
-                            runtime.inputResolver.requestLnurlInvoice(
-                                request = resolution.request,
-                                amount = amount,
-                                comment = null
-                            ),
-                            action.suggestedSats
+                        val invoiceResolution = runtime.inputResolver.requestLnurlInvoice(
+                            request = resolution.request,
+                            amount = converted.amount,
+                            comment = null
                         )
+                        handleResolutionWithRate(invoiceResolution, converted)
                     }
                 }
 
-                else -> handleResolution(resolution, action.suggestedSats)
+                resolution is InputResolution.NeedsAmount &&
+                    action.suggestedValue != null -> {
+                    val converted = runtime.exchangeRates.toMilliSatoshi(
+                        action.suggestedValue,
+                        action.suggestedCurrency
+                    )
+                    if (converted == null) {
+                        showFailure(PaymentFailure.InvalidRequest)
+                    } else {
+                        val withAmount = runtime.inputResolver.withAmount(
+                            invoice = resolution.invoice,
+                            normalizedRequest = resolution.normalizedRequest,
+                            amount = converted.amount,
+                            origin = resolution.origin
+                        )
+                        handleResolutionWithRate(withAmount, converted)
+                    }
+                }
+
+                else -> handleResolution(
+                    resolution = resolution,
+                    suggestedValue = action.suggestedValue,
+                    suggestedCurrency = action.suggestedCurrency
+                )
             }
         }
     }
 
-    private suspend fun handleResolution(resolution: InputResolution, suggestedSats: Long?) {
+    private suspend fun handleResolution(
+        resolution: InputResolution,
+        suggestedValue: String? = null,
+        suggestedCurrency: CurrencyCode = CurrencyCode.Sat
+    ) {
         when (resolution) {
             is InputResolution.Ready -> preparePayment(resolution.draft)
 
@@ -250,7 +279,8 @@ class PayStore(private val runtime: BlipRuntime, private val scope: CoroutineSco
                         request = resolution.normalizedRequest,
                         origin = resolution.origin
                     ),
-                    suggestedSats = suggestedSats
+                    suggestedValue = suggestedValue,
+                    suggestedCurrency = suggestedCurrency
                 )
             )
 
@@ -259,7 +289,8 @@ class PayStore(private val runtime: BlipRuntime, private val scope: CoroutineSco
                     pending = PendingAmount.Lnurl(resolution.request),
                     minSats = resolution.request.minSendable.msat.roundUpToSats(),
                     maxSats = resolution.request.maxSendable.msat / 1_000L,
-                    suggestedSats = suggestedSats
+                    suggestedValue = suggestedValue,
+                    suggestedCurrency = suggestedCurrency
                 )
             )
 
@@ -269,6 +300,20 @@ class PayStore(private val runtime: BlipRuntime, private val scope: CoroutineSco
 
             is InputResolution.Rejected -> showFailure(resolution.failure)
         }
+    }
+
+    private suspend fun handleResolutionWithRate(
+        resolution: InputResolution,
+        converted: xyz.lilsus.rayl.blip.domain.ConvertedAmount
+    ) {
+        val withRate = if (resolution is InputResolution.Ready) {
+            InputResolution.Ready(
+                resolution.draft.copy(rateSnapshot = converted.rateSnapshot)
+            )
+        } else {
+            resolution
+        }
+        handleResolution(withRate)
     }
 
     private fun submitAmount(action: PayAction.SubmitAmount) {
@@ -304,7 +349,7 @@ class PayStore(private val runtime: BlipRuntime, private val scope: CoroutineSco
             } else {
                 resolution
             }
-            handleResolution(ready, converted.amount.msat.roundUpToSats())
+            handleResolution(ready)
         }
     }
 
@@ -404,9 +449,22 @@ sealed interface SettingsAction {
     data object RefreshWallet : SettingsAction
     data object ImportBlinkContacts : SettingsAction
     data class AddContact(val name: String, val address: String) : SettingsAction
-    data class DeleteContact(val id: ContactId) : SettingsAction
-    data class AddShortcut(val label: String, val address: String, val amountSats: Long?) :
+    data class UpdateContact(val id: ContactId, val name: String, val address: String) :
         SettingsAction
+    data class DeleteContact(val id: ContactId) : SettingsAction
+    data class AddShortcut(
+        val label: String,
+        val address: String,
+        val amountValue: String?,
+        val currency: CurrencyCode?
+    ) : SettingsAction
+    data class UpdateShortcut(
+        val id: ShortcutId,
+        val label: String,
+        val address: String,
+        val amountValue: String?,
+        val currency: CurrencyCode?
+    ) : SettingsAction
 
     data class DeleteShortcut(val id: ShortcutId) : SettingsAction
 }
@@ -462,20 +520,44 @@ class SettingsStore(private val runtime: BlipRuntime, private val scope: Corouti
                 )
             }
 
+            is SettingsAction.UpdateContact -> {
+                val saved = runtime.addressBook.updateContact(
+                    action.id,
+                    action.name,
+                    action.address
+                )
+                mutableState.value = snapshot().copy(
+                    message = if (saved == null) "Enter a valid contact" else "Contact updated"
+                )
+            }
+
             is SettingsAction.DeleteContact -> {
                 runtime.addressBook.deleteContact(action.id)
                 mutableState.value = snapshot().copy(message = "Contact deleted")
             }
 
             is SettingsAction.AddShortcut -> {
-                val amountMsat = action.amountSats?.toMilliSatoshiOrNull()?.msat
                 val saved = runtime.addressBook.addShortcut(
                     label = action.label,
                     lightningAddress = action.address,
-                    amountMsat = amountMsat
+                    amountValue = action.amountValue,
+                    currency = action.currency
                 )
                 mutableState.value = snapshot().copy(
                     message = if (saved == null) "Enter a valid shortcut" else "Shortcut saved"
+                )
+            }
+
+            is SettingsAction.UpdateShortcut -> {
+                val saved = runtime.addressBook.updateShortcut(
+                    id = action.id,
+                    label = action.label,
+                    lightningAddress = action.address,
+                    amountValue = action.amountValue,
+                    currency = action.currency
+                )
+                mutableState.value = snapshot().copy(
+                    message = if (saved == null) "Enter a valid shortcut" else "Shortcut updated"
                 )
             }
 
@@ -508,9 +590,5 @@ class SettingsStore(private val runtime: BlipRuntime, private val scope: Corouti
         shortcuts = runtime.addressBook.shortcuts()
     )
 }
-
-private fun Long.toMilliSatoshiOrNull(): MilliSatoshi? =
-    takeIf { it > 0L && it <= Long.MAX_VALUE / 1_000L }
-        ?.let { MilliSatoshi(it * 1_000L) }
 
 private fun Long.roundUpToSats(): Long = if (this <= 0L) 0L else ((this - 1L) / 1_000L) + 1L

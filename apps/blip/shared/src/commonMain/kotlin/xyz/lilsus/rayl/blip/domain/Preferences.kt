@@ -55,4 +55,34 @@ data class PaymentShortcut(
     val amount: Long?,
     val currencyCode: String?,
     val createdAtMillis: Long
-)
+) {
+    fun amountInput(): String? {
+        val encoded = amount ?: return null
+        val currency = currencyCode?.let(CurrencyCode::parse)
+        if (currency == null) {
+            return if (currencyCode == "MSAT") {
+                formatEncodedAmount(encoded, 3)
+            } else {
+                null
+            }
+        }
+        val scale = when (currency) {
+            CurrencyCode.Sat -> 0
+            CurrencyCode.Btc -> 11
+            else -> 6
+        }
+        return formatEncodedAmount(encoded, scale)
+    }
+
+    fun currency(): CurrencyCode? = currencyCode?.let(CurrencyCode::parse)
+        ?: if (currencyCode == "MSAT") CurrencyCode.Sat else null
+}
+
+private fun formatEncodedAmount(value: Long, scale: Int): String {
+    if (scale == 0) return value.toString()
+    var factor = 1L
+    repeat(scale) { factor *= 10L }
+    val whole = value / factor
+    val fraction = (value % factor).toString().padStart(scale, '0').trimEnd('0')
+    return if (fraction.isEmpty()) whole.toString() else "$whole.$fraction"
+}

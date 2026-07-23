@@ -36,6 +36,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LightMode
@@ -106,11 +107,13 @@ import xyz.lilsus.rayl.blip.data.UnsupportedInput
 import xyz.lilsus.rayl.blip.domain.ConfirmationMode
 import xyz.lilsus.rayl.blip.domain.ConnectBlinkOutcome
 import xyz.lilsus.rayl.blip.domain.ConnectionStatus
+import xyz.lilsus.rayl.blip.domain.Contact
 import xyz.lilsus.rayl.blip.domain.CurrencyCode
 import xyz.lilsus.rayl.blip.domain.PaymentAttempt
 import xyz.lilsus.rayl.blip.domain.PaymentAttemptState
 import xyz.lilsus.rayl.blip.domain.PaymentFailure
 import xyz.lilsus.rayl.blip.domain.PaymentOrigin
+import xyz.lilsus.rayl.blip.domain.PaymentShortcut
 import xyz.lilsus.rayl.blip.platform.AppThemePreference
 import xyz.lilsus.rayl.blip.platform.BlipRuntime
 import xyz.lilsus.rayl.blip.platform.ScannerViewport
@@ -213,7 +216,7 @@ fun BlipApp(
                         PayAction.Resolve(
                             input = "lilsus@blink.sv",
                             origin = PaymentOrigin.Shortcut,
-                            suggestedSats = sats
+                            suggestedValue = sats.toString()
                         )
                     )
                 }
@@ -230,13 +233,14 @@ fun BlipApp(
                 state = settingsState,
                 store = settingsStore,
                 onBack = { route = AppRoute.Settings },
-                onPay = { address, sats ->
+                onPay = { address, amount, currency ->
                     route = AppRoute.Home
                     payStore.dispatch(
                         PayAction.Resolve(
                             input = address,
                             origin = PaymentOrigin.Shortcut,
-                            suggestedSats = sats
+                            suggestedValue = amount,
+                            suggestedCurrency = currency
                         )
                     )
                 }
@@ -705,11 +709,13 @@ private fun PaymentScreen(
 @Composable
 private fun AmountSheet(mode: PayMode.EnterAmount, store: PayStore, runtime: BlipRuntime) {
     val preferences by runtime.preferences.values.collectAsState()
-    val currency = CurrencyCode.parse(preferences.primaryCurrency) ?: CurrencyCode.Sat
+    val currency = if (mode.suggestedValue != null) {
+        mode.suggestedCurrency
+    } else {
+        CurrencyCode.parse(preferences.primaryCurrency) ?: CurrencyCode.Sat
+    }
     var amount by remember(mode) {
-        mutableStateOf(
-            if (currency == CurrencyCode.Sat) mode.suggestedSats?.toString().orEmpty() else ""
-        )
+        mutableStateOf(mode.suggestedValue.orEmpty())
     }
     var comment by remember(mode) { mutableStateOf("") }
     ModalBottomSheet(onDismissRequest = { store.dispatch(PayAction.Dismiss) }) {
@@ -1244,10 +1250,12 @@ private fun ContactsScreen(
     state: SettingsUiState,
     store: SettingsStore,
     onBack: () -> Unit,
-    onPay: (String, Long?) -> Unit
+    onPay: (String, String?, CurrencyCode) -> Unit
 ) {
     var showContactForm by remember { mutableStateOf(false) }
     var showShortcutForm by remember { mutableStateOf(false) }
+    var editingContact by remember { mutableStateOf<Contact?>(null) }
+    var editingShortcut by remember { mutableStateOf<PaymentShortcut?>(null) }
     StandardScaffold(title = "Contacts & Shortcuts", onBack = onBack) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding)
@@ -1284,23 +1292,35 @@ private fun ContactsScreen(
                     supportingContent = {
                         Text(
                             buildString {
-                                shortcut.amount?.let {
-                                    append("${it.roundUpToSats()} sats • ")
+                                shortcut.amountInput()?.let { amount ->
+                                    append(amount)
+                                    append(' ')
+                                    append(shortcut.currency()?.value ?: "SAT")
+                                    append(" • ")
                                 }
                                 append(shortcut.lightningAddress)
                             }
                         )
                     },
                     modifier = Modifier.clickable {
-                        onPay(shortcut.lightningAddress, shortcut.amount?.roundUpToSats())
+                        onPay(
+                            shortcut.lightningAddress,
+                            shortcut.amountInput(),
+                            shortcut.currency() ?: CurrencyCode.Sat
+                        )
                     },
                     trailingContent = {
-                        IconButton(
-                            onClick = {
-                                store.dispatch(SettingsAction.DeleteShortcut(shortcut.id))
+                        Row {
+                            IconButton(onClick = { editingShortcut = shortcut }) {
+                                Icon(Icons.Rounded.Edit, contentDescription = "Edit shortcut")
                             }
-                        ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = "Delete shortcut")
+                            IconButton(
+                                onClick = {
+                                    store.dispatch(SettingsAction.DeleteShortcut(shortcut.id))
+                                }
+                            ) {
+                                Icon(Icons.Rounded.Delete, contentDescription = "Delete shortcut")
+                            }
                         }
                     }
                 )
@@ -1310,14 +1330,21 @@ private fun ContactsScreen(
                 ListItem(
                     headlineContent = { Text(contact.name) },
                     supportingContent = { Text(contact.lightningAddress) },
-                    modifier = Modifier.clickable { onPay(contact.lightningAddress, null) },
+                    modifier = Modifier.clickable {
+                        onPay(contact.lightningAddress, null, CurrencyCode.Sat)
+                    },
                     trailingContent = {
-                        IconButton(
-                            onClick = {
-                                store.dispatch(SettingsAction.DeleteContact(contact.id))
+                        Row {
+                            IconButton(onClick = { editingContact = contact }) {
+                                Icon(Icons.Rounded.Edit, contentDescription = "Edit contact")
                             }
-                        ) {
-                            Icon(Icons.Rounded.Delete, contentDescription = "Delete contact")
+                            IconButton(
+                                onClick = {
+                                    store.dispatch(SettingsAction.DeleteContact(contact.id))
+                                }
+                            ) {
+                                Icon(Icons.Rounded.Delete, contentDescription = "Delete contact")
+                            }
                         }
                     }
                 )
@@ -1336,9 +1363,37 @@ private fun ContactsScreen(
     if (showShortcutForm) {
         ShortcutForm(
             onDismiss = { showShortcutForm = false },
-            onSave = { label, address, sats ->
-                store.dispatch(SettingsAction.AddShortcut(label, address, sats))
+            onSave = { label, address, amount, currency ->
+                store.dispatch(SettingsAction.AddShortcut(label, address, amount, currency))
                 showShortcutForm = false
+            }
+        )
+    }
+    editingContact?.let { contact ->
+        ContactForm(
+            contact = contact,
+            onDismiss = { editingContact = null },
+            onSave = { name, address ->
+                store.dispatch(SettingsAction.UpdateContact(contact.id, name, address))
+                editingContact = null
+            }
+        )
+    }
+    editingShortcut?.let { shortcut ->
+        ShortcutForm(
+            shortcut = shortcut,
+            onDismiss = { editingShortcut = null },
+            onSave = { label, address, amount, currency ->
+                store.dispatch(
+                    SettingsAction.UpdateShortcut(
+                        id = shortcut.id,
+                        label = label,
+                        address = address,
+                        amountValue = amount,
+                        currency = currency
+                    )
+                )
+                editingShortcut = null
             }
         )
     }
@@ -1354,12 +1409,16 @@ private fun SectionLabel(value: String) {
 }
 
 @Composable
-private fun ContactForm(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+private fun ContactForm(
+    contact: Contact? = null,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit
+) {
+    var name by remember(contact) { mutableStateOf(contact?.name.orEmpty()) }
+    var address by remember(contact) { mutableStateOf(contact?.lightningAddress.orEmpty()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add contact") },
+        title = { Text(if (contact == null) "Add contact" else "Edit contact") },
         text = {
             Column {
                 OutlinedTextField(
@@ -1383,13 +1442,20 @@ private fun ContactForm(onDismiss: () -> Unit, onSave: (String, String) -> Unit)
 }
 
 @Composable
-private fun ShortcutForm(onDismiss: () -> Unit, onSave: (String, String, Long?) -> Unit) {
-    var label by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
+private fun ShortcutForm(
+    shortcut: PaymentShortcut? = null,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String?, CurrencyCode?) -> Unit
+) {
+    var label by remember(shortcut) { mutableStateOf(shortcut?.label.orEmpty()) }
+    var address by remember(shortcut) { mutableStateOf(shortcut?.lightningAddress.orEmpty()) }
+    var amount by remember(shortcut) { mutableStateOf(shortcut?.amountInput().orEmpty()) }
+    var currency by remember(shortcut) {
+        mutableStateOf(shortcut?.currency() ?: CurrencyCode.Sat)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add shortcut") },
+        title = { Text(if (shortcut == null) "Add shortcut" else "Edit shortcut") },
         text = {
             Column {
                 OutlinedTextField(
@@ -1406,15 +1472,58 @@ private fun ShortcutForm(onDismiss: () -> Unit, onSave: (String, String, Long?) 
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { if (it.all(Char::isDigit)) amount = it },
-                    label = { Text("Satoshis (optional)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    onValueChange = {
+                        if (
+                            it.count { character -> character == '.' } <= 1 &&
+                            it.all { character -> character.isDigit() || character == '.' }
+                        ) {
+                            amount = it
+                        }
+                    },
+                    label = { Text("Amount (optional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text("Currency", style = MaterialTheme.typography.labelLarge)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(
+                        CurrencyCode.Sat,
+                        CurrencyCode.require("USD"),
+                        CurrencyCode.require("EUR")
+                    ).forEach { option ->
+                        AssistChip(
+                            onClick = { currency = option },
+                            label = {
+                                Text(
+                                    if (currency == option) {
+                                        "✓ ${option.value}"
+                                    } else {
+                                        option.value
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+                Text(
+                    if (currency == CurrencyCode.Sat) {
+                        "The shortcut stores this exact satoshi amount."
+                    } else {
+                        "The current exchange rate is used when you pay."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(label, address, amount.toLongOrNull()) }
+                onClick = {
+                    onSave(label, address, amount.takeIf(String::isNotBlank), currency)
+                }
             ) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }

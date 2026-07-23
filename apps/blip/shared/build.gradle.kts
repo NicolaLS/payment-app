@@ -70,7 +70,6 @@ kotlin {
         val iosSimulatorArm64Test by getting {
             dependsOn(iosTest)
         }
-
         commonMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)

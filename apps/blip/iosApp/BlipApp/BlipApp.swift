@@ -1,20 +1,28 @@
+import BlipShared
 import SwiftUI
+import UIKit
+
+private struct ComposeView: UIViewControllerRepresentable {
+    let host: IosBlipHost
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        host.viewController()
+    }
+
+    func updateUIViewController(_ viewController: UIViewController, context: Context) {}
+}
 
 @main
 struct BlipApp: App {
+    private let host = IosBlipHost()
+
     var body: some Scene {
         WindowGroup {
-            VStack(spacing: 16) {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: 72))
-                    .foregroundStyle(.orange)
-                Text("Blip")
-                    .font(.largeTitle.bold())
-                Text("The iOS application shell is configured for the BlipShared framework.")
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(32)
+            ComposeView(host: host)
+                .ignoresSafeArea()
+                .onOpenURL { url in
+                    host.openPaymentUri(uri: url.absoluteString)
+                }
         }
     }
 }
