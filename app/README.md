@@ -164,12 +164,6 @@ Run all shared tests:
 ./gradlew :shared:allTests
 ```
 
-Run a single test class:
-
-```bash
-./gradlew :shared:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
-```
-
 Regenerate Compose resources after editing strings, fonts, or drawables:
 
 ```bash

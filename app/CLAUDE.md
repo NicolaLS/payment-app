@@ -122,15 +122,8 @@ Comment out or adjust the path if not developing nwc-kmp locally. Note: `TYPESAF
 ## Testing
 
 Tests are in `commonTest/` and run on JVM. Key test files:
-- `MainViewModelTest.kt`: Payment flow scenarios
 - `NwcWalletRepositoryImplTest.kt`: NWC protocol handling
-- `Bolt11InvoiceParserTest.kt`: Invoice parsing edge cases
 - `ManualAmountControllerTest.kt`: Amount entry logic
-
-Run a single test class:
-```bash
-./gradlew :shared:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"
-```
 
 ## Onboarding Flow
 

@@ -20,7 +20,6 @@ Run commands from the repository root.
 
 - `./gradlew check :androidApp:assembleDebug` runs tests, verification tasks, and builds the Android debug APK. Run this before submitting changes.
 - `./gradlew :shared:allTests` runs unit tests.
-- `./gradlew :shared:testAndroidHostTest --tests "xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParserTest"` runs one Android host test class.
 - `./gradlew ktlintCheck` checks Kotlin formatting.
 - `./gradlew ktlintFormat` auto-formats Kotlin sources.
 - `./gradlew :androidApp:assembleDebug` builds the Android debug APK.

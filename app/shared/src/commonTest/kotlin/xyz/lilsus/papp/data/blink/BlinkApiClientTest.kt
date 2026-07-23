@@ -2,6 +2,7 @@ package xyz.lilsus.papp.data.blink
 
 import com.apollographql.apollo.api.ApolloRequest
 import com.apollographql.apollo.api.ApolloResponse
+import fr.acinq.lightning.utils.msat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -11,6 +12,7 @@ import xyz.lilsus.papp.data.blink.graphql.LnInvoicePaymentSendMutation
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.AppErrorException
 import xyz.lilsus.papp.domain.model.BlinkErrorType
+import xyz.lilsus.papp.testHash
 
 class BlinkApiClientTest {
 
@@ -130,7 +132,7 @@ class BlinkApiClientTest {
                             "settlementCurrency": "BTC",
                             "settlementVia": {
                                 "__typename": "SettlementViaLn",
-                                "preImage": "test-preimage"
+                                "preImage": "$TEST_PREIMAGE"
                             }
                         }
                     }
@@ -142,8 +144,8 @@ class BlinkApiClientTest {
 
         assertEquals(
             BlinkPaymentResult.Success(
-                feesPaidMsats = 10_000L,
-                preimage = "test-preimage"
+                feesPaid = 10_000L.msat,
+                preimage = testHash(TEST_PREIMAGE)
             ),
             result
         )
@@ -344,3 +346,6 @@ class BlinkApiClientTest {
         return BlinkApiClient(createBlinkApolloTestClient(transport))
     }
 }
+
+private const val TEST_PREIMAGE =
+    "1111111111111111111111111111111111111111111111111111111111111111"

@@ -5,6 +5,7 @@ import io.github.nicolals.nwc.NwcErrorCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import xyz.lilsus.papp.domain.model.AppError
+import xyz.lilsus.papp.testHash
 
 /**
  * Tests for NWC error mapping and repository behavior.
@@ -45,9 +46,9 @@ class NwcWalletRepositoryImplTest {
             ),
             NwcError.PaymentPending(
                 message = "Payment is still processing",
-                paymentHash = "abc123"
+                paymentHash = PAYMENT_HASH
             ) to AppError.PaymentUnconfirmed(
-                paymentHash = "abc123",
+                paymentHash = testHash(PAYMENT_HASH),
                 message = "Payment is still processing"
             )
         )
@@ -57,3 +58,6 @@ class NwcWalletRepositoryImplTest {
         }
     }
 }
+
+private const val PAYMENT_HASH =
+    "1111111111111111111111111111111111111111111111111111111111111111"

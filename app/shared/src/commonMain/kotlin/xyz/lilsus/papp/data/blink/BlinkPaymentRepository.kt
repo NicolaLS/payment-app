@@ -1,5 +1,8 @@
 package xyz.lilsus.papp.data.blink
 
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.lightning.MilliSatoshi
+import fr.acinq.lightning.payment.Bolt11Invoice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -26,10 +29,12 @@ class BlinkPaymentRepository(
     private val scope: CoroutineScope
 ) : BlinkWalletRepository {
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
-        require(invoice.isNotBlank()) { "Invoice must not be blank" }
-        if (amountMsats != null) {
-            require(amountMsats > 0) { "Amount must be greater than zero" }
+    override fun startPayInvoiceRequest(
+        invoice: Bolt11Invoice,
+        amount: MilliSatoshi?
+    ): PayInvoiceRequest {
+        if (amount != null) {
+            require(amount.msat > 0) { "Amount must be greater than zero" }
         }
 
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(PayInvoiceRequestState.Loading)
@@ -38,7 +43,7 @@ class BlinkPaymentRepository(
             try {
                 val result = payInvoice(
                     invoice = invoice,
-                    amountMsats = amountMsats
+                    amount = amount
                 )
                 stateFlow.value = PayInvoiceRequestState.Success(result)
             } catch (e: AppErrorException) {
@@ -75,7 +80,7 @@ class BlinkPaymentRepository(
         return AppError.BlinkError(BlinkErrorType.InvalidApiKeyWalletRemoved)
     }
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+    override suspend fun payInvoice(invoice: Bolt11Invoice, amount: MilliSatoshi?): PaidInvoice {
         if (!networkConnectivity.isNetworkAvailable()) {
             throw AppErrorException(AppError.NetworkUnavailable)
         }
@@ -95,13 +100,13 @@ class BlinkPaymentRepository(
             }
 
         val result = try {
-            if (amountMsats != null) {
+            if (amount != null) {
                 // Zero-amount invoice - convert msats to sats
-                val amountSats = (amountMsats + 999) / 1000 // Round up to nearest sat
-                apiClient.payNoAmountInvoice(apiKey, blinkWalletId, invoice, amountSats)
+                val amountSats = (amount.msat + 999) / 1000 // Round up to nearest sat
+                apiClient.payNoAmountInvoice(apiKey, blinkWalletId, invoice.write(), amountSats)
             } else {
                 // Invoice with embedded amount
-                apiClient.payInvoice(apiKey, blinkWalletId, invoice)
+                apiClient.payInvoice(apiKey, blinkWalletId, invoice.write())
             }
         } catch (e: AppErrorException) {
             val mappedError = when (e.error) {
@@ -134,12 +139,12 @@ class BlinkPaymentRepository(
 
         return PaidInvoice(
             preimage = result.preimage,
-            feesPaidMsats = if (wasAlreadyPaid) null else result.feesPaidMsats,
+            feesPaid = if (wasAlreadyPaid) null else result.feesPaid,
             wasAlreadyPaid = wasAlreadyPaid
         )
     }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
+    override suspend fun lookupPayment(paymentHash: ByteVector32): PaymentLookupResult {
         if (!networkConnectivity.isNetworkAvailable()) {
             return PaymentLookupResult.LookupError(AppError.NetworkUnavailable)
         }
@@ -155,11 +160,11 @@ class BlinkPaymentRepository(
             )
 
         return try {
-            when (val status = apiClient.lookupPaymentStatus(apiKey, paymentHash)) {
+            when (val status = apiClient.lookupPaymentStatus(apiKey, paymentHash.toHex())) {
                 is BlinkPaymentStatusResult.Paid -> PaymentLookupResult.Settled(
                     PaidInvoice(
                         preimage = status.preimage,
-                        feesPaidMsats = status.feesPaidMsats
+                        feesPaid = status.feesPaid
                     )
                 )
 

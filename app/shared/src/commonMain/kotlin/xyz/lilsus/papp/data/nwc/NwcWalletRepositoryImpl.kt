@@ -1,5 +1,9 @@
 package xyz.lilsus.papp.data.nwc
 
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.lightning.MilliSatoshi
+import fr.acinq.lightning.payment.Bolt11Invoice
+import fr.acinq.lightning.utils.msat
 import io.github.nicolals.nwc.Amount
 import io.github.nicolals.nwc.LookupInvoiceParams
 import io.github.nicolals.nwc.NwcClient
@@ -31,10 +35,9 @@ class NwcWalletRepositoryImpl(
     private val payTimeoutMillis: Long = DEFAULT_NWC_PAY_TIMEOUT_MILLIS
 ) : NwcWalletRepository {
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
-        require(invoice.isNotBlank()) { "Invoice must not be blank." }
-        if (amountMsats != null) {
-            require(amountMsats > 0) { "Amount must be greater than zero." }
+    override suspend fun payInvoice(invoice: Bolt11Invoice, amount: MilliSatoshi?): PaidInvoice {
+        if (amount != null) {
+            require(amount.msat > 0) { "Amount must be greater than zero." }
         }
 
         if (!networkConnectivity.isNetworkAvailable()) {
@@ -43,26 +46,28 @@ class NwcWalletRepositoryImpl(
 
         val client = connectionManager.getClient()
         val result = client.payInvoice(
-            invoice = invoice,
-            amount = amountMsats?.let { Amount.fromMsats(it) },
+            invoice = invoice.write(),
+            amount = amount?.let { Amount.fromMsats(it.msat) },
             timeoutMs = payTimeoutMillis,
             verifyOnTimeout = true
         )
 
         return when (result) {
             is NwcResult.Success -> PaidInvoice(
-                preimage = result.value.preimage,
-                feesPaidMsats = result.value.feesPaid?.msats
+                preimage = result.value.preimage.toByteVector32OrNull(),
+                feesPaid = result.value.feesPaid?.msats?.msat
             )
 
             is NwcResult.Failure -> throw result.error.toAppErrorException()
         }
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
-        require(invoice.isNotBlank()) { "Invoice must not be blank." }
-        if (amountMsats != null) {
-            require(amountMsats > 0) { "Amount must be greater than zero." }
+    override fun startPayInvoiceRequest(
+        invoice: Bolt11Invoice,
+        amount: MilliSatoshi?
+    ): PayInvoiceRequest {
+        if (amount != null) {
+            require(amount.msat > 0) { "Amount must be greater than zero." }
         }
 
         val stateFlow = MutableStateFlow<PayInvoiceRequestState>(PayInvoiceRequestState.Loading)
@@ -71,7 +76,7 @@ class NwcWalletRepositoryImpl(
             try {
                 val paidInvoice = payInvoice(
                     invoice = invoice,
-                    amountMsats = amountMsats
+                    amount = amount
                 )
                 stateFlow.value = PayInvoiceRequestState.Success(paidInvoice)
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -96,9 +101,7 @@ class NwcWalletRepositoryImpl(
         }
     }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult {
-        require(paymentHash.isNotBlank()) { "Payment hash must not be blank." }
-
+    override suspend fun lookupPayment(paymentHash: ByteVector32): PaymentLookupResult {
         if (!networkConnectivity.isNetworkAvailable()) {
             return PaymentLookupResult.LookupError(AppError.NetworkUnavailable)
         }
@@ -106,7 +109,7 @@ class NwcWalletRepositoryImpl(
         return try {
             val client = connectionManager.getClient()
             val result = client.lookupInvoice(
-                params = LookupInvoiceParams(paymentHash = paymentHash),
+                params = LookupInvoiceParams(paymentHash = paymentHash.toHex()),
                 timeoutMs = LOOKUP_TIMEOUT_MILLIS
             )
 
@@ -116,8 +119,8 @@ class NwcWalletRepositoryImpl(
                     when (tx.state) {
                         TransactionState.SETTLED -> PaymentLookupResult.Settled(
                             PaidInvoice(
-                                preimage = tx.preimage,
-                                feesPaidMsats = tx.feesPaid?.msats
+                                preimage = tx.preimage.toByteVector32OrNull(),
+                                feesPaid = tx.feesPaid?.msats?.msat
                             )
                         )
 
@@ -131,8 +134,8 @@ class NwcWalletRepositoryImpl(
                             if (tx.settledAt != null || tx.preimage != null) {
                                 PaymentLookupResult.Settled(
                                     PaidInvoice(
-                                        preimage = tx.preimage,
-                                        feesPaidMsats = tx.feesPaid?.msats
+                                        preimage = tx.preimage.toByteVector32OrNull(),
+                                        feesPaid = tx.feesPaid?.msats?.msat
                                     )
                                 )
                             } else {
@@ -167,3 +170,6 @@ class NwcWalletRepositoryImpl(
         }
     }
 }
+
+private fun String?.toByteVector32OrNull(): ByteVector32? =
+    this?.let { value -> runCatching { ByteVector32.fromValidHex(value) }.getOrNull() }

@@ -1,5 +1,7 @@
 package xyz.lilsus.papp.presentation.main
 
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.lightning.payment.Bolt11Invoice
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -17,7 +19,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import xyz.lilsus.papp.data.exchange.currentTimeMillis
-import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceSummary
 import xyz.lilsus.papp.domain.model.AppError
 import xyz.lilsus.papp.domain.model.PaidInvoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
@@ -57,7 +58,7 @@ class PendingPaymentTracker(
      * After [PENDING_NOTICE_DELAY_MS], if still waiting, emits [PendingEvent.BecameVisible].
      */
     fun register(
-        summary: Bolt11InvoiceSummary,
+        summary: Bolt11Invoice,
         amountMsats: Long,
         origin: PendingOrigin,
         walletType: WalletType?,
@@ -104,7 +105,7 @@ class PendingPaymentTracker(
         paidMsats: Long? = null,
         feeMsats: Long? = null,
         wasAlreadyPaid: Boolean? = null,
-        preimage: String? = null
+        preimage: ByteVector32? = null
     ) {
         records.update { currentRecords ->
             currentRecords[id]?.let { record ->
@@ -133,7 +134,7 @@ class PendingPaymentTracker(
         paidMsats: Long,
         feeMsats: Long,
         wasAlreadyPaid: Boolean = false,
-        preimage: String? = null
+        preimage: ByteVector32? = null
     ) {
         updateStatus(
             id = id,
@@ -201,7 +202,7 @@ class PendingPaymentTracker(
         .values
         .firstOrNull {
             it.status == PendingStatus.Waiting &&
-                it.summary.paymentRequest == paymentRequest
+                it.summary.write() == paymentRequest
         }
 
     fun findWaitingByDynamicSourceKey(dynamicSourceKey: String): PendingRecord? = records.value
@@ -239,9 +240,9 @@ class PendingPaymentTracker(
      */
     fun startVerification(
         id: String,
-        summary: Bolt11InvoiceSummary,
+        summary: Bolt11Invoice,
         amountOverrideMsats: Long?,
-        paymentHash: String
+        paymentHash: ByteVector32
     ) {
         verificationJobs.remove(id)?.cancel()
 
@@ -264,8 +265,8 @@ class PendingPaymentTracker(
 
                 when (result) {
                     is PaymentLookupResult.Settled -> {
-                        val paidMsats = amountOverrideMsats ?: summary.amountMsats ?: 0L
-                        val feeMsats = result.invoice.feesPaidMsats ?: 0L
+                        val paidMsats = amountOverrideMsats ?: summary.amount?.msat ?: 0L
+                        val feeMsats = result.invoice.feesPaid?.msat ?: 0L
                         markSuccess(
                             id = id,
                             paidMsats = paidMsats,
@@ -361,7 +362,7 @@ class PendingPaymentTracker(
                     errorMessage = record.error?.let { errorMessageFor(it) },
                     showBlinkFeeHint = record.walletType == WalletType.BLINK,
                     wasAlreadyPaid = record.wasAlreadyPaid,
-                    preimage = record.preimage
+                    preimage = record.preimage?.toHex()
                 )
             }
     }
@@ -448,18 +449,18 @@ enum class PendingOrigin {
  */
 data class PendingRecord(
     val id: String,
-    val summary: Bolt11InvoiceSummary,
+    val summary: Bolt11Invoice,
     val amountMsats: Long,
     val origin: PendingOrigin,
     val createdAtMs: Long,
     val walletType: WalletType?,
     val dynamicSourceKey: String?,
-    val paymentHash: String?,
+    val paymentHash: ByteVector32,
     val status: PendingStatus = PendingStatus.Waiting,
     val error: AppError? = null,
     val paidMsats: Long? = null,
     val feeMsats: Long? = null,
     val visible: Boolean = false,
     val wasAlreadyPaid: Boolean = false,
-    val preimage: String? = null
+    val preimage: ByteVector32? = null
 )

@@ -83,6 +83,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.process)
             implementation(libs.mlkit.barcode.scanning)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.secp256k1.kmp.jni.android)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -101,6 +102,7 @@ kotlin {
             implementation(libs.nwc)
             implementation(libs.multiplatform.settings)
             implementation(libs.bitcoin.kmp)
+            implementation(libs.lightning.kmp.core)
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.contentNegotiation)
             implementation(libs.ktor.serialization.kotlinx.json)

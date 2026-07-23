@@ -3,6 +3,7 @@ package xyz.lilsus.papp.data.blink
 import com.apollographql.apollo.api.ApolloRequest
 import com.apollographql.apollo.api.ApolloResponse
 import com.russhwolf.settings.MapSettings
+import fr.acinq.lightning.utils.msat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -27,6 +28,8 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.WalletSettingsRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
+import xyz.lilsus.papp.testHash
+import xyz.lilsus.papp.testInvoice
 
 /**
  * Tests for BlinkPaymentRepository.
@@ -59,11 +62,11 @@ class BlinkPaymentRepositoryTest {
             }"""
         )
 
-        val result = context.repository.payInvoice("lnbc1000n1test")
+        val result = context.repository.payInvoice(testInvoice("lnbc1000n1test"))
 
         assertNotNull(result)
-        assertEquals(TEST_PREIMAGE, result.preimage)
-        assertEquals(10_000L, result.feesPaidMsats)
+        assertEquals(testHash(TEST_PREIMAGE), result.preimage)
+        assertEquals(10_000L.msat, result.feesPaid)
     }
 
     @Test
@@ -90,12 +93,12 @@ class BlinkPaymentRepositoryTest {
             }"""
         )
 
-        val result = context.repository.payInvoice("lnbc1000n1test")
+        val result = context.repository.payInvoice(testInvoice("lnbc1000n1test"))
 
         assertNotNull(result)
         assertTrue(result.wasAlreadyPaid)
-        assertEquals(TEST_PREIMAGE, result.preimage)
-        assertNull(result.feesPaidMsats)
+        assertEquals(testHash(TEST_PREIMAGE), result.preimage)
+        assertNull(result.feesPaid)
     }
 
     @Test
@@ -114,7 +117,7 @@ class BlinkPaymentRepositoryTest {
             }
         }
 
-        context.repository.payInvoice("lnbc1000n1test")
+        context.repository.payInvoice(testInvoice("lnbc1000n1test"))
 
         assertEquals(TEST_BLINK_DEFAULT_WALLET_ID, capturedBlinkWalletId)
     }
@@ -140,7 +143,7 @@ class BlinkPaymentRepositoryTest {
         }
         context.credentialStore.storeDefaultWalletId(TEST_BLINK_DEFAULT_WALLET_ID)
 
-        context.repository.payInvoice("lnbc1000n1test")
+        context.repository.payInvoice(testInvoice("lnbc1000n1test"))
 
         assertEquals(TEST_BLINK_DEFAULT_WALLET_ID, capturedBlinkWalletId)
         assertFalse(defaultWalletQuerySeen)
@@ -171,11 +174,14 @@ class BlinkPaymentRepositoryTest {
         )
 
         // 1000 msats = 1 sat (rounded up)
-        val result = context.repository.payInvoice("lnbc1test", amountMsats = 1000L)
+        val result = context.repository.payInvoice(
+            testInvoice("lnbc1test", amountMsats = null),
+            amount = 1_000L.msat
+        )
 
         assertNotNull(result)
-        assertEquals(TEST_PREIMAGE, result.preimage)
-        assertEquals(2_000L, result.feesPaidMsats)
+        assertEquals(testHash(TEST_PREIMAGE), result.preimage)
+        assertEquals(2_000L.msat, result.feesPaid)
     }
 
     @Test
@@ -184,7 +190,7 @@ class BlinkPaymentRepositoryTest {
         context.walletSettingsRepository.clearWalletConnection()
 
         val exception = assertFailsWith<AppErrorException> {
-            context.repository.payInvoice("lnbc1test")
+            context.repository.payInvoice(testInvoice("lnbc1test"))
         }
 
         assertTrue(exception.error is AppError.MissingWalletConnection)
@@ -196,7 +202,7 @@ class BlinkPaymentRepositoryTest {
         context.credentialStore.clear()
 
         val exception = assertFailsWith<AppErrorException> {
-            context.repository.payInvoice("lnbc1test")
+            context.repository.payInvoice(testInvoice("lnbc1test"))
         }
 
         assertTrue(exception.error is AppError.AuthenticationFailure)
@@ -213,7 +219,7 @@ class BlinkPaymentRepositoryTest {
         }
 
         val exception = assertFailsWith<AppErrorException> {
-            context.repository.payInvoice("lnbc1test")
+            context.repository.payInvoice(testInvoice("lnbc1test"))
         }
 
         assertTrue(exception.error is AppError.PaymentUnconfirmed)
@@ -237,7 +243,7 @@ class BlinkPaymentRepositoryTest {
         )
 
         val exception = assertFailsWith<AppErrorException> {
-            context.repository.payInvoice("lnbc1test")
+            context.repository.payInvoice(testInvoice("lnbc1test"))
         }
 
         val error = exception.error
@@ -254,7 +260,7 @@ class BlinkPaymentRepositoryTest {
         assertTrue(context.credentialStore.hasApiKey())
         context.credentialStore.storeDefaultWalletId(TEST_BLINK_DEFAULT_WALLET_ID)
 
-        val request = context.repository.startPayInvoiceRequest("lnbc1test", null)
+        val request = context.repository.startPayInvoiceRequest(testInvoice("lnbc1test"), null)
 
         while (request.state.value is PayInvoiceRequestState.Loading) {
             delay(10)
@@ -279,7 +285,7 @@ class BlinkPaymentRepositoryTest {
             request.responseFromJson(transactionsSuccessResponseJson())
         }
 
-        context.repository.lookupPayment(paymentHash = "test-payment-hash")
+        context.repository.lookupPayment(paymentHash = testHash("test-payment-hash"))
 
         assertEquals(TEST_API_KEY, capturedApiKey)
     }
@@ -343,7 +349,8 @@ class BlinkPaymentRepositoryTest {
         private const val TEST_WALLET_ID = "blink-test-wallet-123"
         private const val TEST_API_KEY = "blink_test_api_key"
         private const val TEST_BLINK_DEFAULT_WALLET_ID = "wallet-123"
-        private const val TEST_PREIMAGE = "blink-payment-preimage"
+        private const val TEST_PREIMAGE =
+            "1111111111111111111111111111111111111111111111111111111111111111"
 
         private fun defaultWalletResponseJson(): String = """{
             "data": {

@@ -2,9 +2,17 @@ package xyz.lilsus.papp.domain.lnurl
 
 import com.eygraber.uri.Uri
 import fr.acinq.bitcoin.Bech32
+import fr.acinq.bitcoin.Bitcoin
+import fr.acinq.bitcoin.Chain
+import fr.acinq.bitcoin.utils.Try
+import fr.acinq.lightning.payment.Bolt11Invoice
+import fr.acinq.lightning.payment.Bolt12Invoice
+import fr.acinq.lightning.payment.PaymentRequest
+import fr.acinq.lightning.utils.currentTimestampSeconds
+import fr.acinq.lightning.wire.OfferTypes
 import kotlin.math.min
 
-class LightningInputParser {
+class LightningInputParser(private val nowSeconds: () -> Long = ::currentTimestampSeconds) {
 
     fun parse(raw: String): ParseResult {
         val trimmed = raw.trim()
@@ -29,8 +37,14 @@ class LightningInputParser {
         /** Input is a Bitcoin on-chain address (not Lightning). */
         data object BitcoinAddress : FailureReason()
 
-        /** Input is a BOLT12 offer which is not yet supported. */
-        data object Bolt12Offer : FailureReason()
+        /** Input is a BOLT12 offer or invoice, which is not yet supported. */
+        data object Bolt12 : FailureReason()
+
+        /** Input resembles a BOLT11 invoice but ACINQ rejected it. */
+        data class InvalidInvoice(val reason: String?) : FailureReason()
+
+        /** Input is a valid BOLT11 invoice that has expired. */
+        data object ExpiredInvoice : FailureReason()
 
         /** Input is a NWC wallet URI (should be added via Settings, not payment screen). */
         data class NwcWalletUri(val uri: String) : FailureReason()
@@ -42,7 +56,7 @@ class LightningInputParser {
     sealed class Target {
         data class Lnurl(val endpoint: String) : Target()
         data class LightningAddressTarget(val address: LightningAddress) : Target()
-        data class Bolt11Candidate(val invoice: String) : Target()
+        data class Bolt11(val invoice: Bolt11Invoice) : Target()
     }
 
     private fun parseInternal(value: String, allowBitcoinScheme: Boolean): ParseResult {
@@ -59,8 +73,7 @@ class LightningInputParser {
                 val query = withoutScheme.substring(queryIndex + 1)
                 val lightningParam = parseQuery(query)["lightning"]
                 if (!lightningParam.isNullOrBlank()) {
-                    val decoded = Uri.decode(lightningParam, convertPlus = true)
-                    return parseInternal(decoded, allowBitcoinScheme = false)
+                    return parseInternal(lightningParam, allowBitcoinScheme = false)
                 }
             }
 
@@ -120,14 +133,28 @@ class LightningInputParser {
             return ParseResult.Success(Target.Lnurl(lnurlEndpoint))
         }
 
-        // Check for BOLT12 offers (not yet supported)
-        if (looksLikeBolt12Offer(current)) {
-            return ParseResult.Failure(FailureReason.Bolt12Offer)
+        // Decode BOLT12 with ACINQ instead of classifying on a prefix alone.
+        if (OfferTypes.Offer.decode(current) is Try.Success) {
+            return ParseResult.Failure(FailureReason.Bolt12)
         }
 
-        // Only treat as BOLT11 candidate if it looks like one (starts with "ln")
-        if (looksLikeBolt11(current)) {
-            return ParseResult.Success(Target.Bolt11Candidate(current))
+        // ACINQ owns payment-request selection, decoding, validation, and models.
+        if (looksLikePaymentRequest(current)) {
+            return when (val decoded = PaymentRequest.read(current)) {
+                is Try.Success -> when (val request = decoded.result) {
+                    is Bolt11Invoice -> if (request.isExpired(nowSeconds())) {
+                        ParseResult.Failure(FailureReason.ExpiredInvoice)
+                    } else {
+                        ParseResult.Success(Target.Bolt11(request))
+                    }
+
+                    is Bolt12Invoice -> ParseResult.Failure(FailureReason.Bolt12)
+                }
+
+                is Try.Failure -> ParseResult.Failure(
+                    FailureReason.InvalidInvoice(decoded.error.message)
+                )
+            }
         }
 
         // Check for standalone bitcoin addresses (without bitcoin: scheme)
@@ -150,23 +177,8 @@ class LightningInputParser {
         return prefix.startsWith("lnurl")
     }
 
-    /**
-     * Checks if the input looks like a BOLT11 invoice (starts with "ln" but not "lno").
-     * This is a quick heuristic check - actual validation happens in Bolt11InvoiceParser.
-     */
-    private fun looksLikeBolt11(value: String): Boolean {
-        if (value.length < 2) return false
-        val lower = value.lowercase()
-        // Exclude BOLT12 offers which start with "lno"
-        if (lower.startsWith("lno")) return false
-        return lower.startsWith("ln")
-    }
-
-    /**
-     * Checks if the input looks like a BOLT12 offer (starts with "lno1").
-     */
-    private fun looksLikeBolt12Offer(value: String): Boolean =
-        value.length >= 4 && value.lowercase().startsWith("lno1")
+    private fun looksLikePaymentRequest(value: String): Boolean =
+        value.startsWith("ln", ignoreCase = true)
 
     /**
      * Checks if the input looks like a NWC wallet connection URI.
@@ -175,20 +187,10 @@ class LightningInputParser {
     private fun looksLikeNwcUri(value: String): Boolean =
         value.startsWith("nostr+walletconnect:", ignoreCase = true)
 
-    /**
-     * Checks if the input looks like a Bitcoin address.
-     * Covers legacy (1..., 3...), SegWit (bc1q...), and Taproot (bc1p...) addresses.
-     */
-    private fun looksLikeBitcoinAddress(value: String): Boolean {
-        val lower = value.lowercase()
-        // Bech32/Bech32m (SegWit and Taproot)
-        if (lower.startsWith("bc1")) return value.length in 42..62
-        // Legacy P2PKH (starts with 1)
-        if (value.startsWith("1")) return value.length in 25..34
-        // Legacy P2SH (starts with 3)
-        if (value.startsWith("3")) return value.length in 25..34
-        return false
-    }
+    private fun looksLikeBitcoinAddress(value: String): Boolean =
+        SUPPORTED_BITCOIN_CHAINS.any { chain ->
+            Bitcoin.addressToPublicKeyScript(chain.chainHash, value).isRight
+        }
 
     private fun decodeBech32Lnurl(value: String): String? {
         return runCatching {
@@ -196,8 +198,7 @@ class LightningInputParser {
             if (!hrp.equals("lnurl", ignoreCase = true)) {
                 return@runCatching null
             }
-            val bytes = convert5BitTo8Bit(data) ?: return@runCatching null
-            bytes.decodeToString()
+            Bech32.five2eight(data, 0).decodeToString()
         }.getOrNull()
     }
 
@@ -243,27 +244,6 @@ class LightningInputParser {
             lower.contains("tag=payrequest") ||
             lower.contains("lnurl=") ||
             lower.contains("lightning=")
-    }
-
-    private fun convert5BitTo8Bit(data: Array<Byte>): ByteArray? {
-        var accumulator = 0
-        var bits = 0
-        val output = ArrayList<Byte>((data.size * 5) / 8)
-        data.forEach { word ->
-            val value = (word.toInt() and 0xFF) and 0x1F
-            accumulator = (accumulator shl 5) or value
-            bits += 5
-            while (bits >= 8) {
-                bits -= 8
-                val byte = (accumulator shr bits) and 0xFF
-                output.add(byte.toByte())
-            }
-        }
-        if (bits in 1..7) {
-            val padding = (accumulator shl (8 - bits)) and 0xFF
-            if (padding != 0) return null
-        }
-        return output.toByteArray()
     }
 
     private fun looksLikeLightningAddress(raw: String): Boolean {
@@ -343,5 +323,13 @@ class LightningInputParser {
     companion object {
         private const val MAX_DOMAIN_LENGTH = 253
         private const val MAX_DOMAIN_LABEL_LENGTH = 63
+
+        private val SUPPORTED_BITCOIN_CHAINS = listOf(
+            Chain.Mainnet,
+            Chain.Testnet3,
+            Chain.Testnet4,
+            Chain.Signet,
+            Chain.Regtest
+        )
     }
 }

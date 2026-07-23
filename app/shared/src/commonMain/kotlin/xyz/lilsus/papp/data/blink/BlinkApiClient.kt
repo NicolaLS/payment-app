@@ -7,6 +7,9 @@ import com.apollographql.apollo.api.Error as ApolloGraphQlError
 import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.exception.ApolloException
 import com.apollographql.apollo.exception.ApolloHttpException
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.lightning.MilliSatoshi
+import fr.acinq.lightning.utils.msat
 import kotlin.math.absoluteValue
 import xyz.lilsus.papp.data.blink.graphql.AuthorizationQuery
 import xyz.lilsus.papp.data.blink.graphql.BlinkContactsQuery
@@ -203,7 +206,7 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
         return when {
             successfulTransaction != null -> BlinkPaymentStatusResult.Paid(
                 preimage = successfulTransaction.preimage(),
-                feesPaidMsats = successfulTransaction.feesPaidMsats()
+                feesPaid = successfulTransaction.feesPaid()
             )
 
             sendTransactions.any {
@@ -317,9 +320,9 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
                 errors = data.lnInvoicePaymentSend.errors.map {
                     PaymentPayloadError(it.code, it.message)
                 },
-                feesPaidMsats = data.lnInvoicePaymentSend.transaction
+                feesPaid = data.lnInvoicePaymentSend.transaction
                     ?.blinkTransactionPaymentResult
-                    ?.feesPaidMsats(),
+                    ?.feesPaid(),
                 preimage = data.lnInvoicePaymentSend.transaction
                     ?.blinkTransactionPaymentResult
                     ?.preimage()
@@ -363,9 +366,9 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
                 errors = data.lnNoAmountInvoicePaymentSend.errors.map {
                     PaymentPayloadError(it.code, it.message)
                 },
-                feesPaidMsats = data.lnNoAmountInvoicePaymentSend.transaction
+                feesPaid = data.lnNoAmountInvoicePaymentSend.transaction
                     ?.blinkTransactionPaymentResult
-                    ?.feesPaidMsats(),
+                    ?.feesPaid(),
                 preimage = data.lnNoAmountInvoicePaymentSend.transaction
                     ?.blinkTransactionPaymentResult
                     ?.preimage()
@@ -429,17 +432,17 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
 
         return when (payload.status) {
             PaymentSendResult.SUCCESS -> BlinkPaymentResult.Success(
-                feesPaidMsats = payload.feesPaidMsats,
+                feesPaid = payload.feesPaid,
                 preimage = payload.preimage
             )
 
             PaymentSendResult.PENDING -> BlinkPaymentResult.Pending(
-                feesPaidMsats = payload.feesPaidMsats,
+                feesPaid = payload.feesPaid,
                 preimage = payload.preimage
             )
 
             PaymentSendResult.ALREADY_PAID -> BlinkPaymentResult.AlreadyPaid(
-                feesPaidMsats = payload.feesPaidMsats,
+                feesPaid = payload.feesPaid,
                 preimage = payload.preimage
             )
 
@@ -468,21 +471,23 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
             cause?.isTimeout() == true
     }
 
-    private fun BlinkTransactionPaymentResult.feesPaidMsats(): Long? =
-        settlementFee.feesPaidMsats(settlementCurrency)
+    private fun BlinkTransactionPaymentResult.feesPaid(): MilliSatoshi? =
+        settlementFee.toLightningFee(settlementCurrency)
 
-    private fun BlinkTransactionPaymentResult.preimage(): String? =
-        settlementVia.onSettlementViaIntraLedger?.preImage?.trimPreimage()
-            ?: settlementVia.onSettlementViaLn?.preImage?.trimPreimage()
+    private fun BlinkTransactionPaymentResult.preimage(): ByteVector32? =
+        settlementVia.onSettlementViaIntraLedger?.preImage?.toPreimageOrNull()
+            ?: settlementVia.onSettlementViaLn?.preImage?.toPreimageOrNull()
 
-    private fun String.trimPreimage(): String? = trim().takeIf { it.isNotEmpty() }
+    private fun String.toPreimageOrNull(): ByteVector32? =
+        runCatching { ByteVector32.fromValidHex(trim()) }.getOrNull()
 
-    private fun Long.feesPaidMsats(settlementCurrency: WalletCurrency): Long? {
+    private fun Long.toLightningFee(settlementCurrency: WalletCurrency): MilliSatoshi? {
         if (settlementCurrency != WalletCurrency.BTC) return null
 
         return absoluteValue
             .takeIf { it <= Long.MAX_VALUE / 1000L }
             ?.times(1000L)
+            ?.msat
     }
 
     private fun <D : Operation.Data> logGraphQlResponse(
@@ -501,8 +506,8 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
     private data class PaymentPayload(
         val status: PaymentSendResult?,
         val errors: List<PaymentPayloadError>,
-        val feesPaidMsats: Long?,
-        val preimage: String?
+        val feesPaid: MilliSatoshi?,
+        val preimage: ByteVector32?
     )
 
     private data class PaymentPayloadError(val code: String?, val message: String?)
@@ -523,24 +528,27 @@ class BlinkApiClient(private val apolloClient: ApolloClient = createBlinkApolloC
 /**
  * Result of a Blink payment operation.
  */
-sealed class BlinkPaymentResult(open val feesPaidMsats: Long?, open val preimage: String?) {
+sealed class BlinkPaymentResult(
+    open val feesPaid: MilliSatoshi?,
+    open val preimage: ByteVector32?
+) {
     /** Payment completed successfully. */
     data class Success(
-        override val feesPaidMsats: Long? = null,
-        override val preimage: String? = null
-    ) : BlinkPaymentResult(feesPaidMsats, preimage)
+        override val feesPaid: MilliSatoshi? = null,
+        override val preimage: ByteVector32? = null
+    ) : BlinkPaymentResult(feesPaid, preimage)
 
     /** Payment is pending (may complete later). */
     data class Pending(
-        override val feesPaidMsats: Long? = null,
-        override val preimage: String? = null
-    ) : BlinkPaymentResult(feesPaidMsats, preimage)
+        override val feesPaid: MilliSatoshi? = null,
+        override val preimage: ByteVector32? = null
+    ) : BlinkPaymentResult(feesPaid, preimage)
 
     /** Invoice was already paid. */
     data class AlreadyPaid(
-        override val feesPaidMsats: Long? = null,
-        override val preimage: String? = null
-    ) : BlinkPaymentResult(feesPaidMsats, preimage)
+        override val feesPaid: MilliSatoshi? = null,
+        override val preimage: ByteVector32? = null
+    ) : BlinkPaymentResult(feesPaid, preimage)
 }
 
 /**
@@ -548,7 +556,8 @@ sealed class BlinkPaymentResult(open val feesPaidMsats: Long?, open val preimage
  */
 sealed class BlinkPaymentStatusResult {
     /** Payment was confirmed as paid. */
-    data class Paid(val preimage: String?, val feesPaidMsats: Long?) : BlinkPaymentStatusResult()
+    data class Paid(val preimage: ByteVector32?, val feesPaid: MilliSatoshi?) :
+        BlinkPaymentStatusResult()
 
     /** Payment is still pending. */
     data object Pending : BlinkPaymentStatusResult()

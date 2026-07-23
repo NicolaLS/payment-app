@@ -26,7 +26,6 @@ import xyz.lilsus.papp.data.settings.WalletSettingsRepositoryImpl
 import xyz.lilsus.papp.data.settings.createLanguageRepository
 import xyz.lilsus.papp.data.settings.createOnboardingSettings
 import xyz.lilsus.papp.data.settings.createSecureSettings
-import xyz.lilsus.papp.domain.bolt11.Bolt11InvoiceParser
 import xyz.lilsus.papp.domain.lnurl.LightningInputParser
 import xyz.lilsus.papp.domain.model.CurrencyCatalog
 import xyz.lilsus.papp.domain.model.WalletType
@@ -220,7 +219,6 @@ val nwcModule = module {
         )
     }
 
-    single { Bolt11InvoiceParser() }
     factory { LightningInputParser() }
     single<HapticFeedbackManager> { createHapticFeedbackManager() }
 
@@ -297,7 +295,6 @@ val nwcModule = module {
             observeWalletConnection = get(),
             observeCurrencyPreference = get(),
             currencyManager = get(),
-            bolt11Parser = get(),
             manualAmount = get(),
             shouldConfirmPayment = get(),
             lightningInputParser = get(),

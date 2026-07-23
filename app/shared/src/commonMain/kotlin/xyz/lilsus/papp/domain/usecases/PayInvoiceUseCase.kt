@@ -1,5 +1,7 @@
 package xyz.lilsus.papp.domain.usecases
 
+import fr.acinq.lightning.MilliSatoshi
+import fr.acinq.lightning.payment.Bolt11Invoice
 import xyz.lilsus.papp.domain.model.PayInvoiceRequest
 import xyz.lilsus.papp.domain.repository.PaymentProvider
 
@@ -14,9 +16,9 @@ class PayInvoiceUseCase(private val paymentProvider: PaymentProvider) {
      * payment happens in the background. Callers should cancel the request when they no longer
      * need updates.
      */
-    operator fun invoke(invoice: String, amountMsats: Long? = null): PayInvoiceRequest =
+    operator fun invoke(invoice: Bolt11Invoice, amount: MilliSatoshi? = null): PayInvoiceRequest =
         paymentProvider.startPayInvoiceRequest(
             invoice = invoice,
-            amountMsats = amountMsats
+            amount = amount
         )
 }

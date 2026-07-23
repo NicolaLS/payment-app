@@ -3,6 +3,9 @@
 package xyz.lilsus.papp.domain.service
 
 import com.russhwolf.settings.MapSettings
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.lightning.MilliSatoshi
+import fr.acinq.lightning.payment.Bolt11Invoice
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +27,7 @@ import xyz.lilsus.papp.domain.model.WalletConnection
 import xyz.lilsus.papp.domain.model.WalletType
 import xyz.lilsus.papp.domain.repository.NwcWalletRepository
 import xyz.lilsus.papp.platform.NetworkConnectivity
+import xyz.lilsus.papp.testInvoice
 
 class PaymentServiceTest {
 
@@ -41,7 +45,7 @@ class PaymentServiceTest {
             scope = backgroundScope
         )
 
-        paymentService.startPayInvoiceRequest("lnbc1test")
+        paymentService.startPayInvoiceRequest(testInvoice("lnbc1test"))
 
         assertEquals(1, nwcRepository.startCalls)
         backgroundScope.cancel()
@@ -61,7 +65,7 @@ class PaymentServiceTest {
             scope = backgroundScope
         )
 
-        paymentService.payInvoice("lnbc1test")
+        paymentService.payInvoice(testInvoice("lnbc1test"))
 
         assertEquals(1, nwcRepository.payCalls)
         backgroundScope.cancel()
@@ -96,7 +100,7 @@ class PaymentServiceTest {
         var startCalls: Int = 0
         var payCalls: Int = 0
 
-        override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest {
+        override fun startPayInvoiceRequest(invoice: Bolt11Invoice, amount: MilliSatoshi?): PayInvoiceRequest {
             startCalls += 1
             return object : PayInvoiceRequest {
                 override val state = MutableStateFlow<PayInvoiceRequestState>(
@@ -107,12 +111,12 @@ class PaymentServiceTest {
             }
         }
 
-        override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice {
+        override suspend fun payInvoice(invoice: Bolt11Invoice, amount: MilliSatoshi?): PaidInvoice {
             payCalls += 1
-            return PaidInvoice(preimage = null, feesPaidMsats = null)
+            return PaidInvoice(preimage = null, feesPaid = null)
         }
 
-        override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult =
+        override suspend fun lookupPayment(paymentHash: ByteVector32): PaymentLookupResult =
             PaymentLookupResult.LookupError(AppError.Unexpected("unused"))
     }
 }

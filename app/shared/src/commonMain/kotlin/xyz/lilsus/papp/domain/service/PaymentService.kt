@@ -1,5 +1,8 @@
 package xyz.lilsus.papp.domain.service
 
+import fr.acinq.bitcoin.ByteVector32
+import fr.acinq.lightning.MilliSatoshi
+import fr.acinq.lightning.payment.Bolt11Invoice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,29 +42,31 @@ class PaymentService(
         }
     }
 
-    override fun startPayInvoiceRequest(invoice: String, amountMsats: Long?): PayInvoiceRequest =
-        when (currentConnection.value) {
-            null -> createMissingWalletRequest()
+    override fun startPayInvoiceRequest(
+        invoice: Bolt11Invoice,
+        amount: MilliSatoshi?
+    ): PayInvoiceRequest = when (currentConnection.value) {
+        null -> createMissingWalletRequest()
 
-            else -> if (currentConnection.value?.isNwc == true) {
-                nwcRepository.startPayInvoiceRequest(invoice, amountMsats)
-            } else {
-                blinkRepository.startPayInvoiceRequest(invoice, amountMsats)
-            }
+        else -> if (currentConnection.value?.isNwc == true) {
+            nwcRepository.startPayInvoiceRequest(invoice, amount)
+        } else {
+            blinkRepository.startPayInvoiceRequest(invoice, amount)
         }
+    }
 
-    override suspend fun payInvoice(invoice: String, amountMsats: Long?): PaidInvoice =
+    override suspend fun payInvoice(invoice: Bolt11Invoice, amount: MilliSatoshi?): PaidInvoice =
         when (currentConnection.value) {
             null -> throw AppErrorException(AppError.MissingWalletConnection)
 
             else -> if (currentConnection.value?.isNwc == true) {
-                nwcRepository.payInvoice(invoice, amountMsats)
+                nwcRepository.payInvoice(invoice, amount)
             } else {
-                blinkRepository.payInvoice(invoice, amountMsats)
+                blinkRepository.payInvoice(invoice, amount)
             }
         }
 
-    override suspend fun lookupPayment(paymentHash: String): PaymentLookupResult =
+    override suspend fun lookupPayment(paymentHash: ByteVector32): PaymentLookupResult =
         when (currentConnection.value) {
             null -> PaymentLookupResult.LookupError(AppError.MissingWalletConnection)
 

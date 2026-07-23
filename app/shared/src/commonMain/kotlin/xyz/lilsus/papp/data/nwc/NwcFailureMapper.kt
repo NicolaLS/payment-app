@@ -1,5 +1,6 @@
 package xyz.lilsus.papp.data.nwc
 
+import fr.acinq.bitcoin.ByteVector32
 import io.github.nicolals.nwc.NwcError
 import io.github.nicolals.nwc.NwcException
 import xyz.lilsus.papp.domain.model.AppError
@@ -24,5 +25,10 @@ internal fun NwcError.toAppError(): AppError = when (this) {
 
     is NwcError.CryptoError -> AppError.Unexpected(message)
 
-    is NwcError.PaymentPending -> AppError.PaymentUnconfirmed(paymentHash, message)
+    is NwcError.PaymentPending -> AppError.PaymentUnconfirmed(
+        paymentHash = paymentHash?.let { hash ->
+            runCatching { ByteVector32.fromValidHex(hash) }.getOrNull()
+        },
+        message = message
+    )
 }

@@ -1,5 +1,7 @@
 package xyz.lilsus.papp.domain.model
 
+import fr.acinq.bitcoin.ByteVector32
+
 /**
  * Blink-specific error types that can be translated to localized messages.
  */
@@ -62,7 +64,7 @@ sealed class AppError {
      * This is a "soft" error - the payment may have succeeded, failed, or still be processing.
      * Callers should verify the payment status before treating this as a failure.
      */
-    data class PaymentUnconfirmed(val paymentHash: String?, val message: String? = null) :
+    data class PaymentUnconfirmed(val paymentHash: ByteVector32?, val message: String? = null) :
         AppError()
 
     /**
