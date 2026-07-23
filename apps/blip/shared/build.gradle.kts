@@ -3,8 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKmpLibrary)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.apollo)
     alias(libs.plugins.sqldelight)
@@ -23,10 +21,6 @@ kotlin {
 
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
-        }
-
-        androidResources {
-            enable = true
         }
 
         withHostTest {}
@@ -71,16 +65,6 @@ kotlin {
             dependsOn(iosTest)
         }
         commonMain.dependencies {
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.foundation)
-            implementation(libs.compose.material3)
-            implementation(libs.compose.ui)
-            implementation(libs.compose.components.resources)
-            implementation(libs.compose.ui.tooling.preview)
-            implementation(libs.compose.material.icons.extended)
-            implementation(libs.androidx.lifecycle.viewmodelCompose)
-            implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(libs.navigation.compose)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.multiplatform.settings)
@@ -96,15 +80,8 @@ kotlin {
         }
 
         androidMain.dependencies {
-            implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.core.ktx)
-            implementation(libs.androidx.camera.core)
-            implementation(libs.androidx.camera.camera2)
-            implementation(libs.androidx.camera.lifecycle)
-            implementation(libs.androidx.camera.view)
-            implementation(libs.androidx.lifecycle.process)
-            implementation(libs.mlkit.barcode.scanning)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.secp256k1.kmp.jni.android)
             implementation(libs.sqldelight.android.driver)
@@ -119,10 +96,6 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
-}
-
-compose.resources {
-    packageOfResClass = "xyz.lilsus.rayl.blip.generated.resources"
 }
 
 apollo {
@@ -212,6 +185,25 @@ tasks.register("verifyBlipArchitecture") {
             .toList()
         check(kotlinImports.isEmpty()) {
             "Blip source imports an NWC implementation: $kotlinImports"
+        }
+
+        val presentationLeaks = sourceRoot.walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .filter { file ->
+                file.readText().contains("androidx.compose") ||
+                    file.invariantSeparatorsPath.contains("/presentation/")
+            }
+            .toList()
+        check(presentationLeaks.isEmpty()) {
+            "Blip shared must keep all presentation in foundation/ui: $presentationLeaks"
+        }
+        val appOwnedComposeResources = sourceRoot.walkTopDown()
+            .filter(File::isFile)
+            .filter { it.invariantSeparatorsPath.contains("/composeResources/") }
+            .toList()
+        check(appOwnedComposeResources.isEmpty()) {
+            "Blip shared must keep all Compose resources in foundation/ui: " +
+                appOwnedComposeResources
         }
 
         val prohibitedTests = listOf(

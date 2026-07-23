@@ -3,6 +3,7 @@ package xyz.lilsus.rayl.blip.application
 import xyz.lilsus.rayl.blip.data.BlipStore
 import xyz.lilsus.rayl.blip.data.blink.BlinkGateway
 import xyz.lilsus.rayl.blip.domain.AppClock
+import xyz.lilsus.rayl.blip.domain.BlinkContactCandidate
 import xyz.lilsus.rayl.blip.domain.Contact
 import xyz.lilsus.rayl.blip.domain.ContactId
 import xyz.lilsus.rayl.blip.domain.ContactSource
@@ -134,6 +135,16 @@ class AddressBook(
     suspend fun importBlinkContacts(): List<Contact> {
         val connection = store.currentConnection() ?: return emptyList()
         return gateway.importContacts(connection)
+    }
+
+    suspend fun blinkContactCandidates(): List<BlinkContactCandidate> {
+        val connection = store.currentConnection() ?: return emptyList()
+        return gateway.contactCandidates(connection)
+    }
+
+    suspend fun importBlinkContacts(selectedAddresses: Set<String>): List<Contact> {
+        val connection = store.currentConnection() ?: return emptyList()
+        return gateway.importContacts(connection, selectedAddresses)
     }
 }
 

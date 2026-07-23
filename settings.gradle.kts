@@ -34,3 +34,4 @@ dependencyResolutionManagement {
 
 include(":apps:blip:shared")
 include(":apps:blip:androidApp")
+include(":foundation:ui")

@@ -47,6 +47,12 @@ enum class ContactSource {
     Blink
 }
 
+data class BlinkContactCandidate(
+    val name: String,
+    val lightningAddress: String,
+    val alreadyAdded: Boolean
+)
+
 data class PaymentShortcut(
     val id: ShortcutId,
     val contactId: ContactId?,

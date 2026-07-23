@@ -1,4 +1,4 @@
-import BlipShared
+import FoundationUi
 import SwiftUI
 import UIKit
 

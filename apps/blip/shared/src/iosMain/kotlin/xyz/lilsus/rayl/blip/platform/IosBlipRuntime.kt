@@ -41,7 +41,7 @@ import xyz.lilsus.rayl.blip.domain.IdentifierSource
 import xyz.lilsus.rayl.blip.domain.PaymentPreferences
 import xyz.lilsus.rayl.blip.domain.ShortcutId
 
-internal class IosBlipRuntime : BlipRuntime {
+class IosBlipRuntime : BlipRuntime {
     private val clock = IosClock
     private val identifiers = IosIdentifiers()
     private val vault = IosCredentialVault()
@@ -184,6 +184,10 @@ private class IosUserPreferenceStore : UserPreferenceStore {
         copy(secondaryCurrency = value)
     }
 
+    override fun setAskToSaveNewContacts(value: Boolean) = update {
+        copy(askToSaveNewContacts = value)
+    }
+
     override fun setConfirmationMode(value: ConfirmationMode) = update {
         copy(payments = payments.copy(confirmationMode = value))
     }
@@ -215,6 +219,7 @@ private class IosUserPreferenceStore : UserPreferenceStore {
         settings.putString(LANGUAGE, updated.language)
         settings.putString(PRIMARY_CURRENCY, updated.primaryCurrency)
         settings.putString(SECONDARY_CURRENCY, updated.secondaryCurrency)
+        settings.putBoolean(ASK_SAVE_CONTACTS, updated.askToSaveNewContacts)
         settings.putString(CONFIRMATION_MODE, updated.payments.confirmationMode.name)
         settings.putLong(CONFIRMATION_THRESHOLD, updated.payments.thresholdSats)
         settings.putBoolean(CONFIRM_MANUAL, updated.payments.confirmManualEntry)
@@ -232,6 +237,7 @@ private class IosUserPreferenceStore : UserPreferenceStore {
         language = settings.getString(LANGUAGE, "system"),
         primaryCurrency = settings.getString(PRIMARY_CURRENCY, "SAT"),
         secondaryCurrency = settings.getString(SECONDARY_CURRENCY, "USD"),
+        askToSaveNewContacts = settings.getBoolean(ASK_SAVE_CONTACTS, true),
         payments = PaymentPreferences(
             confirmationMode = settings.getStringOrNull(CONFIRMATION_MODE)
                 ?.let { runCatching { ConfirmationMode.valueOf(it) }.getOrNull() }
@@ -251,6 +257,7 @@ private class IosUserPreferenceStore : UserPreferenceStore {
         const val LANGUAGE = "language"
         const val PRIMARY_CURRENCY = "primary_currency"
         const val SECONDARY_CURRENCY = "secondary_currency"
+        const val ASK_SAVE_CONTACTS = "ask_save_contacts"
         const val CONFIRMATION_MODE = "confirmation_mode"
         const val CONFIRMATION_THRESHOLD = "confirmation_threshold"
         const val CONFIRM_MANUAL = "confirm_manual"

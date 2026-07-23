@@ -9,7 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import xyz.lilsus.rayl.blip.platform.AndroidBlipRuntime
-import xyz.lilsus.rayl.blip.presentation.BlipApp
+import xyz.lilsus.rayl.foundation.ui.BlipApp
 
 class MainActivity : ComponentActivity() {
     private val runtime by lazy {
@@ -22,12 +22,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         incomingPaymentUri = intent.paymentUri()
+        @Suppress("DEPRECATION")
+        val appVersionName = packageManager
+            .getPackageInfo(packageName, 0)
+            .versionName
+            ?: "?"
 
         setContent {
             BlipApp(
                 runtime = runtime,
                 incomingPaymentUri = incomingPaymentUri,
-                onIncomingPaymentUriConsumed = { incomingPaymentUri = null }
+                onIncomingPaymentUriConsumed = { incomingPaymentUri = null },
+                appVersionName = appVersionName
             )
         }
     }

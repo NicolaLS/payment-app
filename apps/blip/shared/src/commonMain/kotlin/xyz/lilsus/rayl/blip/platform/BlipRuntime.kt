@@ -22,6 +22,7 @@ data class UserPreferences(
     val language: String = "system",
     val primaryCurrency: String = "SAT",
     val secondaryCurrency: String = "USD",
+    val askToSaveNewContacts: Boolean = true,
     val payments: PaymentPreferences = PaymentPreferences()
 )
 
@@ -33,6 +34,7 @@ interface UserPreferenceStore {
     fun setLanguage(value: String)
     fun setPrimaryCurrency(value: String)
     fun setSecondaryCurrency(value: String)
+    fun setAskToSaveNewContacts(value: Boolean)
     fun setConfirmationMode(value: ConfirmationMode)
     fun setConfirmationThreshold(value: Long)
     fun setConfirmManualEntry(value: Boolean)

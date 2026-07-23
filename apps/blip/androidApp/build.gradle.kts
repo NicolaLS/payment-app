@@ -69,6 +69,7 @@ kotlin {
 
 dependencies {
     implementation(project(":apps:blip:shared"))
+    implementation(project(":foundation:ui"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)

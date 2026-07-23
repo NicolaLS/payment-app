@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* BlipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* BlipApp.swift */; };
 		A10000000000000000000003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000004 /* PrivacyInfo.xcprivacy */; };
-		A10000000000000000000016 /* BlipShared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* BlipShared.framework */; };
+		A10000000000000000000016 /* FoundationUi.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* FoundationUi.framework */; };
 		A10000000000000000000018 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -18,7 +18,7 @@
 		A10000000000000000000004 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A10000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000006 /* Blip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Blip.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A10000000000000000000017 /* BlipShared.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = BlipShared.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000017 /* FoundationUi.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = FoundationUi.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000019 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -27,7 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000016 /* BlipShared.framework in Frameworks */,
+				A10000000000000000000016 /* FoundationUi.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -39,7 +39,7 @@
 			children = (
 				A10000000000000000000009 /* BlipApp */,
 				A10000000000000000000004 /* PrivacyInfo.xcprivacy */,
-				A10000000000000000000017 /* BlipShared.framework */,
+				A10000000000000000000017 /* FoundationUi.framework */,
 				A1000000000000000000000A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -69,7 +69,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A1000000000000000000000C /* Build configuration list for PBXNativeTarget "BlipApp" */;
 			buildPhases = (
-				A1000000000000000000000D /* Compile BlipShared */,
+				A1000000000000000000000D /* Compile FoundationUi */,
 				A1000000000000000000000E /* Sources */,
 				A10000000000000000000007 /* Frameworks */,
 				A1000000000000000000000F /* Resources */,
@@ -129,7 +129,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		A1000000000000000000000D /* Compile BlipShared */ = {
+		A1000000000000000000000D /* Compile FoundationUi */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -139,14 +139,14 @@
 			);
 			inputPaths = (
 			);
-			name = "Compile BlipShared";
+			name = "Compile FoundationUi";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  exit 0\nfi\ncd \"$SRCROOT/../../..\"\n./gradlew :apps:blip:shared:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  exit 0\nfi\ncd \"$SRCROOT/../../..\"\n./gradlew :foundation:ui:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

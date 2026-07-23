@@ -8,6 +8,7 @@ import kotlinx.coroutines.withTimeout
 import xyz.lilsus.rayl.blip.data.BlipStore
 import xyz.lilsus.rayl.blip.domain.AppClock
 import xyz.lilsus.rayl.blip.domain.BlinkApiKey
+import xyz.lilsus.rayl.blip.domain.BlinkContactCandidate
 import xyz.lilsus.rayl.blip.domain.ConnectBlinkOutcome
 import xyz.lilsus.rayl.blip.domain.ConnectionProfile
 import xyz.lilsus.rayl.blip.domain.ConnectionStatus
@@ -130,7 +131,7 @@ class BlinkGateway internal constructor(
         )
     }
 
-    suspend fun importContacts(profile: ConnectionProfile): List<Contact> {
+    suspend fun contactCandidates(profile: ConnectionProfile): List<BlinkContactCandidate> {
         val apiKey = vault.get(profile.id) ?: return emptyList()
         val existingAddresses = store.contacts()
             .map { it.lightningAddress.lowercase() }
@@ -138,7 +139,25 @@ class BlinkGateway internal constructor(
 
         return withTimeout(PROVIDER_TIMEOUT_MILLIS) {
             api.contacts(apiKey)
-        }.filterNot { it.lightningAddress.lowercase() in existingAddresses }
+        }.map { blinkContact ->
+            BlinkContactCandidate(
+                name = blinkContact.name,
+                lightningAddress = blinkContact.lightningAddress,
+                alreadyAdded = blinkContact.lightningAddress.lowercase() in existingAddresses
+            )
+        }
+    }
+
+    suspend fun importContacts(
+        profile: ConnectionProfile,
+        selectedAddresses: Set<String>? = null
+    ): List<Contact> {
+        val selected = selectedAddresses?.map(String::lowercase)?.toSet()
+        return contactCandidates(profile)
+            .filterNot(BlinkContactCandidate::alreadyAdded)
+            .filter { candidate ->
+                selected == null || candidate.lightningAddress.lowercase() in selected
+            }
             .map { blinkContact ->
                 Contact(
                     id = identifiers.newContactId(),

@@ -21,7 +21,7 @@ Status key: `DONE`, `IN PROGRESS`, `NOT STARTED`
 | P0.2 Adopt ACINQ in legacy app | DONE | Commit `6e57bfd` removes the handwritten BOLT11 parser and uses ACINQ payment primitives. |
 | P0.3 Freeze gate | DONE | Signed tag `papp-final` and protected branch `papp-legacy` point to `6e57bfd` on GitHub. |
 | Milestone 1 — RAYL skeleton | DONE | GitHub repository and Gradle root are `rayl`; all six app shapes exist; `./gradlew projects ktlintCheck` passes from the Git root. |
-| Milestone 2 — Blip extraction | REVIEW CHECKPOINT | Android debug candidate is installed and launches on a physical device. The functional iOS debug app also builds. Manual product/visual review is next; release validation is explicitly deferred and must not be run during implementation review. |
+| Milestone 2 — Blip extraction | IN PROGRESS | The corrected Android debug candidate uses the frozen legacy presentation from `foundation/ui`, is installed on a physical device, and has user visual sign-off. Complete the remaining capability/adaptor review and Android-debug-only validation; release and iOS validation remain deferred. |
 | Milestone 3 — Lasr extraction | NOT STARTED | Explicitly outside the current implementation run. |
 
 Progress is updated in this table and in task-local completion notes as work is
@@ -55,14 +55,14 @@ current evidence.
 | --- | --- | --- |
 | B1 Bootstrap | DONE | Independent shared, Android, and iOS shell projects exist with Blip IDs/namespaces; the Xcode workspace lists `BlipApp`; Android debug resolves ACINQ/Apollo/SQLDelight and assembles. |
 | B2 Decisions and boundaries | DONE | ADRs 0001–0006 record layer, money/outcome, lifecycle, persistence/vault, protocol/privacy, and intentionally-small-test decisions. `verifyBlipArchitecture` enforces the pure-domain, NWC, and no-migrated-test boundaries. |
-| B3 Visual product | IMPLEMENTED — MANUAL CHECK PENDING | App-owned Compose onboarding, scanner hero, payment states, transactions, settings, editable contacts/shortcuts, themes, typography, Android/iOS icons, and resources use the established product assets. Visual comparison remains part of the user/QA handoff. |
+| B3 Visual product | DONE — USER VISUAL SIGN-OFF | The frozen `papp-final` Compose screens, theme, hero, scanner UI, controls, strings, fonts, and resources now live in `foundation/ui`. Blip renders them without an app-owned presentation implementation; NWC remains present only as an unavailable visual option. |
 | B4 Core and persistence | DONE | Validated values, fixed-point currency conversion/rate snapshots, SQLDelight connection/attempt/contact/shortcut storage, bounded transitions, duplicate policy, typed preferences, and Android Keystore AES-GCM credential storage are wired. No tests were migrated or added. |
 | B5 Blink provisioning | DONE | Ephemeral redacted API-key entry, stable provider-code mapping, generated account/default-wallet discovery, connection generations, refresh, contact import, disconnect, and reconnect are wired. |
 | B6 Input/protocol trust | DONE | One resolver handles all origins using ACINQ BOLT11/BOLT12/Bech32/hash APIs, BIP21, strict LNURL/Lightning-address policy, amount/metadata checks, and explicit unsupported classifications. |
 | B7 Payment coordinator | DONE | One serialized coordinator writes attempts before provider I/O, preserves pending/unknown, blocks repeated invoice hashes, and reconciles with the original connection and wallet generation. |
-| B8 Complete product wiring | IMPLEMENTED — MANUAL CHECK PENDING | Onboarding, scan/paste/manual/app-link input, amount/confirmation/payment/result, transaction detail, editable contacts/shortcuts (including fiat-at-payment-time shortcuts), currency/rates, preferences, haptics, donation, language/theme, and wallet management are connected through typed routes and separate feature states. |
-| B9 Platform boundaries | DEBUG IMPLEMENTATION DONE | Android uses CameraX/ML Kit, Keystore, private preferences, clipboard, haptics, locale and lifecycle adapters. iOS now uses AVFoundation, Keychain, SQLDelight Native, `NSUserDefaults`, clipboard/haptics, a Compose host, and queued standard payment links. Both advertise only `lightning`, `bitcoin`, and `lnurl`. |
-| B10 Verify/close | REVIEW CHECKPOINT | `verifyBlipArchitecture`, formatting, and `:apps:blip:androidApp:assembleDebug` pass; the APK installs and cold-starts on a physical Android device. The iOS debug framework and application build. No tests were migrated or added. User/QA manual capability and visual review is next. Release validation is deferred and must not be run for this review checkpoint. |
+| B8 Complete product wiring | IN PROGRESS | The corrected foundation UI is wired to Blip onboarding, scanning, amount/confirmation/payment/result, transactions, preferences, donation, language/theme, wallet management, and contacts/shortcuts data. Finish removing temporary no-op edit/create callbacks and review capability parity before closure. |
+| B9 Platform boundaries | ANDROID DEBUG IMPLEMENTED | Android uses CameraX/ML Kit from `foundation/ui` and keeps the Keystore, private preferences, clipboard, haptics, locale, and lifecycle adapters below UI. iOS source ownership has been moved to `foundation/ui`, but iOS is deliberately not being built during routine implementation. |
+| B10 Verify/close | IN PROGRESS | The corrected Android debug APK assembles, installs, cold-starts on a physical device, and has user visual sign-off. Run formatting and architecture checks after capability wiring is complete. No tests were migrated or added; release and iOS validation are deferred. |
 
 This checkpoint intentionally stops at the debug handoff requested for manual
 testing. It does not claim the final Milestone 2 exit gate: user/QA capability
@@ -97,6 +97,12 @@ this implementation sequence:
 - Blip is implemented before Lasr.
 - Both extractions include all applicable legacy functionality.
 - The initial UI should remain effectively identical to the legacy product.
+- During the Blip-first and Lasr extraction stages, all copied presentation
+  code and Compose resources live in `foundation/ui`, even when a component is
+  temporarily consumed by only one app or still has provider-aware UI state.
+- Do not redesign, restyle, simplify, replace, or omit legacy screens while
+  extracting business logic. Classification and any redesign happen only
+  after both Blip and Lasr use the frozen presentation baseline.
 - The provider-selection and existing onboarding experiences may remain
   temporarily. Blip must disable the NWC option; Lasr must disable the Blink
   option.
@@ -661,20 +667,27 @@ overflow checks, and a recorded rate snapshot.
 
 ### 7.4 UI preservation strategy
 
-Because Blip is implemented first, do not put wholesale legacy UI into
-`foundation/ui` before two consumers exist:
+UI preservation takes priority over final classification during the first two
+extractions:
 
-1. Copy visual code and resources into Blip's app-owned presentation area.
-2. Remove business state, provider routing, and navigation side effects while
-   preserving rendered appearance.
-3. Repeat for Lasr using the legacy baseline and the verified Blip visuals.
-4. Once both apps render the same component, promote only provider-neutral
-   themes, hero visuals, controls, and screen sections to `foundation/ui`.
-5. Keep complete screens duplicated when sharing would require provider
-   conditionals or distorted state.
+1. Copy the frozen legacy Compose screens, theme, resources, semantics, and
+   navigation-visible flows wholesale into `foundation/ui`.
+2. Keep the rendered appearance and interaction model unchanged while replacing
+   business state, provider routing, persistence, and side effects behind the
+   UI contracts.
+3. Blip consumes the full foundation presentation and makes NWC unavailable
+   without compiling or executing NWC behavior.
+4. Lasr then consumes the same full foundation presentation and makes Blink
+   unavailable without compiling or executing Blink behavior.
+5. Only after both apps are extracted and visually verified, classify which
+   screens/components are genuinely shared, Blink-only, or NWC-only.
+6. Move or duplicate app-specific UI only during that later classification
+   pass. A redesign requires a separate explicit product decision.
 
-This prevents temporary migration staging from becoming permanent foundation
-debt.
+It is acceptable during this intermittent milestone for `foundation/ui` to
+contain provider-aware or single-consumer components. That temporary coupling
+must be visible and revisited after Lasr extraction; it must not be “cleaned up”
+by changing the current UI.
 
 ## 8. Capability matrix and parity contract
 
@@ -794,7 +807,8 @@ Dependencies: B1
 
 Subtasks:
 
-1. Copy the legacy Compose resources and visual components into Blip.
+1. Copy the complete frozen legacy Compose resources and visual components into
+   `foundation/ui`.
 2. Rename generated resource packages and remove legacy `papp` identity.
 3. Preserve themes, typography, shapes, hero animation, layouts, strings, and
    stable semantics/test tags.
@@ -806,7 +820,8 @@ Subtasks:
    unavailable.
 7. Remove NWC-specific help, credential, and connection behavior while retaining
    any neutral visual structure needed for parity.
-8. Add previews or deterministic state fixtures for important screen states.
+8. Keep the existing lightweight previews where useful; do not add screenshot,
+   integration, or UI test infrastructure.
 
 Acceptance criteria:
 
@@ -1248,30 +1263,35 @@ Acceptance criteria:
 - Native lifecycle events cannot create duplicate NWC clients or submissions.
 - No NWC credential is restorable through general saved state.
 
-### L9 Build the demonstrated UI foundation
+### L9 Classify the staged UI foundation
 
 Dependencies: B3, L3, L7
 
 Subtasks:
 
-1. Compare the working Blip and Lasr themes, resources, hero, controls, and
-   screen sections.
-2. Promote only components with identical visual and behavioral semantics into
+1. Start from the already-staged full legacy presentation in `foundation/ui`;
+   do not recreate either app's UI.
+2. Compare the working Blip and Lasr use of each screen, resource, hero,
+   control, and state contract.
+3. Keep components with coherent shared visual and behavioral semantics in
    `foundation/ui`.
-3. Parameterize simple app name, icon, copy, and theme differences.
-4. Keep onboarding/provider UI app-owned when sharing requires a provider
-   condition.
-5. Move provider-aware and single-app resources back into their owning app.
-6. Add small UI-state/previews for shared components; do not introduce a broad
-   screenshot-test framework.
-7. Add dependency checks preventing foundation UI from importing either app,
-   Apollo, NWC, provider credentials, app navigation, or provider states.
+4. Parameterize only genuine app name, icon, copy, availability, and theme
+   differences that do not alter the approved layouts or flows.
+5. Move or intentionally duplicate Blink-only and NWC-only UI into the owning
+   application only after both apps have been verified against the common
+   baseline.
+6. Keep the existing lightweight previews where useful; do not introduce
+   screenshot, integration, UI, or E2E test infrastructure.
+7. After classification, add dependency checks preventing the remaining shared
+   foundation from importing either provider implementation, credentials, or
+   provider state.
 
 Acceptance criteria:
 
-- `foundation/ui` is provider-neutral.
-- Both apps are real consumers of every promoted component.
-- Removing either app would not make the foundation API mention the other.
+- The classified shared portion of `foundation/ui` is provider-neutral.
+- Both apps consume the shared components they genuinely use.
+- Temporary provider-aware staging dependencies have been removed or moved to
+  explicitly owned UI.
 - Intentional duplication is documented rather than “fixed.”
 
 ### L10 Verify and close the Lasr extraction
@@ -1464,8 +1484,9 @@ protocol, concurrency, or provider-coupling mechanisms.
 - [ ] Both apps bind reconciliation to the original connection generation.
 - [ ] Both apps preserve unknown payment truth.
 - [ ] Credentials stay in app-specific vaults and ephemeral handoffs.
-- [ ] `foundation/ui` is provider-neutral and has at least two consumers per
-      promoted component.
+- [ ] The full frozen UI is staged in `foundation/ui` through both extractions;
+      after Lasr verification, its shared portion is provider-neutral and
+      provider-specific UI is explicitly classified.
 - [ ] No legacy test suite has been migrated.
 - [ ] Newly written tests are basic direct-value unit tests only, use no mocks,
       stubs, or fakes, and pass on the Android/JVM host.

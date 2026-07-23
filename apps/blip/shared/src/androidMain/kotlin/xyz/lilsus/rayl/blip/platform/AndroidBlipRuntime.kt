@@ -241,6 +241,10 @@ private class AndroidUserPreferenceStore(private val context: Context) : UserPre
         copy(secondaryCurrency = value)
     }
 
+    override fun setAskToSaveNewContacts(value: Boolean) = update {
+        copy(askToSaveNewContacts = value)
+    }
+
     override fun setConfirmationMode(value: ConfirmationMode) = update {
         copy(payments = payments.copy(confirmationMode = value))
     }
@@ -273,6 +277,7 @@ private class AndroidUserPreferenceStore(private val context: Context) : UserPre
             .putString(LANGUAGE, updated.language)
             .putString(PRIMARY_CURRENCY, updated.primaryCurrency)
             .putString(SECONDARY_CURRENCY, updated.secondaryCurrency)
+            .putBoolean(ASK_SAVE_CONTACTS, updated.askToSaveNewContacts)
             .putString(CONFIRMATION_MODE, updated.payments.confirmationMode.name)
             .putLong(CONFIRMATION_THRESHOLD, updated.payments.thresholdSats)
             .putBoolean(CONFIRM_MANUAL, updated.payments.confirmManualEntry)
@@ -291,6 +296,7 @@ private class AndroidUserPreferenceStore(private val context: Context) : UserPre
         language = preferences.getString(LANGUAGE, "system") ?: "system",
         primaryCurrency = preferences.getString(PRIMARY_CURRENCY, "SAT") ?: "SAT",
         secondaryCurrency = preferences.getString(SECONDARY_CURRENCY, "USD") ?: "USD",
+        askToSaveNewContacts = preferences.getBoolean(ASK_SAVE_CONTACTS, true),
         payments = PaymentPreferences(
             confirmationMode = preferences.getString(CONFIRMATION_MODE, null)
                 ?.let { runCatching { ConfirmationMode.valueOf(it) }.getOrNull() }
@@ -310,6 +316,7 @@ private class AndroidUserPreferenceStore(private val context: Context) : UserPre
         const val LANGUAGE = "language"
         const val PRIMARY_CURRENCY = "primary_currency"
         const val SECONDARY_CURRENCY = "secondary_currency"
+        const val ASK_SAVE_CONTACTS = "ask_save_contacts"
         const val CONFIRMATION_MODE = "confirmation_mode"
         const val CONFIRMATION_THRESHOLD = "confirmation_threshold"
         const val CONFIRM_MANUAL = "confirm_manual"
