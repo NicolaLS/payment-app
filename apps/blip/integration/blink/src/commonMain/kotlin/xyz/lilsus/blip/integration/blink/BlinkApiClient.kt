@@ -10,6 +10,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.absoluteValue
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -132,6 +133,130 @@ internal class BlinkApiClient(
             )
         }
 
+    suspend fun payInvoice(
+        apiKey: String,
+        walletId: String,
+        invoice: String,
+        amountMsats: Long?
+    ): BlinkPaymentResult {
+        val isAmountlessInvoice = amountMsats != null
+        val operation =
+            if (isAmountlessInvoice) {
+                NO_AMOUNT_PAYMENT_MUTATION
+            } else {
+                PAYMENT_MUTATION
+            }
+        val operationName =
+            if (isAmountlessInvoice) {
+                "lnNoAmountInvoicePaymentSend"
+            } else {
+                "lnInvoicePaymentSend"
+            }
+        val input =
+            buildJsonObject {
+                put("paymentRequest", invoice)
+                put("walletId", walletId)
+                amountMsats?.let { msats ->
+                    put("amount", (msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT)
+                }
+            }
+        val payload =
+            execute(
+                apiKey = apiKey,
+                query = operation,
+                variables =
+                    buildJsonObject {
+                        put("input", input)
+                    }
+            ).objectOrNull(operationName)
+                ?: throw BlinkApiException(
+                    BlinkApiError.Unexpected("Blink did not return a payment result")
+                )
+
+        payload.arrayOrNull("errors")?.firstOrNull()?.let { element ->
+            val paymentError = element as? JsonObject
+            throw BlinkApiException(
+                classifyError(
+                    code = paymentError?.stringOrNull("code"),
+                    detail = paymentError?.stringOrNull("message")
+                )
+            )
+        }
+
+        val transaction = payload.objectOrNull("transaction")?.toTransaction()
+        return when (payload.stringOrNull("status")?.uppercase()) {
+            "SUCCESS" ->
+                BlinkPaymentResult.Success(
+                    preimageHex = transaction?.preimageHex,
+                    feesPaidMsats = transaction?.feesPaidMsats
+                )
+
+            "ALREADY_PAID" ->
+                BlinkPaymentResult.AlreadyPaid(
+                    preimageHex = transaction?.preimageHex
+                )
+
+            "PENDING" ->
+                BlinkPaymentResult.Pending(
+                    preimageHex = transaction?.preimageHex,
+                    feesPaidMsats = transaction?.feesPaidMsats
+                )
+
+            "FAILURE" -> throw BlinkApiException(BlinkApiError.Rejected(null, null))
+
+            else ->
+                throw BlinkApiException(
+                    BlinkApiError.Unexpected("Unknown Blink payment status")
+                )
+        }
+    }
+
+    suspend fun lookupPayment(apiKey: String, paymentHash: String): BlinkPaymentStatus {
+        val wallets =
+            execute(
+                apiKey = apiKey,
+                query = PAYMENT_LOOKUP_QUERY,
+                variables =
+                    buildJsonObject {
+                        put("paymentHash", paymentHash)
+                    }
+            ).objectOrNull("me")
+                ?.objectOrNull("defaultAccount")
+                ?.arrayOrNull("wallets")
+                .orEmpty()
+        val outgoingTransactions =
+            wallets
+                .flatMap { walletElement ->
+                    (walletElement as? JsonObject)
+                        ?.arrayOrNull("transactionsByPaymentHash")
+                        .orEmpty()
+                }.mapNotNull { it as? JsonObject }
+                .filter { transaction ->
+                    transaction.stringOrNull("direction")?.uppercase() == "SEND"
+                }
+
+        outgoingTransactions
+            .firstOrNull { it.stringOrNull("status")?.uppercase() == "SUCCESS" }
+            ?.let { transaction ->
+                val settled = transaction.toTransaction()
+                return BlinkPaymentStatus.Settled(
+                    preimageHex = settled.preimageHex,
+                    feesPaidMsats = settled.feesPaidMsats
+                )
+            }
+        return when {
+            outgoingTransactions.any {
+                it.stringOrNull("status")?.uppercase() == "PENDING"
+            } -> BlinkPaymentStatus.Pending
+
+            outgoingTransactions.any {
+                it.stringOrNull("status")?.uppercase() == "FAILURE"
+            } -> BlinkPaymentStatus.Failed
+
+            else -> BlinkPaymentStatus.NotFound
+        }
+    }
+
     private suspend fun execute(
         apiKey: String,
         query: String,
@@ -202,6 +327,26 @@ internal class BlinkApiClient(
     }
 }
 
+internal sealed interface BlinkPaymentResult {
+    data class Success(val preimageHex: String?, val feesPaidMsats: Long?) : BlinkPaymentResult
+
+    data class AlreadyPaid(val preimageHex: String?) : BlinkPaymentResult
+
+    data class Pending(val preimageHex: String?, val feesPaidMsats: Long?) : BlinkPaymentResult
+}
+
+internal sealed interface BlinkPaymentStatus {
+    data class Settled(val preimageHex: String?, val feesPaidMsats: Long?) : BlinkPaymentStatus
+
+    data object Pending : BlinkPaymentStatus
+
+    data object Failed : BlinkPaymentStatus
+
+    data object NotFound : BlinkPaymentStatus
+}
+
+private data class BlinkTransaction(val preimageHex: String?, val feesPaidMsats: Long?)
+
 private fun HttpStatusCode.toApiError(): BlinkApiError = when (this) {
     HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden -> BlinkApiError.InvalidApiKey
     HttpStatusCode.TooManyRequests -> BlinkApiError.RateLimited
@@ -270,7 +415,32 @@ private fun JsonObject.arrayOrNull(key: String): JsonArray? = this[key]
 
 private fun JsonObject.stringOrNull(key: String): String? = this[key]?.primitiveContentOrNull()
 
+private fun JsonObject.longOrNull(key: String): Long? =
+    (this[key] as? JsonPrimitive)?.contentOrNull?.toLongOrNull()
+
 private fun JsonElement.primitiveContentOrNull(): String? = (this as? JsonPrimitive)?.contentOrNull
+
+private fun JsonObject.toTransaction(): BlinkTransaction {
+    val settlementVia = objectOrNull("settlementVia")
+    val fee = longOrNull("settlementFee")
+    val feeMsats =
+        fee
+            ?.takeUnless { it == Long.MIN_VALUE }
+            ?.absoluteValue
+            ?.takeIf { it <= Long.MAX_VALUE / MSATS_PER_SAT }
+            ?.times(MSATS_PER_SAT)
+            ?.takeIf {
+                stringOrNull("settlementCurrency")?.uppercase() == "BTC"
+            }
+    return BlinkTransaction(
+        preimageHex =
+            settlementVia
+                ?.stringOrNull("preImage")
+                ?.trim()
+                ?.takeIf(String::isNotEmpty),
+        feesPaidMsats = feeMsats
+    )
+}
 
 private fun Throwable.isTimeout(): Boolean {
     val errorText = message?.lowercase().orEmpty()
@@ -282,6 +452,8 @@ private fun Throwable.isTimeout(): Boolean {
 private const val BLINK_API_URL = "https://api.blink.sv/graphql"
 private const val API_KEY_HEADER = "X-API-KEY"
 private const val BLINK_LIGHTNING_ADDRESS_DOMAIN = "blink.sv"
+private const val MSATS_PER_SAT = 1_000L
+private const val DOLLAR = '$'
 
 private const val AUTHORIZATION_QUERY =
     """
@@ -313,6 +485,76 @@ private const val CONTACTS_QUERY =
           alias
           handle
           transactionsCount
+        }
+      }
+    }
+    """
+
+private const val PAYMENT_TRANSACTION_FIELDS =
+    """
+    status
+    direction
+    settlementFee
+    settlementCurrency
+    settlementVia {
+      ... on SettlementViaIntraLedger {
+        preImage
+      }
+      ... on SettlementViaLn {
+        preImage
+      }
+    }
+    """
+
+private const val PAYMENT_MUTATION =
+    """
+    mutation LnInvoicePaymentSend(${DOLLAR}input: LnInvoicePaymentInput!) {
+      lnInvoicePaymentSend(input: ${DOLLAR}input) {
+        status
+        errors {
+          message
+          code
+        }
+        transaction {
+          $PAYMENT_TRANSACTION_FIELDS
+        }
+      }
+    }
+    """
+
+private const val NO_AMOUNT_PAYMENT_MUTATION =
+    """
+    mutation LnNoAmountInvoicePaymentSend(${DOLLAR}input: LnNoAmountInvoicePaymentInput!) {
+      lnNoAmountInvoicePaymentSend(input: ${DOLLAR}input) {
+        status
+        errors {
+          message
+          code
+        }
+        transaction {
+          $PAYMENT_TRANSACTION_FIELDS
+        }
+      }
+    }
+    """
+
+private const val PAYMENT_LOOKUP_QUERY =
+    """
+    query TransactionsByPaymentHash(${DOLLAR}paymentHash: PaymentHash!) {
+      me {
+        defaultAccount {
+          wallets {
+            ... on BTCWallet {
+              transactionsByPaymentHash(paymentHash: ${DOLLAR}paymentHash) {
+                $PAYMENT_TRANSACTION_FIELDS
+              }
+            }
+            ... on UsdWallet {
+              transactionsByPaymentHash(paymentHash: ${DOLLAR}paymentHash) {
+                $PAYMENT_TRANSACTION_FIELDS
+              }
+            }
+          }
         }
       }
     }
