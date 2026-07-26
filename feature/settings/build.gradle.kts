@@ -13,7 +13,11 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":core:model"))
             implementation(project(":core:ui"))
+            implementation(project(":feature:currency-settings"))
+            implementation(project(":feature:language-settings"))
+            api(project(":feature:theme-settings"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)
