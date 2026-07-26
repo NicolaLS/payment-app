@@ -4,7 +4,10 @@ import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.pingInterval
 import io.ktor.serialization.kotlinx.json.json
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.json.Json
 
 fun createHttpClient(): HttpClient = platformHttpClient().config {
@@ -19,6 +22,17 @@ fun createHttpClient(): HttpClient = platformHttpClient().config {
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 2)
         exponentialDelay()
+    }
+}
+
+fun createWebSocketHttpClient(): HttpClient = platformHttpClient().config {
+    install(HttpTimeout) {
+        connectTimeoutMillis = 7_000
+        socketTimeoutMillis = 12_000
+        requestTimeoutMillis = 12_000
+    }
+    install(WebSockets) {
+        pingInterval = 5.seconds
     }
 }
 

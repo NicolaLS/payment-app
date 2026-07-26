@@ -11,6 +11,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.ktor.client.contentNegotiation)
             api(libs.ktor.client.core)
+            implementation(libs.ktor.client.websockets)
             implementation(libs.ktor.serialization.kotlinx.json)
         }
         androidMain.dependencies {
