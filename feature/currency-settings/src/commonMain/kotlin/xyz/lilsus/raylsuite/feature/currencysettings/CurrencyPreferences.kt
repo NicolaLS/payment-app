@@ -69,8 +69,8 @@ class DefaultCurrencyPreferences(private val settings: Settings) : CurrencyPrefe
     }
 
     private companion object {
-        const val KEY_DISPLAY_CURRENCY = "display.currency.code"
-        const val KEY_SECONDARY_DISPLAY_CURRENCY = "display.secondary.currency.code"
+        const val KEY_DISPLAY_CURRENCY = "currency.primaryCode"
+        const val KEY_SECONDARY_DISPLAY_CURRENCY = "currency.secondaryCode"
     }
 }
 

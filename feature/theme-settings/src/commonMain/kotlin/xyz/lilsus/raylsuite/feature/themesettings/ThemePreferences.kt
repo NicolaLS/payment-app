@@ -45,6 +45,6 @@ class DefaultThemePreferences(private val settings: Settings) : ThemePreferences
     }
 
     private companion object {
-        const val KEY_THEME_PREFERENCE = "theme.preference"
+        const val KEY_THEME_PREFERENCE = "appearance.selectedTheme"
     }
 }

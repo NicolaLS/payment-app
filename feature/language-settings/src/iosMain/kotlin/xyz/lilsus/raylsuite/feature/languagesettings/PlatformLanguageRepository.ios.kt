@@ -82,7 +82,7 @@ private class IosLanguageRepository : LanguageRepository {
         .orEmpty()
 
     private companion object {
-        const val OVERRIDE_KEY = "language.override.tag"
+        const val OVERRIDE_KEY = "localization.selectedLanguage"
         const val APPLE_LANGUAGES_KEY = "AppleLanguages"
     }
 }

@@ -111,12 +111,12 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
     }
 
     private companion object {
-        const val KEY_CONFIRM_MODE = "payment.confirmation.mode"
-        const val KEY_CONFIRM_THRESHOLD_SATS = "payment.confirmation.threshold.sats"
-        const val KEY_CONFIRM_MANUAL_ENTRY = "payment.confirmation.manual"
-        const val KEY_CONFIRM_SHORTCUT_PAYMENTS = "payment.confirmation.shortcuts"
-        const val KEY_VIBRATE_SCAN = "payment.vibrate.scan"
-        const val KEY_VIBRATE_PAYMENT = "payment.vibrate.payment"
+        const val KEY_CONFIRM_MODE = "payments.confirmationMode"
+        const val KEY_CONFIRM_THRESHOLD_SATS = "payments.confirmationThresholdSats"
+        const val KEY_CONFIRM_MANUAL_ENTRY = "payments.confirmManualEntry"
+        const val KEY_CONFIRM_SHORTCUT_PAYMENTS = "payments.confirmShortcuts"
+        const val KEY_VIBRATE_SCAN = "payments.vibrateOnScan"
+        const val KEY_VIBRATE_PAYMENT = "payments.vibrateOnPayment"
         const val MODE_ALWAYS = "always"
         const val MODE_ABOVE = "above"
     }
