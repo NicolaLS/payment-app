@@ -1,61 +1,84 @@
 package xyz.lilsus.blip
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.raylsuite.blip.generated.resources.Res
-import xyz.lilsus.raylsuite.blip.generated.resources.app_name
-import xyz.lilsus.raylsuite.blip.generated.resources.open_settings
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.rememberNavController
+import xyz.lilsus.blip.integration.blink.createBlinkWallet
 import xyz.lilsus.raylsuite.core.model.ThemePreference
+import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
+import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
+import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
+import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
+import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
 
 @Composable
 fun App() {
-    val themePreferences = rememberThemePreferences(storageName = "blip_preferences")
-    val themePreference by themePreferences.preference.collectAsState(
-        initial = ThemePreference.System
-    )
+    val themePreferences = rememberThemePreferences(storageName = BLIP_PREFERENCES)
+    val themePreference by
+        themePreferences.preference.collectAsState(
+            initial = ThemePreference.System
+        )
+    val currencyPreferences = rememberCurrencyPreferences(BLIP_PREFERENCES)
+    val paymentPreferences = rememberPaymentPreferencesRepository(BLIP_PREFERENCES)
+    val secureSettings = rememberSecureSettings(BLIP_CREDENTIALS)
+    val networkConnectivity = remember { createNetworkConnectivity() }
+    val blinkWallet =
+        remember(secureSettings, networkConnectivity) {
+            createBlinkWallet(
+                secureSettings = secureSettings,
+                isNetworkAvailable = networkConnectivity::isNetworkAvailable
+            )
+        }
     val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
-    var showSettings by remember { mutableStateOf(false) }
+    val onboardingViewModel =
+        remember(paymentPreferences, currencyPreferences, bitcoinPriceProvider) {
+            OnboardingViewModel(
+                paymentPreferences = paymentPreferences,
+                currencyPreferences = currencyPreferences,
+                bitcoinPriceProvider = bitcoinPriceProvider
+            )
+        }
+    val navController = rememberNavController()
+    val startDestination =
+        remember(blinkWallet) {
+            if (blinkWallet.connection.value == null) {
+                BlipDestination.Welcome
+            } else {
+                BlipDestination.Home
+            }
+        }
+
+    DisposableEffect(onboardingViewModel) {
+        onDispose(onboardingViewModel::clear)
+    }
 
     RaylSuiteTheme(themePreference = themePreference) {
-        if (showSettings) {
-            SettingsFlow(
-                storageName = "blip_preferences",
-                themePreferences = themePreferences,
-                bitcoinPriceProvider = bitcoinPriceProvider,
-                onBack = { showSettings = false }
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier
+        ) {
+            blipOnboarding(
+                navController = navController,
+                blinkWallet = blinkWallet,
+                onboardingViewModel = onboardingViewModel
             )
-        } else {
-            AppHome(onOpenSettings = { showSettings = true })
+            blipHome(
+                navController = navController,
+                themePreferences = themePreferences,
+                bitcoinPriceProvider = bitcoinPriceProvider
+            )
         }
     }
 }
 
-@Composable
-private fun AppHome(onOpenSettings: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(stringResource(Res.string.app_name))
-        Button(onClick = onOpenSettings) {
-            Text(stringResource(Res.string.open_settings))
-        }
-    }
-}
+internal const val BLIP_PREFERENCES = "blip_preferences"
+private const val BLIP_CREDENTIALS = "blip_wallet"
