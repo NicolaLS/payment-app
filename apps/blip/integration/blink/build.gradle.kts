@@ -13,11 +13,14 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":core:payment"))
             implementation(libs.apollo.runtime)
+            implementation(libs.bitcoin.kmp)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.lightning.kmp.core)
             implementation(libs.multiplatform.settings)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
             implementation(libs.multiplatform.settings.test)
         }
     }
