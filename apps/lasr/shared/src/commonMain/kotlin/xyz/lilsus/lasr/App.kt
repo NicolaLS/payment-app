@@ -1,35 +1,28 @@
 package xyz.lilsus.lasr
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.lasr.integration.nwc.createNwcWallet
 import xyz.lilsus.raylsuite.core.model.ThemePreference
+import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
+import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
+import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
+import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
 import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
-import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
-import xyz.lilsus.raylsuite.lasr.generated.resources.Res
-import xyz.lilsus.raylsuite.lasr.generated.resources.app_name
-import xyz.lilsus.raylsuite.lasr.generated.resources.open_settings
+import xyz.lilsus.raylsuite.integration.lnurl.KtorLnurlPayClient
 
 @Composable
 fun App() {
@@ -40,7 +33,10 @@ fun App() {
         )
     val currencyPreferences = rememberCurrencyPreferences(LASR_PREFERENCES)
     val paymentPreferences = rememberPaymentPreferencesRepository(LASR_PREFERENCES)
+    val contactsRepository = rememberContactsRepository(LASR_PREFERENCES)
     val secureSettings = rememberSecureSettings(LASR_CREDENTIALS)
+    val networkConnectivity = remember { createNetworkConnectivity() }
+    val haptics = rememberHapticFeedbackManager()
     val walletScope = rememberCoroutineScope()
     val nwcWallet =
         remember(secureSettings, walletScope) {
@@ -50,6 +46,30 @@ fun App() {
             )
         }
     val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
+    val lnurlPayClient =
+        remember(networkConnectivity) {
+            KtorLnurlPayClient(networkConnectivity)
+        }
+    val paymentCoordinator =
+        remember(
+            nwcWallet,
+            lnurlPayClient,
+            bitcoinPriceProvider,
+            currencyPreferences,
+            paymentPreferences,
+            contactsRepository,
+            haptics
+        ) {
+            PaymentCoordinator(
+                paymentProvider = nwcWallet,
+                lnurlPayClient = lnurlPayClient,
+                bitcoinPriceProvider = bitcoinPriceProvider,
+                currencyPreferences = currencyPreferences,
+                paymentPreferences = paymentPreferences,
+                contactsRepository = contactsRepository,
+                haptics = haptics
+            )
+        }
     val onboardingViewModel =
         remember(paymentPreferences, currencyPreferences, bitcoinPriceProvider) {
             OnboardingViewModel(
@@ -68,8 +88,11 @@ fun App() {
             }
         }
 
-    DisposableEffect(onboardingViewModel) {
-        onDispose(onboardingViewModel::clear)
+    DisposableEffect(onboardingViewModel, paymentCoordinator) {
+        onDispose {
+            onboardingViewModel.clear()
+            paymentCoordinator.clear()
+        }
     }
 
     RaylSuiteTheme(themePreference = themePreference) {
@@ -83,35 +106,15 @@ fun App() {
                 nwcWallet = nwcWallet,
                 onboardingViewModel = onboardingViewModel
             )
-            composable<LasrDestination.Home> {
-                AppHome(
-                    onOpenSettings = {
-                        navController.navigate(LasrDestination.Settings)
-                    }
-                )
-            }
-            composable<LasrDestination.Settings> {
-                SettingsFlow(
-                    storageName = LASR_PREFERENCES,
-                    themePreferences = themePreferences,
-                    bitcoinPriceProvider = bitcoinPriceProvider,
-                    onBack = navController::navigateUp
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun AppHome(onOpenSettings: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(stringResource(Res.string.app_name))
-        Button(onClick = onOpenSettings) {
-            Text(stringResource(Res.string.open_settings))
+            lasrHome(
+                navController = navController,
+                themePreferences = themePreferences,
+                bitcoinPriceProvider = bitcoinPriceProvider,
+                currencyPreferences = currencyPreferences,
+                paymentPreferences = paymentPreferences,
+                contactsRepository = contactsRepository,
+                paymentCoordinator = paymentCoordinator
+            )
         }
     }
 }

@@ -32,4 +32,10 @@ internal sealed interface LasrDestination {
 
     @Serializable
     data object Settings : LasrDestination
+
+    @Serializable
+    data object Contacts : LasrDestination
+
+    @Serializable
+    data object ShortcutCreate : LasrDestination
 }
