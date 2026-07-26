@@ -26,7 +26,7 @@ applications.
 | Generic settings hub | settings presentation | `feature/settings` | Shared settings, contacts, and shortcuts flow extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI and shortcut persistence extracted |
 | Blink contact import | Blink contacts import | `apps/blip/feature/blink-contact-import` | Optional Blip-only story |
-| Shared payment contracts | payment domain | `core/payment` | Fiat price contract extracted |
+| Shared payment contracts | payment domain | `core/payment` | Fiat price and provider-neutral wallet payment contracts extracted |
 | Exchange-rate integration | exchange data | `integration/exchange-rate` | CoinGecko adapter extracted |
 | Shared onboarding | onboarding presentation | `feature/onboarding` | Neutral shell, welcome, features, and agreement UI extracted |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Pending |
