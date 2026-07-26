@@ -22,11 +22,13 @@ import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
 import xyz.lilsus.blip.ui.getBlipPaymentErrorMessageFor
 import xyz.lilsus.raylsuite.blip.generated.resources.Res
 import xyz.lilsus.raylsuite.blip.generated.resources.app_name
+import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
 import xyz.lilsus.raylsuite.feature.payment.PaymentFlow
+import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
@@ -76,7 +78,8 @@ internal fun NavGraphBuilder.blipHome(
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
-            blinkWallet = blinkWallet
+            blinkWallet = blinkWallet,
+            paymentCoordinator = paymentCoordinator
         )
     }
     composable<BlipDestination.Contacts> {
@@ -88,7 +91,8 @@ internal fun NavGraphBuilder.blipHome(
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
-            blinkWallet = blinkWallet
+            blinkWallet = blinkWallet,
+            paymentCoordinator = paymentCoordinator
         )
     }
     composable<BlipDestination.ShortcutCreate> {
@@ -100,7 +104,8 @@ internal fun NavGraphBuilder.blipHome(
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
-            blinkWallet = blinkWallet
+            blinkWallet = blinkWallet,
+            paymentCoordinator = paymentCoordinator
         )
     }
     composable<BlipDestination.WalletManagement> {
@@ -177,7 +182,8 @@ private fun BlipSettings(
     currencyPreferences: CurrencyPreferences,
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
-    blinkWallet: BlinkWallet
+    blinkWallet: BlinkWallet,
+    paymentCoordinator: PaymentCoordinator
 ) {
     val connection by blinkWallet.connection.collectAsState()
     SettingsFlow(
@@ -204,6 +210,27 @@ private fun BlipSettings(
                         navController.navigate(BlipDestination.WalletManagement)
                     }
                 )
+            ),
+        donationAppName = stringResource(Res.string.app_name),
+        onDonate = { amountSats ->
+            navController.navigate(BlipDestination.Home) {
+                popUpTo<BlipDestination.Home> {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
+            paymentCoordinator.dispatch(
+                PaymentIntent.StartDonation(
+                    amountSats = amountSats,
+                    address = BLIP_DONATION_ADDRESS
+                )
             )
+        }
     )
 }
+
+private val BLIP_DONATION_ADDRESS =
+    LightningAddress(
+        username = "lilsus",
+        domain = "blink.sv"
+    )
