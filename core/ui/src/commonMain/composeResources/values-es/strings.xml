@@ -1,0 +1,4 @@
+<resources>
+    <string name="action_back">Volver</string>
+    <string name="action_clear_search">Borrar búsqueda</string>
+</resources>
