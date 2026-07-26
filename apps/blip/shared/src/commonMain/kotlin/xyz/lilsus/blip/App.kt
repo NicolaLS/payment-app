@@ -18,10 +18,10 @@ import xyz.lilsus.raylsuite.blip.generated.resources.Res
 import xyz.lilsus.raylsuite.blip.generated.resources.app_name
 import xyz.lilsus.raylsuite.blip.generated.resources.open_settings
 import xyz.lilsus.raylsuite.core.model.ThemePreference
-import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
+import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
 
 @Composable
 fun App() {
@@ -29,6 +29,7 @@ fun App() {
     val themePreference by themePreferences.preference.collectAsState(
         initial = ThemePreference.System
     )
+    val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
     var showSettings by remember { mutableStateOf(false) }
 
     RaylSuiteTheme(themePreference = themePreference) {
@@ -36,7 +37,7 @@ fun App() {
             SettingsFlow(
                 storageName = "blip_preferences",
                 themePreferences = themePreferences,
-                bitcoinPriceProvider = unavailableBitcoinPriceProvider,
+                bitcoinPriceProvider = bitcoinPriceProvider,
                 onBack = { showSettings = false }
             )
         } else {
@@ -58,5 +59,3 @@ private fun AppHome(onOpenSettings: () -> Unit) {
         }
     }
 }
-
-private val unavailableBitcoinPriceProvider = BitcoinPriceProvider { null }

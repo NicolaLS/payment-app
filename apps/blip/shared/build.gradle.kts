@@ -64,10 +64,10 @@ kotlin {
         }
 
         commonMain.dependencies {
-            implementation(project(":core:payment"))
             implementation(project(":core:ui"))
             implementation(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
+            implementation(project(":integration:exchange-rate"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
