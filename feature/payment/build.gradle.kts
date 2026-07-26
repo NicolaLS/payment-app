@@ -15,6 +15,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":core:model"))
             api(project(":core:payment"))
+            implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             implementation(libs.bitcoin.kmp)
             implementation(libs.compose.components.resources)
@@ -25,6 +26,7 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.ui.tooling.preview)
             api(libs.lightning.kmp.core)
+            implementation(libs.qrose)
             implementation(libs.uri.kmp)
         }
         commonTest.dependencies {
