@@ -1,0 +1,23 @@
+plugins {
+    id("xyz.lilsus.raylsuite.kmp.library")
+}
+
+kotlin {
+    android {
+        namespace = "xyz.lilsus.raylsuite.core.network"
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.ktor.client.contentNegotiation)
+            api(libs.ktor.client.core)
+            implementation(libs.ktor.serialization.kotlinx.json)
+        }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+    }
+}

@@ -52,6 +52,7 @@ includeApp("blip")
 includeApp("lasr")
 
 include(":core:model")
+include(":core:network")
 include(":core:payment")
 include(":core:settings")
 include(":core:ui")

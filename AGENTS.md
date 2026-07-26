@@ -49,6 +49,7 @@ small, reviewable vertical slices and keep the migration ledger in
 - `core:ui`: shared design tokens and genuinely reusable UI primitives. It may
   own generic accessibility resources used by those primitives.
 - `core:settings`: shared platform creation of app-scoped preference storage.
+- `core:network`: shared platform HTTP client creation and transport defaults.
 - `feature/*`: reusable, provider-neutral user stories. A feature owns its UI,
   state, persistence contract/implementation where appropriate, strings,
   icons, and feature-specific resources.
