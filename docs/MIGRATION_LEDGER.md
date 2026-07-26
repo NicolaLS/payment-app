@@ -32,7 +32,7 @@ applications.
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Pending |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Pending |
 | Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Blink wallet instructions extracted |
-| NWC-only stories | provider-specific presentation | `apps/lasr/feature/*` | Pending |
+| NWC-only stories | provider-specific presentation | `apps/lasr/feature/*` | NWC wallet instructions extracted |
 | Shared payment stories | provider-neutral presentation | `feature/*` | Pending |
 
 ## Per-story completion checklist

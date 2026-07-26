@@ -1,0 +1,7 @@
+<resources>
+    <string name="onboarding_add_wallet_title">Per NWC verbinden</string>
+    <string name="onboarding_add_wallet_intro">Du erstellst eine Verbindung in deiner Wallet und bringst den Verbindungs-String zurück zu Lasr.</string>
+    <string name="onboarding_add_wallet_step1">Erstelle in deiner Wallet eine neue NWC-Verbindung für Lasr.</string>
+    <string name="onboarding_add_wallet_step2">Setze ein vernünftiges Budget und aktiviere Zahlungsberechtigungen.</string>
+    <string name="onboarding_add_wallet_step3">Scanne den QR-Code oder füge den Verbindungs-String auf dem nächsten Bildschirm ein.</string>
+</resources>
