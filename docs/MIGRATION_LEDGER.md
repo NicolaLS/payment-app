@@ -13,7 +13,7 @@ applications.
 
 | Area | Legacy source | Destination | Status |
 | --- | --- | --- | --- |
-| Blip shell | `apps/legacy` | `apps/blip` | Shared settings flow wired |
+| Blip shell | `apps/legacy` | `apps/blip` | Manual-verification candidate: Blink onboarding, payment home, settings, wallet management, and app links wired |
 | Lasr shell | `apps/legacy` | `apps/lasr` | Shared settings flow wired |
 | Provider-neutral values | `domain/model` | `core/model` | Extracted |
 | Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
@@ -26,20 +26,39 @@ applications.
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences, state, and UI extracted |
 | Payment shortcuts | shortcut configuration | `feature/payment-shortcuts` | State holder and UI extracted |
-| Generic settings hub | settings presentation | `feature/settings` | Shared settings, contacts, and shortcuts flow extracted |
+| Generic settings hub | settings presentation | `feature/settings` | Shared settings, contacts, shortcuts, donation, and footer flow extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI and shortcut persistence extracted |
 | Blink contact import | Blink contacts import | `apps/blip/feature/blink-contacts` | Extracted |
 | Blink wallet connection | Add Blink wallet state and UI | `apps/blip/feature/wallet-connection` | Extracted |
 | Blink wallet details | Blink wallet details and refresh | `apps/blip/feature/wallet-details` | Extracted without legacy provider-choice rows |
+| Wallet management | wallet list and removal presentation | `feature/wallet-management` | Provider-neutral screen extracted and wired to Blip |
 | Shared payment contracts | payment domain | `core/payment` | Fiat price and provider-neutral wallet payment contracts extracted |
 | Exchange-rate integration | exchange data | `integration/exchange-rate` | CoinGecko adapter extracted |
 | LNURL integration | LNURL pay data/domain | `core/payment`, `integration/lnurl` | Contracts and Ktor adapter extracted |
 | Shared onboarding | onboarding presentation | `feature/onboarding` | Neutral shell, welcome, features, and agreement UI extracted |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Fresh credentials, Apollo API client, account, contacts, and payments extracted |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Fresh credentials, discovery, lifecycle, and payments extracted |
-| Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Wallet instructions, wallet connection, and Blink contact import extracted |
+| Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Wallet instructions, wallet connection, wallet details, and Blink contact import extracted; onboarding import restored |
 | NWC-only stories | provider-specific presentation | `apps/lasr/feature/*` | NWC wallet instructions extracted |
-| Shared payment stories | provider-neutral presentation | `feature/payment` | Lightning input parsing and manual amount state extracted; payment flow pending |
+| Shared payment stories | provider-neutral presentation | `feature/payment` | Scanner, input parsing, payment coordination, contacts, shortcuts, session transactions, and result flow extracted and wired to Blip |
+| Payment app links | Android and iOS payment URI handling | `feature/payment`, `apps/blip` | `lightning`, `bitcoin`, and `lnurl` links wired without NWC handling |
+| Android shell behavior | activity and application setup | `apps/blip/androidApp` | Adaptive orientation, CameraX setup, locale persistence, and fresh package variants wired |
+
+## Latest Blip milestone
+
+Blip is ready for manual feature verification as a replacement for the legacy
+Blink path. This is intentionally an early verification milestone, not a
+production-readiness claim.
+
+- Android debug and e2e APKs assemble.
+- Android debug installs as `xyz.lilsus.blip.dev` and reaches the Blink-backed
+  payment home on a connected phone.
+- Settings, wallet management, wallet details, and Blink contact import open
+  without a runtime crash.
+- The shared module compiles for Android and arm64 iOS Simulator.
+- The Swift iOS app target builds for a concrete arm64 simulator destination.
+- A complete payment should still be exercised manually with a low-value
+  invoice before declaring behavioral parity complete.
 
 ## Per-story completion checklist
 
