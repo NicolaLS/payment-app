@@ -26,4 +26,10 @@ internal sealed interface BlipDestination {
 
     @Serializable
     data object Settings : BlipDestination
+
+    @Serializable
+    data object Contacts : BlipDestination
+
+    @Serializable
+    data object ShortcutCreate : BlipDestination
 }

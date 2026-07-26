@@ -1,56 +1,109 @@
 package xyz.lilsus.blip
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.blip.ui.blipPaymentErrorMessageFor
+import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
+import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
+import xyz.lilsus.blip.ui.getBlipPaymentErrorMessageFor
 import xyz.lilsus.raylsuite.blip.generated.resources.Res
 import xyz.lilsus.raylsuite.blip.generated.resources.app_name
-import xyz.lilsus.raylsuite.blip.generated.resources.open_settings
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
+import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
+import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
+import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
+import xyz.lilsus.raylsuite.feature.payment.PaymentFlow
+import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
+import xyz.lilsus.raylsuite.feature.settings.SettingsStartDestination
 import xyz.lilsus.raylsuite.feature.themesettings.ThemePreferences
 
 internal fun NavGraphBuilder.blipHome(
     navController: NavController,
     themePreferences: ThemePreferences,
-    bitcoinPriceProvider: BitcoinPriceProvider
+    bitcoinPriceProvider: BitcoinPriceProvider,
+    currencyPreferences: CurrencyPreferences,
+    paymentPreferences: PaymentPreferencesRepository,
+    contactsRepository: ContactsRepository,
+    paymentCoordinator: PaymentCoordinator
 ) {
     composable<BlipDestination.Home> {
-        AppHome(
-            onOpenSettings = {
+        PaymentFlow(
+            coordinator = paymentCoordinator,
+            appTitle = stringResource(Res.string.app_name),
+            estimatedFeeHint =
+                stringResource(BlipUiRes.string.result_paid_fee_blink_hint),
+            errorMessageFor = ::blipPaymentErrorMessageFor,
+            eventErrorMessageFor = ::getBlipPaymentErrorMessageFor,
+            onNavigateSettings = {
                 navController.navigate(BlipDestination.Settings)
+            },
+            onNavigateShortcutCreate = {
+                navController.navigate(BlipDestination.ShortcutCreate)
+            },
+            onNavigateContacts = {
+                navController.navigate(BlipDestination.Contacts)
             }
         )
     }
     composable<BlipDestination.Settings> {
-        SettingsFlow(
-            storageName = BLIP_PREFERENCES,
+        BlipSettings(
+            startDestination = SettingsStartDestination.Overview,
+            navController = navController,
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
-            onBack = navController::navigateUp
+            currencyPreferences = currencyPreferences,
+            paymentPreferences = paymentPreferences,
+            contactsRepository = contactsRepository
+        )
+    }
+    composable<BlipDestination.Contacts> {
+        BlipSettings(
+            startDestination = SettingsStartDestination.Contacts,
+            navController = navController,
+            themePreferences = themePreferences,
+            bitcoinPriceProvider = bitcoinPriceProvider,
+            currencyPreferences = currencyPreferences,
+            paymentPreferences = paymentPreferences,
+            contactsRepository = contactsRepository
+        )
+    }
+    composable<BlipDestination.ShortcutCreate> {
+        BlipSettings(
+            startDestination = SettingsStartDestination.ShortcutCreate,
+            navController = navController,
+            themePreferences = themePreferences,
+            bitcoinPriceProvider = bitcoinPriceProvider,
+            currencyPreferences = currencyPreferences,
+            paymentPreferences = paymentPreferences,
+            contactsRepository = contactsRepository
         )
     }
 }
 
 @Composable
-private fun AppHome(onOpenSettings: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(stringResource(Res.string.app_name))
-        Button(onClick = onOpenSettings) {
-            Text(stringResource(Res.string.open_settings))
-        }
-    }
+private fun BlipSettings(
+    startDestination: SettingsStartDestination,
+    navController: NavController,
+    themePreferences: ThemePreferences,
+    bitcoinPriceProvider: BitcoinPriceProvider,
+    currencyPreferences: CurrencyPreferences,
+    paymentPreferences: PaymentPreferencesRepository,
+    contactsRepository: ContactsRepository
+) {
+    SettingsFlow(
+        storageName = BLIP_PREFERENCES,
+        themePreferences = themePreferences,
+        bitcoinPriceProvider = bitcoinPriceProvider,
+        onBack = navController::navigateUp,
+        modifier = Modifier,
+        startDestination = startDestination,
+        currencyPreferences = currencyPreferences,
+        paymentPreferences = paymentPreferences,
+        contactsRepository = contactsRepository
+    )
 }

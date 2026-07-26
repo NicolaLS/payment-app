@@ -12,12 +12,16 @@ import xyz.lilsus.blip.integration.blink.createBlinkWallet
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
+import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
+import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
+import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
 import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
+import xyz.lilsus.raylsuite.integration.lnurl.KtorLnurlPayClient
 
 @Composable
 fun App() {
@@ -28,8 +32,10 @@ fun App() {
         )
     val currencyPreferences = rememberCurrencyPreferences(BLIP_PREFERENCES)
     val paymentPreferences = rememberPaymentPreferencesRepository(BLIP_PREFERENCES)
+    val contactsRepository = rememberContactsRepository(BLIP_PREFERENCES)
     val secureSettings = rememberSecureSettings(BLIP_CREDENTIALS)
     val networkConnectivity = remember { createNetworkConnectivity() }
+    val haptics = rememberHapticFeedbackManager()
     val blinkWallet =
         remember(secureSettings, networkConnectivity) {
             createBlinkWallet(
@@ -38,6 +44,31 @@ fun App() {
             )
         }
     val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
+    val lnurlPayClient =
+        remember(networkConnectivity) {
+            KtorLnurlPayClient(networkConnectivity)
+        }
+    val paymentCoordinator =
+        remember(
+            blinkWallet,
+            lnurlPayClient,
+            bitcoinPriceProvider,
+            currencyPreferences,
+            paymentPreferences,
+            contactsRepository,
+            haptics
+        ) {
+            PaymentCoordinator(
+                paymentProvider = blinkWallet,
+                lnurlPayClient = lnurlPayClient,
+                bitcoinPriceProvider = bitcoinPriceProvider,
+                currencyPreferences = currencyPreferences,
+                paymentPreferences = paymentPreferences,
+                contactsRepository = contactsRepository,
+                haptics = haptics,
+                showEstimatedFeeHint = true
+            )
+        }
     val onboardingViewModel =
         remember(paymentPreferences, currencyPreferences, bitcoinPriceProvider) {
             OnboardingViewModel(
@@ -56,8 +87,11 @@ fun App() {
             }
         }
 
-    DisposableEffect(onboardingViewModel) {
-        onDispose(onboardingViewModel::clear)
+    DisposableEffect(onboardingViewModel, paymentCoordinator) {
+        onDispose {
+            onboardingViewModel.clear()
+            paymentCoordinator.clear()
+        }
     }
 
     RaylSuiteTheme(themePreference = themePreference) {
@@ -74,7 +108,11 @@ fun App() {
             blipHome(
                 navController = navController,
                 themePreferences = themePreferences,
-                bitcoinPriceProvider = bitcoinPriceProvider
+                bitcoinPriceProvider = bitcoinPriceProvider,
+                currencyPreferences = currencyPreferences,
+                paymentPreferences = paymentPreferences,
+                contactsRepository = contactsRepository,
+                paymentCoordinator = paymentCoordinator
             )
         }
     }
