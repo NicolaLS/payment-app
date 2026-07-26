@@ -1,0 +1,6 @@
+<resources>
+    <string name="contacts_search_label">Buscar contactos</string>
+    <string name="contacts_role_favorite">Favorito</string>
+    <string name="contacts_role_people">Personas</string>
+    <string name="contacts_role_merchants">Comercios</string>
+</resources>

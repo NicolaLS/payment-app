@@ -16,7 +16,13 @@ kotlin {
         commonMain.dependencies {
             api(project(":core:model"))
             implementation(project(":core:settings"))
+            implementation(project(":core:ui"))
+            implementation(libs.compose.components.resources)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material.icons.extended)
+            implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
+            implementation(libs.compose.ui)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.multiplatform.settings)
