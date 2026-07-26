@@ -17,7 +17,7 @@ applications.
 | Theme settings | settings presentation/domain/data | `feature/theme-settings` | Extracted |
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Extracted |
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
-| Payment settings | settings presentation/domain/data | `feature/payment-settings` | Pending |
+| Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences extracted |
 | Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
 | Shared payment contracts | payment domain | `core/payment` | Pending |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Pending |
