@@ -14,6 +14,7 @@ kotlin {
             implementation(project(":core:payment"))
             implementation(libs.apollo.runtime)
             implementation(libs.bitcoin.kmp)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.lightning.kmp.core)
             implementation(libs.multiplatform.settings)
