@@ -38,4 +38,10 @@ internal sealed interface LasrDestination {
 
     @Serializable
     data object ShortcutCreate : LasrDestination
+
+    @Serializable
+    data object WalletManagement : LasrDestination
+
+    @Serializable
+    data object WalletDetails : LasrDestination
 }
