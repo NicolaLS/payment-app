@@ -4,7 +4,11 @@ import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-internal data class NwcCredentials(val connectionUri: String, val alias: String)
+internal data class NwcCredentials(
+    val connectionUri: String,
+    val alias: String?,
+    val metadata: NwcWalletMetadata
+)
 
 internal class NwcCredentialStore(private val settings: Settings, private val json: Json = Json) {
     fun read(): NwcCredentials? {
@@ -18,8 +22,6 @@ internal class NwcCredentialStore(private val settings: Settings, private val js
         require(credentials.connectionUri.isNotBlank()) {
             "NWC connection URI cannot be blank"
         }
-        require(credentials.alias.isNotBlank()) { "Wallet alias cannot be blank" }
-
         settings.putString(
             CREDENTIALS_KEY,
             json.encodeToString(credentials.toStored())
@@ -32,18 +34,45 @@ internal class NwcCredentialStore(private val settings: Settings, private val js
 }
 
 @Serializable
-private data class StoredNwcCredentials(val connectionUri: String, val alias: String)
+private data class StoredNwcCredentials(
+    val connectionUri: String,
+    val alias: String?,
+    val methods: Set<String>,
+    val encryptionSchemes: Set<String>,
+    val negotiatedEncryption: String?,
+    val encryptionDefaultedToNip04: Boolean,
+    val notifications: Set<String>,
+    val network: String?,
+    val color: String?
+)
 
 private fun NwcCredentials.toStored(): StoredNwcCredentials = StoredNwcCredentials(
     connectionUri = connectionUri,
-    alias = alias
+    alias = alias,
+    methods = metadata.methods,
+    encryptionSchemes = metadata.encryptionSchemes,
+    negotiatedEncryption = metadata.negotiatedEncryption,
+    encryptionDefaultedToNip04 = metadata.encryptionDefaultedToNip04,
+    notifications = metadata.notifications,
+    network = metadata.network,
+    color = metadata.color
 )
 
 private fun StoredNwcCredentials.toCredentials(): NwcCredentials? {
-    if (connectionUri.isBlank() || alias.isBlank()) return null
+    if (connectionUri.isBlank()) return null
     return NwcCredentials(
         connectionUri = connectionUri,
-        alias = alias
+        alias = alias?.trim()?.takeIf(String::isNotEmpty),
+        metadata =
+            NwcWalletMetadata(
+                methods = methods,
+                encryptionSchemes = encryptionSchemes,
+                negotiatedEncryption = negotiatedEncryption,
+                encryptionDefaultedToNip04 = encryptionDefaultedToNip04,
+                notifications = notifications,
+                network = network,
+                color = color
+            )
     )
 }
 

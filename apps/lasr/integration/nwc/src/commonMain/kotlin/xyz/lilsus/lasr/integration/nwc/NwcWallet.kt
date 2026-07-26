@@ -1,16 +1,18 @@
 package xyz.lilsus.lasr.integration.nwc
 
 import com.russhwolf.settings.Settings
+import io.github.nicolals.nostr.nip47.model.NwcEncryption
 import io.github.nicolals.nwc.Amount
 import io.github.nicolals.nwc.LookupInvoiceParams
-import io.github.nicolals.nwc.NwcCapability
 import io.github.nicolals.nwc.NwcClient
 import io.github.nicolals.nwc.NwcConnectionUri
 import io.github.nicolals.nwc.NwcError
 import io.github.nicolals.nwc.NwcException
+import io.github.nicolals.nwc.NwcNotificationType
 import io.github.nicolals.nwc.NwcResult
 import io.github.nicolals.nwc.TransactionState
 import io.github.nicolals.nwc.WalletDiscovery
+import io.github.nicolals.nwc.WalletInfo
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,12 +30,42 @@ import xyz.lilsus.raylsuite.core.payment.PaymentLookupResult
 import xyz.lilsus.raylsuite.core.payment.PaymentProvider
 
 data class NwcWalletConnection(
-    val alias: String,
+    val alias: String?,
     val walletPublicKey: String,
     val relayUrl: String?,
     val lightningAddress: String?,
-    val network: String? = null,
-    val color: String? = null
+    val metadata: NwcWalletMetadata
+)
+
+data class NwcWalletDiscovery(
+    val connectionUri: String,
+    val walletPublicKey: String,
+    val relayUrl: String?,
+    val lightningAddress: String?,
+    val aliasSuggestion: String?,
+    val metadata: NwcWalletMetadata
+) {
+    val supportsPayInvoice: Boolean
+        get() = metadata.methods.any { it.equals("pay_invoice", ignoreCase = true) }
+
+    val supportsNip44: Boolean
+        get() =
+            metadata.encryptionSchemes.any {
+                it.equals("nip44_v2", ignoreCase = true)
+            }
+
+    val usesLegacyEncryption: Boolean
+        get() = metadata.negotiatedEncryption?.equals("nip04", ignoreCase = true) == true
+}
+
+data class NwcWalletMetadata(
+    val methods: Set<String>,
+    val encryptionSchemes: Set<String>,
+    val negotiatedEncryption: String?,
+    val encryptionDefaultedToNip04: Boolean,
+    val notifications: Set<String>,
+    val network: String?,
+    val color: String?
 )
 
 sealed interface NwcConnectionError {
@@ -62,39 +94,42 @@ class NwcWallet internal constructor(
 
     val connection: StateFlow<NwcWalletConnection?> = mutableConnection.asStateFlow()
 
-    suspend fun connect(connectionUri: String, alias: String): NwcWalletConnection {
+    suspend fun discover(connectionUri: String): NwcWalletDiscovery {
+        val normalizedUri = connectionUri.trim()
+        if (normalizedUri.isEmpty() || NwcConnectionUri.parse(normalizedUri) == null) {
+            throw NwcConnectionException(NwcConnectionError.InvalidUri)
+        }
+
+        return when (
+            val result =
+                NwcClient.discover(
+                    uri = normalizedUri,
+                    httpClient = httpClient,
+                    timeoutMs = DISCOVERY_TIMEOUT_MILLIS
+                )
+        ) {
+            is NwcResult.Success -> result.value.toWalletDiscovery()
+            is NwcResult.Failure -> throw result.error.toConnectionException()
+        }
+    }
+
+    suspend fun connect(connectionUri: String, alias: String?): NwcWalletConnection =
+        connect(discover(connectionUri), alias)
+
+    suspend fun connect(discovery: NwcWalletDiscovery, alias: String?): NwcWalletConnection {
         if (mutableConnection.value != null) {
             throw NwcConnectionException(NwcConnectionError.AlreadyConnected)
         }
-        val normalizedAlias = alias.trim()
-        if (normalizedAlias.isEmpty()) {
-            throw NwcConnectionException(
-                NwcConnectionError.ConnectionFailed("Wallet alias is required")
-            )
-        }
-
-        val discovery =
-            when (
-                val result =
-                    NwcClient.discover(
-                        uri = connectionUri.trim(),
-                        httpClient = httpClient,
-                        timeoutMs = DISCOVERY_TIMEOUT_MILLIS
-                    )
-            ) {
-                is NwcResult.Success -> result.value
-                is NwcResult.Failure -> throw result.error.toConnectionException()
-            }
-        if (NwcCapability.PAY_INVOICE !in discovery.capabilities) {
-            throw NwcConnectionException(
-                NwcConnectionError.PaymentPermissionRequired
-            )
-        }
+        val normalizedAlias = alias?.trim()?.takeIf(String::isNotEmpty)
+        val uri =
+            NwcConnectionUri.parse(discovery.connectionUri)
+                ?: throw NwcConnectionException(NwcConnectionError.InvalidUri)
 
         val credentials =
             NwcCredentials(
-                connectionUri = discovery.uri.raw,
-                alias = normalizedAlias
+                connectionUri = uri.raw,
+                alias = normalizedAlias,
+                metadata = discovery.metadata
             )
         val connectedWallet = discovery.toConnection(normalizedAlias)
 
@@ -104,10 +139,10 @@ class NwcWallet internal constructor(
             }
             val newClient =
                 NwcClient(
-                    uri = discovery.uri,
+                    uri = uri,
                     scope = scope,
                     httpClient = httpClient,
-                    cachedWalletInfo = discovery.walletInfo
+                    cachedWalletInfo = discovery.metadata.toWalletInfo()
                 )
             try {
                 credentialStore.save(credentials)
@@ -197,7 +232,8 @@ class NwcWallet internal constructor(
         NwcClient(
             uri = uri,
             scope = scope,
-            httpClient = httpClient
+            httpClient = httpClient,
+            cachedWalletInfo = credentials.metadata.toWalletInfo()
         ).also { client = it }
     }
 }
@@ -229,18 +265,60 @@ private fun NwcCredentials.toConnection(): NwcWalletConnection? {
         alias = alias,
         walletPublicKey = uri.walletPubkey.hex,
         relayUrl = uri.relays.firstOrNull(),
-        lightningAddress = uri.lud16
+        lightningAddress = uri.lud16,
+        metadata = metadata
     )
 }
 
-private fun WalletDiscovery.toConnection(alias: String): NwcWalletConnection = NwcWalletConnection(
-    alias = alias,
+private fun WalletDiscovery.toWalletDiscovery(): NwcWalletDiscovery = NwcWalletDiscovery(
+    connectionUri = uri.raw,
     walletPublicKey = uri.walletPubkey.hex,
     relayUrl = uri.relays.firstOrNull(),
     lightningAddress = uri.lud16,
-    network = details?.network,
-    color = details?.color
+    aliasSuggestion = details?.alias,
+    metadata =
+        NwcWalletMetadata(
+            methods = walletInfo.capabilityStrings,
+            encryptionSchemes = walletInfo.encryptionStrings,
+            negotiatedEncryption = walletInfo.preferredEncryption.tag,
+            encryptionDefaultedToNip04 = walletInfo.encryptionDefaultedToNip04,
+            notifications = walletInfo.notificationStrings,
+            network = details?.network,
+            color = details?.color
+        )
 )
+
+private fun NwcWalletDiscovery.toConnection(alias: String?): NwcWalletConnection =
+    NwcWalletConnection(
+        alias = alias,
+        walletPublicKey = walletPublicKey,
+        relayUrl = relayUrl,
+        lightningAddress = lightningAddress,
+        metadata = metadata
+    )
+
+private fun NwcWalletMetadata.toWalletInfo(): WalletInfo {
+    val capabilities =
+        methods.mapNotNull(io.github.nicolals.nwc.NwcCapability::fromValue).toSet()
+    val notificationTypes =
+        notifications.mapNotNull(NwcNotificationType::fromValue).toSet()
+    val encryptions = encryptionSchemes.mapNotNull(NwcEncryption::fromTag).toSet()
+    val preferredEncryption =
+        negotiatedEncryption?.let(NwcEncryption::fromTag)
+            ?: when {
+                NwcEncryption.NIP44_V2 in encryptions -> NwcEncryption.NIP44_V2
+                NwcEncryption.NIP04 in encryptions -> NwcEncryption.NIP04
+                else -> NwcEncryption.NIP04
+            }
+
+    return WalletInfo(
+        capabilities = capabilities,
+        notifications = notificationTypes,
+        encryptions = encryptions.ifEmpty { setOf(NwcEncryption.NIP04) },
+        preferredEncryption = preferredEncryption,
+        encryptionDefaultedToNip04 = encryptionDefaultedToNip04
+    )
+}
 
 private fun io.github.nicolals.nwc.Transaction.toLookupResult(): PaymentLookupResult =
     when (state) {
