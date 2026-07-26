@@ -20,6 +20,8 @@ applications.
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences extracted |
 | Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
+| Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contract extracted |
+| Blink contact import | Blink contacts import | `apps/blip/feature/blink-contact-import` | Pending |
 | Shared payment contracts | payment domain | `core/payment` | Pending |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Pending |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Pending |
