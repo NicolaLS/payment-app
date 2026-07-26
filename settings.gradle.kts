@@ -68,6 +68,9 @@ project(":lasr:feature:onboarding").projectDir = file("apps/lasr/feature/onboard
 include(":lasr:feature:wallet-connection")
 project(":lasr:feature:wallet-connection").projectDir =
     file("apps/lasr/feature/wallet-connection")
+include(":lasr:feature:wallet-details")
+project(":lasr:feature:wallet-details").projectDir =
+    file("apps/lasr/feature/wallet-details")
 include(":lasr:integration:nwc")
 project(":lasr:integration:nwc").projectDir = file("apps/lasr/integration/nwc")
 include(":lasr:ui")
