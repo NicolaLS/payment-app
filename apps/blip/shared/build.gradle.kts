@@ -32,7 +32,7 @@ kotlin {
 
     listOf(
         iosArm64(),
-        iosSimulatorArm64(),
+        iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "Shared"
@@ -65,6 +65,7 @@ kotlin {
 
         commonMain.dependencies {
             implementation(project(":core:ui"))
+            implementation(project(":feature:theme-settings"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
