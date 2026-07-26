@@ -53,3 +53,4 @@ includeApp("lasr")
 
 include(":core:model")
 include(":core:ui")
+include(":feature:theme-settings")
