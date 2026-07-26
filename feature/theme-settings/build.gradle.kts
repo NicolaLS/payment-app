@@ -14,6 +14,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core:model"))
+            implementation(project(":core:settings"))
             implementation(project(":core:ui"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)

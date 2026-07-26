@@ -1,4 +1,4 @@
-package xyz.lilsus.raylsuite.feature.themesettings
+package xyz.lilsus.raylsuite.core.settings
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -8,7 +8,7 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 
 @Composable
-internal actual fun rememberPlatformThemeSettings(storageName: String): Settings {
+actual fun rememberAppSettings(storageName: String): Settings {
     val context = LocalContext.current.applicationContext
     return remember(context, storageName) {
         SharedPreferencesSettings(
