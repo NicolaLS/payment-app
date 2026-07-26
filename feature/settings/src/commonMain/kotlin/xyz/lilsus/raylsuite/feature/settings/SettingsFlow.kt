@@ -62,6 +62,7 @@ fun SettingsFlow(
     bitcoinPriceProvider: BitcoinPriceProvider,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    startDestination: SettingsStartDestination = SettingsStartDestination.Overview,
     currencyPreferences: CurrencyPreferences? = null,
     contactsRepository: ContactsRepository? = null,
     paymentPreferences: PaymentPreferencesRepository? = null,
@@ -69,9 +70,11 @@ fun SettingsFlow(
     trailingEntries: List<SettingsEntry> = emptyList(),
     additionalContactActions: @Composable ColumnScope.() -> Unit = {}
 ) {
-    var destination by remember { mutableStateOf(SettingsDestination.Overview) }
+    var destination by remember(startDestination) {
+        mutableStateOf(startDestination.toInternalDestination())
+    }
     var shortcutReturnDestination by remember {
-        mutableStateOf(SettingsDestination.Payments)
+        mutableStateOf<SettingsDestination?>(SettingsDestination.Payments)
     }
     var shortcutCurrencySearch by remember { mutableStateOf("") }
 
@@ -114,6 +117,12 @@ fun SettingsFlow(
     val shortcutsState by shortcutsViewModel.uiState.collectAsState()
     val paymentSettingsState by paymentSettingsViewModel.uiState.collectAsState()
 
+    LaunchedEffect(startDestination, shortcutsViewModel) {
+        if (startDestination == SettingsStartDestination.ShortcutCreate) {
+            shortcutsViewModel.startAdd()
+            shortcutReturnDestination = null
+        }
+    }
     DisposableEffect(contactsViewModel, shortcutsViewModel, paymentSettingsViewModel) {
         onDispose {
             contactsViewModel.clear()
@@ -140,7 +149,7 @@ fun SettingsFlow(
         shortcutsViewModel.events.collectLatest { event ->
             when (event) {
                 PaymentShortcutsEvent.CloseEditor -> {
-                    destination = shortcutReturnDestination
+                    shortcutReturnDestination?.let { destination = it } ?: onBack()
                 }
             }
         }
@@ -246,7 +255,13 @@ fun SettingsFlow(
         SettingsDestination.Contacts -> {
             ContactsScreen(
                 state = contactsState,
-                onBack = { destination = SettingsDestination.Overview },
+                onBack = {
+                    if (startDestination == SettingsStartDestination.Contacts) {
+                        onBack()
+                    } else {
+                        destination = SettingsDestination.Overview
+                    }
+                },
                 onAddContact = {
                     contactsViewModel.startAddContact()
                     destination = SettingsDestination.ContactEditor
@@ -300,7 +315,13 @@ fun SettingsFlow(
             PaymentShortcutContactPickerScreen(
                 state = shortcutsState,
                 selectedContactId = shortcutsState.editor?.selectedContact?.id,
-                onBack = { destination = SettingsDestination.ShortcutEditor },
+                onBack = {
+                    if (shortcutReturnDestination == null) {
+                        onBack()
+                    } else {
+                        destination = SettingsDestination.ShortcutEditor
+                    }
+                },
                 onSearchChange = shortcutsViewModel::updateContactSearch,
                 onContactSelected = { contactId ->
                     shortcutsViewModel.selectContact(contactId)
@@ -439,4 +460,16 @@ private enum class SettingsDestination {
     ShortcutEditor,
     ShortcutContactPicker,
     ShortcutCurrencyPicker
+}
+
+enum class SettingsStartDestination {
+    Overview,
+    Contacts,
+    ShortcutCreate
+}
+
+private fun SettingsStartDestination.toInternalDestination(): SettingsDestination = when (this) {
+    SettingsStartDestination.Overview -> SettingsDestination.Overview
+    SettingsStartDestination.Contacts -> SettingsDestination.Contacts
+    SettingsStartDestination.ShortcutCreate -> SettingsDestination.ShortcutContactPicker
 }
