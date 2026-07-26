@@ -1,0 +1,21 @@
+appId: xyz.lilsus.blip.e2e
+---
+- assertVisible:
+    id: "onboarding_welcome_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_welcome_continue_button"
+- assertVisible:
+    id: "onboarding_features_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_features_continue_button"
+- assertVisible:
+    id: "onboarding_autopay_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_autopay_continue_button"
+- assertVisible:
+    id: ${ID}
+- tapOn:
+    id: ${ID}

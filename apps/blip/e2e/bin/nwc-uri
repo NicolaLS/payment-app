@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+# shellcheck source=_blip-e2e-common
+source e2e/bin/_blip-e2e-common
+load_e2e_env
+
+node="${1:-payer}"
+
+curl --fail --silent --show-error \
+  "$(helper_url)/get-nwc-uri?node=${node}"
+echo

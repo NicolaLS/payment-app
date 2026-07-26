@@ -1,0 +1,11 @@
+appId: xyz.lilsus.blip.e2e
+---
+- runFlow: ../new_users/onboarding_complete_nwc.yaml
+
+- runScript: ../../utils/create_invoice.js
+- launchApp:
+    arguments:
+      e2ePaymentInput: "${output.bolt11}"
+      e2ePaymentInputSource: "camera"
+
+- runScript: ../../utils/assert_invoice_paid.js

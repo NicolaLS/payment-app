@@ -1,0 +1,22 @@
+appId: xyz.lilsus.blip.e2e
+---
+- openLink: ${LINK}
+
+# Android
+- runFlow:
+    when:
+        platform: Android
+    commands:
+        - tapOn:
+            text: "Open with Blip E2E"
+            optional: true
+        - tapOn:
+            text: "Just once"
+            optional: true
+
+# IOS
+- runFlow:
+    when:
+      visible: "*.Blip E2E.*"
+    commands:
+      - tapOn: Open

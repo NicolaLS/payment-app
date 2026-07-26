@@ -46,3 +46,4 @@ fun includeApp(name: String) {
 }
 
 includeApp("legacy")
+includeApp("blip")

@@ -1,0 +1,93 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
+package xyz.lilsus.blip.domain.usecases
+
+import com.russhwolf.settings.MapSettings
+import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import xyz.lilsus.blip.data.settings.OnboardingRepositoryImpl
+import xyz.lilsus.blip.data.settings.WalletSettingsRepositoryImpl
+import xyz.lilsus.blip.domain.model.WalletConnection
+import xyz.lilsus.blip.domain.model.WalletType
+
+class ObserveOnboardingRequiredUseCaseTest {
+
+    @Test
+    fun requiresOnboardingWhenNoWalletsExistAndOnboardingIsIncomplete() = runTest {
+        val onboardingRepository = OnboardingRepositoryImpl(settings = MapSettings())
+        val walletRepository = WalletSettingsRepositoryImpl(settings = MapSettings())
+        val useCase = ObserveOnboardingRequiredUseCase(
+            onboardingRepository = onboardingRepository,
+            walletSettingsRepository = walletRepository
+        )
+
+        val onboardingRequired = useCase().first()
+
+        assertTrue(onboardingRequired)
+    }
+
+    @Test
+    fun doesNotRequireOnboardingWhenCompletionWasAlreadyPersisted() = runTest {
+        val onboardingRepository = OnboardingRepositoryImpl(settings = MapSettings())
+        val walletRepository = WalletSettingsRepositoryImpl(settings = MapSettings())
+        onboardingRepository.markOnboardingCompleted()
+        val useCase = ObserveOnboardingRequiredUseCase(
+            onboardingRepository = onboardingRepository,
+            walletSettingsRepository = walletRepository
+        )
+
+        val onboardingRequired = useCase().first()
+
+        assertFalse(onboardingRequired)
+    }
+
+    @Test
+    fun repairsMissingCompletionFlagWhenWalletAlreadyExists() = runTest {
+        val onboardingRepository = OnboardingRepositoryImpl(settings = MapSettings())
+        val walletRepository = WalletSettingsRepositoryImpl(settings = MapSettings())
+        walletRepository.saveWalletConnection(existingWallet())
+        val useCase = ObserveOnboardingRequiredUseCase(
+            onboardingRepository = onboardingRepository,
+            walletSettingsRepository = walletRepository
+        )
+
+        val onboardingRequired = useCase().first()
+
+        assertFalse(onboardingRequired)
+        assertTrue(onboardingRepository.hasCompletedOnboarding.first())
+    }
+
+    @Test
+    fun doesNotRepairCompletionFlagWhenWalletIsAddedDuringOnboarding() = runTest {
+        val onboardingRepository = OnboardingRepositoryImpl(settings = MapSettings())
+        val walletRepository = WalletSettingsRepositoryImpl(settings = MapSettings())
+        val useCase = ObserveOnboardingRequiredUseCase(
+            onboardingRepository = onboardingRepository,
+            walletSettingsRepository = walletRepository
+        )
+        var onboardingRequired = false
+        val job = launch {
+            useCase().collect { onboardingRequired = it }
+        }
+        advanceUntilIdle()
+
+        walletRepository.saveWalletConnection(existingWallet())
+        advanceUntilIdle()
+
+        assertTrue(onboardingRequired)
+        assertFalse(onboardingRepository.hasCompletedOnboarding.first())
+
+        job.cancel()
+    }
+
+    private fun existingWallet(): WalletConnection = WalletConnection(
+        walletPublicKey = "blink-existing-wallet",
+        alias = "Blink",
+        type = WalletType.BLINK
+    )
+}

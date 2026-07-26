@@ -1,0 +1,112 @@
+name: ${BLIP_E2E_PROJECT:-blip-e2e}
+
+services:
+  bitcoind:
+    image: ${BLIP_E2E_BITCOIN_IMAGE:-bitcoin/bitcoin:28.1}
+    entrypoint: ["bitcoind"]
+    command:
+      - -datadir=/data
+      - -regtest
+      - -server
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=0.0.0.0/0
+      - -rpcuser=blip
+      - -rpcpassword=blip
+      - -fallbackfee=0.0001
+    volumes:
+      - bitcoin-data:/data
+
+  nostr:
+    image: ${BLIP_E2E_NOSTR_IMAGE:-scsibug/nostr-rs-relay:0.8.9}
+    ports:
+      - "${BLIP_E2E_BIND_HOST:-127.0.0.1}:${BLIP_E2E_RELAY_PORT:-8081}:8080"
+    volumes:
+      - nostr-data:/data
+
+  payer:
+    build:
+      context: .
+      dockerfile: docker/cln-nip47.Dockerfile
+      target: cln-nip47
+      args:
+        CLN_IMAGE: ${BLIP_E2E_CLN_BASE_IMAGE:-elementsproject/lightningd:v25.12.1}
+        CLN_NIP47_VERSION: ${BLIP_E2E_CLN_NIP47_VERSION:-v0.1.9}
+    image: ${BLIP_E2E_CLN_IMAGE:-blip-e2e-cln-nip47:v25.12.1-nip47}
+    entrypoint: ["lightningd"]
+    command:
+      - --network=regtest
+      - --lightning-dir=/data
+      - --alias=payer
+      - --bind-addr=0.0.0.0:9735
+      - --bitcoin-rpcconnect=bitcoind
+      - --bitcoin-rpcport=18443
+      - --bitcoin-rpcuser=blip
+      - --bitcoin-rpcpassword=blip
+      - --clnrest-host=0.0.0.0
+      - --clnrest-port=3010
+      - --clnrest-protocol=http
+      - --plugin=/usr/local/bin/cln-nip47
+      - --nip47-relays=ws://nostr:8080
+      - --nip47-notifications=false
+    depends_on:
+      - bitcoind
+      - nostr
+    volumes:
+      - payer-data:/data
+
+  receiver:
+    build:
+      context: .
+      dockerfile: docker/cln-nip47.Dockerfile
+      target: cln-nip47
+      args:
+        CLN_IMAGE: ${BLIP_E2E_CLN_BASE_IMAGE:-elementsproject/lightningd:v25.12.1}
+        CLN_NIP47_VERSION: ${BLIP_E2E_CLN_NIP47_VERSION:-v0.1.9}
+    image: ${BLIP_E2E_CLN_IMAGE:-blip-e2e-cln-nip47:v25.12.1-nip47}
+    entrypoint: ["lightningd"]
+    command:
+      - --network=regtest
+      - --lightning-dir=/data
+      - --alias=receiver
+      - --bind-addr=0.0.0.0:9735
+      - --bitcoin-rpcconnect=bitcoind
+      - --bitcoin-rpcport=18443
+      - --bitcoin-rpcuser=blip
+      - --bitcoin-rpcpassword=blip
+      - --clnrest-host=0.0.0.0
+      - --clnrest-port=3010
+      - --clnrest-protocol=http
+      - --plugin=/usr/local/bin/cln-nip47
+      - --nip47-relays=ws://nostr:8080
+      - --nip47-notifications=false
+    depends_on:
+      - bitcoind
+      - nostr
+    volumes:
+      - receiver-data:/data
+
+  helper:
+    build:
+      context: .
+      dockerfile: docker/cln-nip47.Dockerfile
+      target: helper
+      args:
+        CLN_IMAGE: ${BLIP_E2E_CLN_BASE_IMAGE:-elementsproject/lightningd:v25.12.1}
+        CLN_NIP47_VERSION: ${BLIP_E2E_CLN_NIP47_VERSION:-v0.1.9}
+    image: ${BLIP_E2E_HELPER_IMAGE:-blip-e2e-helper:local}
+    environment:
+      BLIP_E2E_PUBLIC_RELAY_URL: ${BLIP_E2E_PUBLIC_RELAY_URL:-ws://127.0.0.1:8081}
+    ports:
+      - "${BLIP_E2E_BIND_HOST:-127.0.0.1}:${BLIP_E2E_HELPER_PORT:-8082}:8080"
+    depends_on:
+      - payer
+      - receiver
+    volumes:
+      - payer-data:/cln/payer
+      - receiver-data:/cln/receiver
+
+volumes:
+  bitcoin-data:
+  nostr-data:
+  payer-data:
+  receiver-data:

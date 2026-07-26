@@ -1,0 +1,30 @@
+appId: xyz.lilsus.blip.e2e
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- runFlow:
+    file: "../common/select_wallet_type.yaml"
+    env:
+        ID: onboarding_wallet_choice_nwc_option
+- assertVisible:
+    id: "onboarding_agreement_checkbox"
+- tapOn:
+    id: "onboarding_agreement_checkbox"
+- assertVisible:
+    id: "onboarding_agreement_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_agreement_continue_button"
+- assertVisible:
+    id: "onboarding_add_nwc_wallet_continue_button"
+    enabled: true
+- tapOn:
+    id: "onboarding_add_nwc_wallet_continue_button"
+- runScript: "../../utils/get_nwc_uri.js"
+- runFlow:
+    file: "../common/add_nwc.yaml"
+    env:
+        URI: ${output.nwcUri}
+- assertVisible:
+    id: "payment_screen"
