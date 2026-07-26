@@ -1,0 +1,11 @@
+<resources>
+    <string name="add_blink_wallet_title">Add Blink Wallet</string>
+    <string name="add_blink_wallet_description">Connect your Blink wallet using an API key. You can create one at dashboard.blink.sv.</string>
+    <string name="add_blink_wallet_alias_label">Wallet name</string>
+    <string name="add_blink_wallet_alias_placeholder">My Blink Wallet</string>
+    <string name="add_blink_wallet_api_key_label">API Key</string>
+    <string name="add_blink_wallet_api_key_placeholder">blink_...</string>
+    <string name="add_blink_wallet_show_api_key">Show API key</string>
+    <string name="add_blink_wallet_hide_api_key">Hide API key</string>
+    <string name="add_blink_wallet_connect">Connect</string>
+</resources>

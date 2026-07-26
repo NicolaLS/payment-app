@@ -26,12 +26,13 @@ applications.
 | Generic settings hub | settings presentation | `feature/settings` | Shared settings, contacts, and shortcuts flow extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI and shortcut persistence extracted |
 | Blink contact import | Blink contacts import | `apps/blip/feature/blink-contacts` | Extracted |
+| Blink wallet connection | Add Blink wallet state and UI | `apps/blip/feature/wallet-connection` | Extracted |
 | Shared payment contracts | payment domain | `core/payment` | Fiat price and provider-neutral wallet payment contracts extracted |
 | Exchange-rate integration | exchange data | `integration/exchange-rate` | CoinGecko adapter extracted |
 | Shared onboarding | onboarding presentation | `feature/onboarding` | Neutral shell, welcome, features, and agreement UI extracted |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Fresh credentials, Apollo API client, account, contacts, and payments extracted |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Fresh credentials, discovery, lifecycle, and payments extracted |
-| Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Wallet instructions and Blink contact import extracted |
+| Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Wallet instructions, wallet connection, and Blink contact import extracted |
 | NWC-only stories | provider-specific presentation | `apps/lasr/feature/*` | NWC wallet instructions extracted |
 | Shared payment stories | provider-neutral presentation | `feature/*` | Pending |
 
