@@ -4,10 +4,14 @@
     <string name="error_payment_rejected_generic">Zahlung wurde abgewiesen.</string>
     <string name="error_payment_rejected_message">Zahlung wurde abgewiesen: %1$s</string>
     <string name="error_network_unavailable">Keine Internetverbindung. Prüfe dein Netzwerk.</string>
+    <string name="error_relay_connection_failed">Verbindung zum Wallet fehlgeschlagen. Bitte erneut versuchen.</string>
     <string name="error_timeout">Wallet hat nicht rechtzeitig geantwortet. Bitte erneut versuchen.</string>
+    <string name="error_payment_unconfirmed">Zahlungsstatus unbekannt. Die Zahlung ist möglicherweise erfolgt.</string>
+    <string name="error_payment_unconfirmed_message">Zahlungsstatus unbekannt: %1$s</string>
     <string name="error_unexpected_generic">Es ist ein Fehler aufgetreten.</string>
     <string name="error_unexpected_with_details">Es ist ein Fehler aufgetreten: %1$s</string>
     <string name="error_authentication_failure">Authentifizierung fehlgeschlagen. Prüfe deinen API-Schlüssel.</string>
+    <string name="error_authentication_failure_message">Authentifizierung fehlgeschlagen: %1$s</string>
     <string name="error_blink_permission_denied">Dein API-Schlüssel hat keine Berechtigung zum Senden von Zahlungen. Erstelle einen neuen Schlüssel mit allen Berechtigungen.</string>
     <string name="error_blink_insufficient_balance">Nicht genügend Guthaben in deiner Blink-Wallet.</string>
     <string name="error_blink_route_not_found">Es konnte keine Route für diese Zahlung gefunden werden. Der Empfänger ist möglicherweise offline oder nicht erreichbar.</string>
@@ -18,6 +22,11 @@
     <string name="error_blink_limit_exceeded">Diese Zahlung überschreitet deine Kontolimits.</string>
     <string name="error_blink_rate_limited">Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.</string>
     <string name="error_blink_invalid_api_key">Ungültiger oder widerrufener API-Schlüssel. Erstelle einen neuen Schlüssel, um fortzufahren.</string>
+    <string name="error_invalid_invoice">Diese Rechnung ist ungültig oder fehlerhaft.</string>
+    <string name="error_invalid_invoice_with_details">Diese Rechnung ist ungültig: %1$s</string>
+    <string name="error_lnurl">Diese Zahlungsadresse konnte nicht aufgelöst werden.</string>
+    <string name="error_lnurl_with_details">Zahlungsadresse konnte nicht aufgelöst werden: %1$s</string>
+    <string name="result_paid_fee_blink_hint">Blink könnte diese Gebühr teilweise erstatten.</string>
     <string name="blink_contacts_title">Blink-Kontakte</string>
     <string name="blink_contacts_import_hint">Importiere in Blink gespeicherte Kontakte in Blip.</string>
     <string name="blink_contacts_import">Kontakte importieren</string>

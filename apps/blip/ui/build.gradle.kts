@@ -15,6 +15,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":blip:integration:blink"))
+            implementation(project(":feature:payment"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.runtime)
         }
