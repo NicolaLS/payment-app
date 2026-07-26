@@ -1,6 +1,7 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="tap_continue">Tap to continue…</string>
+    <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
     <string name="open_shortcuts_contacts">Open shortcuts and contacts</string>
     <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
     <string name="resolving_payment_title">Preparing payment</string>
