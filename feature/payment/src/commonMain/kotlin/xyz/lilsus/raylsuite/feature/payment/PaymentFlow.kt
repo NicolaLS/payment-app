@@ -414,7 +414,7 @@ private fun PaymentHomeEntry(
         PaymentScreen(
             appTitle = appTitle,
             onNavigateSettings = onNavigateSettings,
-            uiState = uiState.asPaymentHomeState(),
+            uiState = uiState,
             sessionTransactions = sessionTransactions,
             newSessionTransactionCount = newSessionTransactionCount,
             contactsState = contactsState,
@@ -652,13 +652,6 @@ private fun SessionTransactionItem.toDetailUiState(): PaymentUiState = when (sta
 }
 
 private fun DisplayAmount.zero(): DisplayAmount = DisplayAmount(0, currency)
-
-private fun PaymentUiState.asPaymentHomeState(): PaymentUiState = when (this) {
-    is PaymentUiState.Success,
-    is PaymentUiState.Error -> PaymentUiState.Active
-
-    else -> this
-}
 
 private fun quantizeZoom(value: Float): Float =
     ((value.coerceIn(0f, 1f) / ZOOM_STEP).roundToInt() * ZOOM_STEP)
