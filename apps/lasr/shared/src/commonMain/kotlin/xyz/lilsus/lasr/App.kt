@@ -15,10 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.ThemePreference
-import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
+import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
 import xyz.lilsus.raylsuite.lasr.generated.resources.Res
 import xyz.lilsus.raylsuite.lasr.generated.resources.app_name
 import xyz.lilsus.raylsuite.lasr.generated.resources.open_settings
@@ -29,6 +29,7 @@ fun App() {
     val themePreference by themePreferences.preference.collectAsState(
         initial = ThemePreference.System
     )
+    val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
     var showSettings by remember { mutableStateOf(false) }
 
     RaylSuiteTheme(themePreference = themePreference) {
@@ -36,7 +37,7 @@ fun App() {
             SettingsFlow(
                 storageName = "lasr_preferences",
                 themePreferences = themePreferences,
-                bitcoinPriceProvider = unavailableBitcoinPriceProvider,
+                bitcoinPriceProvider = bitcoinPriceProvider,
                 onBack = { showSettings = false }
             )
         } else {
@@ -58,5 +59,3 @@ private fun AppHome(onOpenSettings: () -> Unit) {
         }
     }
 }
-
-private val unavailableBitcoinPriceProvider = BitcoinPriceProvider { null }
