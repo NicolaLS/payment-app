@@ -19,5 +19,8 @@ kotlin {
             api(libs.lightning.kmp.core)
             implementation(libs.uri.kmp)
         }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
 }
