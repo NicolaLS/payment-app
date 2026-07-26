@@ -13,7 +13,7 @@ applications.
 | Blip shell | `apps/legacy` | `apps/blip` | Empty shell |
 | Lasr shell | `apps/legacy` | `apps/lasr` | Empty shell |
 | Provider-neutral values | `domain/model` | `core/model` | Extracted |
-| Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Pending |
+| Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
 | Theme settings | settings presentation/domain/data | `feature/theme-settings` | Pending |
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Pending |
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Pending |

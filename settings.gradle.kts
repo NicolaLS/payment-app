@@ -52,3 +52,4 @@ includeApp("blip")
 includeApp("lasr")
 
 include(":core:model")
+include(":core:ui")
