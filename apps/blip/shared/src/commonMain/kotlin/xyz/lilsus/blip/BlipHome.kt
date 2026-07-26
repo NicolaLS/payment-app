@@ -120,7 +120,7 @@ internal fun NavGraphBuilder.blipHome(
                 },
             onBack = navController::navigateUp,
             onAddWallet = {
-                navController.navigate(BlipDestination.AddWallet)
+                navController.navigate(BlipDestination.AddWalletFromSettings)
             },
             onRemoveWallet = blinkWallet::disconnect,
             onWalletDetails = {

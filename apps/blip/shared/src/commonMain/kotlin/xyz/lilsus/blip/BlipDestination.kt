@@ -22,6 +22,12 @@ internal sealed interface BlipDestination {
     data object AddWallet : BlipDestination
 
     @Serializable
+    data object AddWalletFromSettings : BlipDestination
+
+    @Serializable
+    data object OnboardingBlinkContactsImport : BlipDestination
+
+    @Serializable
     data object Home : BlipDestination
 
     @Serializable

@@ -11,6 +11,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportEvent
+import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
+import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
 import xyz.lilsus.blip.feature.onboarding.BlinkWalletInstructionsScreen
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletEvent
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletScreen
@@ -33,6 +36,7 @@ import xyz.lilsus.raylsuite.blip.generated.resources.onboarding_welcome_subtitle
 import xyz.lilsus.raylsuite.blip.generated.resources.onboarding_welcome_title
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
+import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.onboarding.AgreementScreen
 import xyz.lilsus.raylsuite.feature.onboarding.AutoPaySettingsScreen
 import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
@@ -43,7 +47,8 @@ import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
 internal fun NavGraphBuilder.blipOnboarding(
     navController: NavController,
     blinkWallet: BlinkWallet,
-    onboardingViewModel: OnboardingViewModel
+    onboardingViewModel: OnboardingViewModel,
+    contactsRepository: ContactsRepository
 ) {
     composable<BlipDestination.Welcome> {
         WelcomeScreen(
@@ -121,14 +126,30 @@ internal fun NavGraphBuilder.blipOnboarding(
         AddWalletDestination(
             blinkWallet = blinkWallet,
             onConnected = {
+                navController.navigate(BlipDestination.OnboardingBlinkContactsImport)
+            },
+            onBack = navController::navigateUp
+        )
+    }
+    composable<BlipDestination.AddWalletFromSettings> {
+        AddWalletDestination(
+            blinkWallet = blinkWallet,
+            onConnected = navController::navigateUp,
+            onBack = navController::navigateUp
+        )
+    }
+    composable<BlipDestination.OnboardingBlinkContactsImport> {
+        OnboardingBlinkContactsImportDestination(
+            blinkWallet = blinkWallet,
+            contactsRepository = contactsRepository,
+            onFinished = {
                 navController.navigate(BlipDestination.Home) {
                     popUpTo(navController.graph.id) {
                         inclusive = true
                     }
                     launchSingleTop = true
                 }
-            },
-            onBack = navController::navigateUp
+            }
         )
     }
 }
@@ -160,6 +181,44 @@ private fun AddWalletDestination(
         onAliasChange = viewModel::updateAlias,
         onApiKeyChange = viewModel::updateApiKey,
         onSubmit = viewModel::submit
+    )
+}
+
+@Composable
+private fun OnboardingBlinkContactsImportDestination(
+    blinkWallet: BlinkWallet,
+    contactsRepository: ContactsRepository,
+    onFinished: () -> Unit
+) {
+    val viewModel =
+        remember(blinkWallet, contactsRepository) {
+            BlinkContactsImportViewModel(
+                blinkWallet = blinkWallet,
+                contactsRepository = contactsRepository
+            )
+        }
+    val state by viewModel.uiState.collectAsState()
+
+    DisposableEffect(viewModel) {
+        onDispose(viewModel::clear)
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.loadBlinkContacts()
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is BlinkContactsImportEvent.Imported -> onFinished()
+            }
+        }
+    }
+
+    BlinkContactsImportScreen(
+        state = state,
+        onBack = onFinished,
+        onToggleContact = viewModel::toggleBlinkContact,
+        onToggleAll = viewModel::toggleAllBlinkContacts,
+        onSearchQueryChange = viewModel::updateSearchQuery,
+        onImport = viewModel::importSelectedBlinkContacts,
+        onSkip = onFinished
     )
 }
 

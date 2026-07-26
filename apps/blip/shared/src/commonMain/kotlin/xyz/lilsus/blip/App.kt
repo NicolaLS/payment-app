@@ -118,7 +118,8 @@ fun App() {
             blipOnboarding(
                 navController = navController,
                 blinkWallet = blinkWallet,
-                onboardingViewModel = onboardingViewModel
+                onboardingViewModel = onboardingViewModel,
+                contactsRepository = contactsRepository
             )
             blipHome(
                 navController = navController,
