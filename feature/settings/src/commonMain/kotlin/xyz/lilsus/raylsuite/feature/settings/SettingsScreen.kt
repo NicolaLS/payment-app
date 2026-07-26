@@ -1,9 +1,12 @@
 package xyz.lilsus.raylsuite.feature.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -17,8 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -27,12 +33,16 @@ import xyz.lilsus.raylsuite.core.ui.components.AppFadingLazyColumn
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
+import xyz.lilsus.raylsuite.core.ui.platform.appVersionName
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.Res
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_contacts
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_contacts_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency_subtitle
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_privacy
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_repo
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_version
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments
@@ -64,7 +74,9 @@ fun SettingsScreen(
     languageSubtitle: String? = null,
     themeSubtitle: String? = null,
     leadingEntries: List<SettingsEntry> = emptyList(),
-    trailingEntries: List<SettingsEntry> = emptyList()
+    trailingEntries: List<SettingsEntry> = emptyList(),
+    donationAppName: String? = null,
+    onDonate: ((Long) -> Unit)? = null
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val resolvedCurrencySubtitle =
@@ -136,6 +148,19 @@ fun SettingsScreen(
             items(entries, key = SettingsEntry::id) { entry ->
                 SettingsListItem(entry)
             }
+            if (donationAppName != null && onDonate != null) {
+                item {
+                    DonationCard(
+                        appName = donationAppName,
+                        onDonate1k = { onDonate(1_000) },
+                        onDonate5k = { onDonate(5_000) },
+                        onDonate10k = { onDonate(10_000) }
+                    )
+                }
+            }
+            item {
+                SettingsFooter()
+            }
         }
     }
 }
@@ -175,6 +200,47 @@ private fun SettingsListItem(entry: SettingsEntry) {
     }
 }
 
+@Composable
+private fun SettingsFooter() {
+    val uriHandler = LocalUriHandler.current
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text =
+                stringResource(
+                    Res.string.settings_footer_version,
+                    appVersionName()
+                ),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = stringResource(Res.string.settings_footer_privacy),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier =
+                    Modifier.clickable {
+                        uriHandler.openUri(PRIVACY_POLICY_URL)
+                    }
+            )
+            Text(
+                text = stringResource(Res.string.settings_footer_repo),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier =
+                    Modifier.clickable {
+                        uriHandler.openUri(REPOSITORY_URL)
+                    }
+            )
+        }
+    }
+}
+
 object SettingsTestTags {
     const val SCREEN = "settings_screen"
     const val PAYMENTS_ROW = "settings_payments_row"
@@ -201,3 +267,7 @@ private fun SettingsScreenPreview() {
         )
     }
 }
+
+private const val PRIVACY_POLICY_URL =
+    "https://github.com/NicolaLS/lasr/blob/main/privacy-policy.md"
+private const val REPOSITORY_URL = "https://github.com/NicolaLS/lasr"

@@ -68,6 +68,8 @@ fun SettingsFlow(
     paymentPreferences: PaymentPreferencesRepository? = null,
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList(),
+    donationAppName: String? = null,
+    onDonate: ((Long) -> Unit)? = null,
     additionalContactActions: @Composable ColumnScope.() -> Unit = {}
 ) {
     var destination by remember(startDestination) {
@@ -169,7 +171,9 @@ fun SettingsFlow(
                 onTheme = { destination = SettingsDestination.Theme },
                 modifier = modifier,
                 leadingEntries = leadingEntries,
-                trailingEntries = trailingEntries
+                trailingEntries = trailingEntries,
+                donationAppName = donationAppName,
+                onDonate = onDonate
             )
         }
 
@@ -362,7 +366,9 @@ private fun SettingsOverview(
     onTheme: () -> Unit,
     modifier: Modifier,
     leadingEntries: List<SettingsEntry>,
-    trailingEntries: List<SettingsEntry>
+    trailingEntries: List<SettingsEntry>,
+    donationAppName: String?,
+    onDonate: ((Long) -> Unit)?
 ) {
     val primaryCode by currencyPreferences.primaryCode.collectAsState(
         CurrencyCatalog.DEFAULT_CODE
@@ -391,7 +397,9 @@ private fun SettingsOverview(
         languageSubtitle = languageSubtitle(languagePreference),
         themeSubtitle = themeSubtitle(themePreference),
         leadingEntries = leadingEntries,
-        trailingEntries = trailingEntries
+        trailingEntries = trailingEntries,
+        donationAppName = donationAppName,
+        onDonate = onDonate
     )
 }
 

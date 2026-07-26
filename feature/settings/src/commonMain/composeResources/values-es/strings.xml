@@ -18,4 +18,12 @@
     <string name="settings_theme_system_default">Usar configuración del sistema (%1$s)</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_donate_title">¿Te gusta %1$s?</string>
+    <string name="settings_donate_subtitle">Ayúdanos a crecer y mejorar apoyando nuestro desarrollo.</string>
+    <string name="settings_donate_tier_small">1k 🎁</string>
+    <string name="settings_donate_tier_medium">5k 🚀</string>
+    <string name="settings_donate_tier_large">10k ✨</string>
+    <string name="settings_footer_version">Versión %1$s</string>
+    <string name="settings_footer_privacy">Política de privacidad</string>
+    <string name="settings_footer_repo">Código fuente</string>
 </resources>
