@@ -26,7 +26,7 @@ applications.
 | Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI and shortcut persistence extracted |
 | Blink contact import | Blink contacts import | `apps/blip/feature/blink-contact-import` | Optional Blip-only story |
-| Shared payment contracts | payment domain | `core/payment` | Pending |
+| Shared payment contracts | payment domain | `core/payment` | Fiat price contract extracted |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Pending |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Pending |
 | Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Pending |
