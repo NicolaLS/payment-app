@@ -1,0 +1,26 @@
+<resources>
+    <string name="shortcuts_title">Shortcuts</string>
+    <string name="shortcuts_empty">Noch keine Shortcuts</string>
+    <string name="shortcuts_add">Shortcut hinzufügen</string>
+    <string name="shortcut_edit">Shortcut bearbeiten</string>
+    <string name="shortcut_title_label">Shortcut-Name</string>
+    <string name="shortcut_default_title">%1$s bezahlen</string>
+    <string name="shortcut_choose_contact">Kontakt auswählen</string>
+    <string name="shortcut_contact_label">Kontakt</string>
+    <string name="shortcut_contact_search_label">Kontakte suchen</string>
+    <string name="shortcut_change">Ändern</string>
+    <string name="shortcut_no_contacts">Füge einen Kontakt hinzu, bevor du einen Shortcut erstellst.</string>
+    <string name="shortcut_error_select_contact">Wähle einen Kontakt aus.</string>
+    <string name="shortcut_error_enter_amount">Gib einen Betrag ein.</string>
+    <string name="shortcut_error_whole_amount">Verwende für diese Währung eine ganze Zahl.</string>
+    <string name="shortcut_error_enter_title">Gib einen Shortcut-Namen ein.</string>
+    <string name="shortcut_no_matching_contacts">Keine passenden Kontakte</string>
+    <string name="shortcut_currency_label">Währung</string>
+    <string name="shortcut_amount_label">Betrag</string>
+    <string name="shortcut_selected_currency_content_description">Währung ändern, derzeit %1$s</string>
+    <string name="shortcut_fiat_amount_support">Zum Zahlungszeitpunkt wird der aktuelle Wechselkurs verwendet, sodass der Empfänger Bitcoin im Wert dieses %1$s-Betrags erhält.</string>
+    <string name="shortcut_comment_label">Beschreibung</string>
+    <string name="shortcut_save">Speichern</string>
+    <string name="shortcut_delete">Löschen</string>
+    <string name="keyboard_done">Fertig</string>
+</resources>

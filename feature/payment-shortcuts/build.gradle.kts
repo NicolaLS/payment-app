@@ -16,6 +16,7 @@ kotlin {
             implementation(project(":core:model"))
             implementation(project(":core:ui"))
             implementation(project(":feature:contacts"))
+            implementation(project(":feature:currency-settings"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)
