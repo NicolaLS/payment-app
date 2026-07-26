@@ -1,0 +1,9 @@
+<resources>
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_currency">Währung</string>
+    <string name="settings_currency_subtitle">Primär und sekundär</string>
+    <string name="settings_language">Sprache</string>
+    <string name="settings_language_subtitle">Englisch</string>
+    <string name="settings_theme">Design</string>
+    <string name="settings_theme_subtitle">Systemstandard</string>
+</resources>

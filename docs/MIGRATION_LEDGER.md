@@ -18,7 +18,7 @@ applications.
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Extracted |
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Pending |
-| Generic settings hub | settings presentation | `feature/settings` | Pending |
+| Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
 | Shared payment contracts | payment domain | `core/payment` | Pending |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Pending |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Pending |
