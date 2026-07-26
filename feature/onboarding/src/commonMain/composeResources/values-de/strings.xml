@@ -1,0 +1,7 @@
+<resources>
+    <string name="onboarding_welcome_get_started">Los geht's</string>
+    <string name="onboarding_features_continue">Weiter</string>
+    <string name="onboarding_agreement_title">Bevor du beginnst</string>
+    <string name="onboarding_agreement_checkbox">Ich verstehe, dass die Nutzung dieser App auf mein eigenes Risiko erfolgt</string>
+    <string name="onboarding_agreement_continue">Weiter</string>
+</resources>
