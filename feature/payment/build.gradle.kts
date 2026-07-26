@@ -17,6 +17,7 @@ kotlin {
             api(project(":core:payment"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
+            implementation(project(":feature:contacts"))
             implementation(libs.bitcoin.kmp)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
