@@ -69,6 +69,7 @@ include(":lasr:integration:nwc")
 project(":lasr:integration:nwc").projectDir = file("apps/lasr/integration/nwc")
 
 include(":core:model")
+include(":core:camera")
 include(":core:network")
 include(":core:payment")
 include(":core:settings")
