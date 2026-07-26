@@ -1,5 +1,9 @@
 <resources>
     <string name="settings_title">Einstellungen</string>
+    <string name="settings_payments">Zahlungen</string>
+    <string name="settings_payments_subtitle">Bestätigungen und Shortcuts</string>
+    <string name="settings_contacts">Kontakte</string>
+    <string name="settings_contacts_subtitle">Gespeicherte Kontakte</string>
     <string name="settings_currency">Währung</string>
     <string name="settings_currency_subtitle">Primär und sekundär</string>
     <string name="settings_currency_subtitle_format">Primär %1$s • Sekundär %2$s</string>

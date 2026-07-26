@@ -39,6 +39,8 @@ fun SettingsFlow(
     storageName: String,
     themePreferences: ThemePreferences,
     onBack: () -> Unit,
+    onPayments: () -> Unit,
+    onContacts: () -> Unit,
     modifier: Modifier = Modifier,
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList()
@@ -68,6 +70,8 @@ fun SettingsFlow(
 
             SettingsScreen(
                 onBack = onBack,
+                onPayments = onPayments,
+                onContacts = onContacts,
                 onCurrency = { destination = SettingsDestination.Currency },
                 onLanguage = { destination = SettingsDestination.Language },
                 onTheme = { destination = SettingsDestination.Theme },

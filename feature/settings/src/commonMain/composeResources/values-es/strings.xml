@@ -1,5 +1,9 @@
 <resources>
     <string name="settings_title">Ajustes</string>
+    <string name="settings_payments">Pagos</string>
+    <string name="settings_payments_subtitle">Confirmaciones y accesos directos</string>
+    <string name="settings_contacts">Contactos</string>
+    <string name="settings_contacts_subtitle">Contactos guardados</string>
     <string name="settings_currency">Moneda</string>
     <string name="settings_currency_subtitle">Principal y secundaria</string>
     <string name="settings_currency_subtitle_format">Principal %1$s • Secundaria %2$s</string>

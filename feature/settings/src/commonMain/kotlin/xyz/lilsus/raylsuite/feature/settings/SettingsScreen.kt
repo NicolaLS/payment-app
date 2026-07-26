@@ -29,10 +29,14 @@ import xyz.lilsus.raylsuite.core.ui.components.AppListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.Res
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_contacts
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_contacts_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_subtitle
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_title
@@ -50,6 +54,8 @@ data class SettingsEntry(
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onPayments: () -> Unit,
+    onContacts: () -> Unit,
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
     onTheme: () -> Unit,
@@ -69,6 +75,20 @@ fun SettingsScreen(
         themeSubtitle ?: stringResource(Res.string.settings_theme_subtitle)
     val sharedEntries =
         listOf(
+            SettingsEntry(
+                id = "payments",
+                title = stringResource(Res.string.settings_payments),
+                subtitle = stringResource(Res.string.settings_payments_subtitle),
+                testTag = SettingsTestTags.PAYMENTS_ROW,
+                onClick = onPayments
+            ),
+            SettingsEntry(
+                id = "contacts",
+                title = stringResource(Res.string.settings_contacts),
+                subtitle = stringResource(Res.string.settings_contacts_subtitle),
+                testTag = SettingsTestTags.CONTACTS_ROW,
+                onClick = onContacts
+            ),
             SettingsEntry(
                 id = "currency",
                 title = stringResource(Res.string.settings_currency),
@@ -157,6 +177,8 @@ private fun SettingsListItem(entry: SettingsEntry) {
 
 object SettingsTestTags {
     const val SCREEN = "settings_screen"
+    const val PAYMENTS_ROW = "settings_payments_row"
+    const val CONTACTS_ROW = "settings_contacts_row"
     const val CURRENCY_ROW = "settings_currency_row"
     const val LANGUAGE_ROW = "settings_language_row"
     const val THEME_ROW = "settings_theme_row"
@@ -168,6 +190,8 @@ private fun SettingsScreenPreview() {
     RaylSuiteTheme {
         SettingsScreen(
             onBack = {},
+            onPayments = {},
+            onContacts = {},
             onCurrency = {},
             onLanguage = {},
             onTheme = {},
