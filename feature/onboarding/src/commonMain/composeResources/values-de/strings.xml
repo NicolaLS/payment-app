@@ -4,4 +4,5 @@
     <string name="onboarding_agreement_title">Bevor du beginnst</string>
     <string name="onboarding_agreement_checkbox">Ich verstehe, dass die Nutzung dieser App auf mein eigenes Risiko erfolgt</string>
     <string name="onboarding_agreement_continue">Weiter</string>
+    <string name="onboarding_add_wallet_button">Wallet verbinden</string>
 </resources>
