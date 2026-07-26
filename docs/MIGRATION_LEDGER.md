@@ -36,7 +36,7 @@ applications.
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Fresh credentials, discovery, lifecycle, and payments extracted |
 | Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Wallet instructions, wallet connection, and Blink contact import extracted |
 | NWC-only stories | provider-specific presentation | `apps/lasr/feature/*` | NWC wallet instructions extracted |
-| Shared payment stories | provider-neutral presentation | `feature/*` | Pending |
+| Shared payment stories | provider-neutral presentation | `feature/payment` | Lightning input parsing extracted; payment flow pending |
 
 ## Per-story completion checklist
 
