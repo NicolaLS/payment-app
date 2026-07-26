@@ -18,6 +18,8 @@ kotlin {
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             implementation(project(":feature:contacts"))
+            implementation(project(":feature:currency-settings"))
+            implementation(project(":feature:payment-settings"))
             implementation(libs.bitcoin.kmp)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
