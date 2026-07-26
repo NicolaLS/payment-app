@@ -64,6 +64,18 @@ android {
     androidResources {
         generateLocaleConfig = true
     }
+    packaging {
+        jniLibs {
+            excludes += setOf(
+                "/lib/armeabi/libjnidispatch.so",
+                "/lib/mips/libjnidispatch.so",
+                "/lib/mips64/libjnidispatch.so"
+            )
+        }
+        resources {
+            excludes += "/fr/acinq/secp256k1/jni/native/**"
+        }
+    }
 }
 
 dependencies {

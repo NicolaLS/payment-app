@@ -36,7 +36,7 @@ android {
             manifestPlaceholders["appLabel"] = "Blip"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                file("proguard-rules.pro"),
+                file("proguard-rules.pro")
             )
         }
         create("e2e") {
@@ -63,6 +63,11 @@ android {
     }
     androidResources {
         generateLocaleConfig = true
+    }
+    packaging {
+        resources {
+            excludes += "/fr/acinq/secp256k1/jni/native/**"
+        }
     }
 }
 

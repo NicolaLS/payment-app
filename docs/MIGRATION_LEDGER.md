@@ -16,7 +16,7 @@ applications.
 | Blip shell | `apps/legacy` | `apps/blip` | Manual-verification candidate: Blink onboarding, payment home, settings, wallet management, and app links wired |
 | Lasr shell | `apps/legacy` | `apps/lasr` | Manual-verification candidate: NWC onboarding, payment home, settings, wallet management, and app links wired |
 | Provider-neutral values | `domain/model` | `core/model` | Extracted |
-| Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
+| Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted with system sans body and system serif display typography |
 | Network connectivity | platform connectivity checks | `core/network` | Android and iOS implementations extracted |
 | Camera scanning | QR scanner and permission state | `core/camera` | Android and iOS scanner implementations extracted |
 | Localized amount formatting | `domain/format` | `core/ui` | Extracted |
@@ -42,7 +42,7 @@ applications.
 | NWC-only stories | provider-specific presentation | `apps/lasr/feature/*` | NWC wallet instructions, connection, discovery confirmation, and wallet details extracted |
 | Shared payment stories | provider-neutral presentation | `feature/payment` | Scanner, input parsing, payment coordination, contacts, shortcuts, session transactions, and result flow extracted and wired to Blip and Lasr |
 | Payment app links | Android and iOS payment URI handling | `feature/payment`, `apps/blip`, `apps/lasr` | `lightning`, `bitcoin`, and `lnurl` links wired in both apps; NWC connection links remain Lasr-only |
-| Android shell behavior | activity and application setup | `apps/blip/androidApp`, `apps/lasr/androidApp` | Adaptive orientation, CameraX setup, locale persistence, and fresh package variants wired in both apps |
+| Android shell behavior | activity and application setup | `apps/blip/androidApp`, `apps/lasr/androidApp` | Adaptive orientation, CameraX setup, locale persistence, fresh package variants, and Android-only native packaging wired in both apps |
 
 ## Latest Blip milestone
 
