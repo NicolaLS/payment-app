@@ -7,6 +7,13 @@ into two independent Kotlin Multiplatform apps and reusable modules. Work in
 small, reviewable vertical slices and keep the migration ledger in
 `docs/MIGRATION_LEDGER.md` current.
 
+The immediate milestone is completing the new NWC-only Lasr application by
+composing the already-extracted shared features with the Lasr-owned NWC
+integration. Match the applicable legacy NWC behavior and UI/UX without adding
+Blink support, provider selection, or legacy-data migration. Stop at a
+manual-verification candidate rather than expanding the scope with unrelated
+product improvements.
+
 - Blip is the Blink product. Its package and bundle ID is `xyz.lilsus.blip`,
   with `.dev` and `.e2e` suffixes for those variants.
 - Lasr is the NWC product. Its package and bundle ID is `xyz.lilsus.lasr`,
