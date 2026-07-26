@@ -93,7 +93,7 @@ fun CurrencySettingsScreen(
                 }
             }
 
-            CurrencyPickerContent(
+            CurrencyPicker(
                 selectedCode = state.selectedCode,
                 searchQuery = state.searchQuery,
                 onQueryChange = onQueryChange,
@@ -108,7 +108,7 @@ fun CurrencySettingsScreen(
 }
 
 @Composable
-private fun CurrencyPickerContent(
+fun CurrencyPicker(
     selectedCode: String,
     searchQuery: String,
     onQueryChange: (String) -> Unit,
