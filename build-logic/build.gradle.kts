@@ -9,6 +9,7 @@ dependencies {
     implementation("org.jetbrains.compose:compose-gradle-plugin:1.11.1")
     implementation("org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.10")
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10")
+    implementation("org.jlleitschuh.gradle:ktlint-gradle:14.2.0")
 }
 
 gradlePlugin {
