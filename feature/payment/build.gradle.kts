@@ -15,8 +15,14 @@ kotlin {
         commonMain.dependencies {
             api(project(":core:model"))
             api(project(":core:payment"))
+            implementation(project(":core:ui"))
             implementation(libs.bitcoin.kmp)
+            implementation(libs.compose.components.resources)
+            implementation(libs.compose.foundation)
+            implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
+            implementation(libs.compose.ui)
+            implementation(libs.compose.ui.tooling.preview)
             api(libs.lightning.kmp.core)
             implementation(libs.uri.kmp)
         }
