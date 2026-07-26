@@ -2,6 +2,7 @@ package xyz.lilsus.lasr
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -19,6 +20,7 @@ import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
+import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
@@ -94,6 +96,33 @@ fun App() {
             paymentCoordinator.clear()
         }
     }
+    LaunchedEffect(navController, nwcWallet, paymentCoordinator) {
+        LasrDeepLinks.events.collect { uri ->
+            val scheme = uri.substringBefore(":", missingDelimiterValue = "")
+            if (scheme.equals(NWC_SCHEME, ignoreCase = true)) {
+                navController.navigate(
+                    LasrDestination.ConfirmWallet(
+                        uri = normalizeNwcUri(uri),
+                        fromSettings = false
+                    )
+                ) {
+                    launchSingleTop = true
+                }
+                return@collect
+            }
+            if (!isPaymentScheme(scheme) || nwcWallet.connection.value == null) {
+                return@collect
+            }
+
+            navController.navigate(LasrDestination.Home) {
+                popUpTo<LasrDestination.Home> {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
+            paymentCoordinator.dispatch(PaymentIntent.DeepLinkReceived(uri))
+        }
+    }
 
     RaylSuiteTheme(themePreference = themePreference) {
         NavHost(
@@ -122,3 +151,20 @@ fun App() {
 
 internal const val LASR_PREFERENCES = "lasr_preferences"
 private const val LASR_CREDENTIALS = "lasr_wallet"
+private const val NWC_SCHEME = "nostr+walletconnect"
+private const val LIGHTNING_SCHEME = "lightning"
+private const val BITCOIN_SCHEME = "bitcoin"
+private const val LNURL_SCHEME = "lnurl"
+
+private fun normalizeNwcUri(uri: String): String =
+    if (uri.startsWith("$NWC_SCHEME://", ignoreCase = true)) {
+        uri
+    } else {
+        val value = uri.substringAfter(":", missingDelimiterValue = "").trimStart('/')
+        "$NWC_SCHEME://$value"
+    }
+
+private fun isPaymentScheme(scheme: String): Boolean =
+    scheme.equals(LIGHTNING_SCHEME, ignoreCase = true) ||
+        scheme.equals(BITCOIN_SCHEME, ignoreCase = true) ||
+        scheme.equals(LNURL_SCHEME, ignoreCase = true)

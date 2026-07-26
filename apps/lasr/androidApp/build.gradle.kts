@@ -36,7 +36,7 @@ android {
             manifestPlaceholders["appLabel"] = "Lasr"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                file("proguard-rules.pro"),
+                file("proguard-rules.pro")
             )
         }
         create("e2e") {
@@ -68,9 +68,13 @@ android {
 
 dependencies {
     implementation(project(":lasr:shared"))
+    implementation(project(":core:network"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.core)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.window)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 }
