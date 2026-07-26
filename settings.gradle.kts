@@ -53,6 +53,8 @@ includeApp("lasr")
 
 include(":blip:feature:onboarding")
 project(":blip:feature:onboarding").projectDir = file("apps/blip/feature/onboarding")
+include(":blip:integration:blink")
+project(":blip:integration:blink").projectDir = file("apps/blip/integration/blink")
 include(":lasr:feature:onboarding")
 project(":lasr:feature:onboarding").projectDir = file("apps/lasr/feature/onboarding")
 
