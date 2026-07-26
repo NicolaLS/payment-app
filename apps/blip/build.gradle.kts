@@ -1,16 +1,10 @@
 plugins {
-    // this is necessary to avoid the plugins to be loaded multiple times
-    // in each subproject's classloader
     alias(libs.plugins.androidApplication) apply false
     alias(libs.plugins.androidKmpLibrary) apply false
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
-    alias(libs.plugins.kotlinSerialization) apply false
     alias(libs.plugins.ktlint)
-    alias(libs.plugins.apollo) apply false
-    alias(libs.plugins.mokkery) apply false
-    id("org.jetbrains.kotlinx.kover") version "0.9.8"
 }
 
 subprojects {
@@ -24,105 +18,6 @@ subprojects {
         ignoreFailures.set(false)
         filter {
             exclude { it.file.path.contains("/build/") }
-        }
-    }
-}
-
-tasks.register<Copy>("installGitHooks") {
-    description = "Install git hooks for code quality checks"
-    group = "git hooks"
-    // Hook source is under the repository-root scripts/hooks directory.
-    from(file("../scripts/hooks/pre-commit"))
-    into(file("../.git/hooks"))
-    filePermissions {
-        user {
-            read = true
-            write = true
-            execute = true
-        }
-        group {
-            read = true
-            execute = true
-        }
-        other {
-            read = true
-            execute = true
-        }
-    }
-}
-
-val iosE2eDerivedDataPath = "ios-e2e-derived"
-val iosE2eAppPath = "$iosE2eDerivedDataPath/Build/Products/Debug-iphonesimulator/Blip E2E.app"
-
-tasks.register<Exec>("buildE2eIos") {
-    group = "e2e"
-    description = "Builds the dedicated iOS simulator e2e app."
-    notCompatibleWithConfigurationCache("Wraps local xcodebuild with dynamic derived-data paths.")
-
-    val derivedDataPath = layout.buildDirectory.dir(iosE2eDerivedDataPath).get().asFile
-
-    executable = "xcodebuild"
-    args(
-        "-project",
-        "iosApp/iosApp.xcodeproj",
-        "-scheme",
-        "iosAppE2E",
-        "-configuration",
-        "Debug",
-        "-sdk",
-        "iphonesimulator",
-        "-destination",
-        "generic/platform=iOS Simulator",
-        "-derivedDataPath",
-        derivedDataPath.path,
-        "ARCHS=arm64",
-        "ONLY_ACTIVE_ARCH=YES",
-        "build"
-    )
-}
-
-tasks.register<Exec>("installE2eIos") {
-    group = "e2e"
-    description = "Builds and installs the iOS e2e app on the booted simulator."
-    notCompatibleWithConfigurationCache("Wraps local simctl installation.")
-    dependsOn("buildE2eIos")
-
-    val appPath = layout.buildDirectory.file(iosE2eAppPath).get().asFile
-
-    doFirst {
-        require(appPath.exists()) {
-            "Expected iOS e2e app at ${appPath.path}; run buildE2eIos first."
-        }
-    }
-
-    executable = "xcrun"
-    args(
-        "simctl",
-        "install",
-        providers.gradleProperty("rayl-suite.ios.simulator").orElse("booted").get(),
-        appPath.path
-    )
-}
-dependencies {
-    kover(project(":blip:shared"))
-    kover(project(":blip:androidApp"))
-}
-
-kover {
-    reports {
-        total {
-            filters {
-                excludes {
-                    packages(
-                        "rayl_suite.blip.shared.generated.resources",
-                        "xyz.lilsus.blip.data.blink.graphql",
-                        "xyz.lilsus.blip.e2e"
-                    )
-                    classes(
-                        "xyz.lilsus.blip.E2eMainActivity*"
-                    )
-                }
-            }
         }
     }
 }
