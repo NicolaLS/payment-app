@@ -20,11 +20,14 @@ kotlin {
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
+            implementation(libs.androidx.lifecycle.viewmodelCompose)
+            implementation(libs.kotlinx.coroutines.core)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.core.ktx)
+            implementation(libs.androidx.lifecycle.process)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
