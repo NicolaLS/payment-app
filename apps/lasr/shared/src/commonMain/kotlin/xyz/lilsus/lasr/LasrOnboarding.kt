@@ -1,0 +1,306 @@
+package xyz.lilsus.lasr
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
+import androidx.navigation.toRoute
+import kotlinx.coroutines.flow.collectLatest
+import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.lasr.feature.onboarding.NwcWalletInstructionsScreen
+import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletEvent
+import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletScreen
+import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletViewModel
+import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletDialog
+import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletEvent
+import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletViewModel
+import xyz.lilsus.lasr.integration.nwc.NwcWallet
+import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
+import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
+import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.platform.readPlainText
+import xyz.lilsus.raylsuite.feature.onboarding.AgreementScreen
+import xyz.lilsus.raylsuite.feature.onboarding.AutoPaySettingsScreen
+import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
+import xyz.lilsus.raylsuite.feature.onboarding.OnboardingFeaturePage
+import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
+import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
+import xyz.lilsus.raylsuite.lasr.generated.resources.Res
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_agreement_body
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_autopay_body
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page1_body
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page1_subtitle
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page1_title
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page2_body
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page2_subtitle
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page2_title
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page3_body
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page3_subtitle
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page3_title
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_welcome_subtitle_line1
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_welcome_subtitle_line2
+import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_welcome_title
+
+internal fun NavGraphBuilder.lasrOnboarding(
+    navController: NavController,
+    nwcWallet: NwcWallet,
+    onboardingViewModel: OnboardingViewModel
+) {
+    composable<LasrDestination.Welcome> {
+        WelcomeScreen(
+            title = stringResource(Res.string.onboarding_welcome_title),
+            subtitle = stringResource(Res.string.onboarding_welcome_subtitle_line1),
+            description = stringResource(Res.string.onboarding_welcome_subtitle_line2),
+            stepIndex = OnboardingStep.Welcome.index,
+            totalSteps = ONBOARDING_STEP_COUNT,
+            onGetStarted = {
+                navController.navigate(LasrDestination.Features)
+            }
+        )
+    }
+    composable<LasrDestination.Features> {
+        val state by onboardingViewModel.uiState.collectAsState()
+        val cameraPermission = rememberCameraPermissionState()
+        FeaturesScreen(
+            pages = onboardingFeaturePages(),
+            currentPage = state.featuresPage,
+            stepIndex = OnboardingStep.Features.index,
+            totalSteps = ONBOARDING_STEP_COUNT,
+            onPageChanged = onboardingViewModel::setFeaturesPage,
+            onContinue = {
+                navController.navigate(LasrDestination.AutoPay)
+            },
+            onRequestCameraPermission = cameraPermission::request,
+            onBack = navController::navigateUp
+        )
+    }
+    composable<LasrDestination.AutoPay> {
+        val state by onboardingViewModel.uiState.collectAsState()
+        val formatter = rememberAmountFormatter()
+        AutoPaySettingsScreen(
+            body = stringResource(Res.string.onboarding_autopay_body),
+            confirmationMode = state.confirmationMode,
+            thresholdSats = state.thresholdSats,
+            secondaryEquivalent =
+                state.thresholdSecondaryEquivalent?.let(formatter::format),
+            stepIndex = OnboardingStep.AutoPay.index,
+            totalSteps = ONBOARDING_STEP_COUNT,
+            onConfirmationModeChanged = onboardingViewModel::setConfirmationMode,
+            onThresholdChanged = onboardingViewModel::setThreshold,
+            onContinue = {
+                onboardingViewModel.persistAutoPaySettings()
+                navController.navigate(LasrDestination.Agreement)
+            },
+            onBack = navController::navigateUp
+        )
+    }
+    composable<LasrDestination.Agreement> {
+        val state by onboardingViewModel.uiState.collectAsState()
+        AgreementScreen(
+            body = stringResource(Res.string.onboarding_agreement_body),
+            hasAgreed = state.hasAgreed,
+            stepIndex = OnboardingStep.Agreement.index,
+            totalSteps = ONBOARDING_STEP_COUNT,
+            onAgreementChanged = onboardingViewModel::setAgreement,
+            onContinue = {
+                navController.navigate(LasrDestination.WalletInstructions)
+            },
+            onBack = navController::navigateUp
+        )
+    }
+    composable<LasrDestination.WalletInstructions> {
+        NwcWalletInstructionsScreen(
+            stepIndex = OnboardingStep.WalletInstructions.index,
+            totalSteps = ONBOARDING_STEP_COUNT,
+            onConnectWallet = {
+                navController.navigate(LasrDestination.AddWallet)
+            },
+            onBack = navController::navigateUp
+        )
+    }
+    composable<LasrDestination.AddWallet> {
+        AddWalletDestination(
+            navController = navController,
+            fromSettings = false
+        )
+    }
+    composable<LasrDestination.AddWalletFromSettings> {
+        AddWalletDestination(
+            navController = navController,
+            fromSettings = true
+        )
+    }
+    dialog<LasrDestination.ConfirmWallet> { backStackEntry ->
+        val route = backStackEntry.toRoute<LasrDestination.ConfirmWallet>()
+        ConfirmWalletDestination(
+            uri = route.uri,
+            nwcWallet = nwcWallet,
+            onConnected = {
+                if (route.fromSettings) {
+                    navController.popBackStack()
+                } else {
+                    navController.navigate(LasrDestination.Home) {
+                        popUpTo(navController.graph.id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            },
+            onCancelled = navController::navigateUp
+        )
+    }
+}
+
+@Composable
+private fun AddWalletDestination(navController: NavController, fromSettings: Boolean) {
+    val viewModel = remember { AddNwcWalletViewModel() }
+    val state by viewModel.uiState.collectAsState()
+    val clipboard = LocalClipboard.current
+    val scannerController = rememberQrScannerController()
+    val cameraPermission = rememberCameraPermissionState()
+    var scannerStarted by remember { mutableStateOf(false) }
+    var permissionRequested by remember { mutableStateOf(false) }
+
+    DisposableEffect(viewModel, scannerController) {
+        onDispose {
+            scannerController.stop()
+            viewModel.clear()
+        }
+    }
+
+    fun requestCameraPermissionAfterScannerFailure() {
+        scannerStarted = false
+        scannerController.stop()
+        permissionRequested = true
+        cameraPermission.request()
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is AddNwcWalletEvent.Confirm -> {
+                    navController.popBackStack()
+                    navController.navigate(
+                        LasrDestination.ConfirmWallet(
+                            uri = event.uri,
+                            fromSettings = fromSettings
+                        )
+                    )
+                }
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        val text = clipboard.getClipEntry()?.readPlainText()
+        viewModel.prefillUriIfValid(text)
+    }
+    LaunchedEffect(cameraPermission.hasPermission) {
+        if (!cameraPermission.hasPermission) {
+            if (scannerStarted) {
+                scannerController.stop()
+                scannerStarted = false
+            }
+            if (!permissionRequested) {
+                permissionRequested = true
+                cameraPermission.request()
+            }
+            return@LaunchedEffect
+        }
+
+        permissionRequested = false
+        if (!scannerStarted) {
+            scannerStarted =
+                scannerController.start(
+                    onQrCodeScanned = viewModel::handleScannedValue,
+                    onCameraPermissionMissing = ::requestCameraPermissionAfterScannerFailure
+                )
+        } else {
+            scannerController.resume()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AddNwcWalletScreen(
+            state = state,
+            onBack = navController::navigateUp,
+            onUriChange = viewModel::updateUri,
+            onSubmit = viewModel::submit,
+            controller = scannerController,
+            isCameraPermissionGranted = cameraPermission.hasPermission
+        )
+    }
+}
+
+@Composable
+private fun ConfirmWalletDestination(
+    uri: String,
+    nwcWallet: NwcWallet,
+    onConnected: () -> Unit,
+    onCancelled: () -> Unit
+) {
+    val viewModel = remember(nwcWallet) { ConnectNwcWalletViewModel(nwcWallet) }
+    val state by viewModel.uiState.collectAsState()
+
+    DisposableEffect(viewModel) {
+        onDispose(viewModel::clear)
+    }
+    LaunchedEffect(viewModel, uri) {
+        viewModel.load(uri)
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is ConnectNwcWalletEvent.Success -> onConnected()
+                ConnectNwcWalletEvent.Cancelled -> onCancelled()
+            }
+        }
+    }
+
+    ConnectNwcWalletDialog(
+        state = state,
+        onAliasChange = viewModel::updateAlias,
+        onRetryDiscovery = viewModel::retryDiscovery,
+        onConfirm = viewModel::confirm,
+        onCancel = viewModel::cancel
+    )
+}
+
+@Composable
+private fun onboardingFeaturePages(): List<OnboardingFeaturePage> = listOf(
+    OnboardingFeaturePage(
+        title = stringResource(Res.string.onboarding_features_page1_title),
+        subtitle = stringResource(Res.string.onboarding_features_page1_subtitle),
+        body = stringResource(Res.string.onboarding_features_page1_body)
+    ),
+    OnboardingFeaturePage(
+        title = stringResource(Res.string.onboarding_features_page2_title),
+        subtitle = stringResource(Res.string.onboarding_features_page2_subtitle),
+        body = stringResource(Res.string.onboarding_features_page2_body)
+    ),
+    OnboardingFeaturePage(
+        title = stringResource(Res.string.onboarding_features_page3_title),
+        subtitle = stringResource(Res.string.onboarding_features_page3_subtitle),
+        body = stringResource(Res.string.onboarding_features_page3_body)
+    )
+)
+
+private enum class OnboardingStep(val index: Int) {
+    Welcome(0),
+    Features(1),
+    AutoPay(2),
+    Agreement(3),
+    WalletInstructions(4)
+}
+
+private const val ONBOARDING_STEP_COUNT = 5
