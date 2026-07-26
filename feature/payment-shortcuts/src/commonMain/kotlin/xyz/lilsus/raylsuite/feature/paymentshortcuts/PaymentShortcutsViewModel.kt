@@ -147,6 +147,10 @@ class PaymentShortcutsViewModel(
         }
     }
 
+    fun dismissEditor() {
+        closeEditor()
+    }
+
     fun clear() {
         scope.cancel()
     }

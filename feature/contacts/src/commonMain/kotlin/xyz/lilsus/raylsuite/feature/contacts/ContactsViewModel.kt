@@ -138,6 +138,10 @@ class ContactsViewModel(
         mutableEvents.tryEmit(ContactsEvent.CreateShortcut(contactId))
     }
 
+    fun dismissEditor() {
+        closeEditor()
+    }
+
     fun clear() {
         scope.cancel()
     }

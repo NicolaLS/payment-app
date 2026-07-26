@@ -23,7 +23,7 @@ applications.
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences, state, and UI extracted |
 | Payment shortcuts | shortcut configuration | `feature/payment-shortcuts` | State holder and UI extracted |
-| Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
+| Generic settings hub | settings presentation | `feature/settings` | Shared settings, contacts, and shortcuts flow extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI and shortcut persistence extracted |
 | Blink contact import | Blink contacts import | `apps/blip/feature/blink-contact-import` | Optional Blip-only story |
 | Shared payment contracts | payment domain | `core/payment` | Fiat price contract extracted |
