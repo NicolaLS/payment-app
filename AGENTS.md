@@ -56,6 +56,8 @@ small, reviewable vertical slices and keep the migration ledger in
 - `apps/blip/feature/*` and `apps/lasr/feature/*`: app-only user stories.
 - `apps/blip/integration/*` and `apps/lasr/integration/*`: provider SDK,
   network, credential, and repository implementations.
+- `integration/*`: external-service adapters reused by both apps and free of
+  wallet-provider behavior.
 - App `shared` modules are composition roots for navigation, dependency
   assembly, and app identity. Keep business rules out of them.
 
