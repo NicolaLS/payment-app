@@ -27,6 +27,7 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.ui.tooling.preview)
             api(libs.lightning.kmp.core)
+            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.qrose)
             implementation(libs.uri.kmp)
         }
