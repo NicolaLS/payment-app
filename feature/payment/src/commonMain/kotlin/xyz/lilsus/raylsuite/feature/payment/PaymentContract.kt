@@ -1,8 +1,10 @@
 package xyz.lilsus.raylsuite.feature.payment
 
+import xyz.lilsus.raylsuite.core.model.ContactRole
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.payment.amount.ManualAmountKey
+import xyz.lilsus.raylsuite.feature.payment.contacts.PaymentSheetTab
 
 sealed interface PaymentEvent {
     data class ShowError(val error: PaymentUiError) : PaymentEvent
@@ -46,4 +48,24 @@ sealed interface PaymentIntent {
     data object PendingRetryDismiss : PaymentIntent
 
     data class StartDonation(val amountSats: Long, val address: LightningAddress) : PaymentIntent
+
+    data object OpenContacts : PaymentIntent
+
+    data object DismissContacts : PaymentIntent
+
+    data class PaymentSheetTabSelected(val tab: PaymentSheetTab) : PaymentIntent
+
+    data class ContactRoleSelected(val role: ContactRole?) : PaymentIntent
+
+    data class SelectShortcut(val id: String) : PaymentIntent
+
+    data class SelectContact(val id: String) : PaymentIntent
+
+    data class SaveContactPromptAliasChanged(val alias: String) : PaymentIntent
+
+    data class SaveContactPromptRoleSelected(val role: ContactRole?) : PaymentIntent
+
+    data object SaveContactPromptSave : PaymentIntent
+
+    data object SaveContactPromptDismiss : PaymentIntent
 }

@@ -36,6 +36,7 @@ import xyz.lilsus.raylsuite.core.payment.PaymentException
 import xyz.lilsus.raylsuite.core.payment.PaymentHash
 import xyz.lilsus.raylsuite.core.payment.PaymentProvider
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
+import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.payment.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.payment.amount.ManualAmountController
@@ -49,6 +50,7 @@ class PaymentCoordinator(
     bitcoinPriceProvider: BitcoinPriceProvider,
     private val currencyPreferences: CurrencyPreferences,
     private val paymentPreferences: PaymentPreferencesRepository,
+    contactsRepository: ContactsRepository,
     private val haptics: HapticFeedbackManager,
     private val showEstimatedFeeHint: Boolean = false,
     coroutineContext: CoroutineContext = Dispatchers.Main
@@ -71,6 +73,14 @@ class PaymentCoordinator(
             scope = scope,
             showEstimatedFeeHint = showEstimatedFeeHint
         )
+    private val contactsController =
+        PaymentContactsController(
+            repository = contactsRepository,
+            currencyManager = currencyManager,
+            scope = scope,
+            onPaymentRequested = ::resolveContactPayment,
+            onError = ::emitError
+        )
 
     private val mutableUiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Active)
     val uiState: StateFlow<PaymentUiState> = mutableUiState.asStateFlow()
@@ -79,6 +89,7 @@ class PaymentCoordinator(
     val events: SharedFlow<PaymentEvent> = mutableEvents.asSharedFlow()
 
     val sessionTransactions: StateFlow<List<SessionTransactionItem>> = pendingTracker.displayItems
+    val contactsState = contactsController.state
 
     private val mutableTransactionDetailNavigationTarget = MutableStateFlow<String?>(null)
     val transactionDetailNavigationTarget: StateFlow<String?> =
@@ -165,6 +176,20 @@ class PaymentCoordinator(
             PaymentIntent.PendingRetryViewPending -> viewPendingPayment()
             PaymentIntent.PendingRetryDismiss -> dismissPendingRetry()
             is PaymentIntent.StartDonation -> startDonation(intent.amountSats, intent.address)
+            PaymentIntent.OpenContacts -> contactsController.open()
+            PaymentIntent.DismissContacts -> contactsController.dismiss()
+            is PaymentIntent.PaymentSheetTabSelected -> contactsController.selectTab(intent.tab)
+            is PaymentIntent.ContactRoleSelected -> contactsController.selectRole(intent.role)
+            is PaymentIntent.SelectShortcut -> contactsController.selectShortcut(intent.id)
+            is PaymentIntent.SelectContact -> contactsController.selectContact(intent.id)
+            is PaymentIntent.SaveContactPromptAliasChanged ->
+                contactsController.updateSavePromptAlias(intent.alias)
+
+            is PaymentIntent.SaveContactPromptRoleSelected ->
+                contactsController.updateSavePromptRole(intent.role)
+
+            PaymentIntent.SaveContactPromptSave -> contactsController.savePrompt()
+            PaymentIntent.SaveContactPromptDismiss -> contactsController.dismissSavePrompt()
         }
     }
 
@@ -208,6 +233,11 @@ class PaymentCoordinator(
 
                     is LightningInputParser.Target.LightningAddressTarget -> {
                         val sourceKey = lightningAddressSourceKey(target.address)
+                        val contactContext =
+                            contactsController.contextFor(
+                                target.address,
+                                allowSavePrompt = true
+                            )
                         val existing =
                             pendingTracker.findWaitingByDynamicSourceKey(sourceKey)
                         if (existing != null) {
@@ -217,13 +247,19 @@ class PaymentCoordinator(
                                 PendingRetryContinuation.LightningAddress(
                                     address = target.address,
                                     sourceKey = sourceKey,
-                                    paymentSource = source
+                                    paymentSource = source,
+                                    contactContext = contactContext
                                 )
                             )
                             return
                         }
                         notifyScanSuccess()
-                        resolveLightningAddress(target.address, source, sourceKey)
+                        resolveLightningAddress(
+                            address = target.address,
+                            paymentSource = source,
+                            sourceKey = sourceKey,
+                            contactContext = contactContext
+                        )
                     }
                 }
         }
@@ -297,7 +333,10 @@ class PaymentCoordinator(
     private fun resolveLightningAddress(
         address: LightningAddress,
         paymentSource: PaymentRequestSource,
-        sourceKey: String?
+        sourceKey: String?,
+        contactContext: PaymentContactContext? = null,
+        shortcutAmountMsats: Long? = null,
+        shortcutComment: String? = null
     ) {
         mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
         scope.launch {
@@ -306,12 +345,49 @@ class PaymentCoordinator(
                     handleLnurlParams(
                         params = result.data,
                         paymentSource = paymentSource,
-                        sourceKey = sourceKey
+                        sourceKey = sourceKey,
+                        contactContext = contactContext,
+                        shortcutAmountMsats = shortcutAmountMsats,
+                        shortcutComment = shortcutComment
                     )
 
                 is LnurlResult.Error -> emitError(result.error.toPaymentUiError())
             }
         }
+    }
+
+    private fun resolveContactPayment(
+        address: LightningAddress,
+        context: PaymentContactContext,
+        amountMsats: Long?,
+        comment: String?
+    ) {
+        val sourceKey = lightningAddressSourceKey(address)
+        val existing = pendingTracker.findWaitingByDynamicSourceKey(sourceKey)
+        if (existing != null) {
+            showPendingRetryPrompt(
+                record = existing,
+                continuation =
+                PendingRetryContinuation.LightningAddress(
+                    address = address,
+                    sourceKey = sourceKey,
+                    paymentSource = PaymentRequestSource.Camera,
+                    contactContext = context,
+                    shortcutAmountMsats = amountMsats,
+                    shortcutComment = comment
+                )
+            )
+            return
+        }
+        notifyScanSuccess()
+        resolveLightningAddress(
+            address = address,
+            paymentSource = PaymentRequestSource.Camera,
+            sourceKey = sourceKey,
+            contactContext = context,
+            shortcutAmountMsats = amountMsats,
+            shortcutComment = comment
+        )
     }
 
     private fun handleLnurlParams(
@@ -320,7 +396,10 @@ class PaymentCoordinator(
         forceManualEntry: Boolean = false,
         prefillMsats: Long? = null,
         inputCurrencyOverride: CurrencyInfo? = null,
-        sourceKey: String? = null
+        sourceKey: String? = null,
+        contactContext: PaymentContactContext? = null,
+        shortcutAmountMsats: Long? = null,
+        shortcutComment: String? = null
     ) {
         if (params.minSendable <= 0 || params.maxSendable < params.minSendable) {
             emitError(PaymentUiError.InvalidInvoice("LNURL amount range is invalid"))
@@ -330,7 +409,9 @@ class PaymentCoordinator(
             LnurlSession(
                 params = params,
                 sourceKey = sourceKey,
-                paymentSource = paymentSource
+                paymentSource = paymentSource,
+                contactContext = contactContext?.copy(comment = shortcutComment),
+                comment = shortcutComment
             )
         val currencyState = currencyManager.state.value
         val inputInfo = inputCurrencyOverride ?: currencyState.info
@@ -348,6 +429,23 @@ class PaymentCoordinator(
             inputInfo.code.equals(currencyState.info.code, ignoreCase = true)
         ) {
             currencyManager.ensureExchangeRateIfNeeded(inputInfo)
+        }
+
+        shortcutAmountMsats?.let { requestedAmount ->
+            val roundedAmount = roundToFullSatoshis(requestedAmount)
+            if (
+                roundedAmount < params.minSendable ||
+                roundedAmount > params.maxSendable
+            ) {
+                emitError(
+                    PaymentUiError.InvalidInvoice(
+                        "Shortcut amount is outside the allowed range"
+                    )
+                )
+                return
+            }
+            payLnurlInvoice(session, roundedAmount, isManualEntry = false)
+            return
         }
 
         if (!forceManualEntry && params.minSendable == params.maxSendable) {
@@ -389,11 +487,29 @@ class PaymentCoordinator(
         mutableUiState.value = PaymentUiState.Loading()
         scope.launch {
             val roundedAmount = roundToFullSatoshis(amountMsats)
+            val comment = session.comment?.takeIf(String::isNotBlank)
+            val commentAllowed = session.params.commentAllowed
+            if (
+                comment != null &&
+                (
+                    commentAllowed == null ||
+                        comment.length > commentAllowed
+                    )
+            ) {
+                manualEntryContext = null
+                emitError(
+                    PaymentUiError.InvalidInvoice(
+                        "Description is too long for this address"
+                    )
+                )
+                return@launch
+            }
             when (
                 val result =
                     lnurlPayClient.requestInvoice(
                         callback = session.params.callback,
-                        amountMsats = roundedAmount
+                        amountMsats = roundedAmount,
+                        comment = comment
                     )
             ) {
                 is LnurlResult.Success ->
@@ -446,7 +562,8 @@ class PaymentCoordinator(
                 PendingOrigin.LnurlFixed
             },
             source = session.paymentSource,
-            dynamicSourceKey = session.sourceKey
+            dynamicSourceKey = session.sourceKey,
+            contactContext = session.contactContext
         )
     }
 
@@ -540,7 +657,8 @@ class PaymentCoordinator(
             invoice = pending.invoice,
             amountOverrideMsats = pending.amountOverrideMsats,
             origin = pending.origin,
-            dynamicSourceKey = pending.dynamicSourceKey
+            dynamicSourceKey = pending.dynamicSourceKey,
+            contactContext = pending.contactContext
         )
     }
 
@@ -549,7 +667,8 @@ class PaymentCoordinator(
         amountOverrideMsats: Long?,
         origin: PendingOrigin,
         source: PaymentRequestSource,
-        dynamicSourceKey: String? = null
+        dynamicSourceKey: String? = null,
+        contactContext: PaymentContactContext? = null
     ) {
         if (paymentAdmissionInProgress) return
         paymentAdmissionInProgress = true
@@ -567,7 +686,8 @@ class PaymentCoordinator(
                             amountMsats != null &&
                                 confirmationPolicy.shouldConfirm(
                                     amountMsats = amountMsats,
-                                    isManualEntry = isManualEntry
+                                    isManualEntry = isManualEntry,
+                                    isShortcut = contactContext?.shortcutId != null
                                 )
                             )
                 if (requiresConfirmation) {
@@ -581,11 +701,18 @@ class PaymentCoordinator(
                             invoice = invoice,
                             amountOverrideMsats = amountOverrideMsats,
                             origin = origin,
-                            dynamicSourceKey = dynamicSourceKey
+                            dynamicSourceKey = dynamicSourceKey,
+                            contactContext = contactContext
                         )
                     mutableUiState.value = PaymentUiState.Confirm(display)
                 } else {
-                    startPayment(invoice, amountOverrideMsats, origin, dynamicSourceKey)
+                    startPayment(
+                        invoice,
+                        amountOverrideMsats,
+                        origin,
+                        dynamicSourceKey,
+                        contactContext
+                    )
                 }
             } catch (cause: CancellationException) {
                 throw cause
@@ -601,7 +728,8 @@ class PaymentCoordinator(
         invoice: Bolt11Invoice,
         amountOverrideMsats: Long?,
         origin: PendingOrigin,
-        dynamicSourceKey: String?
+        dynamicSourceKey: String?,
+        contactContext: PaymentContactContext?
     ) {
         mutableUiState.value = PaymentUiState.Loading()
         val amountMsats = amountOverrideMsats ?: invoice.amount?.msat ?: 0L
@@ -612,6 +740,7 @@ class PaymentCoordinator(
                 origin = origin,
                 dynamicSourceKey = dynamicSourceKey
             )
+        contactsController.bindPendingPayment(pendingId, contactContext)
         paymentJobs.remove(pendingId)?.cancel()
         val job =
             scope.launch {
@@ -675,6 +804,11 @@ class PaymentCoordinator(
             wasAlreadyPaid = result.wasAlreadyPaid,
             preimage = result.preimageHex
         )
+        if (!result.wasAlreadyPaid) {
+            contactsController.paymentSucceeded(pendingId, paidMsats)
+        } else {
+            contactsController.paymentFailed(pendingId)
+        }
         if (vibrateOnPayment) haptics.notifyPaymentSuccess()
         if (!shouldShowDirectPaymentResult(record?.visible == true)) return
 
@@ -719,6 +853,7 @@ class PaymentCoordinator(
         val record = pendingTracker.get(pendingId)
         clearPaymentSessionState()
         pendingTracker.markFailure(pendingId, error)
+        contactsController.paymentFailed(pendingId)
         if (!shouldShowDirectPaymentResult(record?.visible == true)) return
         showPaymentError(error, emitEvent = true)
         mutableTransactionDetailNavigationTarget.value = pendingId
@@ -753,10 +888,15 @@ class PaymentCoordinator(
             }
 
             is PendingEvent.Settled -> {
+                if (!event.invoice.wasAlreadyPaid) {
+                    contactsController.paymentSucceeded(event.id, event.paidMsats)
+                } else {
+                    contactsController.paymentFailed(event.id)
+                }
                 if (vibrateOnPayment) haptics.notifyPaymentSuccess()
             }
 
-            is PendingEvent.Failed -> Unit
+            is PendingEvent.Failed -> contactsController.paymentFailed(event.id)
         }
     }
 
@@ -797,7 +937,10 @@ class PaymentCoordinator(
                 resolveLightningAddress(
                     continuation.address,
                     continuation.paymentSource,
-                    continuation.sourceKey
+                    continuation.sourceKey,
+                    continuation.contactContext,
+                    continuation.shortcutAmountMsats,
+                    continuation.shortcutComment
                 )
         }
     }
@@ -978,7 +1121,8 @@ private data class PendingPayment(
     val invoice: Bolt11Invoice,
     val amountOverrideMsats: Long?,
     val origin: PendingOrigin,
-    val dynamicSourceKey: String?
+    val dynamicSourceKey: String?,
+    val contactContext: PaymentContactContext?
 )
 
 private data class PendingRetryChoice(
@@ -997,7 +1141,9 @@ private data class CompletedPayment(
 private data class LnurlSession(
     val params: LnurlPayParams,
     val sourceKey: String?,
-    val paymentSource: PaymentRequestSource
+    val paymentSource: PaymentRequestSource,
+    val contactContext: PaymentContactContext?,
+    val comment: String?
 )
 
 private enum class PaymentRequestSource {
@@ -1023,7 +1169,10 @@ private sealed interface PendingRetryContinuation {
     data class LightningAddress(
         val address: xyz.lilsus.raylsuite.core.model.LightningAddress,
         val sourceKey: String,
-        val paymentSource: PaymentRequestSource
+        val paymentSource: PaymentRequestSource,
+        val contactContext: PaymentContactContext? = null,
+        val shortcutAmountMsats: Long? = null,
+        val shortcutComment: String? = null
     ) : PendingRetryContinuation
 }
 
@@ -1050,7 +1199,7 @@ private fun lightningAddressSourceKey(address: LightningAddress): String = build
     append(address.domain.lowercase())
 }
 
-private fun roundToFullSatoshis(msats: Long): Long =
+internal fun roundToFullSatoshis(msats: Long): Long =
     ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
 
 private const val MSATS_PER_SAT = 1_000L
