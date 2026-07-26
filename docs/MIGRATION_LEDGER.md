@@ -16,7 +16,7 @@ applications.
 | Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
 | Theme settings | settings presentation/domain/data | `feature/theme-settings` | Extracted |
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Pending |
-| Currency settings | settings presentation/domain/data | `feature/currency-settings` | Pending |
+| Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Pending |
 | Generic settings hub | settings presentation | `feature/settings` | Pending |
 | Shared payment contracts | payment domain | `core/payment` | Pending |

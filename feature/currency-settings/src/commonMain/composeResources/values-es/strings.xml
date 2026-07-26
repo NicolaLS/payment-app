@@ -1,0 +1,15 @@
+<resources>
+    <string name="settings_currency">Moneda</string>
+    <string name="settings_currency_primary">Principal</string>
+    <string name="settings_currency_secondary">Secundaria</string>
+    <string name="search_placeholder">Buscar…</string>
+    <string name="settings_currency_satoshi">Satoshi</string>
+    <string name="settings_currency_bitcoin">Bitcoin</string>
+    <string name="settings_currency_usd">Dólar estadounidense</string>
+    <string name="settings_currency_eur">Euro</string>
+    <string name="settings_currency_gbp">Libra esterlina</string>
+    <string name="settings_currency_cad">Dólar canadiense</string>
+    <string name="settings_currency_aud">Dólar australiano</string>
+    <string name="settings_currency_chf">Franco suizo</string>
+    <string name="settings_currency_jpy">Yen japonés</string>
+</resources>
