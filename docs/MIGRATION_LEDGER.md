@@ -21,7 +21,7 @@ applications.
 | Theme settings | settings presentation/domain/data | `feature/theme-settings` | Extracted |
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Extracted |
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
-| Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences and state holder extracted |
+| Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences, state, and UI extracted |
 | Payment shortcuts | shortcut configuration | `feature/payment-shortcuts` | State holder and UI extracted |
 | Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI and shortcut persistence extracted |

@@ -1,0 +1,14 @@
+<resources>
+    <string name="settings_payments">Zahlungen</string>
+    <string name="settings_payments_confirm_label">Zahlung bestätigen</string>
+    <string name="settings_payments_confirm_threshold">Über %1$s</string>
+    <string name="settings_payments_option_always">Immer</string>
+    <string name="settings_payments_option_above">Über</string>
+    <string name="settings_payments_confirm_manual_entry">Manuell eingegebene Beträge bestätigen</string>
+    <string name="settings_payments_confirm_shortcuts">Shortcut-Zahlungen immer bestätigen</string>
+    <string name="settings_payments_haptics_title">Vibrationen</string>
+    <string name="settings_payments_haptics_scan">Vibrieren, wenn ein Code erkannt wird</string>
+    <string name="settings_payments_haptics_payment">Vibrieren bei erfolgreicher Zahlung</string>
+    <string name="settings_contacts">Kontakte</string>
+    <string name="settings_payments_ask_save_contacts">Nachfragen, ob neue Kontakte gespeichert werden sollen</string>
+</resources>

@@ -3,6 +3,7 @@ package xyz.lilsus.raylsuite.feature.paymentshortcuts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -93,7 +94,8 @@ fun PaymentShortcutsSection(
     shortcuts: List<PaymentShortcutItem>,
     onAddShortcut: () -> Unit,
     onEditShortcut: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    additionalSettings: @Composable ColumnScope.() -> Unit = {}
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -113,6 +115,7 @@ fun PaymentShortcutsSection(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.semantics { heading() }
             )
+            additionalSettings()
             Button(
                 onClick = onAddShortcut,
                 modifier = Modifier.fillMaxWidth()
