@@ -14,6 +14,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":core:model"))
+            api(project(":core:payment"))
             implementation(libs.bitcoin.kmp)
             implementation(libs.compose.runtime)
             api(libs.lightning.kmp.core)
