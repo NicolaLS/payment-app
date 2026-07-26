@@ -1,5 +1,10 @@
 # Repository Guidelines
 
+> The root `AGENTS.md` defines the active extraction objective and takes
+> precedence over the historical structure described below. Lasr is the
+> NWC-only app (`xyz.lilsus.lasr`); keep NWC-only stories and integrations under
+> `apps/lasr`, and keep this app module focused on composition.
+
 ## Project Structure & Module Organization
 
 This is a Kotlin Multiplatform Lightning payment app using Compose Multiplatform. The root Gradle project has a shared KMP module, `:shared`, a pure Android app module, `:androidApp`, plus an iOS shell app in `iosApp`.
