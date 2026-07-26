@@ -1,4 +1,4 @@
-rootProject.name = "lasr"
+rootProject.name = "rayl-suite"
 
 pluginManagement {
     repositories {
@@ -31,5 +31,18 @@ dependencyResolutionManagement {
     }
 }
 
-include(":shared")
-include(":androidApp")
+fun includeApp(name: String) {
+    val appPath = ":$name"
+    val modules = listOf("shared", "androidApp")
+
+    include(modules.map { module -> "$appPath:$module" })
+
+    project(appPath).projectDir = file("apps/$name")
+
+    modules.forEach { module ->
+        project("$appPath:$module").projectDir =
+        file("apps/$name/$module")
+    }
+}
+
+includeApp("legacy")

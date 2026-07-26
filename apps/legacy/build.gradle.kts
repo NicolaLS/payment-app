@@ -51,10 +51,6 @@ tasks.register<Copy>("installGitHooks") {
     }
 }
 
-tasks.named("prepareKotlinBuildScriptModel") {
-    dependsOn("installGitHooks")
-}
-
 val iosE2eDerivedDataPath = "ios-e2e-derived"
 val iosE2eAppPath = "$iosE2eDerivedDataPath/Build/Products/Debug-iphonesimulator/Lasr E2E.app"
 
@@ -108,8 +104,8 @@ tasks.register<Exec>("installE2eIos") {
     )
 }
 dependencies {
-    kover(project(":shared"))
-    kover(project(":androidApp"))
+    kover(project(":legacy:shared"))
+    kover(project(":legacy:androidApp"))
 }
 
 kover {

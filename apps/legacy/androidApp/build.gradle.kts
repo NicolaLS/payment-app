@@ -275,7 +275,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":shared"))
+    implementation(project(":legacy:shared"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.core.ktx)

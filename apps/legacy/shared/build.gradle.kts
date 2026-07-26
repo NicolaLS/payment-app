@@ -11,6 +11,10 @@ plugins {
     id("org.jetbrains.kotlinx.kover")
 }
 
+compose.resources {
+    packageOfResClass = "lasr.shared.generated.resources"
+}
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xexpect-actual-classes")
