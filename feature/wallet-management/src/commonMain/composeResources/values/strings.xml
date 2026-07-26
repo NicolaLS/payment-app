@@ -1,0 +1,6 @@
+<resources>
+    <string name="settings_manage_wallet_title">Wallet</string>
+    <string name="settings_manage_wallet_placeholder">No wallet connected yet. Add one to start paying.</string>
+    <string name="settings_manage_wallet_add">Add Wallet</string>
+    <string name="settings_manage_wallet_remove">Remove Wallet</string>
+</resources>
