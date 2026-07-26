@@ -71,6 +71,8 @@ dependencies {
     implementation(project(":core:network"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.window)
     implementation(libs.compose.ui.tooling.preview)
