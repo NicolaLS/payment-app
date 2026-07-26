@@ -23,6 +23,13 @@ small, reviewable vertical slices and keep the migration ledger in
   git diff --exit-code d17dc43 -- apps/legacy
   ```
 
+- Blip and Lasr are entirely new, pre-release applications. Do not migrate
+  legacy preferences, databases, credentials, serialized state, identifiers,
+  or installation data. Do not add compatibility decoders, legacy-key
+  fallbacks, schema upgrades, or automatic import behavior.
+- Design new persistence schemas for the new apps. Legacy storage code may
+  inform current behavior, but preserving its keys or wire format is not a
+  requirement.
 - Preserve applicable legacy behavior, UI, UX, accessibility, resources, and
   user stories unless the task explicitly changes them.
 - Remove complexity that existed only to choose between Blink and NWC. The
@@ -30,6 +37,8 @@ small, reviewable vertical slices and keep the migration ledger in
   provider branching.
 - Do not migrate both provider implementations into a shared feature. Blink
   implementations belong to Blip; NWC implementations belong to Lasr.
+- Blink contact import is a Blip-only product capability. It must not appear in
+  shared contacts code or Lasr, and it must not run as installation migration.
 - Prefer many focused commits. A commit should establish one boundary, extract
   one primitive, or complete one small user-story slice.
 

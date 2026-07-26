@@ -2,6 +2,9 @@
 
 `apps/legacy` is a read-only reference implementation. Migration work copies or
 reinterprets code into the new modules; it never changes the legacy application.
+Blip and Lasr are new applications, so this ledger tracks feature extraction,
+not user-data migration. New modules must not preserve legacy storage schemas,
+keys, credentials, or compatibility paths.
 
 Each row is complete only when the destination has the applicable legacy
 behavior, visuals, resources, unit tests, and end-to-end coverage. Provider
@@ -21,7 +24,7 @@ applications.
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences extracted |
 | Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contract extracted |
-| Blink contact import | Blink contacts import | `apps/blip/feature/blink-contact-import` | Pending |
+| Blink contact import | Blink contacts import | `apps/blip/feature/blink-contact-import` | Optional Blip-only story |
 | Shared payment contracts | payment domain | `core/payment` | Pending |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Pending |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Pending |
