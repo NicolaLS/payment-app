@@ -1,0 +1,7 @@
+<resources>
+    <string name="settings_wallet_details_title">Wallet Details</string>
+    <string name="settings_wallet_details_blink_default_id">Blink default wallet ID</string>
+    <string name="settings_wallet_details_default_id_unset">Not set yet</string>
+    <string name="settings_wallet_details_blink_default_id_hint">If you switched your default wallet recently, refresh it here.</string>
+    <string name="settings_wallet_details_blink_refresh">Refresh default wallet</string>
+</resources>

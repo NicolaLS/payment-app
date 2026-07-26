@@ -27,6 +27,7 @@ applications.
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI and shortcut persistence extracted |
 | Blink contact import | Blink contacts import | `apps/blip/feature/blink-contacts` | Extracted |
 | Blink wallet connection | Add Blink wallet state and UI | `apps/blip/feature/wallet-connection` | Extracted |
+| Blink wallet details | Blink wallet details and refresh | `apps/blip/feature/wallet-details` | Extracted without legacy provider-choice rows |
 | Shared payment contracts | payment domain | `core/payment` | Fiat price and provider-neutral wallet payment contracts extracted |
 | Exchange-rate integration | exchange data | `integration/exchange-rate` | CoinGecko adapter extracted |
 | Shared onboarding | onboarding presentation | `feature/onboarding` | Neutral shell, welcome, features, and agreement UI extracted |
