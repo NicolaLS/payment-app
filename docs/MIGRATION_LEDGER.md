@@ -13,7 +13,7 @@ applications.
 
 | Area | Legacy source | Destination | Status |
 | --- | --- | --- | --- |
-| Blip shell | `apps/legacy` | `apps/blip` | Empty shell |
+| Blip shell | `apps/legacy` | `apps/blip` | Shared settings flow wired |
 | Lasr shell | `apps/legacy` | `apps/lasr` | Empty shell |
 | Provider-neutral values | `domain/model` | `core/model` | Extracted |
 | Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
