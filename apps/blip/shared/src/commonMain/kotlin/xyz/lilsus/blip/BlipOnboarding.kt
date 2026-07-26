@@ -122,9 +122,10 @@ internal fun NavGraphBuilder.blipOnboarding(
             blinkWallet = blinkWallet,
             onConnected = {
                 navController.navigate(BlipDestination.Home) {
-                    popUpTo<BlipDestination.Welcome> {
+                    popUpTo(navController.graph.id) {
                         inclusive = true
                     }
+                    launchSingleTop = true
                 }
             },
             onBack = navController::navigateUp

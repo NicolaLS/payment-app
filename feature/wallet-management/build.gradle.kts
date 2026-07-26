@@ -4,6 +4,7 @@ plugins {
 
 compose.resources {
     packageOfResClass = "xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources"
+    publicResClass = true
 }
 
 kotlin {

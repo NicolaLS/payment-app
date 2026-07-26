@@ -112,7 +112,8 @@ fun App() {
                 currencyPreferences = currencyPreferences,
                 paymentPreferences = paymentPreferences,
                 contactsRepository = contactsRepository,
-                paymentCoordinator = paymentCoordinator
+                paymentCoordinator = paymentCoordinator,
+                blinkWallet = blinkWallet
             )
         }
     }

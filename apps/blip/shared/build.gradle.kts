@@ -66,7 +66,9 @@ kotlin {
 
         commonMain.dependencies {
             implementation(project(":blip:feature:onboarding"))
+            implementation(project(":blip:feature:blink-contacts"))
             implementation(project(":blip:feature:wallet-connection"))
+            implementation(project(":blip:feature:wallet-details"))
             implementation(project(":blip:integration:blink"))
             implementation(project(":blip:ui"))
             implementation(project(":core:camera"))
@@ -80,6 +82,7 @@ kotlin {
             implementation(project(":feature:payment-settings"))
             implementation(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
+            implementation(project(":feature:wallet-management"))
             implementation(project(":integration:exchange-rate"))
             implementation(project(":integration:lnurl"))
             implementation(libs.androidx.lifecycle.runtimeCompose)

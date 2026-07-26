@@ -1,11 +1,21 @@
 package xyz.lilsus.blip
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
+import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
+import xyz.lilsus.blip.feature.walletdetails.BlinkWalletDetailsScreen
+import xyz.lilsus.blip.feature.walletdetails.BlinkWalletDetailsViewModel
+import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.blip.ui.blipPaymentErrorMessageFor
 import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
 import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
@@ -19,8 +29,14 @@ import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
 import xyz.lilsus.raylsuite.feature.payment.PaymentFlow
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
+import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsStartDestination
 import xyz.lilsus.raylsuite.feature.themesettings.ThemePreferences
+import xyz.lilsus.raylsuite.feature.walletmanagement.ManagedWallet
+import xyz.lilsus.raylsuite.feature.walletmanagement.WalletManagementScreen
+import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.Res as WalletRes
+import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet
+import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_subtitle
 
 internal fun NavGraphBuilder.blipHome(
     navController: NavController,
@@ -29,7 +45,8 @@ internal fun NavGraphBuilder.blipHome(
     currencyPreferences: CurrencyPreferences,
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
-    paymentCoordinator: PaymentCoordinator
+    paymentCoordinator: PaymentCoordinator,
+    blinkWallet: BlinkWallet
 ) {
     composable<BlipDestination.Home> {
         PaymentFlow(
@@ -58,7 +75,8 @@ internal fun NavGraphBuilder.blipHome(
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository
+            contactsRepository = contactsRepository,
+            blinkWallet = blinkWallet
         )
     }
     composable<BlipDestination.Contacts> {
@@ -69,7 +87,8 @@ internal fun NavGraphBuilder.blipHome(
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository
+            contactsRepository = contactsRepository,
+            blinkWallet = blinkWallet
         )
     }
     composable<BlipDestination.ShortcutCreate> {
@@ -80,7 +99,71 @@ internal fun NavGraphBuilder.blipHome(
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository
+            contactsRepository = contactsRepository,
+            blinkWallet = blinkWallet
+        )
+    }
+    composable<BlipDestination.WalletManagement> {
+        val connection by blinkWallet.connection.collectAsState()
+        WalletManagementScreen(
+            wallet =
+                connection?.let {
+                    ManagedWallet(
+                        id = it.alias,
+                        title = it.alias
+                    )
+                },
+            onBack = navController::navigateUp,
+            onAddWallet = {
+                navController.navigate(BlipDestination.AddWallet)
+            },
+            onRemoveWallet = blinkWallet::disconnect,
+            onWalletDetails = {
+                navController.navigate(BlipDestination.WalletDetails)
+            }
+        )
+    }
+    composable<BlipDestination.WalletDetails> {
+        val viewModel =
+            remember(blinkWallet) {
+                BlinkWalletDetailsViewModel(blinkWallet)
+            }
+        val state by viewModel.uiState.collectAsState()
+        DisposableEffect(viewModel) {
+            onDispose(viewModel::clear)
+        }
+        BlinkWalletDetailsScreen(
+            state = state,
+            onBack = navController::navigateUp,
+            onRefreshDefaultWallet = viewModel::refreshDefaultWalletId,
+            onImportContacts = {
+                navController.navigate(BlipDestination.BlinkContactsImport)
+            }
+        )
+    }
+    composable<BlipDestination.BlinkContactsImport> {
+        val viewModel =
+            remember(blinkWallet, contactsRepository) {
+                BlinkContactsImportViewModel(
+                    blinkWallet = blinkWallet,
+                    contactsRepository = contactsRepository
+                )
+            }
+        val state by viewModel.uiState.collectAsState()
+        DisposableEffect(viewModel) {
+            onDispose(viewModel::clear)
+        }
+        LaunchedEffect(viewModel) {
+            viewModel.loadBlinkContacts()
+        }
+        BlinkContactsImportScreen(
+            state = state,
+            onBack = navController::navigateUp,
+            onToggleContact = viewModel::toggleBlinkContact,
+            onToggleAll = viewModel::toggleAllBlinkContacts,
+            onSearchQueryChange = viewModel::updateSearchQuery,
+            onImport = viewModel::importSelectedBlinkContacts,
+            onSkip = null
         )
     }
 }
@@ -93,8 +176,10 @@ private fun BlipSettings(
     bitcoinPriceProvider: BitcoinPriceProvider,
     currencyPreferences: CurrencyPreferences,
     paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository
+    contactsRepository: ContactsRepository,
+    blinkWallet: BlinkWallet
 ) {
+    val connection by blinkWallet.connection.collectAsState()
     SettingsFlow(
         storageName = BLIP_PREFERENCES,
         themePreferences = themePreferences,
@@ -104,6 +189,21 @@ private fun BlipSettings(
         startDestination = startDestination,
         currencyPreferences = currencyPreferences,
         paymentPreferences = paymentPreferences,
-        contactsRepository = contactsRepository
+        contactsRepository = contactsRepository,
+        leadingEntries =
+            listOf(
+                SettingsEntry(
+                    id = "wallet",
+                    title = stringResource(WalletRes.string.settings_manage_wallet),
+                    subtitle =
+                        connection?.alias
+                            ?: stringResource(
+                                WalletRes.string.settings_manage_wallet_subtitle
+                            ),
+                    onClick = {
+                        navController.navigate(BlipDestination.WalletManagement)
+                    }
+                )
+            )
     )
 }
