@@ -67,6 +67,8 @@ include(":lasr:feature:onboarding")
 project(":lasr:feature:onboarding").projectDir = file("apps/lasr/feature/onboarding")
 include(":lasr:integration:nwc")
 project(":lasr:integration:nwc").projectDir = file("apps/lasr/integration/nwc")
+include(":lasr:ui")
+project(":lasr:ui").projectDir = file("apps/lasr/ui")
 
 include(":core:model")
 include(":core:camera")
