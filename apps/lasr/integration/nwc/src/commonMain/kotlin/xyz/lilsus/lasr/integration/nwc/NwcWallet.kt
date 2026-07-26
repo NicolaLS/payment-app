@@ -85,6 +85,7 @@ class NwcWallet internal constructor(
     private val credentialStore: NwcCredentialStore,
     private val scope: CoroutineScope,
     private val httpClient: HttpClient,
+    private val isNetworkAvailable: () -> Boolean,
     private val ownsHttpClient: Boolean
 ) : PaymentProvider {
     private val clientMutex = Mutex()
@@ -169,6 +170,10 @@ class NwcWallet internal constructor(
     }
 
     override suspend fun payInvoice(request: PayInvoiceRequest): PaidInvoice {
+        if (!isNetworkAvailable()) {
+            throw PaymentException(PaymentError.NetworkUnavailable)
+        }
+
         val result =
             getOrCreateClient().payInvoice(
                 invoice = request.invoice.value,
@@ -192,30 +197,50 @@ class NwcWallet internal constructor(
         }
     }
 
-    override suspend fun lookupPayment(paymentHash: PaymentHash): PaymentLookupResult = try {
-        when (
-            val result =
-                getOrCreateClient().lookupInvoice(
-                    params = LookupInvoiceParams(paymentHash = paymentHash.hex),
-                    timeoutMs = LOOKUP_TIMEOUT_MILLIS
-                )
-        ) {
-            is NwcResult.Success -> result.value.toLookupResult()
-            is NwcResult.Failure -> result.error.toLookupResult()
+    override suspend fun lookupPayment(paymentHash: PaymentHash): PaymentLookupResult {
+        if (!isNetworkAvailable()) {
+            return PaymentLookupResult.LookupError(PaymentError.NetworkUnavailable)
         }
-    } catch (error: PaymentException) {
-        PaymentLookupResult.LookupError(error.error)
+
+        return try {
+            when (
+                val result =
+                    getOrCreateClient().lookupInvoice(
+                        params = LookupInvoiceParams(paymentHash = paymentHash.hex),
+                        timeoutMs = LOOKUP_TIMEOUT_MILLIS
+                    )
+            ) {
+                is NwcResult.Success -> result.value.toLookupResult()
+                is NwcResult.Failure -> result.error.toLookupResult()
+            }
+        } catch (error: PaymentException) {
+            PaymentLookupResult.LookupError(error.error)
+        }
+    }
+
+    suspend fun onAppForegroundChanged(isInForeground: Boolean) {
+        if (isInForeground) {
+            if (connection.value != null) {
+                runCatching { getOrCreateClient() }
+            }
+        } else {
+            releaseClient()
+        }
     }
 
     suspend fun close() {
+        releaseClient()
+        if (ownsHttpClient) {
+            httpClient.close()
+        }
+    }
+
+    private suspend fun releaseClient() {
         val previousClient =
             clientMutex.withLock {
                 client.also { client = null }
             }
         previousClient?.close()
-        if (ownsHttpClient) {
-            httpClient.close()
-        }
     }
 
     private suspend fun getOrCreateClient(): NwcClient = clientMutex.withLock {
@@ -238,12 +263,17 @@ class NwcWallet internal constructor(
     }
 }
 
-fun createNwcWallet(secureSettings: Settings, scope: CoroutineScope): NwcWallet {
+fun createNwcWallet(
+    secureSettings: Settings,
+    scope: CoroutineScope,
+    isNetworkAvailable: () -> Boolean
+): NwcWallet {
     val httpClient = createWebSocketHttpClient()
     return NwcWallet(
         credentialStore = NwcCredentialStore(secureSettings),
         scope = scope,
         httpClient = httpClient,
+        isNetworkAvailable = isNetworkAvailable,
         ownsHttpClient = true
     )
 }
@@ -251,11 +281,13 @@ fun createNwcWallet(secureSettings: Settings, scope: CoroutineScope): NwcWallet 
 fun createNwcWallet(
     secureSettings: Settings,
     scope: CoroutineScope,
-    httpClient: HttpClient
+    httpClient: HttpClient,
+    isNetworkAvailable: () -> Boolean
 ): NwcWallet = NwcWallet(
     credentialStore = NwcCredentialStore(secureSettings),
     scope = scope,
     httpClient = httpClient,
+    isNetworkAvailable = isNetworkAvailable,
     ownsHttpClient = false
 )
 

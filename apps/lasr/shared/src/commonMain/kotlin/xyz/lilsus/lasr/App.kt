@@ -14,6 +14,7 @@ import xyz.lilsus.lasr.integration.nwc.createNwcWallet
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
+import xyz.lilsus.raylsuite.core.ui.platform.createAppLifecycleObserver
 import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
@@ -38,13 +39,15 @@ fun App() {
     val contactsRepository = rememberContactsRepository(LASR_PREFERENCES)
     val secureSettings = rememberSecureSettings(LASR_CREDENTIALS)
     val networkConnectivity = remember { createNetworkConnectivity() }
+    val appLifecycle = remember { createAppLifecycleObserver() }
     val haptics = rememberHapticFeedbackManager()
     val walletScope = rememberCoroutineScope()
     val nwcWallet =
         remember(secureSettings, walletScope) {
             createNwcWallet(
                 secureSettings = secureSettings,
-                scope = walletScope
+                scope = walletScope,
+                isNetworkAvailable = networkConnectivity::isNetworkAvailable
             )
         }
     val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
@@ -95,6 +98,9 @@ fun App() {
             onboardingViewModel.clear()
             paymentCoordinator.clear()
         }
+    }
+    LaunchedEffect(appLifecycle, nwcWallet) {
+        appLifecycle.isInForeground.collect(nwcWallet::onAppForegroundChanged)
     }
     LaunchedEffect(navController, nwcWallet, paymentCoordinator) {
         LasrDeepLinks.events.collect { uri ->
