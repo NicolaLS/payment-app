@@ -31,7 +31,7 @@ applications.
 | Shared onboarding | onboarding presentation | `feature/onboarding` | Neutral shell, welcome, features, and agreement UI extracted |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Fresh credentials, Apollo API client, account, contacts, and payments extracted |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Fresh credentials, discovery, lifecycle, and payments extracted |
-| Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Blink wallet instructions extracted |
+| Blink-only stories | provider-specific presentation | `apps/blip/feature/*` | Wallet instructions and Blink contact import extracted |
 | NWC-only stories | provider-specific presentation | `apps/lasr/feature/*` | NWC wallet instructions extracted |
 | Shared payment stories | provider-neutral presentation | `feature/*` | Pending |
 

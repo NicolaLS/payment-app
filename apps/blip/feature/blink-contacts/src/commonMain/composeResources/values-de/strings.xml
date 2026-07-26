@@ -1,0 +1,33 @@
+<resources>
+    <string name="error_missing_wallet_connection">Verbinde zuerst eine Wallet.</string>
+    <string name="error_wallet_already_connected">Trenne deine aktuelle Wallet, bevor du eine andere verbindest.</string>
+    <string name="error_payment_rejected_generic">Zahlung wurde abgewiesen.</string>
+    <string name="error_payment_rejected_message">Zahlung wurde abgewiesen: %1$s</string>
+    <string name="error_network_unavailable">Keine Internetverbindung. Prüfe dein Netzwerk.</string>
+    <string name="error_timeout">Wallet hat nicht rechtzeitig geantwortet. Bitte erneut versuchen.</string>
+    <string name="error_unexpected_generic">Es ist ein Fehler aufgetreten.</string>
+    <string name="error_unexpected_with_details">Es ist ein Fehler aufgetreten: %1$s</string>
+    <string name="error_authentication_failure">Authentifizierung fehlgeschlagen. Prüfe deinen API-Schlüssel.</string>
+    <string name="error_blink_permission_denied">Dein API-Schlüssel hat keine Berechtigung zum Senden von Zahlungen. Erstelle einen neuen Schlüssel mit allen Berechtigungen.</string>
+    <string name="error_blink_insufficient_balance">Nicht genügend Guthaben in deiner Blink-Wallet.</string>
+    <string name="error_blink_route_not_found">Es konnte keine Route für diese Zahlung gefunden werden. Der Empfänger ist möglicherweise offline oder nicht erreichbar.</string>
+    <string name="error_blink_invoice_expired">Diese Rechnung ist abgelaufen. Bitte fordere eine neue an.</string>
+    <string name="error_blink_self_payment">Du kannst keine Rechnung aus deiner eigenen Wallet bezahlen.</string>
+    <string name="error_blink_invalid_invoice">Diese Rechnung scheint ungültig oder beschädigt zu sein.</string>
+    <string name="error_blink_amount_too_small">Der Zahlungsbetrag ist zu gering.</string>
+    <string name="error_blink_limit_exceeded">Diese Zahlung überschreitet deine Kontolimits.</string>
+    <string name="error_blink_rate_limited">Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.</string>
+    <string name="error_blink_invalid_api_key">Ungültiger oder widerrufener API-Schlüssel. Erstelle einen neuen Schlüssel, um fortzufahren.</string>
+    <string name="settings_wallet_details_import_contacts_title">Blink-Kontakte</string>
+    <string name="settings_wallet_details_import_contacts_hint">Importiere in Blink gespeicherte Kontakte in Blip.</string>
+    <string name="settings_wallet_details_import_contacts">Kontakte importieren</string>
+    <string name="settings_wallet_details_import_contacts_loading">Kontakte werden geladen…</string>
+    <string name="settings_wallet_details_import_contacts_empty">Keine importierbaren Blink-Kontakte gefunden.</string>
+    <string name="settings_wallet_details_import_contacts_select_all">Alle auswählen</string>
+    <string name="settings_wallet_details_import_contacts_selected">%1$d ausgewählt</string>
+    <string name="settings_wallet_details_import_contacts_import">Ausgewählte importieren</string>
+    <string name="settings_wallet_details_import_contacts_skip">Kontaktimport überspringen</string>
+    <string name="settings_wallet_details_import_contacts_success">%1$d Kontakte importiert.</string>
+    <string name="settings_wallet_details_import_contacts_transactions">%1$d Transaktionen</string>
+    <string name="settings_wallet_details_import_contacts_already_added">Bereits hinzugefügt</string>
+</resources>

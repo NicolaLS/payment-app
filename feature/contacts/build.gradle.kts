@@ -5,6 +5,7 @@ plugins {
 
 compose.resources {
     packageOfResClass = "xyz.lilsus.raylsuite.feature.contacts.generated.resources"
+    publicResClass = true
 }
 
 kotlin {
