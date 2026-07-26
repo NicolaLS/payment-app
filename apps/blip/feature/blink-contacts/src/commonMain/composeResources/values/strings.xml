@@ -1,7 +1,4 @@
 <resources>
-    <string name="settings_wallet_details_import_contacts_title">Blink contacts</string>
-    <string name="settings_wallet_details_import_contacts_hint">Import saved Blink contacts into Blip.</string>
-    <string name="settings_wallet_details_import_contacts">Import contacts</string>
     <string name="settings_wallet_details_import_contacts_loading">Loading contacts…</string>
     <string name="settings_wallet_details_import_contacts_empty">No importable Blink contacts found.</string>
     <string name="settings_wallet_details_import_contacts_select_all">Select all</string>

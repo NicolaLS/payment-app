@@ -4,6 +4,7 @@ plugins {
 
 compose.resources {
     packageOfResClass = "xyz.lilsus.blip.ui.generated.resources"
+    publicResClass = true
 }
 
 kotlin {
