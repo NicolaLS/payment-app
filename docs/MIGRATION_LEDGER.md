@@ -14,6 +14,7 @@ applications.
 | Lasr shell | `apps/legacy` | `apps/lasr` | Empty shell |
 | Provider-neutral values | `domain/model` | `core/model` | Extracted |
 | Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
+| Localized amount formatting | `domain/format` | `core/ui` | Extracted |
 | Theme settings | settings presentation/domain/data | `feature/theme-settings` | Extracted |
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Extracted |
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |

@@ -1,0 +1,71 @@
+package xyz.lilsus.raylsuite.core.ui.format
+
+import platform.Foundation.NSDecimalNumber
+import platform.Foundation.NSLocale
+import platform.Foundation.NSNumber
+import platform.Foundation.NSNumberFormatter
+import platform.Foundation.NSNumberFormatterCurrencyStyle
+import platform.Foundation.NSNumberFormatterDecimalStyle
+import xyz.lilsus.raylsuite.core.model.DisplayAmount
+import xyz.lilsus.raylsuite.core.model.DisplayCurrency
+
+internal actual fun createAmountFormatter(locale: AppLocale): AmountFormatter =
+    IosAmountFormatter(locale)
+
+private class IosAmountFormatter(locale: AppLocale) : AmountFormatter {
+    private val nsLocale = NSLocale(localeIdentifier = locale.languageTag)
+    private val fiatFormatters = mutableMapOf<String, NSNumberFormatter>()
+    private val bitcoinFormatter by lazy {
+        NSNumberFormatter().apply {
+            numberStyle = NSNumberFormatterDecimalStyle
+            minimumFractionDigits = 2u
+            maximumFractionDigits = 8u
+            this.locale = nsLocale
+        }
+    }
+    private val satoshiFormatter by lazy {
+        NSNumberFormatter().apply {
+            numberStyle = NSNumberFormatterDecimalStyle
+            minimumFractionDigits = 0u
+            maximumFractionDigits = 0u
+            usesGroupingSeparator = true
+            this.locale = nsLocale
+        }
+    }
+
+    override fun format(amount: DisplayAmount): String = when (val currency = amount.currency) {
+        is DisplayCurrency.Fiat -> formatFiat(amount.minor, currency)
+        DisplayCurrency.Bitcoin -> formatBitcoin(amount.minor)
+        DisplayCurrency.Satoshi -> formatSatoshi(amount.minor)
+    }
+
+    private fun formatFiat(minor: Long, currency: DisplayCurrency.Fiat): String {
+        val code = currency.iso4217.uppercase()
+        val formatter =
+            fiatFormatters.getOrPut(code) {
+                NSNumberFormatter().apply {
+                    numberStyle = NSNumberFormatterCurrencyStyle
+                    locale = nsLocale
+                    currencyCode = code
+                }
+            }
+        val fractionDigits = formatter.maximumFractionDigits.toInt()
+        val decimalMinor = NSDecimalNumber(string = minor.toString())
+        val major =
+            decimalMinor.decimalNumberByMultiplyingByPowerOf10((-fractionDigits).toShort())
+        return formatter.stringFromNumber(major) ?: "$minor $code"
+    }
+
+    private fun formatBitcoin(minor: Long): String {
+        val decimalMinor = NSDecimalNumber(string = minor.toString())
+        val bitcoin = decimalMinor.decimalNumberByMultiplyingByPowerOf10((-8).toShort())
+        val formatted = bitcoinFormatter.stringFromNumber(bitcoin) ?: bitcoin.stringValue
+        return "$formatted BTC"
+    }
+
+    private fun formatSatoshi(minor: Long): String {
+        val number = NSNumber(longLong = minor)
+        val formatted = satoshiFormatter.stringFromNumber(number) ?: minor.toString()
+        return "$formatted sat"
+    }
+}
