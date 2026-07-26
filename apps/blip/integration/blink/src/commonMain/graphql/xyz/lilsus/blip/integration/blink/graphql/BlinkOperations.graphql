@@ -1,0 +1,85 @@
+query Authorization {
+  authorization {
+    scopes
+  }
+}
+
+query DefaultWalletId {
+  me {
+    defaultAccount {
+      defaultWallet {
+        id
+      }
+    }
+  }
+}
+
+query BlinkContacts {
+  me {
+    contacts {
+      alias
+      handle
+      transactionsCount
+    }
+  }
+}
+
+query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
+  me {
+    defaultAccount {
+      wallets {
+        ... on BTCWallet {
+          transactionsByPaymentHash(paymentHash: $paymentHash) {
+            ...BlinkTransactionPaymentResult
+          }
+        }
+        ... on UsdWallet {
+          transactionsByPaymentHash(paymentHash: $paymentHash) {
+            ...BlinkTransactionPaymentResult
+          }
+        }
+      }
+    }
+  }
+}
+
+fragment BlinkTransactionPaymentResult on Transaction {
+  status
+  direction
+  settlementFee
+  settlementCurrency
+  settlementVia {
+    ... on SettlementViaIntraLedger {
+      preImage
+    }
+    ... on SettlementViaLn {
+      preImage
+    }
+  }
+}
+
+mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
+  lnInvoicePaymentSend(input: $input) {
+    status
+    errors {
+      message
+      code
+    }
+    transaction {
+      ...BlinkTransactionPaymentResult
+    }
+  }
+}
+
+mutation LnNoAmountInvoicePaymentSend($input: LnNoAmountInvoicePaymentInput!) {
+  lnNoAmountInvoicePaymentSend(input: $input) {
+    status
+    errors {
+      message
+      code
+    }
+    transaction {
+      ...BlinkTransactionPaymentResult
+    }
+  }
+}
