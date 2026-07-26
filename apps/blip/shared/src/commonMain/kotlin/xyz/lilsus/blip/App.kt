@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
@@ -18,6 +19,8 @@ import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
+import xyz.lilsus.raylsuite.feature.payment.PaymentDeepLinkEvents
+import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
@@ -91,6 +94,18 @@ fun App() {
         onDispose {
             onboardingViewModel.clear()
             paymentCoordinator.clear()
+        }
+    }
+    LaunchedEffect(navController, blinkWallet, paymentCoordinator) {
+        PaymentDeepLinkEvents.events.collect { uri ->
+            if (blinkWallet.connection.value == null) return@collect
+            navController.navigate(BlipDestination.Home) {
+                popUpTo<BlipDestination.Home> {
+                    inclusive = false
+                }
+                launchSingleTop = true
+            }
+            paymentCoordinator.dispatch(PaymentIntent.DeepLinkReceived(uri))
         }
     }
 

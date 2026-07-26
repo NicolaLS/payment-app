@@ -10,5 +10,20 @@
 		<string>de</string>
 		<string>es</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lightning</string>
+				<string>bitcoin</string>
+				<string>lnurl</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
