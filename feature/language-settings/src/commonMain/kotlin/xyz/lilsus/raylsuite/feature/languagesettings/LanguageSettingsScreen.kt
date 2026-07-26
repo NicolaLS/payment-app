@@ -20,6 +20,7 @@ import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListScaffold
 import xyz.lilsus.raylsuite.core.ui.components.AppSelectableListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
+import xyz.lilsus.raylsuite.core.ui.format.rememberAppLocale
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.languagesettings.generated.resources.Res
 import xyz.lilsus.raylsuite.feature.languagesettings.generated.resources.search_placeholder
