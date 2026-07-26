@@ -35,9 +35,6 @@ kotlin {
             implementation(libs.qrose)
             implementation(libs.uri.kmp)
         }
-        androidMain.dependencies {
-            implementation(libs.secp256k1.kmp.jni.android)
-        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
