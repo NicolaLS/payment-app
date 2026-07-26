@@ -259,6 +259,8 @@ fun createNwcWallet(
     ownsHttpClient = false
 )
 
+fun isValidNwcConnectionUri(value: String): Boolean = NwcConnectionUri.isValid(value.trim())
+
 private fun NwcCredentials.toConnection(): NwcWalletConnection? {
     val uri = NwcConnectionUri.parse(connectionUri) ?: return null
     return NwcWalletConnection(
