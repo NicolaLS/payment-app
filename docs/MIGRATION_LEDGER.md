@@ -31,6 +31,7 @@ applications.
 | Blink wallet details | Blink wallet details and refresh | `apps/blip/feature/wallet-details` | Extracted without legacy provider-choice rows |
 | Shared payment contracts | payment domain | `core/payment` | Fiat price and provider-neutral wallet payment contracts extracted |
 | Exchange-rate integration | exchange data | `integration/exchange-rate` | CoinGecko adapter extracted |
+| LNURL integration | LNURL pay data/domain | `core/payment`, `integration/lnurl` | Contracts and Ktor adapter extracted |
 | Shared onboarding | onboarding presentation | `feature/onboarding` | Neutral shell, welcome, features, and agreement UI extracted |
 | Blink integration | Blink data/domain | `apps/blip/integration/blink` | Fresh credentials, Apollo API client, account, contacts, and payments extracted |
 | NWC integration | NWC data/domain | `apps/lasr/integration/nwc` | Fresh credentials, discovery, lifecycle, and payments extracted |
