@@ -15,7 +15,7 @@ applications.
 | Provider-neutral values | `domain/model` | `core/model` | Extracted |
 | Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
 | Theme settings | settings presentation/domain/data | `feature/theme-settings` | Extracted |
-| Language settings | settings presentation/domain/data | `feature/language-settings` | Pending |
+| Language settings | settings presentation/domain/data | `feature/language-settings` | Extracted |
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Pending |
 | Generic settings hub | settings presentation | `feature/settings` | Pending |
