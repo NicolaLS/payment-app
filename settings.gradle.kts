@@ -57,6 +57,8 @@ include(":blip:integration:blink")
 project(":blip:integration:blink").projectDir = file("apps/blip/integration/blink")
 include(":lasr:feature:onboarding")
 project(":lasr:feature:onboarding").projectDir = file("apps/lasr/feature/onboarding")
+include(":lasr:integration:nwc")
+project(":lasr:integration:nwc").projectDir = file("apps/lasr/integration/nwc")
 
 include(":core:model")
 include(":core:network")
