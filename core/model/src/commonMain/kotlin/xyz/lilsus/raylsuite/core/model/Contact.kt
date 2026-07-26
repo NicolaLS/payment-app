@@ -24,7 +24,7 @@ data class ContactStats(val paymentCount: Int = 0, val lastPaidAtMs: Long? = nul
 data class PaymentShortcut(
     val id: String,
     val title: String,
-    val contactId: String?,
+    val contactId: String,
     val address: LightningAddress,
     val amount: ShortcutAmount,
     val comment: String? = null,
