@@ -13,12 +13,11 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkApiException
-import xyz.lilsus.blip.integration.blink.BlinkConnectionError
 import xyz.lilsus.blip.integration.blink.BlinkConnectionException
 import xyz.lilsus.blip.integration.blink.BlinkContact
 import xyz.lilsus.blip.integration.blink.BlinkWallet
+import xyz.lilsus.blip.ui.BlinkUiError
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 
@@ -85,11 +84,11 @@ class BlinkContactsImportViewModel(
                     )
                 }
             } catch (error: BlinkApiException) {
-                finishLoadingWith(BlinkContactsImportError.Api(error.error))
+                finishLoadingWith(BlinkUiError.Api(error.error))
             } catch (error: BlinkConnectionException) {
-                finishLoadingWith(BlinkContactsImportError.Connection(error.error))
+                finishLoadingWith(BlinkUiError.Connection(error.error))
             } catch (error: Exception) {
-                finishLoadingWith(BlinkContactsImportError.Unexpected(error.message))
+                finishLoadingWith(BlinkUiError.Unexpected(error.message))
             }
         }
     }
@@ -179,7 +178,7 @@ class BlinkContactsImportViewModel(
                 mutableUiState.update {
                     it.copy(
                         isImporting = false,
-                        error = BlinkContactsImportError.Unexpected(error.message)
+                        error = BlinkUiError.Unexpected(error.message)
                     )
                 }
             }
@@ -190,7 +189,7 @@ class BlinkContactsImportViewModel(
         scope.cancel()
     }
 
-    private fun finishLoadingWith(error: BlinkContactsImportError) {
+    private fun finishLoadingWith(error: BlinkUiError) {
         mutableUiState.update {
             it.copy(
                 isLoading = false,
@@ -238,7 +237,7 @@ data class BlinkContactsImportUiState(
     val isLoading: Boolean = false,
     val isImporting: Boolean = false,
     val importedCount: Int? = null,
-    val error: BlinkContactsImportError? = null
+    val error: BlinkUiError? = null
 ) {
     val selectedCount: Int
         get() = items.count { !it.alreadyAdded && it.id in selectedIds }
@@ -273,14 +272,6 @@ private fun BlinkContactImportItem.matchesQuery(query: String): Boolean =
     displayName.contains(query, ignoreCase = true) ||
         address.contains(query, ignoreCase = true) ||
         alias.orEmpty().contains(query, ignoreCase = true)
-
-sealed interface BlinkContactsImportError {
-    data class Api(val error: BlinkApiError) : BlinkContactsImportError
-
-    data class Connection(val error: BlinkConnectionError) : BlinkContactsImportError
-
-    data class Unexpected(val detail: String?) : BlinkContactsImportError
-}
 
 sealed interface BlinkContactsImportEvent {
     data class Imported(val count: Int) : BlinkContactsImportEvent

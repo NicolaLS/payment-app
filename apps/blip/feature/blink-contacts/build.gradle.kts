@@ -14,6 +14,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":blip:integration:blink"))
+            api(project(":blip:ui"))
             api(project(":feature:contacts"))
             implementation(project(":core:ui"))
             implementation(libs.compose.components.resources)

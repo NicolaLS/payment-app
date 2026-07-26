@@ -40,6 +40,7 @@ import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_success
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_title
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_transactions
+import xyz.lilsus.blip.ui.blinkErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListScaffold
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
@@ -62,7 +63,7 @@ fun BlinkContactsImportScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val errorText = state.error?.let { errorMessageFor(it) }
+    val errorText = state.error?.let { blinkErrorMessageFor(it) }
 
     Scaffold(
         modifier = modifier,

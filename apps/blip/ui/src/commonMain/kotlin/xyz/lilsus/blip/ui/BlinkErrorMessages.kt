@@ -1,36 +1,36 @@
-package xyz.lilsus.blip.feature.blinkcontacts
+package xyz.lilsus.blip.ui
 
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.Res
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_authentication_failure
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_amount_too_small
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_insufficient_balance
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_invalid_api_key
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_invalid_invoice
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_invoice_expired
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_limit_exceeded
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_permission_denied
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_rate_limited
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_route_not_found
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_blink_self_payment
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_missing_wallet_connection
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_network_unavailable
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_payment_rejected_generic
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_payment_rejected_message
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_timeout
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_unexpected_generic
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_unexpected_with_details
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.error_wallet_already_connected
 import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkConnectionError
 import xyz.lilsus.blip.integration.blink.BlinkErrorType
+import xyz.lilsus.blip.ui.generated.resources.Res
+import xyz.lilsus.blip.ui.generated.resources.error_authentication_failure
+import xyz.lilsus.blip.ui.generated.resources.error_blink_amount_too_small
+import xyz.lilsus.blip.ui.generated.resources.error_blink_insufficient_balance
+import xyz.lilsus.blip.ui.generated.resources.error_blink_invalid_api_key
+import xyz.lilsus.blip.ui.generated.resources.error_blink_invalid_invoice
+import xyz.lilsus.blip.ui.generated.resources.error_blink_invoice_expired
+import xyz.lilsus.blip.ui.generated.resources.error_blink_limit_exceeded
+import xyz.lilsus.blip.ui.generated.resources.error_blink_permission_denied
+import xyz.lilsus.blip.ui.generated.resources.error_blink_rate_limited
+import xyz.lilsus.blip.ui.generated.resources.error_blink_route_not_found
+import xyz.lilsus.blip.ui.generated.resources.error_blink_self_payment
+import xyz.lilsus.blip.ui.generated.resources.error_missing_wallet_connection
+import xyz.lilsus.blip.ui.generated.resources.error_network_unavailable
+import xyz.lilsus.blip.ui.generated.resources.error_payment_rejected_generic
+import xyz.lilsus.blip.ui.generated.resources.error_payment_rejected_message
+import xyz.lilsus.blip.ui.generated.resources.error_timeout
+import xyz.lilsus.blip.ui.generated.resources.error_unexpected_generic
+import xyz.lilsus.blip.ui.generated.resources.error_unexpected_with_details
+import xyz.lilsus.blip.ui.generated.resources.error_wallet_already_connected
 
 @Composable
-internal fun errorMessageFor(error: BlinkContactsImportError): String = when (error) {
-    is BlinkContactsImportError.Api -> errorMessageFor(error.error)
-    is BlinkContactsImportError.Connection -> errorMessageFor(error.error)
-    is BlinkContactsImportError.Unexpected -> unexpectedErrorMessage(error.detail)
+fun blinkErrorMessageFor(error: BlinkUiError): String = when (error) {
+    is BlinkUiError.Api -> errorMessageFor(error.error)
+    is BlinkUiError.Connection -> errorMessageFor(error.error)
+    is BlinkUiError.Unexpected -> unexpectedErrorMessage(error.detail)
 }
 
 @Composable
@@ -112,4 +112,12 @@ private fun unexpectedErrorMessage(detail: String?): String {
     } else {
         stringResource(Res.string.error_unexpected_with_details, message)
     }
+}
+
+sealed interface BlinkUiError {
+    data class Api(val error: BlinkApiError) : BlinkUiError
+
+    data class Connection(val error: BlinkConnectionError) : BlinkUiError
+
+    data class Unexpected(val detail: String?) : BlinkUiError
 }
