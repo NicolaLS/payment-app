@@ -18,6 +18,7 @@ applications.
 | Provider-neutral values | `domain/model` | `core/model` | Extracted |
 | Theme and primitives | `presentation/theme`, reusable components | `core/ui` | Theme extracted |
 | Network connectivity | platform connectivity checks | `core/network` | Android and iOS implementations extracted |
+| Camera scanning | QR scanner and permission state | `core/camera` | Android and iOS scanner implementations extracted |
 | Localized amount formatting | `domain/format` | `core/ui` | Extracted |
 | Theme settings | settings presentation/domain/data | `feature/theme-settings` | Extracted |
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Extracted |
