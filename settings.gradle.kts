@@ -51,6 +51,9 @@ includeApp("legacy")
 includeApp("blip")
 includeApp("lasr")
 
+include(":blip:feature:onboarding")
+project(":blip:feature:onboarding").projectDir = file("apps/blip/feature/onboarding")
+
 include(":core:model")
 include(":core:network")
 include(":core:payment")

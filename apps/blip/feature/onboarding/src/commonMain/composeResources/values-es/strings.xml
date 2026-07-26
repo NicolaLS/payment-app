@@ -1,0 +1,10 @@
+<resources>
+    <string name="onboarding_add_wallet_title">Conecta tu billetera Blink</string>
+    <string name="onboarding_add_wallet_intro">Te conectarás usando una clave API del panel de Blink.</string>
+    <string name="onboarding_add_wallet_step1_prefix">Ve a </string>
+    <string name="onboarding_add_wallet_step1_suffix"> e inicia sesión con las mismas credenciales que usas en la app Blink.</string>
+    <string name="onboarding_add_wallet_step2">Navega a Configuración y luego a Claves API.</string>
+    <string name="onboarding_add_wallet_step3">Toca + para crear una nueva clave con todos los permisos habilitados.</string>
+    <string name="onboarding_add_wallet_step4_prefix">Copia la clave que comienza con </string>
+    <string name="onboarding_add_wallet_step4_suffix"> y vuelve aquí para pegarla.</string>
+</resources>

@@ -1,0 +1,10 @@
+<resources>
+    <string name="onboarding_add_wallet_title">Verbinde deine Blink-Wallet</string>
+    <string name="onboarding_add_wallet_intro">Du verbindest dich über einen API-Schlüssel vom Blink-Dashboard.</string>
+    <string name="onboarding_add_wallet_step1_prefix">Gehe zu </string>
+    <string name="onboarding_add_wallet_step1_suffix"> und melde dich mit denselben Zugangsdaten an, die du in der Blink-App verwendest.</string>
+    <string name="onboarding_add_wallet_step2">Navigiere zu Einstellungen, dann API-Schlüssel.</string>
+    <string name="onboarding_add_wallet_step3">Tippe auf +, um einen neuen Schlüssel mit allen Berechtigungen zu erstellen.</string>
+    <string name="onboarding_add_wallet_step4_prefix">Kopiere den Schlüssel, der mit </string>
+    <string name="onboarding_add_wallet_step4_suffix"> beginnt, und komme hierher zurück, um ihn einzufügen.</string>
+</resources>

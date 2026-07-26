@@ -1,0 +1,10 @@
+<resources>
+    <string name="onboarding_add_wallet_title">Connect your Blink wallet</string>
+    <string name="onboarding_add_wallet_intro">You'll connect using an API key from the Blink dashboard.</string>
+    <string name="onboarding_add_wallet_step1_prefix">Go to </string>
+    <string name="onboarding_add_wallet_step1_suffix"> and log in with the same credentials you use in the Blink app.</string>
+    <string name="onboarding_add_wallet_step2">Navigate to Settings then API keys.</string>
+    <string name="onboarding_add_wallet_step3">Tap + to create a new key with all permissions enabled.</string>
+    <string name="onboarding_add_wallet_step4_prefix">Copy the key that starts with </string>
+    <string name="onboarding_add_wallet_step4_suffix"> and come back here to paste it.</string>
+</resources>
