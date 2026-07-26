@@ -22,6 +22,7 @@ applications.
 | Language settings | settings presentation/domain/data | `feature/language-settings` | Extracted |
 | Currency settings | settings presentation/domain/data | `feature/currency-settings` | Extracted |
 | Payment settings | settings presentation/domain/data | `feature/payment-settings` | Preferences extracted |
+| Payment shortcuts | shortcut configuration | `feature/payment-shortcuts` | State holder extracted |
 | Generic settings hub | settings presentation | `feature/settings` | Shared rows extracted |
 | Shared contacts and shortcuts | contacts domain/data/presentation | `feature/contacts` | Contacts UI extracted; shortcut management pending |
 | Blink contact import | Blink contacts import | `apps/blip/feature/blink-contact-import` | Optional Blip-only story |
