@@ -22,5 +22,9 @@ gradlePlugin {
             id = "xyz.lilsus.raylsuite.kmp.compose"
             implementationClass = "KmpComposeConventionPlugin"
         }
+        register("androidAppRelease") {
+            id = "xyz.lilsus.raylsuite.android.release"
+            implementationClass = "AndroidAppReleaseConventionPlugin"
+        }
     }
 }

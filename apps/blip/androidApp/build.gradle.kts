@@ -4,15 +4,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    id("xyz.lilsus.raylsuite.android.release")
 }
-
-val uploadStoreFile = providers.environmentVariable("RAYL_UPLOAD_STORE_FILE")
-val uploadStorePassword = providers.environmentVariable("RAYL_UPLOAD_STORE_PASSWORD")
-val uploadKeyAlias = providers.environmentVariable("RAYL_UPLOAD_KEY_ALIAS")
-val uploadKeyPassword = providers.environmentVariable("RAYL_UPLOAD_KEY_PASSWORD")
-val uploadSigningConfigured =
-    listOf(uploadStoreFile, uploadStorePassword, uploadKeyAlias, uploadKeyPassword)
-        .all { it.isPresent }
 
 java {
     toolchain {
@@ -33,17 +26,6 @@ android {
         manifestPlaceholders["mainActivityName"] = "xyz.lilsus.blip.MainActivity"
     }
 
-    signingConfigs {
-        if (uploadSigningConfigured) {
-            create("upload") {
-                storeFile = file(uploadStoreFile.get())
-                storePassword = uploadStorePassword.get()
-                keyAlias = uploadKeyAlias.get()
-                keyPassword = uploadKeyPassword.get()
-            }
-        }
-    }
-
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".dev"
@@ -57,9 +39,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")
             )
-            if (uploadSigningConfigured) {
-                signingConfig = signingConfigs.getByName("upload")
-            }
         }
         create("e2e") {
             initWith(getByName("release"))
