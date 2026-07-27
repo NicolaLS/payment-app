@@ -22,14 +22,6 @@
 -dontwarn com.sun.jna.**
 
 #######################################################################
-# Firebase component discovery / ML Kit
-# Manifest-discovered registrars are instantiated reflectively.
-# Upstream issue: https://github.com/googlesamples/mlkit/issues/1001
-#######################################################################
-
--keep class * implements com.google.firebase.components.ComponentRegistrar { *; }
-
-#######################################################################
 # Strip ALL Android Log calls everywhere (app + all deps)
 #######################################################################
 -assumenosideeffects class android.util.Log {

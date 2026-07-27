@@ -5,6 +5,13 @@ plugins {
 kotlin {
     android {
         namespace = "xyz.lilsus.raylsuite.core.camera"
+
+        optimization {
+            consumerKeepRules.apply {
+                publish = true
+                file("consumer-rules.pro")
+            }
+        }
     }
 
     sourceSets {
