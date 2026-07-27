@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    echo "Usage: scripts/release-android <blip|lasr> <version> [--skip-checks]" >&2
+}
+
+die() {
+    echo "release-android: $*" >&2
+    exit 1
+}
+
+[[ $# -ge 2 ]] || {
+    usage
+    exit 64
+}
+
+app="$1"
+version="$2"
+shift 2
+
+case "$app" in
+    blip|lasr) ;;
+    *) die "app must be blip or lasr" ;;
+esac
+
+skip_checks=false
+if [[ "${1-}" == "--skip-checks" ]]; then
+    skip_checks=true
+    shift
+fi
+[[ $# -eq 0 ]] || die "unknown argument: $1"
+
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+build_file="$repo/apps/$app/androidApp/build.gradle.kts"
+configured_version="$(
+    sed -nE 's/^[[:space:]]*versionName = "([^"]+)".*/\1/p' "$build_file" |
+        head -n 1
+)"
+[[ "$configured_version" == "$version" ]] ||
+    die "$app versionName is $configured_version, requested $version"
+
+for variable in \
+    RAYL_UPLOAD_STORE_FILE \
+    RAYL_UPLOAD_STORE_PASSWORD \
+    RAYL_UPLOAD_KEY_ALIAS \
+    RAYL_UPLOAD_KEY_PASSWORD
+do
+    [[ -n "${!variable-}" ]] || die "$variable is required"
+done
+[[ -f "$RAYL_UPLOAD_STORE_FILE" ]] ||
+    die "upload keystore not found: $RAYL_UPLOAD_STORE_FILE"
+
+[[ -z "$(git -C "$repo" status --porcelain --untracked-files=all)" ]] ||
+    die "working tree must be clean"
+
+tasks=()
+if [[ "$skip_checks" == false ]]; then
+    tasks+=("ktlintCheck" "check")
+fi
+tasks+=(":$app:androidApp:bundleRelease")
+
+"$repo/gradlew" -p "$repo" "${tasks[@]}"
+
+aab="$repo/apps/$app/androidApp/build/outputs/bundle/release/androidApp-release.aab"
+[[ -f "$aab" ]] || die "missing bundle: $aab"
+jarsigner -verify -strict "$aab" >/dev/null ||
+    die "bundle signature verification failed"
+
+output_dir="$repo/dist/$app"
+mkdir -p "$output_dir"
+output="$output_dir/$app-$version-play.aab"
+cp "$aab" "$output"
+
+echo "Prepared $output"
+shasum -a 256 "$output"
+echo
+echo "Upload this AAB to Play internal testing."
+echo "Then download Google's signed universal APK and verify it with:"
+echo "  scripts/verify-play-apk $app /path/to/universal.apk"

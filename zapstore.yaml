@@ -1,10 +1,18 @@
+# Lasr is the root Zapstore configuration so repository verification can find
+# it. Add the suite publisher's `pubkey: npub1...` before the first publish.
 repository: https://github.com/NicolaLS/lasr
 name: Lasr
-icon: assets/icon_background.png
-description: Laser fast payment tool for your bitcoin lightning wallet
-version: 1.0
+summary: A focused Nostr Wallet Connect client for Lightning payments
+description: |
+  Lasr connects to one wallet through Nostr Wallet Connect. Pay Lightning
+  invoices, Lightning addresses, and LNURLs without giving Lasr custody of
+  funds.
+tags:
+  - bitcoin
+  - lightning
+  - nostr
+  - finance
 license: MIT
-assets:
-  - .*.apk
-remote_metadata:
-  - playstore
+icon: distribution/lasr/icon.png
+match: '^lasr-[0-9]+\.[0-9]+\.[0-9]+-universal\.apk$'
+release_filter: '^lasr-v[0-9]+\.[0-9]+\.[0-9]+$'

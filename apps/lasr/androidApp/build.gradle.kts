@@ -6,6 +6,14 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
+val uploadStoreFile = providers.environmentVariable("RAYL_UPLOAD_STORE_FILE")
+val uploadStorePassword = providers.environmentVariable("RAYL_UPLOAD_STORE_PASSWORD")
+val uploadKeyAlias = providers.environmentVariable("RAYL_UPLOAD_KEY_ALIAS")
+val uploadKeyPassword = providers.environmentVariable("RAYL_UPLOAD_KEY_PASSWORD")
+val uploadSigningConfigured =
+    listOf(uploadStoreFile, uploadStorePassword, uploadKeyAlias, uploadKeyPassword)
+        .all { it.isPresent }
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -21,8 +29,19 @@ android {
         minSdk = 24
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
         manifestPlaceholders["mainActivityName"] = "xyz.lilsus.lasr.MainActivity"
+    }
+
+    signingConfigs {
+        if (uploadSigningConfigured) {
+            create("upload") {
+                storeFile = file(uploadStoreFile.get())
+                storePassword = uploadStorePassword.get()
+                keyAlias = uploadKeyAlias.get()
+                keyPassword = uploadKeyPassword.get()
+            }
+        }
     }
 
     buildTypes {
@@ -38,6 +57,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")
             )
+            if (uploadSigningConfigured) {
+                signingConfig = signingConfigs.getByName("upload")
+            }
         }
         create("e2e") {
             initWith(getByName("release"))

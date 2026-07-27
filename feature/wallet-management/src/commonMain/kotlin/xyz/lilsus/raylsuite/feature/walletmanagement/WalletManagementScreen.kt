@@ -37,11 +37,7 @@ import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.setting
 import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_title
 
 @Immutable
-data class ManagedWallet(
-    val id: String,
-    val title: String,
-    val details: List<String> = emptyList()
-)
+data class ManagedWallet(val id: String, val title: String, val details: List<String> = emptyList())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,12 +62,12 @@ fun WalletManagementScreen(
     ) { padding ->
         Box(
             modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .consumeWindowInsets(padding)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 24.dp)
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             wallet?.let {
                 WalletCard(
@@ -94,10 +90,10 @@ private fun WalletCard(
 ) {
     Surface(
         modifier =
-            modifier
-                .fillMaxWidth()
-                .testTag(WalletManagementTestTags.walletRow(wallet.id))
-                .clickable(onClick = onDetails),
+        modifier
+            .fillMaxWidth()
+            .testTag(WalletManagementTestTags.walletRow(wallet.id))
+            .clickable(onClick = onDetails),
         tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.large
     ) {
@@ -120,9 +116,9 @@ private fun WalletCard(
             }
             OutlinedButton(
                 modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .testTag(WalletManagementTestTags.removeButton(wallet.id)),
+                Modifier
+                    .fillMaxWidth()
+                    .testTag(WalletManagementTestTags.removeButton(wallet.id)),
                 onClick = onRemoveWallet
             ) {
                 Text(stringResource(Res.string.settings_manage_wallet_remove))
@@ -135,9 +131,9 @@ private fun WalletCard(
 private fun EmptyWalletState(onAddWallet: () -> Unit) {
     Column(
         modifier =
-            Modifier
-                .fillMaxSize()
-                .testTag(WalletManagementTestTags.EMPTY),
+        Modifier
+            .fillMaxSize()
+            .testTag(WalletManagementTestTags.EMPTY),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

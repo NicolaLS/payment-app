@@ -1,3 +1,0 @@
-flows:
-    - "tests/existing_users/payments_nwc_bolt11_with_amount.yaml"
-    - "tests/new_users/onboarding_complete_nwc.yaml"

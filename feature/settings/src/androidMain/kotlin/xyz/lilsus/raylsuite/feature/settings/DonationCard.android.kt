@@ -80,11 +80,7 @@ actual fun DonationCard(
 }
 
 @Composable
-private fun DonationButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun DonationButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
         modifier = modifier.height(48.dp),
         contentPadding = PaddingValues(horizontal = 8.dp),

@@ -1,88 +1,50 @@
-# Release Builds
+# Release process
 
-Run these commands from `app/`.
+Blip and Lasr start at version `1.0.0`/build code `1`. Use app-qualified tags:
+`blip-v1.0.0` and `lasr-v1.0.0`; use `-rc.N` while validating candidates.
 
-## Android Signing Setup
+## Signing model
 
-Release signing is automated through Gradle, `bundletool`, `direnv`, and `pass`.
+Both Android packages use one Google-managed app-signing key. Register the
+second package with Play's **use the same key as another app** option. Both
+packages also use one locally managed, resettable Play upload key.
 
-The local release helper expects the Android release keys under:
+The same `RAYL_UPLOAD_*` environment variables sign both AABs. Copy
+`.envrc.example` to an ignored local file and load the passwords from a secret
+manager.
 
-```text
-/Users/sus/scratch/android-release-papp/publish-key/papp-publish.jks
-/Users/sus/scratch/android-release-papp/release-key/papp-signing.jks
-```
+GitHub and Zapstore distribute the signed universal APK downloaded from Play's
+latest releases/bundles page. Do not publish a locally signed APK: using the
+Play artifact preserves update compatibility between channels.
 
-The keystore aliases are:
+## Android candidate
 
-```text
-publish/upload bundle key: papp-publish-key
-local install APK key:   papp-signing-key
-```
+1. Start from a clean `main` checkout.
+2. Confirm the app version and existing checks.
+3. Run `scripts/release-android <blip|lasr> 1.0.0`.
+4. Upload the resulting AAB from `dist/<app>/` to Play internal testing.
+5. Download Google's signed universal APK.
+6. Run `scripts/verify-play-apk <app> <apk>`.
+7. Record the app-signing certificate and AAB/APK SHA-256 values.
+8. Attach the verified APK to a draft app-qualified GitHub release.
+9. Run `zsp publish --check` with `zapstore.yaml` for Lasr or
+   `distribution/blip/zapstore.yaml` for Blip.
 
-The `app/.envrc` file exports the required Gradle signing environment variables and
-reads the password from:
+Before the first Zapstore publication, add the same suite publisher `pubkey` to
+both configs and link the Play app-signing certificate to that identity.
 
-```bash
-pass show papp-signing
-```
+## iOS candidate
 
-Enable the environment after cloning or changing `.envrc`:
+Archive the `iosApp` Release scheme for each app using the existing Apple team
+identity. Confirm bundle ID, version/build, privacy report, required-reason API
+manifest, export-compliance answers, and symbols before uploading to TestFlight.
 
-```bash
-direnv allow
-```
+## Go-live
 
-Check that Gradle can see the release signing setup without printing secrets:
+Production Play/App Store submission, final signed tags, GitHub publication,
+and Zapstore publication are owner-controlled actions. Promote the exact
+artifacts that passed internal testing; do not rebuild between channels.
 
-```bash
-./gradlew :androidApp:printReleaseSigningConfig
-```
-
-It should end with:
-
-```text
-Release signing ready: true
-```
-
-## Play Bundle
-
-Build the signed release Android App Bundle:
-
-```bash
-./gradlew :androidApp:buildSignedReleaseBundle
-```
-
-Output:
-
-```text
-androidApp/build/outputs/bundle/release/androidApp-release.aab
-```
-
-This bundle is signed with the publish/upload keystore, which is the artifact to upload
-to Google Play.
-
-## Local Release Install
-
-Install the signed release on a connected Android device:
-
-```bash
-./gradlew :androidApp:installSignedReleaseApk
-```
-
-This task builds the signed `.aab`, runs `bundletool build-apks --connected-device`,
-signs the generated APK set with the app-signing keystore, and installs it with
-`bundletool install-apks`.
-
-If multiple devices are connected, set the target before running the task:
-
-```bash
-export ANDROID_SERIAL=<device-id>
-./gradlew :androidApp:installSignedReleaseApk
-```
-
-Intermediate APK set output:
-
-```text
-androidApp/build/outputs/apks/release/androidApp-release.apks
-```
+The NWC `0.3.2-SNAPSHOT` dependency is an intentional owner-approved exception.
+For every candidate, record the resolved artifact checksum so a republished
+snapshot cannot silently change the reviewed build.

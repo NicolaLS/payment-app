@@ -24,3 +24,6 @@ app/kls_database.db
 *.aab
 *.apks
 app/composeApp/release/
+dist/
+.envrc
+.envrc.local

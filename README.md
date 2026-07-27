@@ -1,44 +1,42 @@
-# Lasr
+# Rayl Suite
 
-Lasr is a fast Lightning checkout app for Android and iOS. It connects to the wallet you
-already use, scans payment requests, and pays through Nostr Wallet Connect.
+Rayl Suite contains two independent Kotlin Multiplatform Lightning clients and
+the provider-neutral modules they share:
 
-The app is built for in-person payments where the flow should stay simple: scan a QR code,
-review only when needed, and keep moving.
+- **Blip** connects to one Blink wallet with an API key.
+- **Lasr** connects to one wallet through Nostr Wallet Connect.
 
-## What It Supports
+Neither app chooses providers at runtime or migrates data from the former
+combined reference application.
 
-- BOLT11 invoices, with or without an amount
-- LNURL-pay
-- Lightning Addresses (LUD16)
-- Nostr Wallet Connect wallet links
-- Android and iOS from one Kotlin Multiplatform codebase
+## Project layout
 
-## Wallet Connections
+- `apps/blip`: Blip composition, Blink features, and Blink integration
+- `apps/lasr`: Lasr composition, NWC features, and NWC integration
+- `core/*`: provider-neutral models, platform services, and UI primitives
+- `feature/*`: reusable provider-neutral user stories
+- `integration/*`: shared external-service adapters
+- `distribution/*`: app-specific store copy, legal/reviewer material, and icons
 
-Lasr does not custody funds. It connects to an external Lightning wallet through NWC, so
-wallet permissions, balances, budgets, and payment limits stay with the wallet provider.
+## Build
 
-Wallet connections can be added with `nostr+walletconnect://...` links.
+Use JDK 21 and the root Gradle wrapper.
 
-## Privacy and Safety
+```shell
+./gradlew :blip:androidApp:assembleDebug
+./gradlew :lasr:androidApp:assembleDebug
+./gradlew :blip:androidApp:assembleE2e
+./gradlew :lasr:androidApp:assembleE2e
+./gradlew check
+```
 
-Lasr is intentionally narrow: it focuses on scanning and paying. The app should be used
-with wallets or NWC connections that have spending limits appropriate for quick checkout
-payments.
+For iOS, open either app's `iosApp.xcodeproj`, or validate the Kotlin Release
+frameworks directly:
 
-- [Privacy Policy](privacy-policy.md)
-- [Terms and Conditions](terms-and-conditions.md)
+```shell
+./gradlew :blip:shared:linkReleaseFrameworkIosArm64
+./gradlew :lasr:shared:linkReleaseFrameworkIosArm64
+```
 
-## Development
-
-The app workspace lives in [`app/`](app/). Build, test, and IDE commands should be run
-from that directory.
-
-- [Build and run the app](app/README.md)
-- [Release builds](docs/release.md)
-- [E2E and Maestro testing](docs/e2e.md)
-
-## License
-
-MIT
+See [release](docs/release.md), [E2E](docs/e2e.md), and the
+[extraction completion record](docs/MIGRATION_LEDGER.md).

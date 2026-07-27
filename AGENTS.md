@@ -1,102 +1,68 @@
-# Rayl Suite extraction guidelines
+# Rayl Suite development guidelines
 
-## Current objective
+## Products and identity
 
-The active work is extracting the read-only `apps/legacy` reference application
-into two independent Kotlin Multiplatform apps and reusable modules. Work in
-small, reviewable vertical slices and keep the migration ledger in
-`docs/MIGRATION_LEDGER.md` current.
-
-The immediate milestone is completing the new NWC-only Lasr application by
-composing the already-extracted shared features with the Lasr-owned NWC
-integration. Match the applicable legacy NWC behavior and UI/UX without adding
-Blink support, provider selection, or legacy-data migration. Stop at a
-manual-verification candidate rather than expanding the scope with unrelated
-product improvements.
-
-- Blip is the Blink product. Its package and bundle ID is `xyz.lilsus.blip`,
-  with `.dev` and `.e2e` suffixes for those variants.
-- Lasr is the NWC product. Its package and bundle ID is `xyz.lilsus.lasr`,
-  with `.dev` and `.e2e` suffixes for those variants.
+- Blip is the Blink-only product. Its package and bundle ID is
+  `xyz.lilsus.blip`, with `.dev` and `.e2e` Android suffixes.
+- Lasr is the Nostr Wallet Connect-only product. Its package and bundle ID is
+  `xyz.lilsus.lasr`, with `.dev` and `.e2e` Android suffixes.
 - The Gradle root project is `rayl-suite`.
 - Reusable Kotlin namespaces start with `xyz.lilsus.raylsuite`.
 
-## Non-negotiable migration rules
-
-- Never edit anything under `apps/legacy`. It is a reference to copy from and
-  reinterpret, not a module to refactor. Before each extraction commit run:
-
-  ```shell
-  git diff --exit-code d17dc43 -- apps/legacy
-  ```
-
-- Blip and Lasr are entirely new, pre-release applications. Do not migrate
-  legacy preferences, databases, credentials, serialized state, identifiers,
-  or installation data. Do not add compatibility decoders, legacy-key
-  fallbacks, schema upgrades, or automatic import behavior.
-- Design new persistence schemas for the new apps. Legacy storage code may
-  inform current behavior, but preserving its keys or wire format is not a
-  requirement.
-- Preserve applicable legacy behavior, UI, UX, accessibility, resources, and
-  user stories unless the task explicitly changes them.
-- Remove complexity that existed only to choose between Blink and NWC. The
-  final single-provider apps do not need a provider-choice screen or runtime
-  provider branching.
-- Do not migrate both provider implementations into a shared feature. Blink
-  implementations belong to Blip; NWC implementations belong to Lasr.
-- Blink contact import is a Blip-only product capability. It must not appear in
-  shared contacts code or Lasr, and it must not run as installation migration.
-- Prefer many focused commits. A commit should establish one boundary, extract
-  one primitive, or complete one small user-story slice.
+The applications are independent, single-provider products. Do not introduce
+provider selection, Blink behavior in Lasr, NWC behavior in Blip, or migration
+from the former combined reference application.
 
 ## Module boundaries
 
-- `core:model`: provider-neutral immutable values and pure Kotlin logic. It must
-  not depend on Compose or generated resources.
-- `core:ui`: shared design tokens and genuinely reusable UI primitives. It may
-  own generic accessibility resources used by those primitives.
-- `core:settings`: shared platform creation of app-scoped preference storage.
-- `core:network`: shared platform HTTP client creation and transport defaults.
-- `feature/*`: reusable, provider-neutral user stories. A feature owns its UI,
-  state, persistence contract/implementation where appropriate, strings,
-  icons, and feature-specific resources.
-- `apps/blip/feature/*` and `apps/lasr/feature/*`: app-only user stories.
+- `core:model`: provider-neutral immutable values and pure Kotlin logic; no
+  Compose or generated resources.
+- `core:ui`: shared design tokens and genuinely reusable UI primitives.
+- `core:settings`: shared platform creation of app-scoped preference and secure
+  storage.
+- `core:network`: shared platform HTTP clients and transport defaults.
+- `feature/*`: reusable provider-neutral user stories and their resources.
+- `apps/blip/feature/*` and `apps/lasr/feature/*`: app-owned user stories.
 - `apps/blip/integration/*` and `apps/lasr/integration/*`: provider SDK,
   network, credential, and repository implementations.
-- `integration/*`: external-service adapters reused by both apps and free of
-  wallet-provider behavior.
+- `integration/*`: external adapters reused by both apps without wallet-provider
+  behavior.
 - App `shared` modules are composition roots for navigation, dependency
-  assembly, and app identity. Keep business rules out of them.
+  assembly, legal links, and app identity; keep business rules out of them.
 
-Presentation may depend on provider-neutral models and feature contracts; this
-does not make domain code UI code. Generated resource types must stay in the
-module that owns the resource and must not leak into model or repository APIs.
+Generated resource types stay in their owning module and must not leak into
+model or repository APIs. Blink contact import remains Blip-only.
 
-## Resources
+## Resources and persistence
 
-- Put feature-specific strings and assets in that feature's
+- Feature-specific strings and assets belong to that feature's
   `composeResources`.
-- Put only cross-feature design assets and generic UI accessibility strings in
+- Only cross-feature design assets and generic accessibility strings belong in
   `core:ui`.
-- Keep app branding, icons, URL schemes, and app-only copy in the owning app.
-- Provide the existing English, German, and Spanish translations when copying
-  localized legacy UI.
+- App branding, icons, URL schemes, store copy, and legal links belong to the
+  owning app.
+- Maintain English, German, and Spanish resources together.
 - Never edit generated resource accessors.
+- Do not add fallback decoders or import behavior for the retired combined app.
 
-## Verification and tests
+## Verification
 
-Keep testing minimal. Port the smallest valuable legacy regression test for an
-extracted behavior; do not add exhaustive matrices or several near-duplicate
-tests. Favor focused module tests, compilation, lint, Android debug/e2e builds,
-an arm64 iOS simulator build, and visual/behavior parity checks.
+Keep tests focused; do not add broad matrices or near-duplicate tests without a
+dedicated QA task. Existing tests must remain green. Favor module compilation,
+ktlint, Android debug/E2E/Release builds, lint, arm64 iOS simulator tests, both
+Kotlin/Native Release framework targets, and concrete Xcode builds.
 
-For a completed shared slice, verify both consuming apps where practical. Use a
-concrete arm64 simulator destination for Xcode because the new modules do not
-configure `iosX64`.
+Use JDK 21, four-space Kotlin indentation, no wildcard imports, immutable state,
+the repository's ktlint format, and convention plugins from `build-logic`.
+Keep public APIs small and avoid pass-through use-case classes without policy.
 
-## Kotlin and Gradle style
+## Release invariants
 
-Use four-space indentation, no wildcard imports, immutable state, and the
-repository's ktlint format. Use the convention plugins in `build-logic` for new
-KMP modules. Keep public APIs small and avoid pass-through use-case classes that
-add no policy.
+- Blip and Lasr share the suite Play upload identity and Play app-signing
+  identity; secrets remain outside Git.
+- Direct Android distribution uses the Play-generated signed universal APK.
+- Release tags and artifacts are app-qualified.
+- The owner-approved NWC snapshot dependency may remain until its maintainer
+  publishes a stable version; record its resolved checksum for candidates.
+- Public store, GitHub, and Zapstore publication requires owner review of the
+  exact candidate artifacts and declarations.

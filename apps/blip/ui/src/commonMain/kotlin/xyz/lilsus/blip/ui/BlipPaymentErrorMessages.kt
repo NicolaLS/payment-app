@@ -36,14 +36,14 @@ import xyz.lilsus.raylsuite.core.payment.PaymentError
 import xyz.lilsus.raylsuite.feature.payment.PaymentUiError
 
 @Composable
-fun blipPaymentErrorMessageFor(error: PaymentUiError): String =
-    error.toMessage().resolve()
+fun blipPaymentErrorMessageFor(error: PaymentUiError): String = error.toMessage().resolve()
 
 suspend fun getBlipPaymentErrorMessageFor(error: PaymentUiError): String =
     error.toMessage().resolveInCoroutine()
 
 private fun PaymentUiError.toMessage(): LocalizedMessage = when (this) {
     is PaymentUiError.Provider -> error.toMessage()
+
     is PaymentUiError.InvalidInvoice ->
         optionalDetailMessage(
             detail = reason,
@@ -143,22 +143,17 @@ private fun optionalDetailMessage(
     }
 }
 
-private data class LocalizedMessage(
-    val resource: StringResource,
-    val argument: String? = null
-)
+private data class LocalizedMessage(val resource: StringResource, val argument: String? = null)
 
 @Composable
-private fun LocalizedMessage.resolve(): String =
-    if (argument == null) {
-        stringResource(resource)
-    } else {
-        stringResource(resource, argument)
-    }
+private fun LocalizedMessage.resolve(): String = if (argument == null) {
+    stringResource(resource)
+} else {
+    stringResource(resource, argument)
+}
 
-private suspend fun LocalizedMessage.resolveInCoroutine(): String =
-    if (argument == null) {
-        getString(resource)
-    } else {
-        getString(resource, argument)
-    }
+private suspend fun LocalizedMessage.resolveInCoroutine(): String = if (argument == null) {
+    getString(resource)
+} else {
+    getString(resource, argument)
+}

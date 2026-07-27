@@ -1,0 +1,8 @@
+# Copy this file to .envrc.local and load secrets from your preferred secret
+# manager. Blip and Lasr intentionally share this Play upload identity.
+export RAYL_UPLOAD_STORE_FILE="/absolute/path/to/rayl-suite-upload.jks"
+export RAYL_UPLOAD_KEY_ALIAS="rayl-suite-upload"
+
+# Example using pass; never commit literal passwords.
+export RAYL_UPLOAD_STORE_PASSWORD="$(pass show rayl-suite/android-upload | sed -n '1p')"
+export RAYL_UPLOAD_KEY_PASSWORD="$RAYL_UPLOAD_STORE_PASSWORD"

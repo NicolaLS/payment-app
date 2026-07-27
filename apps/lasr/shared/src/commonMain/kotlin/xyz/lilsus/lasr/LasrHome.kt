@@ -26,6 +26,7 @@ import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
+import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks
 import xyz.lilsus.raylsuite.feature.settings.SettingsStartDestination
 import xyz.lilsus.raylsuite.feature.themesettings.ThemePreferences
 import xyz.lilsus.raylsuite.feature.walletmanagement.ManagedWallet
@@ -162,6 +163,7 @@ private fun LasrSettings(
         storageName = LASR_PREFERENCES,
         themePreferences = themePreferences,
         bitcoinPriceProvider = bitcoinPriceProvider,
+        legalLinks = LASR_LEGAL_LINKS,
         onBack = navController::navigateUp,
         modifier = Modifier,
         startDestination = startDestination,
@@ -215,4 +217,13 @@ private val LASR_DONATION_ADDRESS =
     LightningAddress(
         username = "lilsus",
         domain = "blink.sv"
+    )
+
+private val LASR_LEGAL_LINKS =
+    SettingsLegalLinks(
+        privacyPolicyUrl =
+            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/lasr/privacy.md",
+        termsUrl =
+            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/lasr/terms.md",
+        sourceCodeUrl = "https://github.com/NicolaLS/lasr"
     )

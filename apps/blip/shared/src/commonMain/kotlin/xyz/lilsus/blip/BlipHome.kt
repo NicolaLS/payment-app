@@ -30,8 +30,9 @@ import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
 import xyz.lilsus.raylsuite.feature.payment.PaymentFlow
 import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
-import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
+import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
+import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks
 import xyz.lilsus.raylsuite.feature.settings.SettingsStartDestination
 import xyz.lilsus.raylsuite.feature.themesettings.ThemePreferences
 import xyz.lilsus.raylsuite.feature.walletmanagement.ManagedWallet
@@ -190,6 +191,7 @@ private fun BlipSettings(
         storageName = BLIP_PREFERENCES,
         themePreferences = themePreferences,
         bitcoinPriceProvider = bitcoinPriceProvider,
+        legalLinks = BLIP_LEGAL_LINKS,
         onBack = navController::navigateUp,
         modifier = Modifier,
         startDestination = startDestination,
@@ -233,4 +235,13 @@ private val BLIP_DONATION_ADDRESS =
     LightningAddress(
         username = "lilsus",
         domain = "blink.sv"
+    )
+
+private val BLIP_LEGAL_LINKS =
+    SettingsLegalLinks(
+        privacyPolicyUrl =
+            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/blip/privacy.md",
+        termsUrl =
+            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/blip/terms.md",
+        sourceCodeUrl = "https://github.com/NicolaLS/lasr"
     )

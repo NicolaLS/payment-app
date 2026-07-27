@@ -33,9 +33,9 @@ import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsScreen
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsViewModel
 import xyz.lilsus.raylsuite.feature.languagesettings.rememberLanguageRepository
+import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsScreen
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsViewModel
-import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutContactPickerScreen
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutCurrencyPickerScreen
@@ -60,6 +60,7 @@ fun SettingsFlow(
     storageName: String,
     themePreferences: ThemePreferences,
     bitcoinPriceProvider: BitcoinPriceProvider,
+    legalLinks: SettingsLegalLinks,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     startDestination: SettingsStartDestination = SettingsStartDestination.Overview,
@@ -163,6 +164,7 @@ fun SettingsFlow(
                 currencyPreferences = resolvedCurrencyPreferences,
                 languageRepository = languageRepository,
                 themePreferences = themePreferences,
+                legalLinks = legalLinks,
                 onBack = onBack,
                 onPayments = { destination = SettingsDestination.Payments },
                 onContacts = { destination = SettingsDestination.Contacts },
@@ -358,6 +360,7 @@ private fun SettingsOverview(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     themePreferences: ThemePreferences,
+    legalLinks: SettingsLegalLinks,
     onBack: () -> Unit,
     onPayments: () -> Unit,
     onContacts: () -> Unit,
@@ -392,6 +395,7 @@ private fun SettingsOverview(
         onCurrency = onCurrency,
         onLanguage = onLanguage,
         onTheme = onTheme,
+        legalLinks = legalLinks,
         modifier = modifier,
         currencySubtitle = currencyLabel,
         languageSubtitle = languageSubtitle(languagePreference),

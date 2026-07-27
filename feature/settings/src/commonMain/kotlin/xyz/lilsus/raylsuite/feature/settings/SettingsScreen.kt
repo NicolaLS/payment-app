@@ -42,6 +42,7 @@ import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_curren
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_privacy
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_repo
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_terms
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_version
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_subtitle
@@ -60,6 +61,13 @@ data class SettingsEntry(
     val onClick: () -> Unit
 )
 
+@Immutable
+data class SettingsLegalLinks(
+    val privacyPolicyUrl: String,
+    val termsUrl: String,
+    val sourceCodeUrl: String
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -69,6 +77,7 @@ fun SettingsScreen(
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
     onTheme: () -> Unit,
+    legalLinks: SettingsLegalLinks,
     modifier: Modifier = Modifier,
     currencySubtitle: String? = null,
     languageSubtitle: String? = null,
@@ -159,7 +168,7 @@ fun SettingsScreen(
                 }
             }
             item {
-                SettingsFooter()
+                SettingsFooter(legalLinks)
             }
         }
     }
@@ -201,7 +210,7 @@ private fun SettingsListItem(entry: SettingsEntry) {
 }
 
 @Composable
-private fun SettingsFooter() {
+private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
     val uriHandler = LocalUriHandler.current
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -210,10 +219,10 @@ private fun SettingsFooter() {
     ) {
         Text(
             text =
-                stringResource(
-                    Res.string.settings_footer_version,
-                    appVersionName()
-                ),
+            stringResource(
+                Res.string.settings_footer_version,
+                appVersionName()
+            ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -224,18 +233,27 @@ private fun SettingsFooter() {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier =
-                    Modifier.clickable {
-                        uriHandler.openUri(PRIVACY_POLICY_URL)
-                    }
+                Modifier.clickable {
+                    uriHandler.openUri(legalLinks.privacyPolicyUrl)
+                }
+            )
+            Text(
+                text = stringResource(Res.string.settings_footer_terms),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier =
+                Modifier.clickable {
+                    uriHandler.openUri(legalLinks.termsUrl)
+                }
             )
             Text(
                 text = stringResource(Res.string.settings_footer_repo),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier =
-                    Modifier.clickable {
-                        uriHandler.openUri(REPOSITORY_URL)
-                    }
+                Modifier.clickable {
+                    uriHandler.openUri(legalLinks.sourceCodeUrl)
+                }
             )
         }
     }
@@ -261,13 +279,15 @@ private fun SettingsScreenPreview() {
             onCurrency = {},
             onLanguage = {},
             onTheme = {},
+            legalLinks =
+            SettingsLegalLinks(
+                privacyPolicyUrl = "https://example.com/privacy",
+                termsUrl = "https://example.com/terms",
+                sourceCodeUrl = "https://example.com/source"
+            ),
             currencySubtitle = "Primary SAT • Secondary USD",
             languageSubtitle = "English",
             themeSubtitle = "System default"
         )
     }
 }
-
-private const val PRIVACY_POLICY_URL =
-    "https://github.com/NicolaLS/lasr/blob/main/privacy-policy.md"
-private const val REPOSITORY_URL = "https://github.com/NicolaLS/lasr"

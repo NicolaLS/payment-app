@@ -9,124 +9,79 @@ env:
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "LICENSE"
-      - "assets/**"
-      - "test.apks"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "LICENSE"
-      - "assets/**"
-      - "test.apks"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  code-style:
-    name: Code Style (ktlint)
+  checks:
+    name: Shared checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: app
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate Gradle wrapper
-        uses: ./.github/actions/validate-gradle-wrapper
-
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Setup Gradle
+      - name: Set up and validate Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Run ktlint
-        run: ./gradlew ktlintCheck
+      - name: Check formatting and existing tests
+        run: ./gradlew ktlintCheck check --continue
 
-  android-lint:
-    name: Android Lint
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: app
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Validate Gradle wrapper
-        uses: ./.github/actions/validate-gradle-wrapper
-
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-
-      - name: Run Android Lint
-        run: ./gradlew :androidApp:lintDebug
-
-      - name: Upload lint results
+      - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: lint-results
-          path: app/androidApp/build/reports/lint-results-debug.html
+          name: shared-check-reports
+          path: |
+            **/build/reports/
+            **/build/test-results/
           retention-days: 14
 
-  build:
-    name: Build & Test (Android)
+  android:
+    name: ${{ matrix.app }} Android
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: app
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [blip, lasr]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate Gradle wrapper
-        uses: ./.github/actions/validate-gradle-wrapper
-
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Setup Gradle
+      - name: Set up and validate Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build Android Debug
-        run: ./gradlew :androidApp:assembleDebug
+      - name: Assemble and lint
+        run: >-
+          ./gradlew
+          :${{ matrix.app }}:androidApp:assembleDebug
+          :${{ matrix.app }}:androidApp:assembleE2e
+          :${{ matrix.app }}:androidApp:bundleRelease
+          :${{ matrix.app }}:androidApp:lintDebug
 
-      - name: Upload Debug APK
+      - name: Upload reports and debug APK
+        if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: debug-apk
-          path: app/androidApp/build/outputs/apk/debug/*.apk
-          retention-days: 14
-
-      - name: Run Unit Tests
-        run: ./gradlew :composeApp:allTests :androidApp:testDebugUnitTest
-
-      - name: Upload test results
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: test-results
-          path: app/composeApp/build/reports/tests/
+          name: ${{ matrix.app }}-android-results
+          path: |
+            apps/${{ matrix.app }}/androidApp/build/outputs/apk/debug/
+            apps/${{ matrix.app }}/androidApp/build/reports/
           retention-days: 14

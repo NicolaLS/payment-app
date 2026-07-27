@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -39,6 +40,10 @@ kotlin {
             baseName = "Shared"
             isStatic = true
             binaryOption("bundleId", "xyz.lilsus.lasr.shared")
+            if (buildType == NativeBuildType.RELEASE) {
+                freeCompilerArgs +=
+                    "-Xdisable-phases=RemoveRedundantCallsToStaticInitializersPhase"
+            }
         }
     }
 
