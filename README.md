@@ -30,6 +30,16 @@ Use JDK 21 and the root Gradle wrapper.
 ./gradlew check
 ```
 
+To exercise a production-signed, R8-processed build on a connected device:
+
+```shell
+./gradlew :lasr:androidApp:printReleaseSigningConfig
+./gradlew :lasr:androidApp:installSignedRelease
+```
+
+Release signing needs the `RAYL_UPLOAD_*` and `RAYL_APP_SIGNING_*` variables
+from `.envrc.example`. See [docs/release.md](docs/release.md).
+
 For iOS, open either app's `iosApp.xcodeproj`, or validate the Kotlin Release
 frameworks directly:
 

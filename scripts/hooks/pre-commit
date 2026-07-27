@@ -3,8 +3,7 @@
 # Pre-commit hook that runs ktlint on staged Kotlin files.
 # Aborts commit if formatting issues are found.
 #
-# Install: cd app && ./gradlew installGitHooks
-# Or manually: cp scripts/hooks/pre-commit .git/hooks/ && chmod +x .git/hooks/pre-commit
+# Install: cp scripts/hooks/pre-commit .git/hooks/ && chmod +x .git/hooks/pre-commit
 
 # Colors for output
 RED='\033[0;31m'

@@ -1,0 +1,14 @@
+# SHA-256 fingerprint of the Rayl suite Android app-signing certificate.
+#
+# Blip and Lasr share this signing identity. Every APK distributed outside Play
+# must match it. Publishing an APK signed with any other key permanently strands
+# existing sideload and Zapstore users: Android refuses the update, and the app
+# signing key cannot be rotated once Play App Signing is enrolled.
+#
+# scripts/verify-release-apk asserts this value before an artifact is staged.
+#
+# INTERIM: this is still the retired papp app-signing key, reused so the release
+# tooling can be exercised before any enrollment exists. Replace it with the
+# fresh Rayl key fingerprint as part of the pre-enrollment checklist in
+# docs/release.md.
+73ec3238eab66daad37ac89e85c515238c7a7eef2c9759535f553880e728b60d

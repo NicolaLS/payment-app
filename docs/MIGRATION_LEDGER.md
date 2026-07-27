@@ -50,9 +50,10 @@ to the dedicated QA/release pass.
   workaround for KT-64508. The same failure is present in the archived legacy
   app after the ACINQ dependency graph was introduced; Debug builds did not
   exercise this Release optimizer phase.
-- One Google-managed Android app-signing key and one local Play upload key are
-  shared by both packages. Play-signed universal APKs are the artifacts
-  redistributed through GitHub and Zapstore.
+- One locally managed Android app-signing key and one local Play upload key are
+  shared by both packages. Locally signed universal APKs, built from the release
+  bundle and verified against the pinned app-signing certificate, are the
+  artifacts redistributed through GitHub and Zapstore.
 - The Zapstore publisher key, store-account configuration, final localized
   screenshots, live-wallet smoke tests, signing/archive uploads, review forms,
   and production publication require owner or QA credentials and approval.

@@ -40,16 +40,24 @@ configured_version="$(
 [[ "$configured_version" == "$version" ]] ||
     die "$app versionName is $configured_version, requested $version"
 
-for variable in \
-    RAYL_UPLOAD_STORE_FILE \
-    RAYL_UPLOAD_STORE_PASSWORD \
-    RAYL_UPLOAD_KEY_ALIAS \
-    RAYL_UPLOAD_KEY_PASSWORD
-do
-    [[ -n "${!variable-}" ]] || die "$variable is required"
-done
-[[ -f "$RAYL_UPLOAD_STORE_FILE" ]] ||
-    die "upload keystore not found: $RAYL_UPLOAD_STORE_FILE"
+# Both identities are needed: the upload key signs the Play bundle, the
+# app-signing key signs the APK distributed through GitHub and Zapstore.
+require_identity() {
+    local prefix="$1"
+    local store_var="${prefix}_STORE_FILE"
+    local alias_var="${prefix}_KEY_ALIAS"
+    local password_var="${prefix}_STORE_PASSWORD"
+    local password_file_var="${prefix}_STORE_PASSWORD_FILE"
+
+    [[ -n "${!store_var-}" ]] || die "$store_var is required"
+    [[ -f "${!store_var}" ]] || die "keystore not found: ${!store_var}"
+    [[ -n "${!alias_var-}" ]] || die "$alias_var is required"
+    [[ -n "${!password_var-}" || -n "${!password_file_var-}" ]] ||
+        die "$password_var or $password_file_var is required"
+}
+
+require_identity RAYL_UPLOAD
+require_identity RAYL_APP_SIGNING
 
 [[ -z "$(git -C "$repo" status --porcelain --untracked-files=all)" ]] ||
     die "working tree must be clean"
@@ -58,23 +66,33 @@ tasks=()
 if [[ "$skip_checks" == false ]]; then
     tasks+=("ktlintCheck" "check")
 fi
-tasks+=(":$app:androidApp:bundleRelease")
+tasks+=(":$app:androidApp:buildGithubReleaseArtifacts")
 
 "$repo/gradlew" -p "$repo" "${tasks[@]}"
 
 aab="$repo/apps/$app/androidApp/build/outputs/bundle/release/androidApp-release.aab"
+apk="$repo/apps/$app/androidApp/build/outputs/apk/universal/release/$app-release-universal.apk"
 [[ -f "$aab" ]] || die "missing bundle: $aab"
+[[ -f "$apk" ]] || die "missing universal APK: $apk"
+
 jarsigner -verify -strict "$aab" >/dev/null ||
     die "bundle signature verification failed"
 
 output_dir="$repo/dist/$app"
 mkdir -p "$output_dir"
-output="$output_dir/$app-$version-play.aab"
-cp "$aab" "$output"
+staged_aab="$output_dir/$app-$version-play.aab"
+cp "$aab" "$staged_aab"
 
-echo "Prepared $output"
-shasum -a 256 "$output"
 echo
-echo "Upload this AAB to Play internal testing."
-echo "Then download Google's signed universal APK and verify it with:"
-echo "  scripts/verify-play-apk $app /path/to/universal.apk"
+echo "Staged $staged_aab"
+shasum -a 256 "$staged_aab"
+
+# Asserts the pinned app-signing certificate before staging the APK.
+"$repo/scripts/verify-release-apk" "$app" "$apk"
+
+echo
+echo "Next:"
+echo "  1. Upload $staged_aab to Play internal testing."
+echo "  2. Attach the staged universal APK to the $app-v$version GitHub release."
+echo "  3. Run zsp publish --check for the matching Zapstore config."
+echo "  4. Record both SHA-256 values in the release evidence document."

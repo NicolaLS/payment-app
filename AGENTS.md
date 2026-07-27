@@ -58,9 +58,12 @@ Keep public APIs small and avoid pass-through use-case classes without policy.
 
 ## Release invariants
 
-- Blip and Lasr share the suite Play upload identity and Play app-signing
-  identity; secrets remain outside Git.
-- Direct Android distribution uses the Play-generated signed universal APK.
+- Blip and Lasr share the suite upload identity and app-signing identity; both
+  are locally managed and their secrets remain outside Git.
+- Direct Android distribution uses a locally signed universal APK built from
+  the release bundle with the shared app-signing key. Its certificate is pinned
+  in `distribution/app-signing-certificate.sha256` and must never change once
+  Play App Signing is enrolled.
 - Release tags and artifacts are app-qualified.
 - The owner-approved NWC snapshot dependency may remain until its maintainer
   publishes a stable version; record its resolved checksum for candidates.

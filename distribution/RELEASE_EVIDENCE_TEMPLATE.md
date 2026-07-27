@@ -15,8 +15,10 @@
 - Package:
 - Version code/name:
 - AAB SHA-256:
-- Play-signed universal APK SHA-256:
-- Play app-signing certificate SHA-256:
+- Universal APK SHA-256:
+- App-signing certificate SHA-256:
+- Matches `distribution/app-signing-certificate.sha256`:
+- Certificate reported by Play matches the pinned value:
 - Play internal-test release ID:
 - GitHub draft release:
 - Zapstore validation:
