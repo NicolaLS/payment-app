@@ -32,6 +32,15 @@ private class AndroidAppLifecycleObserver :
     override fun onStop(owner: LifecycleOwner) {
         foreground.value = false
     }
+
+    override fun close() {
+        val unregister = { ProcessLifecycleOwner.get().lifecycle.removeObserver(this) }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            unregister()
+        } else {
+            Handler(Looper.getMainLooper()).post(unregister)
+        }
+    }
 }
 
 actual fun createAppLifecycleObserver(): AppLifecycleObserver = AndroidAppLifecycleObserver()

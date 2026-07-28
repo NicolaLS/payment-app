@@ -71,10 +71,10 @@ kotlin {
 
         commonMain.dependencies {
             implementation(project(":lasr:feature:onboarding"))
+            implementation(project(":lasr:feature:payment"))
             implementation(project(":lasr:feature:wallet-connection"))
             implementation(project(":lasr:feature:wallet-details"))
             implementation(project(":lasr:integration:nwc"))
-            implementation(project(":lasr:ui"))
             implementation(project(":core:camera"))
             implementation(project(":core:network"))
             implementation(project(":core:settings"))
@@ -82,7 +82,6 @@ kotlin {
             implementation(project(":feature:currency-settings"))
             implementation(project(":feature:contacts"))
             implementation(project(":feature:onboarding"))
-            implementation(project(":feature:payment"))
             implementation(project(":feature:payment-settings"))
             implementation(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))

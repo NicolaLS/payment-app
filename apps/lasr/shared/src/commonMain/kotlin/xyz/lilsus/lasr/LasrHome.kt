@@ -11,18 +11,18 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.lasr.feature.payment.PaymentCoordinator
+import xyz.lilsus.lasr.feature.payment.PaymentFlow
+import xyz.lilsus.lasr.feature.payment.PaymentIntent
+import xyz.lilsus.lasr.feature.payment.getLasrPaymentErrorMessageFor
+import xyz.lilsus.lasr.feature.payment.lasrPaymentErrorMessageFor
 import xyz.lilsus.lasr.feature.walletdetails.NwcWalletDetailsScreen
 import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.lasr.integration.nwc.NwcWalletConnection
-import xyz.lilsus.lasr.ui.getLasrPaymentErrorMessageFor
-import xyz.lilsus.lasr.ui.lasrPaymentErrorMessageFor
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
-import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
-import xyz.lilsus.raylsuite.feature.payment.PaymentFlow
-import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
@@ -45,7 +45,8 @@ internal fun NavGraphBuilder.lasrHome(
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator,
-    nwcWallet: NwcWallet
+    nwcWallet: NwcWallet,
+    onRemoveWallet: () -> Unit
 ) {
     composable<LasrDestination.Home> {
         PaymentFlow(
@@ -122,8 +123,15 @@ internal fun NavGraphBuilder.lasrHome(
                 navController.navigate(LasrDestination.AddWalletFromSettings)
             },
             onRemoveWallet = {
+                onRemoveWallet()
                 scope.launch {
                     nwcWallet.disconnect()
+                    navController.navigate(LasrDestination.Welcome) {
+                        popUpTo(navController.graph.id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
                 }
             },
             onWalletDetails = {

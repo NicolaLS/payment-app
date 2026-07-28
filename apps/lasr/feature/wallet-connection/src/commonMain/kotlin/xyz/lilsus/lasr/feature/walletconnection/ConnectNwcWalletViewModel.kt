@@ -111,6 +111,12 @@ class ConnectNwcWalletViewModel(
         val state = mutableUiState.value
         val discovery = state.discovery ?: return
         if (state.isSaving) return
+        if (!discovery.supportsRequiredMethods) {
+            mutableUiState.update {
+                it.copy(error = NwcConnectionError.RequiredMethodsMissing)
+            }
+            return
+        }
 
         scope.launch {
             mutableUiState.update { it.copy(isSaving = true, error = null) }

@@ -123,6 +123,6 @@ Production Play/App Store submission, final signed tags, GitHub publication,
 and Zapstore publication are owner-controlled actions. Promote the exact
 artifacts that passed internal testing; do not rebuild between channels.
 
-The NWC `0.3.2-SNAPSHOT` dependency is an intentional owner-approved exception.
+The NWC `0.3.3-SNAPSHOT` dependency is an intentional owner-approved exception.
 For every candidate, record the resolved artifact checksum so a republished
 snapshot cannot silently change the reviewed build.

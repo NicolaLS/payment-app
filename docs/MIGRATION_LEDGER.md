@@ -43,7 +43,7 @@ to the dedicated QA/release pass.
 ## Accepted release exceptions and owner gates
 
 - Lasr intentionally resolves maintainer-owned
-  `io.github.nicolals:nwc-kmp:0.3.2-SNAPSHOT`. Every candidate must record the
+  `io.github.nicolals:nwc-kmp:0.3.3-SNAPSHOT`. Every candidate must record the
   resolved artifact checksum.
 - Kotlin/Native Release frameworks disable only
   `RemoveRedundantCallsToStaticInitializersPhase` as a narrowly scoped

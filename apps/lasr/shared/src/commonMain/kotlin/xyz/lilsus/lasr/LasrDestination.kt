@@ -25,7 +25,7 @@ internal sealed interface LasrDestination {
     data object AddWalletFromSettings : LasrDestination
 
     @Serializable
-    data class ConfirmWallet(val uri: String, val fromSettings: Boolean) : LasrDestination
+    data class ConfirmWallet(val fromSettings: Boolean) : LasrDestination
 
     @Serializable
     data object Home : LasrDestination

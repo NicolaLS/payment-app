@@ -3,6 +3,7 @@
     <string name="add_wallet_description">Kopiere eine NWC-URI und kehre hierher zurück oder scanne den QR-Code.</string>
     <string name="add_wallet_uri_label">Wallet-Connect-URI</string>
     <string name="add_wallet_uri_placeholder">nostr+walletconnect://dein-wallet-public-key?relay=…</string>
+    <string name="add_wallet_uri_paste">Aus Zwischenablage einfügen</string>
     <string name="add_wallet_scan_instruction">Richte den QR-Code im Rahmen aus.</string>
     <string name="add_wallet_scan_permission">Für das Scannen von QR-Codes ist Kamerazugriff erforderlich.</string>
     <string name="connect_wallet_title">Wallet hinzufügen</string>
@@ -24,4 +25,9 @@
     <string name="connect_wallet_warning_legacy_nip04_default">Diese Wallet hat kein Verschlüsselungsverfahren angekündigt. Wir nehmen die veraltete NIP-04-Verschlüsselung an, die schwächeren Schutz als NIP-44 bietet.</string>
     <string name="connect_wallet_warning_heading">Vor dem Verbinden überprüfen</string>
     <string name="keyboard_done">Fertig</string>
+    <string name="connect_wallet_warning_missing_lookup_invoice">Diese Wallet kündigt lookup_invoice nicht an. Lasr benötigt die Methode, um verzögerte Zahlungen sicher zu klären.</string>
+    <string name="connect_wallet_required_methods">Lasr benötigt pay_invoice und lookup_invoice, bevor diese Verbindung gespeichert werden kann.</string>
+    <string name="error_wallet_already_connected">Trenne deine aktuelle Wallet, bevor du eine andere verbindest.</string>
+    <string name="error_invalid_wallet_uri">Diese Wallet-URI ist ungültig. Bitte überprüfe sie und versuche es erneut.</string>
+    <string name="error_relay_connection_failed">Verbindung zum Wallet fehlgeschlagen. Bitte erneut versuchen.</string>
 </resources>

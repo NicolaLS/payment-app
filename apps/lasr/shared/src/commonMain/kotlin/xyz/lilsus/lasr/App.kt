@@ -6,81 +6,51 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import xyz.lilsus.lasr.integration.nwc.createNwcWallet
+import xyz.lilsus.lasr.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.core.model.ThemePreference
-import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
+import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
-import xyz.lilsus.raylsuite.core.ui.platform.createAppLifecycleObserver
 import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
+import xyz.lilsus.raylsuite.core.ui.platform.rememberRetainedInstance
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
-import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
-import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
-import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
-import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
-import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
-import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
-import xyz.lilsus.raylsuite.integration.lnurl.KtorLnurlPayClient
 
 @Composable
 fun App() {
-    val themePreferences = rememberThemePreferences(storageName = LASR_PREFERENCES)
+    val appSettings = rememberAppSettings(LASR_PREFERENCES)
+    val secureSettings = rememberSecureSettings(LASR_CREDENTIALS)
+    val haptics = rememberHapticFeedbackManager()
+    val runtime =
+        rememberRetainedInstance(
+            key = LASR_RUNTIME_KEY,
+            factory = {
+                LasrRuntime(
+                    appSettings = appSettings,
+                    secureSettings = secureSettings,
+                    haptics = haptics
+                )
+            },
+            onDispose = LasrRuntime::clear
+        )
+    val themePreferences = runtime.themePreferences
     val themePreference by
         themePreferences.preference.collectAsState(
             initial = ThemePreference.System
         )
-    val currencyPreferences = rememberCurrencyPreferences(LASR_PREFERENCES)
-    val paymentPreferences = rememberPaymentPreferencesRepository(LASR_PREFERENCES)
-    val contactsRepository = rememberContactsRepository(LASR_PREFERENCES)
-    val secureSettings = rememberSecureSettings(LASR_CREDENTIALS)
-    val networkConnectivity = remember { createNetworkConnectivity() }
-    val appLifecycle = remember { createAppLifecycleObserver() }
-    val haptics = rememberHapticFeedbackManager()
-    val walletScope = rememberCoroutineScope()
-    val nwcWallet =
-        remember(secureSettings, walletScope) {
-            createNwcWallet(
-                secureSettings = secureSettings,
-                scope = walletScope,
-                isNetworkAvailable = networkConnectivity::isNetworkAvailable
-            )
-        }
-    val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
-    val lnurlPayClient =
-        remember(networkConnectivity) {
-            KtorLnurlPayClient(networkConnectivity)
-        }
-    val paymentCoordinator =
-        remember(
-            nwcWallet,
-            lnurlPayClient,
-            bitcoinPriceProvider,
-            currencyPreferences,
-            paymentPreferences,
-            contactsRepository,
-            haptics
-        ) {
-            PaymentCoordinator(
-                paymentProvider = nwcWallet,
-                lnurlPayClient = lnurlPayClient,
-                bitcoinPriceProvider = bitcoinPriceProvider,
-                currencyPreferences = currencyPreferences,
-                paymentPreferences = paymentPreferences,
-                contactsRepository = contactsRepository,
-                haptics = haptics
-            )
-        }
+    val currencyPreferences = runtime.currencyPreferences
+    val paymentPreferences = runtime.paymentPreferences
+    val contactsRepository = runtime.contactsRepository
+    val nwcWallet = runtime.nwcWallet
+    val paymentCoordinator = runtime.paymentCoordinator
     val onboardingViewModel =
-        remember(paymentPreferences, currencyPreferences, bitcoinPriceProvider) {
+        remember(paymentPreferences, currencyPreferences, runtime.bitcoinPriceProvider) {
             OnboardingViewModel(
                 paymentPreferences = paymentPreferences,
                 currencyPreferences = currencyPreferences,
-                bitcoinPriceProvider = bitcoinPriceProvider
+                bitcoinPriceProvider = runtime.bitcoinPriceProvider
             )
         }
     val navController = rememberNavController()
@@ -93,22 +63,16 @@ fun App() {
             }
         }
 
-    DisposableEffect(onboardingViewModel, paymentCoordinator) {
-        onDispose {
-            onboardingViewModel.clear()
-            paymentCoordinator.clear()
-        }
-    }
-    LaunchedEffect(appLifecycle, nwcWallet) {
-        appLifecycle.isInForeground.collect(nwcWallet::onAppForegroundChanged)
+    DisposableEffect(onboardingViewModel) {
+        onDispose(onboardingViewModel::clear)
     }
     LaunchedEffect(navController, nwcWallet, paymentCoordinator) {
         LasrDeepLinks.events.collect { uri ->
             val scheme = uri.substringBefore(":", missingDelimiterValue = "")
             if (scheme.equals(NWC_SCHEME, ignoreCase = true)) {
+                runtime.connectionDraft.set(normalizeNwcUri(uri))
                 navController.navigate(
                     LasrDestination.ConfirmWallet(
-                        uri = normalizeNwcUri(uri),
                         fromSettings = false
                     )
                 ) {
@@ -139,17 +103,21 @@ fun App() {
             lasrOnboarding(
                 navController = navController,
                 nwcWallet = nwcWallet,
-                onboardingViewModel = onboardingViewModel
+                onboardingViewModel = onboardingViewModel,
+                connectionDraft = runtime.connectionDraft
             )
             lasrHome(
                 navController = navController,
                 themePreferences = themePreferences,
-                bitcoinPriceProvider = bitcoinPriceProvider,
+                bitcoinPriceProvider = runtime.bitcoinPriceProvider,
                 currencyPreferences = currencyPreferences,
                 paymentPreferences = paymentPreferences,
                 contactsRepository = contactsRepository,
                 paymentCoordinator = paymentCoordinator,
-                nwcWallet = nwcWallet
+                nwcWallet = nwcWallet,
+                onRemoveWallet = {
+                    runtime.resetPaymentSession()
+                }
             )
         }
     }
@@ -157,6 +125,7 @@ fun App() {
 
 internal const val LASR_PREFERENCES = "lasr_preferences"
 private const val LASR_CREDENTIALS = "lasr_wallet"
+private const val LASR_RUNTIME_KEY = "lasr-runtime"
 private const val NWC_SCHEME = "nostr+walletconnect"
 private const val LIGHTNING_SCHEME = "lightning"
 private const val BITCOIN_SCHEME = "bitcoin"

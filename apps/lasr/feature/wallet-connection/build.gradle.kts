@@ -14,7 +14,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":lasr:integration:nwc"))
-            implementation(project(":lasr:ui"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             implementation(libs.compose.components.resources)

@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
@@ -18,6 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.lasr.feature.onboarding.NwcWalletInstructionsScreen
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletEvent
@@ -56,7 +58,8 @@ import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_welcome_title
 internal fun NavGraphBuilder.lasrOnboarding(
     navController: NavController,
     nwcWallet: NwcWallet,
-    onboardingViewModel: OnboardingViewModel
+    onboardingViewModel: OnboardingViewModel,
+    connectionDraft: NwcConnectionDraft
 ) {
     composable<LasrDestination.Welcome> {
         WelcomeScreen(
@@ -133,21 +136,24 @@ internal fun NavGraphBuilder.lasrOnboarding(
     composable<LasrDestination.AddWallet> {
         AddWalletDestination(
             navController = navController,
-            fromSettings = false
+            fromSettings = false,
+            connectionDraft = connectionDraft
         )
     }
     composable<LasrDestination.AddWalletFromSettings> {
         AddWalletDestination(
             navController = navController,
-            fromSettings = true
+            fromSettings = true,
+            connectionDraft = connectionDraft
         )
     }
     dialog<LasrDestination.ConfirmWallet> { backStackEntry ->
         val route = backStackEntry.toRoute<LasrDestination.ConfirmWallet>()
         ConfirmWalletDestination(
-            uri = route.uri,
+            uri = connectionDraft.uri,
             nwcWallet = nwcWallet,
             onConnected = {
+                connectionDraft.clear()
                 if (route.fromSettings) {
                     navController.popBackStack()
                 } else {
@@ -159,16 +165,24 @@ internal fun NavGraphBuilder.lasrOnboarding(
                     }
                 }
             },
-            onCancelled = navController::navigateUp
+            onCancelled = {
+                connectionDraft.clear()
+                navController.navigateUp()
+            }
         )
     }
 }
 
 @Composable
-private fun AddWalletDestination(navController: NavController, fromSettings: Boolean) {
+private fun AddWalletDestination(
+    navController: NavController,
+    fromSettings: Boolean,
+    connectionDraft: NwcConnectionDraft
+) {
     val viewModel = remember { AddNwcWalletViewModel() }
     val state by viewModel.uiState.collectAsState()
     val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val scannerController = rememberQrScannerController()
     val cameraPermission = rememberCameraPermissionState()
     var scannerStarted by remember { mutableStateOf(false) }
@@ -192,20 +206,16 @@ private fun AddWalletDestination(navController: NavController, fromSettings: Boo
         viewModel.events.collectLatest { event ->
             when (event) {
                 is AddNwcWalletEvent.Confirm -> {
+                    connectionDraft.set(event.uri)
                     navController.popBackStack()
                     navController.navigate(
                         LasrDestination.ConfirmWallet(
-                            uri = event.uri,
                             fromSettings = fromSettings
                         )
                     )
                 }
             }
         }
-    }
-    LaunchedEffect(Unit) {
-        val text = clipboard.getClipEntry()?.readPlainText()
-        viewModel.prefillUriIfValid(text)
     }
     LaunchedEffect(cameraPermission.hasPermission) {
         if (!cameraPermission.hasPermission) {
@@ -237,6 +247,12 @@ private fun AddWalletDestination(navController: NavController, fromSettings: Boo
             state = state,
             onBack = navController::navigateUp,
             onUriChange = viewModel::updateUri,
+            onPaste = {
+                scope.launch {
+                    val text = clipboard.getClipEntry()?.readPlainText()
+                    viewModel.prefillUriIfValid(text)
+                }
+            },
             onSubmit = viewModel::submit,
             controller = scannerController,
             isCameraPermissionGranted = cameraPermission.hasPermission
@@ -246,11 +262,17 @@ private fun AddWalletDestination(navController: NavController, fromSettings: Boo
 
 @Composable
 private fun ConfirmWalletDestination(
-    uri: String,
+    uri: String?,
     nwcWallet: NwcWallet,
     onConnected: () -> Unit,
     onCancelled: () -> Unit
 ) {
+    if (uri == null) {
+        LaunchedEffect(Unit) {
+            onCancelled()
+        }
+        return
+    }
     val viewModel = remember(nwcWallet) { ConnectNwcWalletViewModel(nwcWallet) }
     val state by viewModel.uiState.collectAsState()
 

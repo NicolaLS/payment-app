@@ -3,6 +3,7 @@
     <string name="add_wallet_description">Copia un URI de NWC y regresa aquí, o escanea el código QR.</string>
     <string name="add_wallet_uri_label">URI de Wallet Connect</string>
     <string name="add_wallet_uri_placeholder">nostr+walletconnect://tu-wallet-public-key?relay=…</string>
+    <string name="add_wallet_uri_paste">Pegar desde el portapapeles</string>
     <string name="add_wallet_scan_instruction">Alinea el código QR dentro del marco.</string>
     <string name="add_wallet_scan_permission">Se necesita acceso a la cámara para escanear códigos QR.</string>
     <string name="connect_wallet_title">Añadir billetera</string>
@@ -24,4 +25,9 @@
     <string name="connect_wallet_warning_legacy_nip04_default">Esta billetera no anunció un esquema de cifrado. Asumiremos NIP-04 heredado, que ofrece una protección más débil que NIP-44.</string>
     <string name="connect_wallet_warning_heading">Revisa antes de conectar</string>
     <string name="keyboard_done">Listo</string>
+    <string name="connect_wallet_warning_missing_lookup_invoice">Esta billetera no anuncia lookup_invoice. Lasr lo necesita para resolver pagos demorados de forma segura.</string>
+    <string name="connect_wallet_required_methods">Lasr requiere pay_invoice y lookup_invoice antes de guardar esta conexión.</string>
+    <string name="error_wallet_already_connected">Desconecta tu billetera actual antes de conectar otra.</string>
+    <string name="error_invalid_wallet_uri">La URI de la billetera no es válida. Verifícala e inténtalo de nuevo.</string>
+    <string name="error_relay_connection_failed">No se pudo conectar a la billetera. Inténtalo de nuevo.</string>
 </resources>

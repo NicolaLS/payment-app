@@ -6,26 +6,34 @@ import kotlinx.coroutines.flow.asStateFlow
 import platform.Foundation.NSNotificationCenter
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import platform.UIKit.UIApplicationDidEnterBackgroundNotification
+import platform.darwin.NSObjectProtocol
 
 private class IosAppLifecycleObserver : AppLifecycleObserver {
     private val foreground = MutableStateFlow(true)
+    private val center = NSNotificationCenter.defaultCenter
+    private val foregroundObserver: NSObjectProtocol
+    private val backgroundObserver: NSObjectProtocol
 
     override val isInForeground: StateFlow<Boolean> = foreground.asStateFlow()
 
     init {
-        val center = NSNotificationCenter.defaultCenter
-        center.addObserverForName(
+        foregroundObserver = center.addObserverForName(
             name = UIApplicationDidBecomeActiveNotification,
             `object` = null,
             queue = null,
             usingBlock = { foreground.value = true }
         )
-        center.addObserverForName(
+        backgroundObserver = center.addObserverForName(
             name = UIApplicationDidEnterBackgroundNotification,
             `object` = null,
             queue = null,
             usingBlock = { foreground.value = false }
         )
+    }
+
+    override fun close() {
+        center.removeObserver(foregroundObserver)
+        center.removeObserver(backgroundObserver)
     }
 }
 

@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -34,8 +35,8 @@ import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_s
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_scan_permission
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_title
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_label
+import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_paste
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_placeholder
-import xyz.lilsus.lasr.ui.lasrConnectionErrorMessageFor
 import xyz.lilsus.raylsuite.core.camera.CameraPreviewHost
 import xyz.lilsus.raylsuite.core.camera.QrScannerController
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
@@ -46,6 +47,7 @@ fun AddNwcWalletScreen(
     state: AddNwcWalletUiState,
     onBack: () -> Unit,
     onUriChange: (String) -> Unit,
+    onPaste: () -> Unit,
     onSubmit: () -> Unit,
     controller: QrScannerController,
     isCameraPermissionGranted: Boolean,
@@ -105,6 +107,12 @@ fun AddNwcWalletScreen(
                         onDone = { submitOrClearFocus() }
                     )
             )
+            TextButton(
+                onClick = onPaste,
+                modifier = Modifier.testTag(NwcWalletConnectionTestTags.PASTE_BUTTON)
+            ) {
+                Text(stringResource(Res.string.add_wallet_uri_paste))
+            }
             state.error?.let { error ->
                 Text(
                     text = lasrConnectionErrorMessageFor(error),
@@ -163,6 +171,7 @@ private fun CameraCard(controller: QrScannerController, hasPermission: Boolean) 
 object NwcWalletConnectionTestTags {
     const val SCREEN = "nwc_wallet_screen"
     const val URI_FIELD = "nwc_wallet_uri_field"
+    const val PASTE_BUTTON = "nwc_wallet_paste_button"
     const val CAMERA_CARD = "nwc_wallet_camera_card"
     const val CAMERA_PREVIEW = "nwc_wallet_camera_preview"
     const val CONFIRM_DIALOG = "nwc_wallet_confirm_dialog"

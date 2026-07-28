@@ -40,16 +40,17 @@ import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wall
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_pubkey
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_relay
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_loading
+import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_required_methods
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_retry
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_title
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_heading
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_legacy_nip04
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_legacy_nip04_default
+import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_missing_lookup_invoice
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_missing_nip44
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_missing_pay_invoice
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.keyboard_done
 import xyz.lilsus.lasr.integration.nwc.NwcWalletDiscovery
-import xyz.lilsus.lasr.ui.lasrConnectionErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.keyboard.doneKeyboardPlatformImeOptions
 
 @Composable
@@ -75,7 +76,7 @@ fun ConnectNwcWalletDialog(
             TextButton(
                 onClick = onConfirm,
                 enabled =
-                    state.discovery != null &&
+                    state.discovery?.supportsRequiredMethods == true &&
                         !state.isSaving &&
                         !state.isDiscoveryLoading,
                 modifier =
@@ -304,10 +305,20 @@ private fun CapabilitySection(title: String, values: Set<String>) {
 private fun WarningSection(discovery: NwcWalletDiscovery) {
     val warnings =
         buildList {
+            if (!discovery.supportsRequiredMethods) {
+                add(stringResource(Res.string.connect_wallet_required_methods))
+            }
             if (!discovery.supportsPayInvoice) {
                 add(
                     stringResource(
                         Res.string.connect_wallet_warning_missing_pay_invoice
+                    )
+                )
+            }
+            if (!discovery.supportsLookupInvoice) {
+                add(
+                    stringResource(
+                        Res.string.connect_wallet_warning_missing_lookup_invoice
                     )
                 )
             }

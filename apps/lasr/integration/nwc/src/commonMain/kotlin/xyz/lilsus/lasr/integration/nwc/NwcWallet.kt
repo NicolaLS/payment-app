@@ -4,55 +4,65 @@ import com.russhwolf.settings.Settings
 import io.github.nicolals.nostr.nip47.model.NwcEncryption
 import io.github.nicolals.nwc.Amount
 import io.github.nicolals.nwc.LookupInvoiceParams
+import io.github.nicolals.nwc.NwcCapability
 import io.github.nicolals.nwc.NwcClient
 import io.github.nicolals.nwc.NwcConnectionUri
 import io.github.nicolals.nwc.NwcError
 import io.github.nicolals.nwc.NwcException
 import io.github.nicolals.nwc.NwcNotificationType
 import io.github.nicolals.nwc.NwcResult
+import io.github.nicolals.nwc.Transaction
 import io.github.nicolals.nwc.TransactionState
 import io.github.nicolals.nwc.WalletDiscovery
 import io.github.nicolals.nwc.WalletInfo
+import io.github.nicolals.nwc.WalletNotification
 import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import xyz.lilsus.raylsuite.core.network.createWebSocketHttpClient
-import xyz.lilsus.raylsuite.core.payment.PaidInvoice
-import xyz.lilsus.raylsuite.core.payment.PayInvoiceRequest
-import xyz.lilsus.raylsuite.core.payment.PaymentError
-import xyz.lilsus.raylsuite.core.payment.PaymentException
-import xyz.lilsus.raylsuite.core.payment.PaymentHash
-import xyz.lilsus.raylsuite.core.payment.PaymentLookupResult
-import xyz.lilsus.raylsuite.core.payment.PaymentProvider
 
 data class NwcWalletConnection(
     val alias: String?,
     val walletPublicKey: String,
-    val relayUrl: String?,
+    val relayUrls: List<String>,
     val lightningAddress: String?,
     val metadata: NwcWalletMetadata
-)
+) {
+    val relayUrl: String?
+        get() = relayUrls.firstOrNull()
+}
 
 data class NwcWalletDiscovery(
     val connectionUri: String,
     val walletPublicKey: String,
-    val relayUrl: String?,
+    val relayUrls: List<String>,
     val lightningAddress: String?,
     val aliasSuggestion: String?,
     val metadata: NwcWalletMetadata
 ) {
+    val relayUrl: String?
+        get() = relayUrls.firstOrNull()
+
     val supportsPayInvoice: Boolean
-        get() = metadata.methods.any { it.equals("pay_invoice", ignoreCase = true) }
+        get() = metadata.supports(REQUIRED_PAY_METHOD)
+
+    val supportsLookupInvoice: Boolean
+        get() = metadata.supports(REQUIRED_LOOKUP_METHOD)
+
+    val supportsRequiredMethods: Boolean
+        get() = supportsPayInvoice && supportsLookupInvoice
 
     val supportsNip44: Boolean
-        get() =
-            metadata.encryptionSchemes.any {
-                it.equals("nip44_v2", ignoreCase = true)
-            }
+        get() = metadata.encryptionSchemes.any { it.equals("nip44_v2", ignoreCase = true) }
 
     val usesLegacyEncryption: Boolean
         get() = metadata.negotiatedEncryption?.equals("nip04", ignoreCase = true) == true
@@ -66,14 +76,16 @@ data class NwcWalletMetadata(
     val notifications: Set<String>,
     val network: String?,
     val color: String?
-)
+) {
+    fun supports(method: String): Boolean = methods.any { it.equals(method, ignoreCase = true) }
+}
 
 sealed interface NwcConnectionError {
     data object AlreadyConnected : NwcConnectionError
 
     data object InvalidUri : NwcConnectionError
 
-    data object PaymentPermissionRequired : NwcConnectionError
+    data object RequiredMethodsMissing : NwcConnectionError
 
     data class ConnectionFailed(val detail: String? = null) : NwcConnectionError
 }
@@ -81,33 +93,66 @@ sealed interface NwcConnectionError {
 class NwcConnectionException(val error: NwcConnectionError, cause: Throwable? = null) :
     Exception(error.toString(), cause)
 
+sealed interface NwcPayOutcome {
+    data class Settled(val preimage: String?, val feesPaidMsats: Long?) : NwcPayOutcome
+
+    data class WalletRejected(val code: String?, val detail: String?) : NwcPayOutcome
+
+    data class DefinitelyNotSent(val detail: String?) : NwcPayOutcome
+
+    data class Uncertain(val detail: String?) : NwcPayOutcome
+}
+
+sealed interface NwcLookupOutcome {
+    data class Settled(val preimage: String?, val feesPaidMsats: Long?) : NwcLookupOutcome
+
+    data object Pending : NwcLookupOutcome
+
+    data object Failed : NwcLookupOutcome
+
+    data object NotFound : NwcLookupOutcome
+
+    data class RetryableFailure(val detail: String?) : NwcLookupOutcome
+
+    data class PermanentlyUnavailable(val detail: String?) : NwcLookupOutcome
+}
+
+data class NwcSentPayment(
+    val paymentHash: String,
+    val invoice: String?,
+    val preimage: String?,
+    val feesPaidMsats: Long?
+)
+
 class NwcWallet internal constructor(
     private val credentialStore: NwcCredentialStore,
     private val scope: CoroutineScope,
     private val httpClient: HttpClient,
     private val isNetworkAvailable: () -> Boolean,
     private val ownsHttpClient: Boolean
-) : PaymentProvider {
+) {
     private val clientMutex = Mutex()
     private var client: NwcClient? = null
-    private val mutableConnection =
-        MutableStateFlow(credentialStore.read()?.toConnection())
+    private var notificationJob: Job? = null
+    private val mutableConnection = MutableStateFlow(credentialStore.read()?.toConnection())
+    private val mutableForeground = MutableStateFlow(true)
+    private val mutableSentPayments = MutableSharedFlow<NwcSentPayment>(extraBufferCapacity = 16)
 
     val connection: StateFlow<NwcWalletConnection?> = mutableConnection.asStateFlow()
+    val isInForeground: StateFlow<Boolean> = mutableForeground.asStateFlow()
+    val sentPayments: SharedFlow<NwcSentPayment> = mutableSentPayments.asSharedFlow()
 
     suspend fun discover(connectionUri: String): NwcWalletDiscovery {
         val normalizedUri = connectionUri.trim()
         if (normalizedUri.isEmpty() || NwcConnectionUri.parse(normalizedUri) == null) {
             throw NwcConnectionException(NwcConnectionError.InvalidUri)
         }
-
         return when (
-            val result =
-                NwcClient.discover(
-                    uri = normalizedUri,
-                    httpClient = httpClient,
-                    timeoutMs = DISCOVERY_TIMEOUT_MILLIS
-                )
+            val result = NwcClient.discover(
+                uri = normalizedUri,
+                httpClient = httpClient,
+                timeoutMs = DISCOVERY_TIMEOUT_MILLIS
+            )
         ) {
             is NwcResult.Success -> result.value.toWalletDiscovery()
             is NwcResult.Failure -> throw result.error.toConnectionException()
@@ -118,36 +163,27 @@ class NwcWallet internal constructor(
         connect(discover(connectionUri), alias)
 
     suspend fun connect(discovery: NwcWalletDiscovery, alias: String?): NwcWalletConnection {
+        if (!discovery.supportsRequiredMethods) {
+            throw NwcConnectionException(NwcConnectionError.RequiredMethodsMissing)
+        }
         if (mutableConnection.value != null) {
             throw NwcConnectionException(NwcConnectionError.AlreadyConnected)
         }
         val normalizedAlias = alias?.trim()?.takeIf(String::isNotEmpty)
-        val uri =
-            NwcConnectionUri.parse(discovery.connectionUri)
-                ?: throw NwcConnectionException(NwcConnectionError.InvalidUri)
-
-        val credentials =
-            NwcCredentials(
-                connectionUri = uri.raw,
-                alias = normalizedAlias,
-                metadata = discovery.metadata
-            )
+        val uri = NwcConnectionUri.parse(discovery.connectionUri)
+            ?: throw NwcConnectionException(NwcConnectionError.InvalidUri)
+        val credentials = NwcCredentials(uri.raw, normalizedAlias, discovery.metadata)
         val connectedWallet = discovery.toConnection(normalizedAlias)
 
         clientMutex.withLock {
             if (mutableConnection.value != null) {
                 throw NwcConnectionException(NwcConnectionError.AlreadyConnected)
             }
-            val newClient =
-                NwcClient(
-                    uri = uri,
-                    scope = scope,
-                    httpClient = httpClient,
-                    cachedWalletInfo = discovery.metadata.toWalletInfo()
-                )
+            val newClient = createClient(uri, discovery.metadata)
             try {
                 credentialStore.save(credentials)
                 client = newClient
+                observeNotifications(newClient)
                 mutableConnection.value = connectedWallet
             } catch (error: Throwable) {
                 newClient.close()
@@ -155,111 +191,125 @@ class NwcWallet internal constructor(
                 throw error
             }
         }
-
         return connectedWallet
     }
 
     suspend fun disconnect() {
-        val previousClient =
-            clientMutex.withLock {
-                credentialStore.clear()
-                mutableConnection.value = null
-                client.also { client = null }
-            }
+        val previousClient = clientMutex.withLock {
+            credentialStore.clear()
+            mutableConnection.value = null
+            notificationJob?.cancel()
+            notificationJob = null
+            client.also { client = null }
+        }
         previousClient?.close()
     }
 
-    override suspend fun payInvoice(request: PayInvoiceRequest): PaidInvoice {
-        if (!isNetworkAvailable()) {
-            throw PaymentException(PaymentError.NetworkUnavailable)
+    suspend fun payInvoice(invoice: String, amountMsats: Long?, timeoutMs: Long): NwcPayOutcome {
+        if (!mutableForeground.value) {
+            return NwcPayOutcome.DefinitelyNotSent("App is in the background")
         }
-
-        val result =
-            getOrCreateClient().payInvoice(
-                invoice = request.invoice.value,
-                amount = request.amountMsats?.let(Amount::fromMsats),
-                timeoutMs = PAY_TIMEOUT_MILLIS,
-                verifyOnTimeout = true
+        if (!isNetworkAvailable()) {
+            return NwcPayOutcome.DefinitelyNotSent("Network unavailable")
+        }
+        val activeClient = getOrCreateClient()
+            ?: return NwcPayOutcome.DefinitelyNotSent("Wallet connection missing")
+        return when (
+            val result = activeClient.payInvoice(
+                invoice = invoice,
+                amount = amountMsats?.let(Amount::fromMsats),
+                timeoutMs = timeoutMs,
+                verifyOnTimeout = false
             )
-
-        return when (result) {
+        ) {
             is NwcResult.Success ->
-                PaidInvoice(
-                    preimageHex = result.value.preimage,
+                NwcPayOutcome.Settled(
+                    preimage = result.value.preimage,
                     feesPaidMsats = result.value.feesPaid?.msats
                 )
 
-            is NwcResult.Failure ->
-                throw PaymentException(
-                    error = result.error.toPaymentError(),
-                    cause = NwcException(result.error)
-                )
+            is NwcResult.Failure -> result.error.toPayOutcome()
         }
     }
 
-    override suspend fun lookupPayment(paymentHash: PaymentHash): PaymentLookupResult {
-        if (!isNetworkAvailable()) {
-            return PaymentLookupResult.LookupError(PaymentError.NetworkUnavailable)
+    suspend fun lookupInvoice(paymentHash: String, timeoutMs: Long): NwcLookupOutcome {
+        if (!mutableForeground.value) {
+            return NwcLookupOutcome.RetryableFailure("App is in the background")
         }
-
-        return try {
-            when (
-                val result =
-                    getOrCreateClient().lookupInvoice(
-                        params = LookupInvoiceParams(paymentHash = paymentHash.hex),
-                        timeoutMs = LOOKUP_TIMEOUT_MILLIS
-                    )
-            ) {
-                is NwcResult.Success -> result.value.toLookupResult()
-                is NwcResult.Failure -> result.error.toLookupResult()
-            }
-        } catch (error: PaymentException) {
-            PaymentLookupResult.LookupError(error.error)
+        if (!isNetworkAvailable()) {
+            return NwcLookupOutcome.RetryableFailure("Network unavailable")
+        }
+        val activeClient = getOrCreateClient()
+            ?: return NwcLookupOutcome.PermanentlyUnavailable("Wallet connection missing")
+        return when (
+            val result = activeClient.lookupInvoice(
+                params = LookupInvoiceParams(paymentHash = paymentHash),
+                timeoutMs = timeoutMs
+            )
+        ) {
+            is NwcResult.Success -> result.value.toLookupOutcome()
+            is NwcResult.Failure -> result.error.toLookupOutcome()
         }
     }
 
     suspend fun onAppForegroundChanged(isInForeground: Boolean) {
+        mutableForeground.value = isInForeground
         if (isInForeground) {
             if (connection.value != null) {
-                runCatching { getOrCreateClient() }
+                getOrCreateClient()
             }
         } else {
             releaseClient()
         }
     }
 
-    suspend fun close() {
-        releaseClient()
-        if (ownsHttpClient) {
-            httpClient.close()
+    suspend fun prewarm() {
+        if (mutableForeground.value && connection.value != null) {
+            getOrCreateClient()
         }
     }
 
+    suspend fun close() {
+        releaseClient()
+        if (ownsHttpClient) httpClient.close()
+    }
+
     private suspend fun releaseClient() {
-        val previousClient =
-            clientMutex.withLock {
-                client.also { client = null }
-            }
+        val previousClient = clientMutex.withLock {
+            notificationJob?.cancel()
+            notificationJob = null
+            client.also { client = null }
+        }
         previousClient?.close()
     }
 
-    private suspend fun getOrCreateClient(): NwcClient = clientMutex.withLock {
+    private suspend fun getOrCreateClient(): NwcClient? = clientMutex.withLock {
         client?.let { return@withLock it }
+        val credentials = credentialStore.read() ?: return@withLock null
+        val uri = NwcConnectionUri.parse(credentials.connectionUri) ?: return@withLock null
+        createClient(uri, credentials.metadata).also {
+            client = it
+            observeNotifications(it)
+        }
+    }
 
-        val credentials =
-            credentialStore.read()
-                ?: throw PaymentException(PaymentError.MissingWalletConnection)
-        val uri =
-            NwcConnectionUri.parse(credentials.connectionUri)
-                ?: throw PaymentException(
-                    PaymentError.WalletConnectionFailed("Invalid NWC connection")
-                )
+    private fun createClient(uri: NwcConnectionUri, metadata: NwcWalletMetadata): NwcClient =
         NwcClient(
             uri = uri,
             scope = scope,
             httpClient = httpClient,
-            cachedWalletInfo = credentials.metadata.toWalletInfo()
-        ).also { client = it }
+            cachedWalletInfo = metadata.toWalletInfo()
+        )
+
+    private fun observeNotifications(observedClient: NwcClient) {
+        notificationJob?.cancel()
+        notificationJob = scope.launch {
+            observedClient.notifications.collect { notification ->
+                if (notification is WalletNotification.PaymentSent) {
+                    mutableSentPayments.emit(notification.transaction.toSentPayment())
+                }
+            }
+        }
     }
 }
 
@@ -298,7 +348,7 @@ private fun NwcCredentials.toConnection(): NwcWalletConnection? {
     return NwcWalletConnection(
         alias = alias,
         walletPublicKey = uri.walletPubkey.hex,
-        relayUrl = uri.relays.firstOrNull(),
+        relayUrls = uri.relays,
         lightningAddress = uri.lud16,
         metadata = metadata
     )
@@ -307,44 +357,38 @@ private fun NwcCredentials.toConnection(): NwcWalletConnection? {
 private fun WalletDiscovery.toWalletDiscovery(): NwcWalletDiscovery = NwcWalletDiscovery(
     connectionUri = uri.raw,
     walletPublicKey = uri.walletPubkey.hex,
-    relayUrl = uri.relays.firstOrNull(),
+    relayUrls = uri.relays,
     lightningAddress = uri.lud16,
     aliasSuggestion = details?.alias,
-    metadata =
-        NwcWalletMetadata(
-            methods = walletInfo.capabilityStrings,
-            encryptionSchemes = walletInfo.encryptionStrings,
-            negotiatedEncryption = walletInfo.preferredEncryption.tag,
-            encryptionDefaultedToNip04 = walletInfo.encryptionDefaultedToNip04,
-            notifications = walletInfo.notificationStrings,
-            network = details?.network,
-            color = details?.color
-        )
+    metadata = NwcWalletMetadata(
+        methods = walletInfo.capabilityStrings,
+        encryptionSchemes = walletInfo.encryptionStrings,
+        negotiatedEncryption = walletInfo.preferredEncryption.tag,
+        encryptionDefaultedToNip04 = walletInfo.encryptionDefaultedToNip04,
+        notifications = walletInfo.notificationStrings,
+        network = details?.network,
+        color = details?.color
+    )
 )
 
 private fun NwcWalletDiscovery.toConnection(alias: String?): NwcWalletConnection =
     NwcWalletConnection(
         alias = alias,
         walletPublicKey = walletPublicKey,
-        relayUrl = relayUrl,
+        relayUrls = relayUrls,
         lightningAddress = lightningAddress,
         metadata = metadata
     )
 
 private fun NwcWalletMetadata.toWalletInfo(): WalletInfo {
-    val capabilities =
-        methods.mapNotNull(io.github.nicolals.nwc.NwcCapability::fromValue).toSet()
-    val notificationTypes =
-        notifications.mapNotNull(NwcNotificationType::fromValue).toSet()
+    val capabilities = methods.mapNotNull(NwcCapability::fromValue).toSet()
+    val notificationTypes = notifications.mapNotNull(NwcNotificationType::fromValue).toSet()
     val encryptions = encryptionSchemes.mapNotNull(NwcEncryption::fromTag).toSet()
-    val preferredEncryption =
-        negotiatedEncryption?.let(NwcEncryption::fromTag)
-            ?: when {
-                NwcEncryption.NIP44_V2 in encryptions -> NwcEncryption.NIP44_V2
-                NwcEncryption.NIP04 in encryptions -> NwcEncryption.NIP04
-                else -> NwcEncryption.NIP04
-            }
-
+    val preferredEncryption = negotiatedEncryption?.let(NwcEncryption::fromTag)
+        ?: when {
+            NwcEncryption.NIP44_V2 in encryptions -> NwcEncryption.NIP44_V2
+            else -> NwcEncryption.NIP04
+        }
     return WalletInfo(
         capabilities = capabilities,
         notifications = notificationTypes,
@@ -354,84 +398,82 @@ private fun NwcWalletMetadata.toWalletInfo(): WalletInfo {
     )
 }
 
-private fun io.github.nicolals.nwc.Transaction.toLookupResult(): PaymentLookupResult =
-    when (state) {
-        TransactionState.SETTLED ->
-            PaymentLookupResult.Settled(
-                PaidInvoice(
-                    preimageHex = preimage,
-                    feesPaidMsats = feesPaid?.msats
-                )
-            )
+private fun Transaction.toLookupOutcome(): NwcLookupOutcome = when (state) {
+    TransactionState.SETTLED ->
+        NwcLookupOutcome.Settled(preimage = preimage, feesPaidMsats = feesPaid?.msats)
 
-        TransactionState.PENDING -> PaymentLookupResult.Pending
+    TransactionState.PENDING -> NwcLookupOutcome.Pending
 
-        TransactionState.FAILED, TransactionState.EXPIRED -> PaymentLookupResult.Failed
+    TransactionState.FAILED, TransactionState.EXPIRED -> NwcLookupOutcome.Failed
 
-        null ->
-            if (settledAt != null || preimage != null) {
-                PaymentLookupResult.Settled(
-                    PaidInvoice(
-                        preimageHex = preimage,
-                        feesPaidMsats = feesPaid?.msats
-                    )
-                )
-            } else {
-                PaymentLookupResult.Pending
-            }
-    }
+    null ->
+        if (settledAt != null || preimage != null) {
+            NwcLookupOutcome.Settled(preimage = preimage, feesPaidMsats = feesPaid?.msats)
+        } else {
+            NwcLookupOutcome.Pending
+        }
+}
 
-private fun NwcError.toLookupResult(): PaymentLookupResult =
-    if (this is NwcError.WalletError && code.code == "NOT_FOUND") {
-        PaymentLookupResult.NotFound
-    } else {
-        PaymentLookupResult.LookupError(toPaymentError())
-    }
+private fun Transaction.toSentPayment(): NwcSentPayment = NwcSentPayment(
+    paymentHash = paymentHash,
+    invoice = invoice,
+    preimage = preimage,
+    feesPaidMsats = feesPaid?.msats
+)
 
-private fun NwcError.toPaymentError(): PaymentError = when (this) {
+private fun NwcError.toPayOutcome(): NwcPayOutcome = when (this) {
     is NwcError.WalletError ->
-        PaymentError.PaymentRejected(
+        NwcPayOutcome.WalletRejected(
             code = code.code.takeIf(String::isNotEmpty),
             detail = message.takeIf(String::isNotEmpty)
         )
 
-    is NwcError.ConnectionError -> PaymentError.WalletConnectionFailed(message)
+    is NwcError.ConnectionError -> NwcPayOutcome.DefinitelyNotSent(message)
 
-    is NwcError.Timeout -> PaymentError.Timeout
+    is NwcError.Timeout -> NwcPayOutcome.Uncertain(message)
 
-    is NwcError.Cancelled -> PaymentError.Unexpected(message)
+    is NwcError.PaymentPending -> NwcPayOutcome.Uncertain(message)
 
-    is NwcError.ProtocolError -> PaymentError.Unexpected(message)
+    is NwcError.Cancelled -> NwcPayOutcome.Uncertain(message)
 
-    is NwcError.CryptoError -> PaymentError.Unexpected(message)
+    is NwcError.ProtocolError -> NwcPayOutcome.Uncertain(message)
 
-    is NwcError.PaymentPending ->
-        PaymentError.PaymentUnconfirmed(
-            paymentHash =
-                paymentHash
-                    ?.takeIf(String::isNotBlank)
-                    ?.let(::PaymentHash),
-            detail = message
-        )
+    is NwcError.CryptoError -> NwcPayOutcome.DefinitelyNotSent(message)
+}
+
+private fun NwcError.toLookupOutcome(): NwcLookupOutcome = when (this) {
+    is NwcError.WalletError -> when (code.code.uppercase()) {
+        "NOT_FOUND" -> NwcLookupOutcome.NotFound
+
+        "RATE_LIMITED", "TEMPORARY_FAILURE", "INTERNAL" ->
+            NwcLookupOutcome.RetryableFailure(message)
+
+        else -> NwcLookupOutcome.PermanentlyUnavailable(message)
+    }
+
+    is NwcError.ConnectionError,
+    is NwcError.Timeout,
+    is NwcError.Cancelled -> NwcLookupOutcome.RetryableFailure(message)
+
+    is NwcError.ProtocolError,
+    is NwcError.CryptoError -> NwcLookupOutcome.PermanentlyUnavailable(message)
+
+    is NwcError.PaymentPending -> NwcLookupOutcome.Pending
 }
 
 private fun NwcError.toConnectionException(): NwcConnectionException = when (this) {
     is NwcError.ProtocolError ->
         NwcConnectionException(
-            error =
-                if (message.contains("invalid", ignoreCase = true)) {
-                    NwcConnectionError.InvalidUri
-                } else {
-                    NwcConnectionError.ConnectionFailed(message)
-                },
-            cause = cause
+            if (message.contains("invalid", ignoreCase = true)) {
+                NwcConnectionError.InvalidUri
+            } else {
+                NwcConnectionError.ConnectionFailed(message)
+            },
+            cause
         )
 
     is NwcError.ConnectionError ->
-        NwcConnectionException(
-            NwcConnectionError.ConnectionFailed(message),
-            cause
-        )
+        NwcConnectionException(NwcConnectionError.ConnectionFailed(message), cause)
 
     else ->
         NwcConnectionException(
@@ -441,5 +483,5 @@ private fun NwcError.toConnectionException(): NwcConnectionException = when (thi
 }
 
 private const val DISCOVERY_TIMEOUT_MILLIS = 10_000L
-private const val PAY_TIMEOUT_MILLIS = 20_000L
-private const val LOOKUP_TIMEOUT_MILLIS = 10_000L
+private const val REQUIRED_PAY_METHOD = "pay_invoice"
+private const val REQUIRED_LOOKUP_METHOD = "lookup_invoice"
