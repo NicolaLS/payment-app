@@ -7,6 +7,7 @@ import com.apollographql.apollo.api.Error as ApolloGraphQlError
 import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.exception.ApolloException
 import com.apollographql.apollo.exception.ApolloHttpException
+import com.apollographql.apollo.network.http.DefaultHttpEngine
 import fr.acinq.bitcoin.ByteVector32
 import fr.acinq.lightning.MilliSatoshi
 import fr.acinq.lightning.utils.msat
@@ -16,13 +17,10 @@ import xyz.lilsus.blip.integration.blink.graphql.BlinkContactsQuery
 import xyz.lilsus.blip.integration.blink.graphql.DefaultWalletIdQuery
 import xyz.lilsus.blip.integration.blink.graphql.LnInvoicePaymentSendMutation
 import xyz.lilsus.blip.integration.blink.graphql.LnNoAmountInvoicePaymentSendMutation
-import xyz.lilsus.blip.integration.blink.graphql.TransactionsByPaymentHashQuery
 import xyz.lilsus.blip.integration.blink.graphql.fragment.BlinkTransactionPaymentResult
 import xyz.lilsus.blip.integration.blink.graphql.type.LnInvoicePaymentInput
 import xyz.lilsus.blip.integration.blink.graphql.type.LnNoAmountInvoicePaymentInput
 import xyz.lilsus.blip.integration.blink.graphql.type.PaymentSendResult
-import xyz.lilsus.blip.integration.blink.graphql.type.TxDirection
-import xyz.lilsus.blip.integration.blink.graphql.type.TxStatus
 import xyz.lilsus.blip.integration.blink.graphql.type.WalletCurrency
 
 /**
@@ -165,60 +163,6 @@ class BlinkApiClient(
         AmountTooSmall,
         LimitExceeded,
         RateLimited
-    }
-
-    /**
-     * Looks up the status of a Lightning payment by its payment hash.
-     *
-     * Uses wallet transactions for outgoing payments to avoid invoice-not-found errors.
-     *
-     * @param apiKey The Blink API key for authentication.
-     * @param paymentHash The hex-encoded payment hash to look up.
-     * @return [BlinkPaymentStatusResult] indicating the payment status.
-     * @throws [BlinkApiException] on failure.
-     */
-    suspend fun lookupPaymentStatus(apiKey: String, paymentHash: String): BlinkPaymentStatusResult {
-        val data = executeGraphQlRequest(
-            apiKey = apiKey,
-            logLabel = "TransactionsByPaymentHash",
-            call = apolloClient.query(TransactionsByPaymentHashQuery(paymentHash))
-        )
-
-        val wallets = data.me?.defaultAccount?.wallets
-            ?: return BlinkPaymentStatusResult.NotFound
-
-        val sendTransactions = wallets.flatMap { wallet ->
-            val btcTransactions = wallet.onBTCWallet?.transactionsByPaymentHash
-                ?.map { it.blinkTransactionPaymentResult }
-                ?.filter { it.direction == TxDirection.SEND }
-                ?: emptyList()
-            val usdTransactions = wallet.onUsdWallet?.transactionsByPaymentHash
-                ?.map { it.blinkTransactionPaymentResult }
-                ?.filter { it.direction == TxDirection.SEND }
-                ?: emptyList()
-
-            btcTransactions + usdTransactions
-        }
-        val successfulTransaction = sendTransactions.firstOrNull { it.status == TxStatus.SUCCESS }
-
-        return when {
-            successfulTransaction != null -> BlinkPaymentStatusResult.Paid(
-                preimage = successfulTransaction.preimage(),
-                feesPaid = successfulTransaction.feesPaid()
-            )
-
-            sendTransactions.any {
-                it.status == TxStatus.PENDING
-            } -> BlinkPaymentStatusResult.Pending
-
-            sendTransactions.any {
-                it.status == TxStatus.FAILURE
-            } -> BlinkPaymentStatusResult.Failed
-
-            sendTransactions.isEmpty() -> BlinkPaymentStatusResult.NotFound
-
-            else -> BlinkPaymentStatusResult.NotFound
-        }
     }
 
     /**
@@ -521,7 +465,10 @@ class BlinkApiClient(
 
         fun createBlinkApolloClient(): ApolloClient = ApolloClient.Builder()
             .serverUrl(BLINK_API_URL)
+            .httpEngine(DefaultHttpEngine(timeoutMillis = BLINK_HTTP_TIMEOUT_MS))
             .build()
+
+        private const val BLINK_HTTP_TIMEOUT_MS = 90_000L
     }
 }
 
@@ -549,22 +496,4 @@ sealed class BlinkPaymentResult(
         override val feesPaid: MilliSatoshi? = null,
         override val preimage: ByteVector32? = null
     ) : BlinkPaymentResult(feesPaid, preimage)
-}
-
-/**
- * Result of a Blink payment status lookup.
- */
-sealed class BlinkPaymentStatusResult {
-    /** Payment was confirmed as paid. */
-    data class Paid(val preimage: ByteVector32?, val feesPaid: MilliSatoshi?) :
-        BlinkPaymentStatusResult()
-
-    /** Payment is still pending. */
-    data object Pending : BlinkPaymentStatusResult()
-
-    /** Payment failed or invoice expired. */
-    data object Failed : BlinkPaymentStatusResult()
-
-    /** Payment not found (may not have been initiated yet). */
-    data object NotFound : BlinkPaymentStatusResult()
 }

@@ -55,6 +55,9 @@ private fun errorMessageFor(error: BlinkConnectionError): String = when (error) 
 private fun errorMessageFor(error: BlinkApiError): String = when (error) {
     is BlinkApiError.BlinkError -> errorMessageFor(error.type)
 
+    BlinkApiError.MissingWalletConnection ->
+        stringResource(Res.string.error_missing_wallet_connection)
+
     BlinkApiError.NetworkUnavailable -> stringResource(Res.string.error_network_unavailable)
 
     is BlinkApiError.PaymentRejected -> {

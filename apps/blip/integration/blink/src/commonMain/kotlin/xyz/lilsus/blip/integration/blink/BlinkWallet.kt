@@ -4,15 +4,30 @@ import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import xyz.lilsus.raylsuite.core.payment.PaidInvoice
-import xyz.lilsus.raylsuite.core.payment.PayInvoiceRequest
-import xyz.lilsus.raylsuite.core.payment.PaymentError
-import xyz.lilsus.raylsuite.core.payment.PaymentException
-import xyz.lilsus.raylsuite.core.payment.PaymentHash
-import xyz.lilsus.raylsuite.core.payment.PaymentLookupResult
-import xyz.lilsus.raylsuite.core.payment.PaymentProvider
+import kotlinx.coroutines.withTimeoutOrNull
 
 data class BlinkWalletConnection(val alias: String)
+
+data class BlinkPaymentRequest(val invoice: String, val amountMsats: Long? = null) {
+    init {
+        require(invoice.isNotBlank()) { "An encoded Lightning invoice cannot be blank" }
+        require(amountMsats == null || amountMsats > 0) {
+            "An explicit invoice amount must be greater than zero"
+        }
+    }
+}
+
+sealed interface BlinkPaymentOutcome {
+    data class Paid(val preimageHex: String?, val feesPaidMsats: Long?) : BlinkPaymentOutcome
+
+    data object AlreadyPaid : BlinkPaymentOutcome
+
+    data object Pending : BlinkPaymentOutcome
+
+    data class DefinitiveFailure(val error: BlinkApiError) : BlinkPaymentOutcome
+
+    data class StatusUnknown(val error: BlinkApiError) : BlinkPaymentOutcome
+}
 
 sealed interface BlinkConnectionError {
     data object AlreadyConnected : BlinkConnectionError
@@ -32,7 +47,7 @@ class BlinkWallet internal constructor(
     private val apiClient: BlinkApiClient,
     private val credentialStore: BlinkCredentialStore,
     private val isNetworkAvailable: () -> Boolean
-) : PaymentProvider {
+) {
     private val mutableConnection =
         MutableStateFlow(credentialStore.read()?.toConnection())
 
@@ -89,95 +104,57 @@ class BlinkWallet internal constructor(
         return apiClient.fetchContacts(credentials.apiKey)
     }
 
-    override suspend fun payInvoice(request: PayInvoiceRequest): PaidInvoice {
+    suspend fun submitPayment(request: BlinkPaymentRequest): BlinkPaymentOutcome {
         if (!isNetworkAvailable()) {
-            throw PaymentException(PaymentError.NetworkUnavailable)
+            return BlinkPaymentOutcome.DefinitiveFailure(BlinkApiError.NetworkUnavailable)
         }
 
         val credentials = credentialStore.read()
-            ?: throw PaymentException(PaymentError.MissingWalletConnection)
+            ?: return BlinkPaymentOutcome.DefinitiveFailure(
+                BlinkApiError.MissingWalletConnection
+            )
 
         val amountMsats = request.amountMsats
-        val result = try {
-            if (amountMsats != null) {
-                apiClient.payNoAmountInvoice(
-                    apiKey = credentials.apiKey,
-                    walletId = credentials.defaultWalletId,
-                    invoice = request.invoice.value,
-                    amountSats = amountMsats.toSatsRoundedUp()
-                )
-            } else {
-                apiClient.payInvoice(
-                    apiKey = credentials.apiKey,
-                    walletId = credentials.defaultWalletId,
-                    invoice = request.invoice.value
-                )
-            }
-        } catch (error: BlinkApiException) {
-            val paymentError = error.error.toPaymentError()
-            if (
-                paymentError == PaymentError.NetworkUnavailable ||
-                paymentError == PaymentError.Timeout
-            ) {
-                throw PaymentException(
-                    PaymentError.PaymentUnconfirmed(
-                        paymentHash = null,
-                        detail = "Payment status unknown"
-                    ),
-                    error
-                )
-            }
-            throw PaymentException(paymentError, error)
-        }
-
-        if (result is BlinkPaymentResult.Pending) {
-            throw PaymentException(
-                PaymentError.PaymentUnconfirmed(
-                    paymentHash = null,
-                    detail = "Payment is being processed"
-                )
-            )
-        }
-
-        val wasAlreadyPaid = result is BlinkPaymentResult.AlreadyPaid
-        return PaidInvoice(
-            preimageHex = result.preimage?.toHex(),
-            feesPaidMsats = if (wasAlreadyPaid) null else result.feesPaid?.msat,
-            wasAlreadyPaid = wasAlreadyPaid
-        )
-    }
-
-    override suspend fun lookupPayment(paymentHash: PaymentHash): PaymentLookupResult {
-        if (!isNetworkAvailable()) {
-            return PaymentLookupResult.LookupError(PaymentError.NetworkUnavailable)
-        }
-
-        val credentials = credentialStore.read()
-            ?: return PaymentLookupResult.LookupError(PaymentError.MissingWalletConnection)
-
-        return try {
-            when (
-                val status = apiClient.lookupPaymentStatus(
-                    apiKey = credentials.apiKey,
-                    paymentHash = paymentHash.hex
-                )
-            ) {
-                is BlinkPaymentStatusResult.Paid ->
-                    PaymentLookupResult.Settled(
-                        PaidInvoice(
-                            preimageHex = status.preimage?.toHex(),
-                            feesPaidMsats = status.feesPaid?.msat
+        val result =
+            withTimeoutOrNull(PAYMENT_RESOURCE_GUARD_MS) {
+                try {
+                    if (amountMsats != null) {
+                        apiClient.payNoAmountInvoice(
+                            apiKey = credentials.apiKey,
+                            walletId = credentials.defaultWalletId,
+                            invoice = request.invoice,
+                            amountSats = amountMsats.toSatsRoundedUp()
                         )
-                    )
-
-                BlinkPaymentStatusResult.Pending -> PaymentLookupResult.Pending
-
-                BlinkPaymentStatusResult.Failed -> PaymentLookupResult.Failed
-
-                BlinkPaymentStatusResult.NotFound -> PaymentLookupResult.NotFound
+                    } else {
+                        apiClient.payInvoice(
+                            apiKey = credentials.apiKey,
+                            walletId = credentials.defaultWalletId,
+                            invoice = request.invoice
+                        )
+                    }
+                } catch (error: BlinkApiException) {
+                    return@withTimeoutOrNull error.toPaymentOutcome()
+                }
             }
-        } catch (error: BlinkApiException) {
-            PaymentLookupResult.LookupError(error.error.toPaymentError())
+                ?: return BlinkPaymentOutcome.StatusUnknown(BlinkApiError.Timeout)
+
+        return when (result) {
+            is BlinkPaymentOutcome -> result
+
+            is BlinkPaymentResult.Success ->
+                BlinkPaymentOutcome.Paid(
+                    preimageHex = result.preimage?.toHex(),
+                    feesPaidMsats = result.feesPaid?.msat
+                )
+
+            is BlinkPaymentResult.AlreadyPaid -> BlinkPaymentOutcome.AlreadyPaid
+
+            is BlinkPaymentResult.Pending -> BlinkPaymentOutcome.Pending
+
+            else ->
+                BlinkPaymentOutcome.StatusUnknown(
+                    BlinkApiError.Unexpected("Unexpected payment response")
+                )
         }
     }
 
@@ -203,27 +180,15 @@ private fun BlinkCredentials.toConnection(): BlinkWalletConnection =
 
 private fun Long.toSatsRoundedUp(): Long = (this + 999L) / 1_000L
 
-private fun BlinkApiError.toPaymentError(): PaymentError = when (this) {
-    is BlinkApiError.BlinkError ->
-        when (type) {
-            BlinkErrorType.InvalidApiKey ->
-                PaymentError.AuthenticationFailure()
+private fun BlinkApiException.toPaymentOutcome(): BlinkPaymentOutcome = when (error) {
+    BlinkApiError.NetworkUnavailable,
+    BlinkApiError.Timeout,
+    is BlinkApiError.Unexpected -> BlinkPaymentOutcome.StatusUnknown(error)
 
-            BlinkErrorType.PermissionDenied ->
-                PaymentError.InsufficientPermissions()
-
-            else ->
-                PaymentError.PaymentRejected(code = type.name)
-        }
-
-    BlinkApiError.NetworkUnavailable -> PaymentError.NetworkUnavailable
-
-    is BlinkApiError.PaymentRejected ->
-        PaymentError.PaymentRejected(code = code, detail = message)
-
-    BlinkApiError.Timeout -> PaymentError.Timeout
-
-    is BlinkApiError.Unexpected -> PaymentError.Unexpected(message)
+    BlinkApiError.MissingWalletConnection,
+    is BlinkApiError.BlinkError,
+    is BlinkApiError.PaymentRejected -> BlinkPaymentOutcome.DefinitiveFailure(error)
 }
 
 private const val REQUIRED_SCOPE = "WRITE"
+private const val PAYMENT_RESOURCE_GUARD_MS = 90_000L

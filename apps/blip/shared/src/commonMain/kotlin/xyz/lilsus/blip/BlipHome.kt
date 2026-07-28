@@ -13,22 +13,22 @@ import androidx.navigation.compose.composable
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
+import xyz.lilsus.blip.feature.payment.PaymentCoordinator
+import xyz.lilsus.blip.feature.payment.PaymentFlow
+import xyz.lilsus.blip.feature.payment.PaymentIntent
+import xyz.lilsus.blip.feature.payment.blipPaymentErrorMessageFor
+import xyz.lilsus.blip.feature.payment.getBlipPaymentErrorMessageFor
 import xyz.lilsus.blip.feature.walletdetails.BlinkWalletDetailsScreen
 import xyz.lilsus.blip.feature.walletdetails.BlinkWalletDetailsViewModel
 import xyz.lilsus.blip.integration.blink.BlinkWallet
-import xyz.lilsus.blip.ui.blipPaymentErrorMessageFor
 import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
 import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
-import xyz.lilsus.blip.ui.getBlipPaymentErrorMessageFor
 import xyz.lilsus.raylsuite.blip.generated.resources.Res
 import xyz.lilsus.raylsuite.blip.generated.resources.app_name
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
-import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
-import xyz.lilsus.raylsuite.feature.payment.PaymentFlow
-import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
@@ -49,7 +49,8 @@ internal fun NavGraphBuilder.blipHome(
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator,
-    blinkWallet: BlinkWallet
+    blinkWallet: BlinkWallet,
+    onRemoveWallet: () -> Unit
 ) {
     composable<BlipDestination.Home> {
         PaymentFlow(
@@ -123,7 +124,7 @@ internal fun NavGraphBuilder.blipHome(
             onAddWallet = {
                 navController.navigate(BlipDestination.AddWalletFromSettings)
             },
-            onRemoveWallet = blinkWallet::disconnect,
+            onRemoveWallet = onRemoveWallet,
             onWalletDetails = {
                 navController.navigate(BlipDestination.WalletDetails)
             }

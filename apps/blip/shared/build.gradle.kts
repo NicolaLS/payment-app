@@ -71,6 +71,7 @@ kotlin {
 
         commonMain.dependencies {
             implementation(project(":blip:feature:onboarding"))
+            implementation(project(":blip:feature:payment"))
             implementation(project(":blip:feature:blink-contacts"))
             implementation(project(":blip:feature:wallet-connection"))
             implementation(project(":blip:feature:wallet-details"))
@@ -83,7 +84,6 @@ kotlin {
             implementation(project(":feature:currency-settings"))
             implementation(project(":feature:contacts"))
             implementation(project(":feature:onboarding"))
-            implementation(project(":feature:payment"))
             implementation(project(":feature:payment-settings"))
             implementation(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))

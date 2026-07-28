@@ -24,25 +24,6 @@ query BlinkContacts {
   }
 }
 
-query TransactionsByPaymentHash($paymentHash: PaymentHash!) {
-  me {
-    defaultAccount {
-      wallets {
-        ... on BTCWallet {
-          transactionsByPaymentHash(paymentHash: $paymentHash) {
-            ...BlinkTransactionPaymentResult
-          }
-        }
-        ... on UsdWallet {
-          transactionsByPaymentHash(paymentHash: $paymentHash) {
-            ...BlinkTransactionPaymentResult
-          }
-        }
-      }
-    }
-  }
-}
-
 fragment BlinkTransactionPaymentResult on Transaction {
   status
   direction

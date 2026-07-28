@@ -11,7 +11,6 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(project(":core:payment"))
             implementation(libs.apollo.runtime)
             implementation(libs.bitcoin.kmp)
             implementation(libs.kotlinx.coroutines.core)

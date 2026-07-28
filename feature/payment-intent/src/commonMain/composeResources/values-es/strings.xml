@@ -1,0 +1,11 @@
+<resources>
+    <string name="in_progress_title">El pago aún podría completarse</string>
+    <string name="in_progress_body">Un pago para esta solicitud sigue en curso. Revísalo para evitar pagar dos veces o crea un pago adicional solo si quieres volver a pagar.</string>
+    <string name="outcome_unknown_title">Estado del pago anterior desconocido</string>
+    <string name="outcome_unknown_body">Es posible que el pago anterior haya sido exitoso. Reintenta exactamente su factura, revísalo o crea intencionalmente un pago adicional.</string>
+    <string name="completed_title">Pago anterior completado</string>
+    <string name="completed_body">El pago anterior se completó. Revísalo o crea un pago adicional si quieres volver a pagar.</string>
+    <string name="retry_previous_invoice">Reintentar factura anterior</string>
+    <string name="create_additional_payment">Crear pago adicional</string>
+    <string name="view_previous_payment">Ver pago anterior</string>
+</resources>

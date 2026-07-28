@@ -7,6 +7,11 @@ import kotlin.jvm.JvmInline
  *
  * Wallet integrations translate these simple values to their own SDK types so
  * shared features never depend on Blink, NWC, or a specific Lightning library.
+ *
+ * TODO: Remove this provider abstraction and the shared `:feature:payment` lifecycle after
+ * Lasr gains an app-owned NWC payment feature. Blip already owns its Blink payment lifecycle;
+ * Lasr is the remaining application consumer, and its NWC semantics should not be constrained
+ * by a provider interface designed for the former combined application.
  */
 interface PaymentProvider {
     suspend fun payInvoice(request: PayInvoiceRequest): PaidInvoice

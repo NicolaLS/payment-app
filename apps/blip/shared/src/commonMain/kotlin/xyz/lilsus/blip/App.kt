@@ -9,75 +9,49 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import xyz.lilsus.blip.integration.blink.createBlinkWallet
+import xyz.lilsus.blip.feature.payment.PaymentDeepLinkEvents
+import xyz.lilsus.blip.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.core.model.ThemePreference
-import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
+import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
 import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
+import xyz.lilsus.raylsuite.core.ui.platform.rememberRetainedInstance
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
-import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
-import xyz.lilsus.raylsuite.feature.payment.PaymentCoordinator
-import xyz.lilsus.raylsuite.feature.payment.PaymentDeepLinkEvents
-import xyz.lilsus.raylsuite.feature.payment.PaymentIntent
-import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
-import xyz.lilsus.raylsuite.feature.themesettings.rememberThemePreferences
-import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
-import xyz.lilsus.raylsuite.integration.lnurl.KtorLnurlPayClient
 
 @Composable
 fun App() {
-    val themePreferences = rememberThemePreferences(storageName = BLIP_PREFERENCES)
+    val appSettings = rememberAppSettings(BLIP_PREFERENCES)
+    val secureSettings = rememberSecureSettings(BLIP_CREDENTIALS)
+    val haptics = rememberHapticFeedbackManager()
+    val runtime =
+        rememberRetainedInstance(
+            key = BLIP_RUNTIME_KEY,
+            factory = {
+                BlipRuntime(
+                    appSettings = appSettings,
+                    secureSettings = secureSettings,
+                    haptics = haptics
+                )
+            },
+            onDispose = BlipRuntime::clear
+        )
+    val themePreferences = runtime.themePreferences
     val themePreference by
         themePreferences.preference.collectAsState(
             initial = ThemePreference.System
         )
-    val currencyPreferences = rememberCurrencyPreferences(BLIP_PREFERENCES)
-    val paymentPreferences = rememberPaymentPreferencesRepository(BLIP_PREFERENCES)
-    val contactsRepository = rememberContactsRepository(BLIP_PREFERENCES)
-    val secureSettings = rememberSecureSettings(BLIP_CREDENTIALS)
-    val networkConnectivity = remember { createNetworkConnectivity() }
-    val haptics = rememberHapticFeedbackManager()
-    val blinkWallet =
-        remember(secureSettings, networkConnectivity) {
-            createBlinkWallet(
-                secureSettings = secureSettings,
-                isNetworkAvailable = networkConnectivity::isNetworkAvailable
-            )
-        }
-    val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
-    val lnurlPayClient =
-        remember(networkConnectivity) {
-            KtorLnurlPayClient(networkConnectivity)
-        }
-    val paymentCoordinator =
-        remember(
-            blinkWallet,
-            lnurlPayClient,
-            bitcoinPriceProvider,
-            currencyPreferences,
-            paymentPreferences,
-            contactsRepository,
-            haptics
-        ) {
-            PaymentCoordinator(
-                paymentProvider = blinkWallet,
-                lnurlPayClient = lnurlPayClient,
-                bitcoinPriceProvider = bitcoinPriceProvider,
-                currencyPreferences = currencyPreferences,
-                paymentPreferences = paymentPreferences,
-                contactsRepository = contactsRepository,
-                haptics = haptics,
-                showEstimatedFeeHint = true
-            )
-        }
+    val currencyPreferences = runtime.currencyPreferences
+    val paymentPreferences = runtime.paymentPreferences
+    val contactsRepository = runtime.contactsRepository
+    val blinkWallet = runtime.blinkWallet
+    val paymentCoordinator = runtime.paymentCoordinator
     val onboardingViewModel =
-        remember(paymentPreferences, currencyPreferences, bitcoinPriceProvider) {
+        remember(paymentPreferences, currencyPreferences) {
             OnboardingViewModel(
                 paymentPreferences = paymentPreferences,
                 currencyPreferences = currencyPreferences,
-                bitcoinPriceProvider = bitcoinPriceProvider
+                bitcoinPriceProvider = runtime.bitcoinPriceProvider
             )
         }
     val navController = rememberNavController()
@@ -90,11 +64,8 @@ fun App() {
             }
         }
 
-    DisposableEffect(onboardingViewModel, paymentCoordinator) {
-        onDispose {
-            onboardingViewModel.clear()
-            paymentCoordinator.clear()
-        }
+    DisposableEffect(onboardingViewModel) {
+        onDispose(onboardingViewModel::clear)
     }
     LaunchedEffect(navController, blinkWallet, paymentCoordinator) {
         PaymentDeepLinkEvents.events.collect { uri ->
@@ -124,12 +95,23 @@ fun App() {
             blipHome(
                 navController = navController,
                 themePreferences = themePreferences,
-                bitcoinPriceProvider = bitcoinPriceProvider,
+                bitcoinPriceProvider = runtime.bitcoinPriceProvider,
                 currencyPreferences = currencyPreferences,
                 paymentPreferences = paymentPreferences,
                 contactsRepository = contactsRepository,
                 paymentCoordinator = paymentCoordinator,
-                blinkWallet = blinkWallet
+                blinkWallet = blinkWallet,
+                onRemoveWallet = {
+                    runtime.resetPaymentSession()
+                    PaymentDeepLinkEvents.clear()
+                    blinkWallet.disconnect()
+                    navController.navigate(BlipDestination.Welcome) {
+                        popUpTo(navController.graph.id) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
     }
@@ -137,3 +119,4 @@ fun App() {
 
 internal const val BLIP_PREFERENCES = "blip_preferences"
 private const val BLIP_CREDENTIALS = "blip_wallet"
+private const val BLIP_RUNTIME_KEY = "blip-runtime"

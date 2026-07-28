@@ -1,39 +1,34 @@
-package xyz.lilsus.blip.ui
+package xyz.lilsus.blip.feature.payment
 
 import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.blip.feature.payment.generated.resources.Res
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_amount_too_small
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_insufficient_balance
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_invalid_api_key
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_invalid_invoice
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_invoice_expired
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_limit_exceeded
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_permission_denied
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_rate_limited
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_route_not_found
+import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_self_payment
+import xyz.lilsus.blip.feature.payment.generated.resources.error_invalid_invoice
+import xyz.lilsus.blip.feature.payment.generated.resources.error_invalid_invoice_with_details
+import xyz.lilsus.blip.feature.payment.generated.resources.error_lnurl
+import xyz.lilsus.blip.feature.payment.generated.resources.error_lnurl_with_details
+import xyz.lilsus.blip.feature.payment.generated.resources.error_missing_wallet_connection
+import xyz.lilsus.blip.feature.payment.generated.resources.error_network_unavailable
+import xyz.lilsus.blip.feature.payment.generated.resources.error_payment_rejected_generic
+import xyz.lilsus.blip.feature.payment.generated.resources.error_payment_rejected_message
+import xyz.lilsus.blip.feature.payment.generated.resources.error_payment_unconfirmed
+import xyz.lilsus.blip.feature.payment.generated.resources.error_payment_unconfirmed_message
+import xyz.lilsus.blip.feature.payment.generated.resources.error_unexpected_generic
+import xyz.lilsus.blip.feature.payment.generated.resources.error_unexpected_with_details
+import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkErrorType
-import xyz.lilsus.blip.ui.generated.resources.Res
-import xyz.lilsus.blip.ui.generated.resources.error_authentication_failure
-import xyz.lilsus.blip.ui.generated.resources.error_authentication_failure_message
-import xyz.lilsus.blip.ui.generated.resources.error_blink_amount_too_small
-import xyz.lilsus.blip.ui.generated.resources.error_blink_insufficient_balance
-import xyz.lilsus.blip.ui.generated.resources.error_blink_invalid_api_key
-import xyz.lilsus.blip.ui.generated.resources.error_blink_invalid_invoice
-import xyz.lilsus.blip.ui.generated.resources.error_blink_invoice_expired
-import xyz.lilsus.blip.ui.generated.resources.error_blink_limit_exceeded
-import xyz.lilsus.blip.ui.generated.resources.error_blink_permission_denied
-import xyz.lilsus.blip.ui.generated.resources.error_blink_rate_limited
-import xyz.lilsus.blip.ui.generated.resources.error_blink_route_not_found
-import xyz.lilsus.blip.ui.generated.resources.error_blink_self_payment
-import xyz.lilsus.blip.ui.generated.resources.error_invalid_invoice
-import xyz.lilsus.blip.ui.generated.resources.error_invalid_invoice_with_details
-import xyz.lilsus.blip.ui.generated.resources.error_lnurl
-import xyz.lilsus.blip.ui.generated.resources.error_lnurl_with_details
-import xyz.lilsus.blip.ui.generated.resources.error_missing_wallet_connection
-import xyz.lilsus.blip.ui.generated.resources.error_network_unavailable
-import xyz.lilsus.blip.ui.generated.resources.error_payment_rejected_generic
-import xyz.lilsus.blip.ui.generated.resources.error_payment_rejected_message
-import xyz.lilsus.blip.ui.generated.resources.error_payment_unconfirmed
-import xyz.lilsus.blip.ui.generated.resources.error_payment_unconfirmed_message
-import xyz.lilsus.blip.ui.generated.resources.error_relay_connection_failed
-import xyz.lilsus.blip.ui.generated.resources.error_timeout
-import xyz.lilsus.blip.ui.generated.resources.error_unexpected_generic
-import xyz.lilsus.blip.ui.generated.resources.error_unexpected_with_details
-import xyz.lilsus.raylsuite.core.payment.PaymentError
-import xyz.lilsus.raylsuite.feature.payment.PaymentUiError
 
 @Composable
 fun blipPaymentErrorMessageFor(error: PaymentUiError): String = error.toMessage().resolve()
@@ -42,7 +37,7 @@ suspend fun getBlipPaymentErrorMessageFor(error: PaymentUiError): String =
     error.toMessage().resolveInCoroutine()
 
 private fun PaymentUiError.toMessage(): LocalizedMessage = when (this) {
-    is PaymentUiError.Provider -> error.toMessage()
+    is PaymentUiError.Blink -> error.toMessage()
 
     is PaymentUiError.InvalidInvoice ->
         optionalDetailMessage(
@@ -66,50 +61,32 @@ private fun PaymentUiError.toMessage(): LocalizedMessage = when (this) {
         )
 }
 
-private fun PaymentError.toMessage(): LocalizedMessage = when (this) {
-    PaymentError.MissingWalletConnection ->
+private fun BlinkApiError.toMessage(): LocalizedMessage = when (this) {
+    BlinkApiError.MissingWalletConnection ->
         LocalizedMessage(Res.string.error_missing_wallet_connection)
 
-    PaymentError.NetworkUnavailable ->
+    BlinkApiError.NetworkUnavailable ->
         LocalizedMessage(Res.string.error_network_unavailable)
 
-    is PaymentError.WalletConnectionFailed ->
-        LocalizedMessage(Res.string.error_relay_connection_failed)
+    BlinkApiError.Timeout ->
+        LocalizedMessage(Res.string.error_payment_unconfirmed)
 
-    PaymentError.Timeout ->
-        LocalizedMessage(Res.string.error_timeout)
-
-    is PaymentError.PaymentUnconfirmed ->
-        optionalDetailMessage(
-            detail = detail,
-            generic = Res.string.error_payment_unconfirmed,
-            withDetails = Res.string.error_payment_unconfirmed_message
-        )
-
-    is PaymentError.AuthenticationFailure ->
-        optionalDetailMessage(
-            detail = detail,
-            generic = Res.string.error_authentication_failure,
-            withDetails = Res.string.error_authentication_failure_message
-        )
-
-    is PaymentError.InsufficientPermissions ->
-        LocalizedMessage(Res.string.error_blink_permission_denied)
-
-    is PaymentError.PaymentRejected ->
+    is BlinkApiError.PaymentRejected ->
         code?.toBlinkErrorType()?.toMessage()
             ?: optionalDetailMessage(
-                detail = detail,
+                detail = message,
                 generic = Res.string.error_payment_rejected_generic,
                 withDetails = Res.string.error_payment_rejected_message
             )
 
-    is PaymentError.Unexpected ->
+    is BlinkApiError.Unexpected ->
         optionalDetailMessage(
-            detail = detail,
-            generic = Res.string.error_unexpected_generic,
-            withDetails = Res.string.error_unexpected_with_details
+            detail = message,
+            generic = Res.string.error_payment_unconfirmed,
+            withDetails = Res.string.error_payment_unconfirmed_message
         )
+
+    is BlinkApiError.BlinkError -> type.toMessage()
 }
 
 private fun BlinkErrorType.toMessage(): LocalizedMessage = LocalizedMessage(
