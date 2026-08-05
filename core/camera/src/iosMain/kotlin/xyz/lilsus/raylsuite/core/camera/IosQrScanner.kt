@@ -5,6 +5,7 @@ package xyz.lilsus.raylsuite.core.camera
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.UIKitInteropProperties
 import androidx.compose.ui.viewinterop.UIKitView
@@ -16,13 +17,17 @@ import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
+import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.cinterop.value
 import platform.AVFoundation.*
 import platform.CoreGraphics.CGPointMake
+import platform.CoreGraphics.CGRectZero
 import platform.CoreMedia.CMTimeMake
 import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import platform.Foundation.*
+import platform.QuartzCore.CATransaction
+import platform.QuartzCore.kCATransactionDisableActions
 import platform.UIKit.*
 import platform.darwin.*
 
@@ -36,6 +41,67 @@ actual class CameraPreviewSurface internal constructor(val view: UIView) {
         view.clipsToBounds = true
         view.userInteractionEnabled = false
     }
+
+    internal fun attachPreviewLayer(layer: AVCaptureVideoPreviewLayer) {
+        (view as CameraPreviewView).attachPreviewLayer(layer)
+    }
+
+    internal fun detachPreviewLayer() {
+        (view as CameraPreviewView).detachPreviewLayer()
+    }
+}
+
+private class CameraPreviewView(private val onPreviewStreamingChanged: (Boolean) -> Unit) :
+    UIView(frame = CGRectZero.readValue()) {
+    private var previewLayer: AVCaptureVideoPreviewLayer? = null
+    private var streaming = false
+
+    fun attachPreviewLayer(layer: AVCaptureVideoPreviewLayer) {
+        previewLayer?.removeFromSuperlayer()
+        previewLayer = layer
+        layer.removeFromSuperlayer()
+        this.layer.addSublayer(layer)
+        setStreaming(false)
+        setNeedsLayout()
+        layoutIfNeeded()
+        reportStreamingIfReady()
+        dispatch_async(dispatch_get_main_queue()) {
+            reportStreamingIfReady()
+        }
+    }
+
+    fun detachPreviewLayer() {
+        previewLayer?.removeFromSuperlayer()
+        previewLayer = null
+        setStreaming(false)
+    }
+
+    override fun layoutSubviews() {
+        super.layoutSubviews()
+        val layer = previewLayer ?: return
+        CATransaction.begin()
+        CATransaction.setValue(true, kCATransactionDisableActions)
+        layer.frame = bounds
+        CATransaction.commit()
+        reportStreamingIfReady()
+    }
+
+    private fun reportStreamingIfReady() {
+        val layer = previewLayer ?: return
+        if (hasDrawableBounds() && layer.isPreviewing()) {
+            setStreaming(true)
+        }
+    }
+
+    private fun hasDrawableBounds(): Boolean = bounds.useContents {
+        size.width > 0.0 && size.height > 0.0
+    }
+
+    private fun setStreaming(value: Boolean) {
+        if (streaming == value) return
+        streaming = value
+        onPreviewStreamingChanged(value)
+    }
 }
 
 @Composable
@@ -46,12 +112,16 @@ actual fun CameraPreviewHost(
     preferCompatibleMode: Boolean,
     onPreviewStreamingChanged: (Boolean) -> Unit
 ) {
-    val surface = remember { CameraPreviewSurface(UIView()) }
+    val currentStreamingCallback = rememberUpdatedState(onPreviewStreamingChanged)
+    val surface = remember {
+        CameraPreviewSurface(
+            CameraPreviewView { streaming -> currentStreamingCallback.value(streaming) }
+        )
+    }
 
     DisposableEffect(controller, surface, visible) {
         if (visible) {
             controller.bindPreview(surface)
-            onPreviewStreamingChanged(true)
         } else {
             controller.unbindPreview()
             onPreviewStreamingChanged(false)
@@ -94,6 +164,7 @@ private class IosQrScannerController : QrScannerController {
     private var desiredScanMode = QrScannerMode.Near
     private var configuredScanMode: QrScannerMode? = null
     private var previewLayer: AVCaptureVideoPreviewLayer? = null
+    private var previewSurface: CameraPreviewSurface? = null
     private var previewBound = false
     private var activeDevice: AVCaptureDevice? = null
     private var zoomDevice: AVCaptureDevice? = null
@@ -170,6 +241,8 @@ private class IosQrScannerController : QrScannerController {
             resetLastEmittedValue()
         }
         dispatch_async(dispatch_get_main_queue()) {
+            previewSurface?.detachPreviewLayer()
+            previewSurface = null
             previewLayer?.removeFromSuperlayer()
             previewLayer = null
         }
@@ -180,22 +253,23 @@ private class IosQrScannerController : QrScannerController {
     override fun bindPreview(surface: CameraPreviewSurface) {
         previewBound = true
         dispatch_async(dispatch_get_main_queue()) {
+            if (!previewBound) return@dispatch_async
             val layer = previewLayer ?: AVCaptureVideoPreviewLayer.layerWithSession(session).apply {
                 videoGravity = AVLayerVideoGravityResizeAspectFill
                 connection?.videoOrientation = AVCaptureVideoOrientationPortrait
                 previewLayer = this
             }
-            layer.removeFromSuperlayer()
-            surface.view.layoutIfNeeded()
-            layer.frame = surface.view.bounds
-            surface.view.layer.addSublayer(layer)
+            previewSurface?.detachPreviewLayer()
+            previewSurface = surface
+            surface.attachPreviewLayer(layer)
         }
     }
 
     override fun unbindPreview() {
         previewBound = false
         dispatch_async(dispatch_get_main_queue()) {
-            previewLayer?.removeFromSuperlayer()
+            previewSurface?.detachPreviewLayer()
+            previewSurface = null
         }
         dispatch_async(sessionQueue) {
             val previousRequestedZoom = desiredZoomFraction
@@ -338,6 +412,8 @@ private class IosQrScannerController : QrScannerController {
         resetLastEmittedValue()
         dispatch_async(dispatch_get_main_queue()) {
             removeLifecycleObserver()
+            previewSurface?.detachPreviewLayer()
+            previewSurface = null
             previewLayer?.removeFromSuperlayer()
             previewLayer = null
             callback?.invoke()
