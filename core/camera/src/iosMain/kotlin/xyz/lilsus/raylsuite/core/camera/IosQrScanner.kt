@@ -573,8 +573,8 @@ private class IosQrScannerController : QrScannerController {
                 virtualWide != null -> SelectedCameraConfiguration(
                     mode = mode,
                     device = virtualWide,
-                    profileName = virtualWide.profileName("virtual-1x"),
-                    profile = null,
+                    profileName = virtualWide.profileName("ultra-wide-4:3"),
+                    profile = ULTRA_WIDE_FORMAT_PROFILE,
                     baseZoomFactor = DEFAULT_BASE_ZOOM_FACTOR
                 )
 
@@ -789,7 +789,7 @@ private class IosQrScannerController : QrScannerController {
             ),
             FormatSelectionTier(
                 minimumPixels = 0,
-                enforceAspect = false,
+                enforceAspect = true,
                 enforceMaximumPixels = false
             )
         )
