@@ -931,7 +931,6 @@ class PaymentCoordinator(
                 preimage = preimageHex
             )
         )
-        mutableTransactionDetailNavigationTarget.value = pendingId
     }
 
     private fun handlePaymentFailure(pendingId: String, error: PaymentUiError) {
@@ -945,7 +944,6 @@ class PaymentCoordinator(
         if (clarificationOpen) pendingRetry = null
         if (!showDirectResult && !clarificationOpen) return
         showPaymentError(error, emitEvent = true)
-        mutableTransactionDetailNavigationTarget.value = pendingId
     }
 
     private fun handlePaymentPendingInBlink(pendingId: String) {

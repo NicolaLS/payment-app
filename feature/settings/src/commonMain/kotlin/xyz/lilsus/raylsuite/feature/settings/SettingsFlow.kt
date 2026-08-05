@@ -11,6 +11,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationEventHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -119,6 +122,50 @@ fun SettingsFlow(
     val contactsState by contactsViewModel.uiState.collectAsState()
     val shortcutsState by shortcutsViewModel.uiState.collectAsState()
     val paymentSettingsState by paymentSettingsViewModel.uiState.collectAsState()
+    val navigationEventState =
+        rememberNavigationEventState(
+            currentInfo = SettingsNavigationInfo(destination)
+        )
+
+    fun navigateBack() {
+        when (destination) {
+            SettingsDestination.Overview -> onBack()
+
+            SettingsDestination.Currency,
+            SettingsDestination.Language,
+            SettingsDestination.Theme,
+            SettingsDestination.Payments -> destination = SettingsDestination.Overview
+
+            SettingsDestination.Contacts -> {
+                if (startDestination == SettingsStartDestination.Contacts) {
+                    onBack()
+                } else {
+                    destination = SettingsDestination.Overview
+                }
+            }
+
+            SettingsDestination.ContactEditor -> contactsViewModel.dismissEditor()
+            SettingsDestination.ShortcutEditor -> shortcutsViewModel.dismissEditor()
+
+            SettingsDestination.ShortcutContactPicker -> {
+                if (shortcutReturnDestination == null) {
+                    onBack()
+                } else {
+                    destination = SettingsDestination.ShortcutEditor
+                }
+            }
+
+            SettingsDestination.ShortcutCurrencyPicker -> {
+                destination = SettingsDestination.ShortcutEditor
+            }
+        }
+    }
+
+    NavigationEventHandler(
+        state = navigationEventState,
+        isForwardEnabled = false,
+        onBackCompleted = ::navigateBack
+    )
 
     LaunchedEffect(startDestination, shortcutsViewModel) {
         if (startDestination == SettingsStartDestination.ShortcutCreate) {
@@ -191,7 +238,7 @@ fun SettingsFlow(
                 onQueryChange = viewModel::updateSearch,
                 onPreferenceSelected = viewModel::selectPreference,
                 onCurrencySelected = viewModel::selectCurrency,
-                onBack = { destination = SettingsDestination.Overview },
+                onBack = ::navigateBack,
                 modifier = modifier
             )
         }
@@ -207,7 +254,7 @@ fun SettingsFlow(
                 state = state,
                 onQueryChange = viewModel::updateSearch,
                 onOptionSelected = viewModel::selectOption,
-                onBack = { destination = SettingsDestination.Overview },
+                onBack = ::navigateBack,
                 modifier = modifier
             )
         }
@@ -222,7 +269,7 @@ fun SettingsFlow(
             ThemeSettingsScreen(
                 state = state,
                 onThemeSelected = viewModel::selectTheme,
-                onBack = { destination = SettingsDestination.Overview },
+                onBack = ::navigateBack,
                 modifier = modifier
             )
         }
@@ -231,7 +278,7 @@ fun SettingsFlow(
             PaymentSettingsScreen(
                 state = paymentSettingsState,
                 shortcuts = shortcutsState.shortcuts,
-                onBack = { destination = SettingsDestination.Overview },
+                onBack = ::navigateBack,
                 onModeSelected = paymentSettingsViewModel::selectConfirmationMode,
                 onThresholdChanged =
                 paymentSettingsViewModel::updateConfirmationThreshold,
@@ -261,13 +308,7 @@ fun SettingsFlow(
         SettingsDestination.Contacts -> {
             ContactsScreen(
                 state = contactsState,
-                onBack = {
-                    if (startDestination == SettingsStartDestination.Contacts) {
-                        onBack()
-                    } else {
-                        destination = SettingsDestination.Overview
-                    }
-                },
+                onBack = ::navigateBack,
                 onAddContact = {
                     contactsViewModel.startAddContact()
                     destination = SettingsDestination.ContactEditor
@@ -285,7 +326,7 @@ fun SettingsFlow(
         SettingsDestination.ContactEditor -> {
             ContactEditorScreen(
                 state = contactsState.editor,
-                onBack = contactsViewModel::dismissEditor,
+                onBack = ::navigateBack,
                 onAddressChange = contactsViewModel::updateEditorAddress,
                 onAliasChange = contactsViewModel::updateEditorAlias,
                 onRoleSelected = contactsViewModel::toggleEditorRole,
@@ -299,7 +340,7 @@ fun SettingsFlow(
         SettingsDestination.ShortcutEditor -> {
             PaymentShortcutEditorScreen(
                 state = shortcutsState.editor,
-                onBack = shortcutsViewModel::dismissEditor,
+                onBack = ::navigateBack,
                 onTitleChange = shortcutsViewModel::updateTitle,
                 onContactChange = {
                     shortcutsViewModel.updateContactSearch("")
@@ -321,13 +362,7 @@ fun SettingsFlow(
             PaymentShortcutContactPickerScreen(
                 state = shortcutsState,
                 selectedContactId = shortcutsState.editor?.selectedContact?.id,
-                onBack = {
-                    if (shortcutReturnDestination == null) {
-                        onBack()
-                    } else {
-                        destination = SettingsDestination.ShortcutEditor
-                    }
-                },
+                onBack = ::navigateBack,
                 onSearchChange = shortcutsViewModel::updateContactSearch,
                 onContactSelected = { contactId ->
                     shortcutsViewModel.selectContact(contactId)
@@ -343,7 +378,7 @@ fun SettingsFlow(
                 shortcutsState.editor?.currencyCode
                     ?: CurrencyCatalog.DEFAULT_CODE,
                 searchQuery = shortcutCurrencySearch,
-                onBack = { destination = SettingsDestination.ShortcutEditor },
+                onBack = ::navigateBack,
                 onSearchChange = { shortcutCurrencySearch = it },
                 onCurrencySelected = { code ->
                     shortcutsViewModel.selectCurrency(code)
@@ -473,6 +508,9 @@ private enum class SettingsDestination {
     ShortcutContactPicker,
     ShortcutCurrencyPicker
 }
+
+private data class SettingsNavigationInfo(val destination: SettingsDestination) :
+    NavigationEventInfo()
 
 enum class SettingsStartDestination {
     Overview,
