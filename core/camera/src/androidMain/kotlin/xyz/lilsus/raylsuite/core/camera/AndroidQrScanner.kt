@@ -19,7 +19,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -73,8 +72,14 @@ actual fun CameraPreviewHost(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val streamingChangedState = rememberUpdatedState(onPreviewStreamingChanged)
-    val previewView = remember {
+    val implementationMode = if (preferCompatibleMode) {
+        PreviewView.ImplementationMode.COMPATIBLE
+    } else {
+        PreviewView.ImplementationMode.PERFORMANCE
+    }
+    val previewView = remember(context, implementationMode) {
         PreviewView(context).apply {
+            this.implementationMode = implementationMode
             scaleType = PreviewView.ScaleType.FILL_CENTER
             isClickable = false
             isFocusable = false
@@ -82,14 +87,6 @@ actual fun CameraPreviewHost(
         }
     }
     val surface = remember { CameraPreviewSurface(previewView) }
-
-    SideEffect {
-        previewView.implementationMode = if (preferCompatibleMode) {
-            PreviewView.ImplementationMode.COMPATIBLE
-        } else {
-            PreviewView.ImplementationMode.PERFORMANCE
-        }
-    }
 
     DisposableEffect(controller, surface, visible) {
         if (visible) {
@@ -138,8 +135,8 @@ private class AndroidQrScannerController(
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private var onCameraPermissionMissing: (() -> Unit)? = null
     private var onScannerUnavailable: (() -> Unit)? = null
-    private val isActive = AtomicBoolean(false)
     private val isBound = AtomicBoolean(false)
+    private var bindGeneration = 0L
     private var camera: Camera? = null
     private var desiredScanMode = QrScannerMode.Near
     private var desiredZoomFraction = 0f
@@ -158,7 +155,8 @@ private class AndroidQrScannerController(
             return false
         }
         if (isBound.compareAndSet(false, true)) {
-            bindCamera()
+            bindGeneration += 1
+            bindCamera(bindGeneration)
         } else {
             resume()
         }
@@ -166,13 +164,11 @@ private class AndroidQrScannerController(
     }
 
     override fun pause() {
-        isActive.set(false)
         analyzer?.pause()
     }
 
     override fun resume() {
         if (!isBound.get()) return
-        isActive.set(true)
         // Reset debounce so the same QR code can be scanned again after resuming
         analyzer?.resetLastValue()
         analyzer?.resume()
@@ -180,6 +176,7 @@ private class AndroidQrScannerController(
     }
 
     override fun stop() {
+        bindGeneration += 1
         pause()
         cameraProvider?.unbindAll()
         imageAnalysis?.clearAnalyzer()
@@ -201,12 +198,24 @@ private class AndroidQrScannerController(
 
     override fun bindPreview(surface: CameraPreviewSurface) {
         previewSurface = surface
-        previewUseCase?.surfaceProvider = surface.previewView.surfaceProvider
+        attachPreviewIfReady()
     }
 
     override fun unbindPreview() {
-        previewUseCase?.surfaceProvider = null
         previewSurface = null
+        val preview = previewUseCase ?: return
+        previewUseCase = null
+        val provider = cameraProvider
+        try {
+            if (provider != null && provider.isBound(preview)) {
+                provider.unbind(preview)
+            } else {
+                preview.surfaceProvider = null
+            }
+        } catch (failure: Throwable) {
+            preview.surfaceProvider = null
+            Log.w(TAG, "Failed to detach optional camera preview", failure)
+        }
     }
 
     override fun setMode(mode: QrScannerMode) {
@@ -221,36 +230,38 @@ private class AndroidQrScannerController(
         applyZoomIfNeeded()
     }
 
-    private fun bindCamera() {
+    private fun bindCamera(generation: Long) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
                 try {
-                    if (!isBound.get()) return@addListener
+                    if (!isCurrentGeneration(generation)) return@addListener
                     val provider = cameraProviderFuture.get()
-                    if (!isBound.get()) return@addListener
+                    if (!isCurrentGeneration(generation)) return@addListener
                     cameraProvider = provider
 
-                    if (!isBound.get()) return@addListener
+                    if (!isCurrentGeneration(generation)) return@addListener
                     val analysisExecutor =
                         analysisExecutor ?: DroppingExecutor().also {
                             analysisExecutor = it
                         }
                     val mainExecutor = ContextCompat.getMainExecutor(context)
 
-                    if (!isBound.get()) return@addListener
+                    if (!isCurrentGeneration(generation)) return@addListener
                     val analyzer = analyzer ?: QrCodeAnalyzer(
                         barcodeScanner = newBarcodeScanner(),
-                        active = isActive,
+                        active = AtomicBoolean(false),
                         mainExecutor = mainExecutor,
                         onQrCodeScanned = { value ->
-                            onQrCodeScanned?.invoke(value)
+                            if (isCurrentGeneration(generation)) {
+                                onQrCodeScanned?.invoke(value)
+                            }
                         }
                     ).also {
                         analyzer = it
                     }
 
-                    if (!isBound.get()) return@addListener
+                    if (!isCurrentGeneration(generation)) return@addListener
                     val analysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .setResolutionSelector(
@@ -273,29 +284,21 @@ private class AndroidQrScannerController(
 
                     imageAnalysis = analysis
 
-                    val preview = Preview.Builder()
-                        .build()
-                        .also { previewUseCase = it }
+                    if (!isCurrentGeneration(generation)) return@addListener
 
-                    previewSurface?.let { surface ->
-                        preview.surfaceProvider = surface.previewView.surfaceProvider
-                    }
-
-                    if (!isBound.get()) {
-                        provider.unbindAll()
-                        return@addListener
-                    }
-
+                    // QR detection is the cold-start critical path. Keep the optional Preview
+                    // use case out of this bind so it cannot constrain or fail analysis startup.
                     provider.unbindAll()
                     camera = provider.bindToLifecycle(
                         lifecycleOwner,
                         CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview,
                         analysis
                     )
 
                     resume()
+                    attachPreviewIfReady()
                 } catch (failure: Throwable) {
+                    if (!isCurrentGeneration(generation)) return@addListener
                     if (
                         !isCameraPermissionGranted(context) ||
                         failure.hasSecurityExceptionCause()
@@ -311,6 +314,51 @@ private class AndroidQrScannerController(
             ContextCompat.getMainExecutor(context)
         )
     }
+
+    private fun attachPreviewIfReady() {
+        val surface = previewSurface ?: return
+        if (!isBound.get() || camera == null || imageAnalysis == null) return
+        val provider = cameraProvider ?: return
+
+        previewUseCase?.let { preview ->
+            preview.surfaceProvider = surface.previewView.surfaceProvider
+            return
+        }
+
+        val preview = Preview.Builder().build()
+        preview.surfaceProvider = surface.previewView.surfaceProvider
+        try {
+            // Add Preview around the already-configured analysis stream. If the device cannot
+            // support the combination, the existing ImageAnalysis use case remains untouched.
+            provider.bindToLifecycle(
+                lifecycleOwner,
+                CameraSelector.DEFAULT_BACK_CAMERA,
+                preview
+            )
+            previewUseCase = preview
+        } catch (failure: Throwable) {
+            preview.surfaceProvider = null
+            if (provider.isBound(preview)) {
+                provider.unbind(preview)
+            }
+            if (
+                !isCameraPermissionGranted(context) ||
+                failure.hasSecurityExceptionCause()
+            ) {
+                Log.w(TAG, "Camera permission missing while attaching preview", failure)
+                reportCameraPermissionMissing()
+            } else {
+                Log.w(
+                    TAG,
+                    "Optional camera preview is unavailable; analysis remains active",
+                    failure
+                )
+            }
+        }
+    }
+
+    private fun isCurrentGeneration(generation: Long): Boolean =
+        isBound.get() && bindGeneration == generation
 
     private fun reportCameraPermissionMissing() {
         val callback = onCameraPermissionMissing
