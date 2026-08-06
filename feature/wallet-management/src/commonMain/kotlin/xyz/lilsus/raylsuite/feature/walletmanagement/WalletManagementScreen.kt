@@ -46,7 +46,7 @@ fun WalletManagementScreen(
     onBack: () -> Unit,
     onAddWallet: () -> Unit,
     onRemoveWallet: () -> Unit,
-    onWalletDetails: () -> Unit,
+    onWalletDetails: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -84,7 +84,7 @@ fun WalletManagementScreen(
 @Composable
 private fun WalletCard(
     wallet: ManagedWallet,
-    onDetails: () -> Unit,
+    onDetails: (() -> Unit)?,
     onRemoveWallet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -93,7 +93,13 @@ private fun WalletCard(
         modifier
             .fillMaxWidth()
             .testTag(WalletManagementTestTags.walletRow(wallet.id))
-            .clickable(onClick = onDetails),
+            .then(
+                if (onDetails == null) {
+                    Modifier
+                } else {
+                    Modifier.clickable(onClick = onDetails)
+                }
+            ),
         tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.large
     ) {

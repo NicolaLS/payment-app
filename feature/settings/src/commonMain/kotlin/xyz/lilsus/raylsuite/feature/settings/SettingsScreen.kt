@@ -63,8 +63,8 @@ data class SettingsEntry(
 
 @Immutable
 data class SettingsLegalLinks(
-    val privacyPolicyUrl: String,
-    val termsUrl: String,
+    val privacyPolicyUrl: String? = null,
+    val termsUrl: String? = null,
     val sourceCodeUrl: String
 )
 
@@ -228,24 +228,22 @@ private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
             textAlign = TextAlign.Center
         )
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = stringResource(Res.string.settings_footer_privacy),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier =
-                Modifier.clickable {
-                    uriHandler.openUri(legalLinks.privacyPolicyUrl)
-                }
-            )
-            Text(
-                text = stringResource(Res.string.settings_footer_terms),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier =
-                Modifier.clickable {
-                    uriHandler.openUri(legalLinks.termsUrl)
-                }
-            )
+            legalLinks.privacyPolicyUrl?.let { privacyPolicyUrl ->
+                Text(
+                    text = stringResource(Res.string.settings_footer_privacy),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { uriHandler.openUri(privacyPolicyUrl) }
+                )
+            }
+            legalLinks.termsUrl?.let { termsUrl ->
+                Text(
+                    text = stringResource(Res.string.settings_footer_terms),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { uriHandler.openUri(termsUrl) }
+                )
+            }
             Text(
                 text = stringResource(Res.string.settings_footer_repo),
                 style = MaterialTheme.typography.labelSmall,

@@ -1,0 +1,23 @@
+CREATE TABLE payment_currency_preference (
+    singleton INTEGER NOT NULL PRIMARY KEY CHECK (singleton = 1),
+    primary_code TEXT NOT NULL,
+    secondary_code TEXT NOT NULL,
+    CHECK (length(primary_code) = 3),
+    CHECK (length(secondary_code) = 3),
+    CHECK (primary_code != secondary_code)
+);
+
+INSERT INTO payment_currency_preference(singleton, primary_code, secondary_code)
+VALUES (1, 'SAT', 'USD');
+
+selectCurrencyPreferences:
+SELECT primary_code, secondary_code
+FROM payment_currency_preference
+WHERE singleton = 1;
+
+upsertCurrencyPreferences:
+INSERT OR REPLACE INTO payment_currency_preference(
+    singleton,
+    primary_code,
+    secondary_code
+) VALUES (1, ?, ?);

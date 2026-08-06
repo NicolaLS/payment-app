@@ -4,6 +4,7 @@ pluginManagement {
     includeBuild("build-logic")
 
     repositories {
+        maven("https://mvn.breez.technology/releases")
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -21,6 +22,7 @@ plugins {
 
 dependencyResolutionManagement {
     repositories {
+        maven("https://mvn.breez.technology/releases")
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -48,6 +50,7 @@ fun includeApp(name: String) {
 }
 
 includeApp("blip")
+includeApp("flint")
 includeApp("lasr")
 
 include(":blip:feature:onboarding")
@@ -76,6 +79,13 @@ project(":lasr:feature:wallet-details").projectDir =
     file("apps/lasr/feature/wallet-details")
 include(":lasr:integration:nwc")
 project(":lasr:integration:nwc").projectDir = file("apps/lasr/integration/nwc")
+include(":flint:feature:payment")
+project(":flint:feature:payment").projectDir = file("apps/flint/feature/payment")
+include(":flint:feature:wallet-connection")
+project(":flint:feature:wallet-connection").projectDir =
+    file("apps/flint/feature/wallet-connection")
+include(":flint:integration:spark")
+project(":flint:integration:spark").projectDir = file("apps/flint/integration/spark")
 
 include(":core:model")
 include(":core:camera")

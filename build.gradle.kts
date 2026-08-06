@@ -8,5 +8,7 @@ plugins {
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.apollo) apply false
     alias(libs.plugins.mokkery) apply false
+    alias(libs.plugins.breezSpark) apply false
+    alias(libs.plugins.sqldelight) apply false
     id("org.jetbrains.kotlinx.kover") version "0.9.8" apply false
 }
