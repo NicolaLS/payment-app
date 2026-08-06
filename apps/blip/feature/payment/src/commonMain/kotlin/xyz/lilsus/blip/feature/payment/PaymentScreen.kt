@@ -41,10 +41,10 @@ import xyz.lilsus.blip.feature.payment.amount.ManualAmountKey
 import xyz.lilsus.blip.feature.payment.components.BottomLayout
 import xyz.lilsus.blip.feature.payment.components.ConfirmationBottomSheet
 import xyz.lilsus.blip.feature.payment.components.ManualAmountBottomSheet
+import xyz.lilsus.blip.feature.payment.components.PaymentHero
 import xyz.lilsus.blip.feature.payment.components.ResultLayout
 import xyz.lilsus.blip.feature.payment.components.SessionTransactionsIconButton
 import xyz.lilsus.blip.feature.payment.components.SettingsIconButton
-import xyz.lilsus.blip.feature.payment.components.hero.Hero
 import xyz.lilsus.blip.feature.payment.contacts.PaymentContactsBottomSheet
 import xyz.lilsus.blip.feature.payment.contacts.PaymentContactsUiState
 import xyz.lilsus.blip.feature.payment.contacts.PaymentSheetTab
@@ -195,7 +195,7 @@ fun PaymentScreen(
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Hero(
+            PaymentHero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
                 uiState = uiState,
                 receiptPreimage = receiptPreimage.takeIf { showReceipt },

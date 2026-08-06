@@ -1,4 +1,4 @@
-package xyz.lilsus.lasr.feature.payment.components.hero
+package xyz.lilsus.raylsuite.core.ui.hero
 
 import androidx.compose.animation.Animatable as ColorAnimatable
 import androidx.compose.animation.core.Animatable
@@ -18,15 +18,17 @@ import kotlin.random.Random
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import xyz.lilsus.lasr.feature.payment.LoadingKind
-import xyz.lilsus.lasr.feature.payment.PaymentUiState
-import xyz.lilsus.raylsuite.core.camera.QrScannerMode
 
 @Composable
-fun rememberHeroAnimationState(squares: List<SquareSpec>, arcs: List<ArcSpec>): HeroAnimationState =
-    remember { HeroAnimationState(squares, arcs) }
+internal fun rememberHeroAnimationState(
+    squares: List<SquareSpec>,
+    arcs: List<ArcSpec>
+): RaylHeroAnimationState = remember { RaylHeroAnimationState(squares, arcs) }
 
-class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs: List<ArcSpec>) {
+internal class RaylHeroAnimationState(
+    private val squares: List<SquareSpec>,
+    private val arcs: List<ArcSpec>
+) {
     private val colorAnim = ColorAnimatable(Transparent)
     private val modeScaleAnim = Animatable(1f)
     private val clusterScaleAnim = Animatable(1f)
@@ -61,7 +63,7 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
 
     fun bitOpacity(index: Int): Float = bitOpacityAnims[index].value
 
-    suspend fun animateState(uiState: PaymentUiState, targetColor: Color) {
+    suspend fun animatePhase(phase: RaylHeroPhase, targetColor: Color) {
         coroutineScope {
             launch {
                 colorAnim.animateTo(
@@ -70,32 +72,19 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
                 )
             }
 
-            when (uiState) {
-                PaymentUiState.Active -> animateToActive()
-
-                is PaymentUiState.Detected,
-                is PaymentUiState.Confirm,
-                is PaymentUiState.EnterAmount,
-                is PaymentUiState.PendingRetry -> animateToCompressed()
-
-                is PaymentUiState.Loading -> {
-                    if (uiState.kind == LoadingKind.Resolving) {
-                        animateToCompressed()
-                    } else {
-                        animateToLoading()
-                    }
-                }
-
-                is PaymentUiState.Success -> animateToResult(isSuccess = true)
-
-                is PaymentUiState.Error -> animateToResult(isSuccess = false)
+            when (phase) {
+                RaylHeroPhase.Ready -> animateToActive()
+                RaylHeroPhase.Acknowledged -> animateToCompressed()
+                RaylHeroPhase.Processing -> animateToLoading()
+                RaylHeroPhase.Succeeded -> animateToResult(isSuccess = true)
+                RaylHeroPhase.Failed -> animateToResult(isSuccess = false)
             }
         }
     }
 
-    suspend fun animateActiveMode(mode: QrScannerMode) {
+    suspend fun animateActiveMode(mode: RaylHeroScanMode) {
         modeScaleAnim.animateTo(
-            targetValue = if (mode == QrScannerMode.Far) FAR_MODE_SCALE else 1f,
+            targetValue = if (mode == RaylHeroScanMode.Far) FAR_MODE_SCALE else 1f,
             animationSpec = tween(durationMillis = 220, easing = EaseInOutCubic)
         )
     }
@@ -393,7 +382,7 @@ class HeroAnimationState(private val squares: List<SquareSpec>, private val arcs
     }
 }
 
-fun stepTowardCenter(value: Float, size: Float, step: Float): Float {
+private fun stepTowardCenter(value: Float, size: Float, step: Float): Float {
     val center = value + size / 2f
     val delta = 0.5f - center
     return delta * step

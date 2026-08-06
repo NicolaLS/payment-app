@@ -1,7 +1,8 @@
-package xyz.lilsus.blip.feature.payment.components.hero
+package xyz.lilsus.raylsuite.core.ui.hero
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -30,14 +31,10 @@ import io.github.alexzhirkevich.qrose.options.QrBrush
 import io.github.alexzhirkevich.qrose.options.solid
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.payment.PaymentUiState
-import xyz.lilsus.blip.feature.payment.generated.resources.Res
-import xyz.lilsus.blip.feature.payment.generated.resources.payment_receipt_qr_content_description
-import xyz.lilsus.blip.feature.payment.generated.resources.scanner_mode_far
-import xyz.lilsus.blip.feature.payment.generated.resources.scanner_mode_label
-import xyz.lilsus.blip.feature.payment.generated.resources.scanner_mode_near
-import xyz.lilsus.blip.feature.payment.tapToDismiss
-import xyz.lilsus.raylsuite.core.camera.QrScannerMode
+import xyz.lilsus.raylsuite.core.ui.generated.resources.Res
+import xyz.lilsus.raylsuite.core.ui.generated.resources.hero_scanner_mode_far
+import xyz.lilsus.raylsuite.core.ui.generated.resources.hero_scanner_mode_label
+import xyz.lilsus.raylsuite.core.ui.generated.resources.hero_scanner_mode_near
 
 private val squares = listOf(
     SquareSpec(0.1f, 0.1f, 0.3f),
@@ -54,62 +51,58 @@ private val arcs = listOf(
 )
 
 @Composable
-fun Hero(
+fun RaylHero(
+    phase: RaylHeroPhase,
     modifier: Modifier = Modifier,
-    uiState: PaymentUiState,
-    receiptPreimage: String? = null,
-    scannerMode: QrScannerMode = QrScannerMode.Near,
+    qrContent: RaylHeroQrContent? = null,
+    scannerMode: RaylHeroScanMode = RaylHeroScanMode.Near,
     showScannerModeSelector: Boolean = false,
     onToggleScannerMode: (() -> Unit)? = null
 ) {
-    val color = when (uiState) {
-        PaymentUiState.Active -> MaterialTheme.colorScheme.onSurfaceVariant
-
-        is PaymentUiState.Detected, is PaymentUiState.Confirm, is PaymentUiState.EnterAmount,
-        is PaymentUiState.PendingRetry,
-        is PaymentUiState.Loading -> MaterialTheme.colorScheme.primary
-
-        is PaymentUiState.Success -> MaterialTheme.colorScheme.tertiary
-
-        is PaymentUiState.Error -> MaterialTheme.colorScheme.error
+    val color = when (phase) {
+        RaylHeroPhase.Ready -> MaterialTheme.colorScheme.onSurfaceVariant
+        RaylHeroPhase.Acknowledged, RaylHeroPhase.Processing ->
+            MaterialTheme.colorScheme.primary
+        RaylHeroPhase.Succeeded -> MaterialTheme.colorScheme.tertiary
+        RaylHeroPhase.Failed -> MaterialTheme.colorScheme.error
     }
 
     val animationState = rememberHeroAnimationState(squares, arcs)
 
-    LaunchedEffect(uiState) {
-        animationState.animateState(uiState, color)
+    LaunchedEffect(phase) {
+        animationState.animatePhase(phase, color)
     }
 
-    LaunchedEffect(scannerMode, uiState) {
-        if (uiState == PaymentUiState.Active) {
+    LaunchedEffect(scannerMode, phase) {
+        if (phase == RaylHeroPhase.Ready) {
             animationState.animateActiveMode(scannerMode)
         }
     }
 
     val modeLabel = stringResource(
-        Res.string.scanner_mode_label,
+        Res.string.hero_scanner_mode_label,
         stringResource(
             when (scannerMode) {
-                QrScannerMode.Near -> Res.string.scanner_mode_near
-                QrScannerMode.Far -> Res.string.scanner_mode_far
+                RaylHeroScanMode.Near -> Res.string.hero_scanner_mode_near
+                RaylHeroScanMode.Far -> Res.string.hero_scanner_mode_far
             }
         )
     )
     val heroModifier = if (onToggleScannerMode == null) {
         modifier
     } else {
-        modifier.tapToDismiss(
-            enabled = true,
-            onDismiss = onToggleScannerMode
+        modifier.clickable(
+            indication = null,
+            interactionSource = null,
+            onClick = onToggleScannerMode
         )
     }
 
     BoxWithConstraints(modifier = heroModifier) {
         val canvasSide = minOf(maxWidth * HERO_CANVAS_WIDTH_FRACTION, maxHeight)
-        val normalizedReceiptPreimage = receiptPreimage?.trim()?.takeIf { it.isNotEmpty() }
-        if (normalizedReceiptPreimage != null) {
-            PaymentReceiptQr(
-                preimage = normalizedReceiptPreimage,
+        if (qrContent != null) {
+            HeroQrCode(
+                content = qrContent,
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(canvasSide)
@@ -161,8 +154,7 @@ fun Hero(
                                     drawRoundRect(
                                         color = animationState.color,
                                         size = childSize,
-                                        cornerRadius =
-                                            CornerRadius(childSize.width * 0.1f),
+                                        cornerRadius = CornerRadius(childSize.width * 0.1f),
                                         topLeft = Offset(offsetX, offsetY)
                                     )
                                 } else {
@@ -269,7 +261,7 @@ fun Hero(
 }
 
 @Composable
-private fun PaymentReceiptQr(preimage: String, modifier: Modifier = Modifier) {
+private fun HeroQrCode(content: RaylHeroQrContent, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
@@ -281,18 +273,31 @@ private fun PaymentReceiptQr(preimage: String, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .padding(16.dp),
             painter = rememberQrCodePainter(
-                data = preimage,
+                data = content.data,
                 darkBrush = QrBrush.solid(Color.Black),
                 lightBrush = QrBrush.solid(Color.White),
                 ballBrush = QrBrush.solid(Color.Black),
                 frameBrush = QrBrush.solid(Color.Black)
             ),
-            contentDescription = stringResource(
-                Res.string.payment_receipt_qr_content_description
-            )
+            contentDescription = content.contentDescription
         )
     }
 }
 
 private const val HERO_CANVAS_WIDTH_FRACTION = 0.5f
 private val MODE_LABEL_GAP = 12.dp
+
+enum class RaylHeroPhase {
+    Ready,
+    Acknowledged,
+    Processing,
+    Succeeded,
+    Failed
+}
+
+enum class RaylHeroScanMode {
+    Near,
+    Far
+}
+
+data class RaylHeroQrContent(val data: String, val contentDescription: String)

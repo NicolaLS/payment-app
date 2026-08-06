@@ -50,9 +50,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.lasr.feature.payment.components.PaymentHero
 import xyz.lilsus.lasr.feature.payment.components.ResultLayout
 import xyz.lilsus.lasr.feature.payment.components.SessionTransactionsScreen
-import xyz.lilsus.lasr.feature.payment.components.hero.Hero
 import xyz.lilsus.lasr.feature.payment.generated.resources.Res
 import xyz.lilsus.lasr.feature.payment.generated.resources.retry_payment
 import xyz.lilsus.lasr.feature.payment.generated.resources.tap_dismiss_pending
@@ -605,7 +605,7 @@ private fun PaymentTransactionDetailScreen(
                     .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Hero(
+            PaymentHero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
                 uiState = detailState,
                 receiptPreimage = receiptPreimage.takeIf { showReceipt }

@@ -1,4 +1,7 @@
 <resources>
     <string name="action_back">Zurück</string>
     <string name="action_clear_search">Suche löschen</string>
+    <string name="hero_scanner_mode_label">Modus: %1$s</string>
+    <string name="hero_scanner_mode_near">Nah</string>
+    <string name="hero_scanner_mode_far">Fern</string>
 </resources>

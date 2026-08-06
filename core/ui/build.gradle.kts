@@ -22,6 +22,7 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.qrose)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)

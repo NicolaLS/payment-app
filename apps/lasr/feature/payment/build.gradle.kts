@@ -34,7 +34,6 @@ kotlin {
             api(libs.lightning.kmp.core)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.navigation.compose)
-            implementation(libs.qrose)
             implementation(libs.uri.kmp)
         }
         androidMain.dependencies {
