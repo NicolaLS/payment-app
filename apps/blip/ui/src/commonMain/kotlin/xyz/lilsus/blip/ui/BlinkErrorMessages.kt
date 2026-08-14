@@ -26,6 +26,12 @@ import xyz.lilsus.blip.ui.generated.resources.error_unexpected_generic
 import xyz.lilsus.blip.ui.generated.resources.error_unexpected_with_details
 import xyz.lilsus.blip.ui.generated.resources.error_wallet_already_connected
 
+/**
+ * Presents failures from Blip features outside the payment flow.
+ *
+ * Payment owns a separate mapping because timeout and uncertain outcomes need
+ * payment-specific wording that must not be reused for ordinary wallet operations.
+ */
 @Composable
 fun blinkErrorMessageFor(error: BlinkUiError): String = when (error) {
     is BlinkUiError.Api -> errorMessageFor(error.error)
@@ -117,6 +123,7 @@ private fun unexpectedErrorMessage(detail: String?): String {
     }
 }
 
+/** Provider failures projected for Blip's reusable non-payment UI. */
 sealed interface BlinkUiError {
     data class Api(val error: BlinkApiError) : BlinkUiError
 

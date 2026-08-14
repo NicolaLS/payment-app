@@ -15,7 +15,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":core:model"))
             api(libs.compose.material3)
-            implementation(libs.compose.components.resources)
+            api(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.runtime)

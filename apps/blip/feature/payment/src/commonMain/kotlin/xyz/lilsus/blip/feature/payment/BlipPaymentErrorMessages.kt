@@ -1,9 +1,6 @@
 package xyz.lilsus.blip.feature.payment
 
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.getString
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.payment.generated.resources.Res
 import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_amount_too_small
 import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_insufficient_balance
@@ -29,67 +26,69 @@ import xyz.lilsus.blip.feature.payment.generated.resources.error_unexpected_gene
 import xyz.lilsus.blip.feature.payment.generated.resources.error_unexpected_with_details
 import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkErrorType
+import xyz.lilsus.raylsuite.core.ui.resources.LocalizedText
+import xyz.lilsus.raylsuite.core.ui.resources.localizedTextWithOptionalDetail
 
 @Composable
-fun blipPaymentErrorMessageFor(error: PaymentUiError): String = error.toMessage().resolve()
+fun blipPaymentErrorMessageFor(error: PaymentUiError): String = error.toLocalizedText().resolve()
 
 suspend fun getBlipPaymentErrorMessageFor(error: PaymentUiError): String =
-    error.toMessage().resolveInCoroutine()
+    error.toLocalizedText().resolveInCoroutine()
 
-private fun PaymentUiError.toMessage(): LocalizedMessage = when (this) {
-    is PaymentUiError.Blink -> error.toMessage()
+private fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
+    is PaymentUiError.Blink -> error.toLocalizedText()
 
     is PaymentUiError.InvalidInvoice ->
-        optionalDetailMessage(
+        localizedTextWithOptionalDetail(
             detail = reason,
             generic = Res.string.error_invalid_invoice,
             withDetails = Res.string.error_invalid_invoice_with_details
         )
 
     is PaymentUiError.Lnurl ->
-        optionalDetailMessage(
+        localizedTextWithOptionalDetail(
             detail = reason,
             generic = Res.string.error_lnurl,
             withDetails = Res.string.error_lnurl_with_details
         )
 
     is PaymentUiError.Unexpected ->
-        optionalDetailMessage(
+        localizedTextWithOptionalDetail(
             detail = detail,
             generic = Res.string.error_unexpected_generic,
             withDetails = Res.string.error_unexpected_with_details
         )
 }
 
-private fun BlinkApiError.toMessage(): LocalizedMessage = when (this) {
+private fun BlinkApiError.toLocalizedText(): LocalizedText = when (this) {
     BlinkApiError.MissingWalletConnection ->
-        LocalizedMessage(Res.string.error_missing_wallet_connection)
+        LocalizedText(Res.string.error_missing_wallet_connection)
 
     BlinkApiError.NetworkUnavailable ->
-        LocalizedMessage(Res.string.error_network_unavailable)
+        LocalizedText(Res.string.error_network_unavailable)
 
     BlinkApiError.Timeout ->
-        LocalizedMessage(Res.string.error_payment_unconfirmed)
+        LocalizedText(Res.string.error_payment_unconfirmed)
 
     is BlinkApiError.PaymentRejected ->
-        code?.toBlinkErrorType()?.toMessage()
-            ?: optionalDetailMessage(
+        code?.toBlinkErrorType()?.toLocalizedText()
+            ?: localizedTextWithOptionalDetail(
                 detail = message,
                 generic = Res.string.error_payment_rejected_generic,
                 withDetails = Res.string.error_payment_rejected_message
             )
 
     is BlinkApiError.Unexpected ->
-        optionalDetailMessage(
+        localizedTextWithOptionalDetail(
             detail = message,
             generic = Res.string.error_payment_unconfirmed,
             withDetails = Res.string.error_payment_unconfirmed_message
         )
 
-    is BlinkApiError.BlinkError -> type.toMessage()
+    is BlinkApiError.BlinkError -> type.toLocalizedText()
 }
 
-private fun BlinkErrorType.toMessage(): LocalizedMessage = LocalizedMessage(
+private fun BlinkErrorType.toLocalizedText(): LocalizedText = LocalizedText(
     when (this) {
         BlinkErrorType.PermissionDenied -> Res.string.error_blink_permission_denied
         BlinkErrorType.InsufficientBalance -> Res.string.error_blink_insufficient_balance
@@ -106,31 +105,3 @@ private fun BlinkErrorType.toMessage(): LocalizedMessage = LocalizedMessage(
 
 private fun String.toBlinkErrorType(): BlinkErrorType? =
     BlinkErrorType.entries.firstOrNull { it.name == this }
-
-private fun optionalDetailMessage(
-    detail: String?,
-    generic: StringResource,
-    withDetails: StringResource
-): LocalizedMessage {
-    val argument = detail?.takeUnless(String::isBlank)
-    return if (argument == null) {
-        LocalizedMessage(generic)
-    } else {
-        LocalizedMessage(withDetails, argument)
-    }
-}
-
-private data class LocalizedMessage(val resource: StringResource, val argument: String? = null)
-
-@Composable
-private fun LocalizedMessage.resolve(): String = if (argument == null) {
-    stringResource(resource)
-} else {
-    stringResource(resource, argument)
-}
-
-private suspend fun LocalizedMessage.resolveInCoroutine(): String = if (argument == null) {
-    getString(resource)
-} else {
-    getString(resource, argument)
-}
