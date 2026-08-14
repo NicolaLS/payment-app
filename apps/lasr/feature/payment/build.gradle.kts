@@ -15,7 +15,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":core:model"))
             api(project(":core:payment"))
-            implementation(project(":lasr:integration:nwc"))
+            api(project(":lasr:integration:nwc"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             implementation(project(":feature:contacts"))

@@ -130,6 +130,28 @@ No app may depend on another app's modules. Root shared modules must not depend
 on app-owned modules or acquire wallet-provider behavior. Shared UI primitives
 belong in `core:ui`; app- and feature-specific UI remains with its owner.
 
+### App-internal dependency direction
+
+App-owned features may depend directly on their own provider integration when
+their implementation and public contract genuinely use provider-native types.
+This is the expected direction for Blip's Blink features and Lasr's NWC
+features. Do not introduce app-internal provider interfaces, adapters, or
+translation models merely to hide that dependency or make app module graphs
+look alike.
+
+Use Gradle `api` when types from a dependency deliberately appear in a module's
+public constructors, functions, state, or events. Use `implementation` when the
+dependency is confined to implementation details. Do not hide a public
+provider dependency with `implementation`, and do not expose an entire
+integration module transitively when no public signature requires it. App
+`shared` composition roots should declare the feature and integration modules
+they use directly instead of relying on incidental transitive dependencies.
+
+An app-specific application contract implemented by an integration module can
+be appropriate when it represents a real boundary inside that app. Keep such a
+contract app-owned and introduce it only when the implementations or consumers
+can meaningfully vary; never replicate the pattern in other apps for symmetry.
+
 Generated resource types stay in their owning module and must not leak into
 model or repository APIs. Blink contact import remains Blip-only.
 
