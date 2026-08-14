@@ -1,41 +1,11 @@
 package xyz.lilsus.flint.application.payment
 
 import kotlin.math.roundToLong
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import xyz.lilsus.raylsuite.core.model.Satoshi
+import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 
-interface PaymentAmountAssistant {
-    val currencyPreferences: StateFlow<PaymentCurrencyPreferences>
-
-    suspend fun updateCurrencyPreferences(preferences: PaymentCurrencyPreferences)
-
-    suspend fun fiatCurrencies(): FiatCurrencyCatalogResult
+interface PaymentAmountAssistant : BitcoinPriceProvider {
     suspend fun quoteFiatAmount(amount: FiatMinorAmount): FiatAmountQuoteResult
-}
-
-object UnavailablePaymentAmountAssistant : PaymentAmountAssistant {
-    override val currencyPreferences = MutableStateFlow(PaymentCurrencyPreferences.Default)
-
-    override suspend fun updateCurrencyPreferences(preferences: PaymentCurrencyPreferences) = Unit
-
-    override suspend fun fiatCurrencies() = FiatCurrencyCatalogResult.WalletUnavailable
-    override suspend fun quoteFiatAmount(amount: FiatMinorAmount) =
-        FiatAmountQuoteResult.WalletUnavailable
-}
-
-data class PaymentCurrencyPreferences(val primaryCode: String, val secondaryCode: String) {
-    init {
-        require(primaryCode == normalizeCurrencyCode(primaryCode))
-        require(secondaryCode == normalizeCurrencyCode(secondaryCode))
-        require(primaryCode == SAT || primaryCode == BTC || isFiatCode(primaryCode))
-        require(secondaryCode == SAT || secondaryCode == BTC || isFiatCode(secondaryCode))
-        require(primaryCode != secondaryCode)
-    }
-
-    companion object {
-        val Default = PaymentCurrencyPreferences(SAT, "USD")
-    }
 }
 
 data class FiatCurrency(val code: String, val name: String, val fractionDigits: Int) {
@@ -82,14 +52,6 @@ data class FiatAmountQuote(
             ) == sats.value
         )
     }
-}
-
-sealed interface FiatCurrencyCatalogResult {
-    data class Available(val currencies: List<FiatCurrency>, val observedAtEpochSeconds: Long) :
-        FiatCurrencyCatalogResult
-
-    data object WalletUnavailable : FiatCurrencyCatalogResult
-    data object RateServiceUnavailable : FiatCurrencyCatalogResult
 }
 
 sealed interface FiatAmountQuoteResult {

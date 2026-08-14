@@ -32,7 +32,6 @@ import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
-import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
 
 @Composable
 fun App(host: FlintAppHost) {
@@ -42,7 +41,6 @@ fun App(host: FlintAppHost) {
     val paymentPreferences =
         remember(appSettings) { DefaultPaymentPreferencesRepository(appSettings) }
     val contactsRepository = remember(appSettings) { DefaultContactsRepository(appSettings) }
-    val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
     val themePreference by
         themePreferences.preference.collectAsState(initial = ThemePreference.System)
     val haptics = rememberHapticFeedbackManager()
@@ -51,7 +49,6 @@ fun App(host: FlintAppHost) {
         remember(
             walletAccess.payments,
             host.paymentLinks,
-            bitcoinPriceProvider,
             currencyPreferences,
             paymentPreferences,
             contactsRepository,
@@ -60,7 +57,6 @@ fun App(host: FlintAppHost) {
             PaymentCoordinator(
                 engine = walletAccess.payments,
                 paymentLinks = host.paymentLinks,
-                bitcoinPriceProvider = bitcoinPriceProvider,
                 currencyPreferences = currencyPreferences,
                 paymentPreferences = paymentPreferences,
                 contactsRepository = contactsRepository,
@@ -70,11 +66,10 @@ fun App(host: FlintAppHost) {
     val walletViewModel = viewModel { WalletViewModel(walletAccess) }
     val walletState by walletViewModel.state.collectAsState()
     val onboardingViewModel =
-        remember(paymentPreferences, currencyPreferences, bitcoinPriceProvider) {
+        remember(paymentPreferences, currencyPreferences) {
             OnboardingViewModel(
                 paymentPreferences = paymentPreferences,
-                currencyPreferences = currencyPreferences,
-                bitcoinPriceProvider = bitcoinPriceProvider
+                currencyPreferences = currencyPreferences
             )
         }
     var navigationReady by remember { mutableStateOf(!walletState.access.isInitialising()) }
@@ -114,7 +109,7 @@ fun App(host: FlintAppHost) {
                     navController = navController,
                     paymentCoordinator = paymentCoordinator,
                     themePreferences = themePreferences,
-                    bitcoinPriceProvider = bitcoinPriceProvider,
+                    bitcoinPriceProvider = walletAccess.payments.amountAssistant,
                     currencyPreferences = currencyPreferences,
                     paymentPreferences = paymentPreferences,
                     contactsRepository = contactsRepository,

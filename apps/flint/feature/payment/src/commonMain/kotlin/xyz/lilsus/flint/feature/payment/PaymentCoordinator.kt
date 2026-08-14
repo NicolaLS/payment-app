@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -29,7 +28,6 @@ import xyz.lilsus.flint.application.payment.FiatMinorAmount
 import xyz.lilsus.flint.application.payment.PaymentActivity
 import xyz.lilsus.flint.application.payment.PaymentConfirmationMode as FlintConfirmationMode
 import xyz.lilsus.flint.application.payment.PaymentConfirmationPolicy
-import xyz.lilsus.flint.application.payment.PaymentCurrencyPreferences
 import xyz.lilsus.flint.application.payment.PaymentDraftHandle
 import xyz.lilsus.flint.application.payment.PaymentEngine
 import xyz.lilsus.flint.application.payment.PaymentLinkInbox
@@ -45,7 +43,6 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.model.Satoshi
-import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
@@ -57,7 +54,6 @@ import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 class PaymentCoordinator(
     private val engine: PaymentEngine,
     private val paymentLinks: PaymentLinkInbox,
-    bitcoinPriceProvider: BitcoinPriceProvider,
     private val currencyPreferences: CurrencyPreferences,
     private val paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
@@ -66,7 +62,7 @@ class PaymentCoordinator(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + coroutineContext)
     private val actionMutex = Mutex()
-    private val currencyManager = PaymentCurrencyManager(bitcoinPriceProvider, scope)
+    private val currencyManager = PaymentCurrencyManager(engine.amountAssistant, scope)
     private val manualAmount =
         ManualAmountController(
             ManualAmountConfig(
@@ -129,20 +125,6 @@ class PaymentCoordinator(
         scope.launch {
             currencyPreferences.primaryCode.collectLatest { code ->
                 currencyManager.setPreferredCurrency(CurrencyCatalog.infoFor(code).currency)
-            }
-        }
-        scope.launch {
-            combine(
-                currencyPreferences.primaryCode,
-                currencyPreferences.secondaryCode,
-                ::Pair
-            ).collectLatest { (primary, secondary) ->
-                engine.amountAssistant.updateCurrencyPreferences(
-                    PaymentCurrencyPreferences(
-                        primaryCode = primary,
-                        secondaryCode = distinctSecondaryCode(primary, secondary)
-                    )
-                )
             }
         }
         scope.launch {
@@ -808,15 +790,6 @@ private fun PaymentPreferences.toFlintConfirmationPolicy(): PaymentConfirmationP
         amountThresholdSats = Satoshi.positive(thresholdSats),
         feeThresholdSats = Satoshi.nonNegative(Long.MAX_VALUE)
     )
-
-private fun distinctSecondaryCode(primary: String, secondary: String): String =
-    if (primary != secondary) {
-        secondary
-    } else if (primary == "USD") {
-        "SAT"
-    } else {
-        "USD"
-    }
 
 private fun reusableLightningAddress(input: String): LightningAddress? =
     LightningAddress.parse(input)

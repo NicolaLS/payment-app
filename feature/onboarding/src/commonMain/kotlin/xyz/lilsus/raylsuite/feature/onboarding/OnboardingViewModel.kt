@@ -33,7 +33,7 @@ data class OnboardingUiState(
 class OnboardingViewModel(
     private val paymentPreferences: PaymentPreferencesRepository,
     currencyPreferences: CurrencyPreferences,
-    private val bitcoinPriceProvider: BitcoinPriceProvider,
+    private val bitcoinPriceProvider: BitcoinPriceProvider? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -97,10 +97,10 @@ class OnboardingViewModel(
         publishThresholdPreview()
 
         val fiat = currency.currency as? DisplayCurrency.Fiat ?: return
-        val price = bitcoinPriceProvider.pricePerBitcoin(fiat.iso4217)
+        val price = bitcoinPriceProvider?.pricePerBitcoin(fiat.iso4217) ?: return
         if (requestId != priceRequestId) return
 
-        pricePerBitcoin = price?.coerceAtLeast(0.0)
+        pricePerBitcoin = price.coerceAtLeast(0.0)
         publishThresholdPreview()
     }
 

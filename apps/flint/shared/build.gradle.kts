@@ -37,7 +37,6 @@ kotlin {
             implementation(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
             implementation(project(":feature:wallet-management"))
-            implementation(project(":integration:exchange-rate"))
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.navigation.compose)

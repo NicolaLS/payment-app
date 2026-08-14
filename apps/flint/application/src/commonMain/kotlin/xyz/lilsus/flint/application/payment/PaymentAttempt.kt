@@ -53,8 +53,7 @@ data class PaymentAttempt(
     val createdAtEpochSeconds: Long,
     val updatedAtEpochSeconds: Long,
     val linkPhase: PaymentLinkPhase,
-    val breezPaymentId: String?,
-    val fiatQuote: FiatAmountQuote? = null
+    val breezPaymentId: String?
 )
 
 sealed interface CreateAttemptResult {
@@ -72,8 +71,7 @@ interface PaymentAttemptRepository {
         amountSats: Satoshi,
         feeSats: Satoshi,
         origin: PaymentOrigin,
-        nowEpochSeconds: Long,
-        fiatQuote: FiatAmountQuote? = null
+        nowEpochSeconds: Long
     ): CreateAttemptResult
 
     fun findById(attemptId: String): PaymentAttempt?

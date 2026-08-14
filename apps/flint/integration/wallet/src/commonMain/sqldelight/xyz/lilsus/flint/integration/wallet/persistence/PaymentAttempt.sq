@@ -8,13 +8,7 @@ CREATE TABLE payment_attempt (
     created_at_epoch_seconds INTEGER NOT NULL,
     updated_at_epoch_seconds INTEGER NOT NULL,
     link_phase TEXT NOT NULL CHECK (link_phase IN ('CONFIRMED', 'SUBMISSION_STARTED', 'SDK_PAYMENT_LINKED')),
-    breez_payment_id TEXT UNIQUE,
-    fiat_currency_code TEXT,
-    fiat_currency_name TEXT,
-    fiat_fraction_digits INTEGER,
-    fiat_amount_minor INTEGER,
-    fiat_price_per_bitcoin REAL,
-    fiat_rate_observed_at_epoch_seconds INTEGER
+    breez_payment_id TEXT UNIQUE
 );
 
 CREATE INDEX payment_attempt_phase_updated
@@ -31,14 +25,8 @@ INSERT INTO payment_attempt(
     created_at_epoch_seconds,
     updated_at_epoch_seconds,
     link_phase,
-    breez_payment_id,
-    fiat_currency_code,
-    fiat_currency_name,
-    fiat_fraction_digits,
-    fiat_amount_minor,
-    fiat_price_per_bitcoin,
-    fiat_rate_observed_at_epoch_seconds
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', NULL, ?, ?, ?, ?, ?, ?);
+    breez_payment_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', NULL);
 
 selectById:
 SELECT * FROM payment_attempt WHERE attempt_id = ?;

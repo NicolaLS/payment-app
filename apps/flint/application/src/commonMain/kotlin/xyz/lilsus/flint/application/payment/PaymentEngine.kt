@@ -95,8 +95,7 @@ data class PaymentActivity(
     val feeSats: Satoshi,
     val origin: PaymentOrigin,
     val createdAtEpochSeconds: Long,
-    val outcome: PaymentOutcome,
-    val fiatQuote: FiatAmountQuote? = null
+    val outcome: PaymentOutcome
 )
 
 enum class PaymentOutcome {

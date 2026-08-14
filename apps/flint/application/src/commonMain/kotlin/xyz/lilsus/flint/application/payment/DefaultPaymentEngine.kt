@@ -35,7 +35,6 @@ class DefaultPaymentEngine(
     private val paymentsById = mutableMapOf<String, SdkPayment>()
     private val mutableActivity = MutableStateFlow<List<PaymentActivity>>(emptyList())
     private val mutableConfirmationPolicy = MutableStateFlow(PaymentConfirmationPolicy.Default)
-    private val mutableCurrencyPreferences = MutableStateFlow(PaymentCurrencyPreferences.Default)
     private var client: SparkPaymentClient? = null
     private var listenerId: String? = null
     private var sessionGeneration = 0L
@@ -45,8 +44,6 @@ class DefaultPaymentEngine(
     override val confirmationPolicy: StateFlow<PaymentConfirmationPolicy> =
         mutableConfirmationPolicy.asStateFlow()
     override val amountAssistant: PaymentAmountAssistant = this
-    override val currencyPreferences: StateFlow<PaymentCurrencyPreferences> =
-        mutableCurrencyPreferences.asStateFlow()
 
     override suspend fun attach(client: SparkPaymentClient) {
         val attached = sessionMutex.withLock {
@@ -202,7 +199,7 @@ class DefaultPaymentEngine(
     override suspend fun prepareAmount(
         handle: PaymentAmountHandle,
         amountSats: Satoshi
-    ): PreparePaymentResult = prepareAmount(handle, amountSats, fiatQuote = null)
+    ): PreparePaymentResult = prepareAmountInternal(handle, amountSats)
 
     override suspend fun prepareAmount(
         handle: PaymentAmountHandle,
@@ -212,13 +209,12 @@ class DefaultPaymentEngine(
         if (age !in 0 until FIAT_RATE_TTL_SECONDS) {
             return PreparePaymentResult.Rejected(PaymentRejection.INVALID_AMOUNT)
         }
-        return prepareAmount(handle, quote.sats, fiatQuote = quote)
+        return prepareAmountInternal(handle, quote.sats)
     }
 
-    private suspend fun prepareAmount(
+    private suspend fun prepareAmountInternal(
         handle: PaymentAmountHandle,
-        amountSats: Satoshi,
-        fiatQuote: FiatAmountQuote?
+        amountSats: Satoshi
     ): PreparePaymentResult = draftMutex.withLock {
         val currentClient = client ?: return@withLock PreparePaymentResult.WalletUnavailable
         val amountDraft =
@@ -287,8 +283,7 @@ class DefaultPaymentEngine(
                 prepared = prepared,
                 projection = projection,
                 origin = amountDraft.origin,
-                fingerprints = setOf(amountDraft.admission.fingerprint, admitted.fingerprint),
-                fiatQuote = fiatQuote
+                fingerprints = setOf(amountDraft.admission.fingerprint, admitted.fingerprint)
             )
         )
         PreparePaymentResult.Ready(projection)
@@ -299,19 +294,8 @@ class DefaultPaymentEngine(
             mutableConfirmationPolicy.value = policy
         }
 
-    override suspend fun updateCurrencyPreferences(preferences: PaymentCurrencyPreferences) =
-        fiatMutex.withLock {
-            mutableCurrencyPreferences.value = preferences
-        }
-
-    override suspend fun fiatCurrencies(): FiatCurrencyCatalogResult {
-        val market = loadFiatMarket() ?: return if (client == null) {
-            FiatCurrencyCatalogResult.WalletUnavailable
-        } else {
-            FiatCurrencyCatalogResult.RateServiceUnavailable
-        }
-        return FiatCurrencyCatalogResult.Available(market.currencies, market.observedAtEpochSeconds)
-    }
+    override suspend fun pricePerBitcoin(fiatCurrencyCode: String): Double? =
+        loadFiatMarket()?.rates?.get(normalizeCurrencyCode(fiatCurrencyCode))
 
     override suspend fun quoteFiatAmount(amount: FiatMinorAmount): FiatAmountQuoteResult {
         val market = loadFiatMarket() ?: return if (client == null) {
@@ -376,8 +360,7 @@ class DefaultPaymentEngine(
                     amountSats = checkNotNull(draft.admission.amountSats),
                     feeSats = draft.prepared.feeSats,
                     origin = draft.origin,
-                    nowEpochSeconds = now,
-                    fiatQuote = draft.fiatQuote
+                    nowEpochSeconds = now
                 )
             ) {
                 is CreateAttemptResult.Created -> created.attempt
@@ -761,8 +744,7 @@ class DefaultPaymentEngine(
                     ?.status
                     ?.toOutcome()
                     ?: PaymentOutcome.STATUS_UNAVAILABLE
-        },
-        fiatQuote = attempt.fiatQuote
+        }
     )
 
     private fun SdkPaymentStatus.toOutcome(): PaymentOutcome = when (this) {
@@ -821,6 +803,7 @@ class DefaultPaymentEngine(
             }
         } finally {
             paymentsById.clear()
+            fiatMarketSnapshot = null
             publishActivity()
         }
     }
@@ -893,8 +876,7 @@ class DefaultPaymentEngine(
         val prepared: SdkPreparedPayment,
         val projection: PreparedPayment,
         val origin: PaymentOrigin,
-        val fingerprints: Set<InvoiceFingerprint>,
-        val fiatQuote: FiatAmountQuote? = null
+        val fingerprints: Set<InvoiceFingerprint>
     ) {
         fun isExpired(nowEpochSeconds: Long): Boolean =
             admission.expiresAtEpochSeconds?.let { it <= nowEpochSeconds } ?: false

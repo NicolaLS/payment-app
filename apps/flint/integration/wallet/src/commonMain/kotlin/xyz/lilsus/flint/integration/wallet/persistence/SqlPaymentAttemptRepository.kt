@@ -3,10 +3,6 @@ package xyz.lilsus.flint.integration.wallet.persistence
 import app.cash.sqldelight.db.SqlDriver
 import kotlinx.coroutines.CancellationException
 import xyz.lilsus.flint.application.payment.CreateAttemptResult
-import xyz.lilsus.flint.application.payment.FiatAmountQuote
-import xyz.lilsus.flint.application.payment.FiatCurrency
-import xyz.lilsus.flint.application.payment.FiatMinorAmount
-import xyz.lilsus.flint.application.payment.FiatRateSnapshot
 import xyz.lilsus.flint.application.payment.InvoiceFingerprint
 import xyz.lilsus.flint.application.payment.PaymentAttempt
 import xyz.lilsus.flint.application.payment.PaymentAttemptRepository
@@ -34,8 +30,7 @@ class SqlPaymentAttemptRepository(
         amountSats: Satoshi,
         feeSats: Satoshi,
         origin: PaymentOrigin,
-        nowEpochSeconds: Long,
-        fiatQuote: FiatAmountQuote?
+        nowEpochSeconds: Long
     ): CreateAttemptResult = try {
         database.transactionWithResult {
             queries.deleteLinkedBefore(nowEpochSeconds - linkedRetentionSeconds)
@@ -54,13 +49,7 @@ class SqlPaymentAttemptRepository(
                 fee_sats = feeSats.value,
                 origin = origin.name,
                 created_at_epoch_seconds = nowEpochSeconds,
-                updated_at_epoch_seconds = nowEpochSeconds,
-                fiat_currency_code = fiatQuote?.currency?.code,
-                fiat_currency_name = fiatQuote?.currency?.name,
-                fiat_fraction_digits = fiatQuote?.currency?.fractionDigits?.toLong(),
-                fiat_amount_minor = fiatQuote?.input?.minorUnits,
-                fiat_price_per_bitcoin = fiatQuote?.rate?.pricePerBitcoin,
-                fiat_rate_observed_at_epoch_seconds = fiatQuote?.rate?.observedAtEpochSeconds
+                updated_at_epoch_seconds = nowEpochSeconds
             )
             CreateAttemptResult.Created(checkNotNull(findById(attemptId)))
         }
@@ -118,16 +107,7 @@ class SqlPaymentAttemptRepository(
         createdAtEpochSeconds = created_at_epoch_seconds,
         updatedAtEpochSeconds = updated_at_epoch_seconds,
         linkPhase = PaymentLinkPhase.valueOf(link_phase),
-        breezPaymentId = breez_payment_id,
-        fiatQuote = fiatQuote(
-            amount_sats,
-            fiat_currency_code,
-            fiat_currency_name,
-            fiat_fraction_digits,
-            fiat_amount_minor,
-            fiat_price_per_bitcoin,
-            fiat_rate_observed_at_epoch_seconds
-        )
+        breezPaymentId = breez_payment_id
     )
 
     private fun SelectLinked.toDomain(): PaymentAttempt = PaymentAttempt(
@@ -140,42 +120,8 @@ class SqlPaymentAttemptRepository(
         createdAtEpochSeconds = created_at_epoch_seconds,
         updatedAtEpochSeconds = updated_at_epoch_seconds,
         linkPhase = PaymentLinkPhase.valueOf(link_phase),
-        breezPaymentId = breez_payment_id,
-        fiatQuote = fiatQuote(
-            amount_sats,
-            fiat_currency_code,
-            fiat_currency_name,
-            fiat_fraction_digits,
-            fiat_amount_minor,
-            fiat_price_per_bitcoin,
-            fiat_rate_observed_at_epoch_seconds
-        )
+        breezPaymentId = breez_payment_id
     )
-
-    private fun fiatQuote(
-        amountSats: Long,
-        code: String?,
-        name: String?,
-        fractionDigits: Long?,
-        minor: Long?,
-        rate: Double?,
-        observedAt: Long?
-    ): FiatAmountQuote? {
-        code ?: return null
-        name ?: return null
-        fractionDigits ?: return null
-        minor ?: return null
-        rate ?: return null
-        observedAt ?: return null
-        return runCatching {
-            FiatAmountQuote(
-                input = FiatMinorAmount(code, minor),
-                currency = FiatCurrency(code, name, fractionDigits.toInt()),
-                sats = Satoshi.positive(amountSats),
-                rate = FiatRateSnapshot(code, rate, observedAt)
-            )
-        }.getOrNull()
-    }
 
     companion object {
         const val DEFAULT_MAX_RECORDS = 256L
