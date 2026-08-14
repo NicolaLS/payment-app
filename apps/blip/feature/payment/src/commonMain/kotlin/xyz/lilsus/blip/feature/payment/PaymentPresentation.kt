@@ -1,43 +1,137 @@
 package xyz.lilsus.blip.feature.payment
 
 import androidx.compose.runtime.Composable
-import xyz.lilsus.raylsuite.core.ui.hero.RaylHeroPhase
-import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentResultPresentation
-
-internal fun PaymentUiState.toHeroPhase(): RaylHeroPhase = when (this) {
-    PaymentUiState.Active -> RaylHeroPhase.Ready
-
-    is PaymentUiState.Detected,
-    is PaymentUiState.Confirm,
-    is PaymentUiState.EnterAmount,
-    is PaymentUiState.PendingRetry -> RaylHeroPhase.Acknowledged
-
-    is PaymentUiState.Loading ->
-        if (kind == LoadingKind.Resolving) {
-            RaylHeroPhase.Acknowledged
-        } else {
-            RaylHeroPhase.Processing
-        }
-
-    is PaymentUiState.Success -> RaylHeroPhase.Succeeded
-
-    is PaymentUiState.Error -> RaylHeroPhase.Failed
-}
+import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.blip.feature.payment.generated.resources.Res
+import xyz.lilsus.blip.feature.payment.generated.resources.transaction_fee
+import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_already_paid
+import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_failure
+import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_pending_blink
+import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_sending
+import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_success
+import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_unknown
+import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
+import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionReference
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionTransaction
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentStatusTone
 
 @Composable
-internal fun PaymentUiState.toResultPresentation(
+internal fun PaymentUiState.toPaymentScreenState(
     errorMessageFor: @Composable (PaymentUiError) -> String
-): PaymentResultPresentation = when (this) {
+): PaymentScreenState = when (this) {
+    PaymentUiState.Active -> PaymentScreenState.Active
+
+    PaymentUiState.Detected -> PaymentScreenState.Detected
+
+    is PaymentUiState.Loading -> PaymentScreenState.Loading(kind.toPresentation())
+
+    is PaymentUiState.EnterAmount -> PaymentScreenState.EnterAmount(entry)
+
+    is PaymentUiState.Confirm -> PaymentScreenState.Confirm(amount)
+
+    is PaymentUiState.PendingRetry -> PaymentScreenState.PendingRetry(id)
+
     is PaymentUiState.Success ->
-        PaymentResultPresentation.Success(
+        PaymentScreenState.Success(
             amountPaid = amountPaid,
             feePaid = feePaid,
             showEstimatedFeeHint = showEstimatedFeeHint,
             wasAlreadyPaid = wasAlreadyPaid,
-            hasReceipt = !preimage.isNullOrBlank()
+            preimage = preimage
         )
 
-    is PaymentUiState.Error -> PaymentResultPresentation.Error(errorMessageFor(error))
-
-    else -> error("Only terminal payment states have result presentation")
+    is PaymentUiState.Error -> PaymentScreenState.Error(errorMessageFor(error))
 }
+
+internal fun SessionTransactionItem.toPaymentSessionReference() = PaymentSessionReference(
+    id = id,
+    statusKey = status.name,
+    previousPaymentSituation = status.toPreviousPaymentSituation()
+)
+
+@Composable
+internal fun SessionTransactionItem.toPaymentSessionTransaction(
+    formatter: AmountFormatter
+): PaymentSessionTransaction {
+    val presentation = status.presentation()
+    return PaymentSessionTransaction(
+        id = id,
+        amount = amount,
+        statusLabel = presentation.label,
+        statusTone = presentation.tone,
+        createdAtMs = createdAtMs,
+        supportingText =
+            when (status) {
+                PendingStatus.Success -> fee?.let {
+                    stringResource(Res.string.transaction_fee, formatter.format(it))
+                }
+
+                PendingStatus.StatusUnknown,
+                PendingStatus.Failure -> errorMessage
+
+                PendingStatus.Sending,
+                PendingStatus.PendingInBlink,
+                PendingStatus.AlreadyPaid -> null
+            }
+    )
+}
+
+private fun LoadingKind.toPresentation(): PaymentLoadingKind = when (this) {
+    LoadingKind.Resolving -> PaymentLoadingKind.Resolving
+    LoadingKind.Paying -> PaymentLoadingKind.Paying
+}
+
+private fun PendingStatus.toPreviousPaymentSituation(): PreviousPaymentSituation = when (this) {
+    PendingStatus.Sending,
+    PendingStatus.PendingInBlink -> PreviousPaymentSituation.InProgress
+
+    PendingStatus.StatusUnknown -> PreviousPaymentSituation.OutcomeUnknown
+
+    PendingStatus.Success,
+    PendingStatus.AlreadyPaid,
+    PendingStatus.Failure -> PreviousPaymentSituation.Completed
+}
+
+@Composable
+private fun PendingStatus.presentation(): StatusPresentation = when (this) {
+    PendingStatus.Sending ->
+        StatusPresentation(
+            stringResource(Res.string.transaction_status_sending),
+            PaymentStatusTone.Pending
+        )
+
+    PendingStatus.PendingInBlink ->
+        StatusPresentation(
+            stringResource(Res.string.transaction_status_pending_blink),
+            PaymentStatusTone.Pending
+        )
+
+    PendingStatus.StatusUnknown ->
+        StatusPresentation(
+            stringResource(Res.string.transaction_status_unknown),
+            PaymentStatusTone.Failure
+        )
+
+    PendingStatus.Success ->
+        StatusPresentation(
+            stringResource(Res.string.transaction_status_success),
+            PaymentStatusTone.Success
+        )
+
+    PendingStatus.AlreadyPaid ->
+        StatusPresentation(
+            stringResource(Res.string.transaction_status_already_paid),
+            PaymentStatusTone.Success
+        )
+
+    PendingStatus.Failure ->
+        StatusPresentation(
+            stringResource(Res.string.transaction_status_failure),
+            PaymentStatusTone.Failure
+        )
+}
+
+private data class StatusPresentation(val label: String, val tone: PaymentStatusTone)

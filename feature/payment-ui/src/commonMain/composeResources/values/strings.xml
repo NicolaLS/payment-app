@@ -34,4 +34,8 @@
     <string name="contacts_save_prompt_body">Add %1$s for faster payments next time.</string>
     <string name="contacts_not_now">Not now</string>
     <string name="contacts_invalid_address">Enter a valid Lightning address.</string>
+    <string name="open_shortcuts_contacts">Open shortcuts and contacts</string>
+    <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
+    <string name="resolving_payment_title">Preparing payment</string>
+    <string name="resolving_payment_subtitle">No payment has been sent yet.</string>
 </resources>

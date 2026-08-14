@@ -17,6 +17,7 @@ kotlin {
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             implementation(project(":feature:contacts"))
+            implementation(project(":feature:payment-intent"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)

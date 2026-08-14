@@ -1,10 +1,6 @@
 <resources>
     <string name="retry_payment">Retry payment</string>
     <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
-    <string name="open_shortcuts_contacts">Open shortcuts and contacts</string>
-    <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
-    <string name="resolving_payment_title">Preparing payment</string>
-    <string name="resolving_payment_subtitle">No payment has been sent yet.</string>
     <string name="session_transactions_title">Transactions</string>
     <string name="session_transactions_empty">No transactions yet.</string>
     <string name="transaction_status_pending">Pending</string>

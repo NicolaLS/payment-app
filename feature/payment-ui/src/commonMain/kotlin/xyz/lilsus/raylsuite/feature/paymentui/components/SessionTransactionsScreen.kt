@@ -1,4 +1,4 @@
-package xyz.lilsus.blip.feature.payment.components
+package xyz.lilsus.raylsuite.feature.paymentui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,29 +32,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.payment.PendingStatus
-import xyz.lilsus.blip.feature.payment.SessionTransactionItem
-import xyz.lilsus.blip.feature.payment.generated.resources.Res
-import xyz.lilsus.blip.feature.payment.generated.resources.session_transactions_empty
-import xyz.lilsus.blip.feature.payment.generated.resources.session_transactions_title
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_fee
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_already_paid
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_failure
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_pending_blink
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_sending
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_success
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_unknown
 import xyz.lilsus.raylsuite.core.ui.components.AppFadingLazyColumn
 import xyz.lilsus.raylsuite.core.ui.components.AppListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.core.ui.platform.formatTimeHHmm
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionTransaction
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentStatusTone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionTransactionsScreen(
-    transactions: List<SessionTransactionItem>,
+    title: String,
+    emptyMessage: String,
+    transactions: List<PaymentSessionTransaction>,
     onBack: () -> Unit,
     onTransactionSelected: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -64,7 +55,7 @@ fun SessionTransactionsScreen(
         modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(text = stringResource(Res.string.session_transactions_title)) },
+                title = { Text(text = title) },
                 navigationIcon = { BackIconButton(onClick = onBack) },
                 scrollBehavior = scrollBehavior
             )
@@ -72,6 +63,7 @@ fun SessionTransactionsScreen(
     ) { padding ->
         if (transactions.isEmpty()) {
             EmptyTransactionsContent(
+                message = emptyMessage,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -102,14 +94,14 @@ fun SessionTransactionsScreen(
 }
 
 @Composable
-private fun EmptyTransactionsContent(modifier: Modifier = Modifier) {
+private fun EmptyTransactionsContent(message: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = stringResource(Res.string.session_transactions_empty),
+            text = message,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -118,23 +110,11 @@ private fun EmptyTransactionsContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SessionTransactionRow(transaction: SessionTransactionItem, onClick: () -> Unit) {
+private fun SessionTransactionRow(transaction: PaymentSessionTransaction, onClick: () -> Unit) {
     val formatter = rememberAmountFormatter()
     val amount = formatter.format(transaction.amount)
     val time = remember(transaction.createdAtMs) { formatTimeHHmm(transaction.createdAtMs) }
-    val status = transaction.status.presentation()
-    val supportingText = when (transaction.status) {
-        PendingStatus.Success -> transaction.fee?.let {
-            stringResource(Res.string.transaction_fee, formatter.format(it))
-        }
-
-        PendingStatus.Failure,
-        PendingStatus.StatusUnknown -> transaction.errorMessage
-
-        PendingStatus.Sending,
-        PendingStatus.PendingInBlink,
-        PendingStatus.AlreadyPaid -> null
-    }
+    val status = transaction.presentation()
 
     AppListRow(onClick = onClick) {
         Surface(
@@ -180,7 +160,7 @@ private fun SessionTransactionRow(transaction: SessionTransactionItem, onClick: 
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            supportingText?.let { supporting ->
+            transaction.supportingText?.let { supporting ->
                 Text(
                     text = supporting,
                     style = MaterialTheme.typography.bodySmall,
@@ -194,49 +174,29 @@ private fun SessionTransactionRow(transaction: SessionTransactionItem, onClick: 
 }
 
 @Composable
-private fun PendingStatus.presentation(): TransactionStatusPresentation = when (this) {
-    PendingStatus.Sending -> TransactionStatusPresentation(
-        label = stringResource(Res.string.transaction_status_sending),
-        icon = Icons.Filled.HourglassTop,
-        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-    )
+private fun PaymentSessionTransaction.presentation(): TransactionStatusPresentation =
+    when (statusTone) {
+        PaymentStatusTone.Pending -> TransactionStatusPresentation(
+            label = statusLabel,
+            icon = Icons.Filled.HourglassTop,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
 
-    PendingStatus.PendingInBlink -> TransactionStatusPresentation(
-        label = stringResource(Res.string.transaction_status_pending_blink),
-        icon = Icons.Filled.HourglassTop,
-        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-    )
+        PaymentStatusTone.Success -> TransactionStatusPresentation(
+            label = statusLabel,
+            icon = Icons.Filled.CheckCircle,
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+        )
 
-    PendingStatus.StatusUnknown -> TransactionStatusPresentation(
-        label = stringResource(Res.string.transaction_status_unknown),
-        icon = Icons.Filled.Error,
-        containerColor = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer
-    )
-
-    PendingStatus.Success -> TransactionStatusPresentation(
-        label = stringResource(Res.string.transaction_status_success),
-        icon = Icons.Filled.CheckCircle,
-        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-    )
-
-    PendingStatus.AlreadyPaid -> TransactionStatusPresentation(
-        label = stringResource(Res.string.transaction_status_already_paid),
-        icon = Icons.Filled.CheckCircle,
-        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-    )
-
-    PendingStatus.Failure -> TransactionStatusPresentation(
-        label = stringResource(Res.string.transaction_status_failure),
-        icon = Icons.Filled.Error,
-        containerColor = MaterialTheme.colorScheme.errorContainer,
-        contentColor = MaterialTheme.colorScheme.onErrorContainer
-    )
-}
+        PaymentStatusTone.Failure -> TransactionStatusPresentation(
+            label = statusLabel,
+            icon = Icons.Filled.Error,
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer
+        )
+    }
 
 private data class TransactionStatusPresentation(
     val label: String,

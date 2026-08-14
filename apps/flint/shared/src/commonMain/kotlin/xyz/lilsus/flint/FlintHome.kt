@@ -13,7 +13,6 @@ import xyz.lilsus.flint.application.wallet.WalletAccessState
 import xyz.lilsus.flint.feature.onboarding.FlintOnboardingDestination
 import xyz.lilsus.flint.feature.payment.PaymentCoordinator
 import xyz.lilsus.flint.feature.payment.PaymentFlow
-import xyz.lilsus.flint.feature.payment.PaymentIntent
 import xyz.lilsus.flint.feature.payment.flintPaymentErrorMessageFor
 import xyz.lilsus.flint.feature.payment.getFlintPaymentErrorMessageFor
 import xyz.lilsus.flint.feature.wallet.WalletAction
@@ -23,6 +22,7 @@ import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks

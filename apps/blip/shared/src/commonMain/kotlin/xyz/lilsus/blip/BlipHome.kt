@@ -15,7 +15,6 @@ import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
 import xyz.lilsus.blip.feature.payment.PaymentCoordinator
 import xyz.lilsus.blip.feature.payment.PaymentFlow
-import xyz.lilsus.blip.feature.payment.PaymentIntent
 import xyz.lilsus.blip.feature.payment.blipPaymentErrorMessageFor
 import xyz.lilsus.blip.feature.payment.getBlipPaymentErrorMessageFor
 import xyz.lilsus.blip.feature.walletdetails.BlinkWalletDetailsScreen
@@ -30,6 +29,7 @@ import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks

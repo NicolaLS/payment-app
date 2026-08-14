@@ -1,10 +1,6 @@
 <resources>
     <string name="tap_dismiss_pending">Toca para cerrar. El pago continúa en segundo plano.</string>
     <string name="tap_dismiss_pending_blink">Blink indicó que este pago está pendiente. Comprueba su estado final en tu billetera Blink.</string>
-    <string name="open_shortcuts_contacts">Abrir accesos directos y contactos</string>
-    <string name="point_camera_message_subtitle">Apunta la cámara a una factura.</string>
-    <string name="resolving_payment_title">Preparando el pago</string>
-    <string name="resolving_payment_subtitle">Todavía no se ha enviado ningún pago.</string>
     <string name="retry_payment">Reintentar pago</string>
     <string name="session_transactions_title">Pagos recientes</string>
     <string name="session_transactions_empty">Aún no hay pagos en esta sesión.</string>

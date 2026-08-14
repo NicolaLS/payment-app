@@ -47,6 +47,8 @@ import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey

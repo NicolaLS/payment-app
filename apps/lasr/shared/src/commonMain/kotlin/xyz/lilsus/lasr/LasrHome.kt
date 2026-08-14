@@ -13,7 +13,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.lasr.feature.payment.PaymentCoordinator
 import xyz.lilsus.lasr.feature.payment.PaymentFlow
-import xyz.lilsus.lasr.feature.payment.PaymentIntent
 import xyz.lilsus.lasr.feature.payment.getLasrPaymentErrorMessageFor
 import xyz.lilsus.lasr.feature.payment.lasrPaymentErrorMessageFor
 import xyz.lilsus.lasr.feature.walletdetails.NwcWalletDetailsScreen
@@ -24,6 +23,7 @@ import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks

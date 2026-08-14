@@ -1,4 +1,4 @@
-package xyz.lilsus.flint.feature.payment
+package xyz.lilsus.raylsuite.feature.paymentui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -37,11 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.flint.feature.payment.generated.resources.Res
-import xyz.lilsus.flint.feature.payment.generated.resources.open_shortcuts_contacts
-import xyz.lilsus.flint.feature.payment.generated.resources.point_camera_message_subtitle
-import xyz.lilsus.flint.feature.payment.generated.resources.resolving_payment_subtitle
-import xyz.lilsus.flint.feature.payment.generated.resources.resolving_payment_title
 import xyz.lilsus.raylsuite.core.camera.QrScannerMode
 import xyz.lilsus.raylsuite.core.model.ContactRole
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
@@ -62,16 +57,20 @@ import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsBottomShee
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.SaveContactBottomSheet
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.open_shortcuts_contacts
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.point_camera_message_subtitle
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.resolving_payment_subtitle
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.resolving_payment_title
 import xyz.lilsus.raylsuite.feature.paymentui.tapToDismiss
 
 @Composable
 fun PaymentScreen(
     appTitle: String,
     onNavigateSettings: () -> Unit,
-    uiState: PaymentUiState,
-    sessionTransactions: List<SessionTransactionItem>,
+    uiState: PaymentScreenState,
+    sessionTransactions: List<PaymentSessionReference>,
     snackbarHostState: SnackbarHostState,
-    errorMessageFor: @Composable (PaymentUiError) -> String,
     estimatedFeeHint: String? = null,
     newSessionTransactionCount: Int = 0,
     contactsState: PaymentContactsUiState = PaymentContactsUiState(),
@@ -105,8 +104,8 @@ fun PaymentScreen(
     modifier: Modifier = Modifier
 ) {
     var showResolvingContent by remember { mutableStateOf(false) }
-    val isResolvingLoading = uiState is PaymentUiState.Loading &&
-        uiState.kind == LoadingKind.Resolving
+    val isResolvingLoading = uiState is PaymentScreenState.Loading &&
+        uiState.kind == PaymentLoadingKind.Resolving
     LaunchedEffect(uiState) {
         showResolvingContent = false
         if (isResolvingLoading) {
@@ -115,16 +114,16 @@ fun PaymentScreen(
         }
     }
 
-    val isDismissable = uiState is PaymentUiState.Success ||
-        uiState is PaymentUiState.Error
+    val isDismissable = uiState is PaymentScreenState.Success ||
+        uiState is PaymentScreenState.Error
     val contentState = if (isResolvingLoading && !showResolvingContent) {
-        PaymentUiState.Active
+        PaymentScreenState.Active
     } else {
         uiState
     }
-    val showBottomActions = contentState !is PaymentUiState.Success &&
-        contentState !is PaymentUiState.Error
-    val receiptPreimage = (contentState as? PaymentUiState.Success)
+    val showBottomActions = contentState !is PaymentScreenState.Success &&
+        contentState !is PaymentScreenState.Error
+    val receiptPreimage = (contentState as? PaymentScreenState.Success)
         ?.preimage
         ?.trim()
         ?.takeIf(String::isNotEmpty)
@@ -134,9 +133,9 @@ fun PaymentScreen(
     }
     val showTransactionAction = showBottomActions &&
         sessionTransactions.isNotEmpty() &&
-        contentState == PaymentUiState.Active
+        contentState == PaymentScreenState.Active
     val transactionAttentionKey = sessionTransactions.fold(sessionTransactions.size) { acc, item ->
-        31 * acc + item.id.hashCode() + item.status.hashCode()
+        31 * acc + item.id.hashCode() + item.statusKey.hashCode()
     }
     var revealTransactionAction by remember { mutableStateOf(false) }
     LaunchedEffect(showTransactionAction) {
@@ -150,7 +149,7 @@ fun PaymentScreen(
     }
     val openContactsLabel = stringResource(Res.string.open_shortcuts_contacts)
     val activeContentModifier = Modifier.then(
-        if (contentState == PaymentUiState.Active) {
+        if (contentState == PaymentScreenState.Active) {
             Modifier.semantics {
                 customActions = listOf(
                     CustomAccessibilityAction(openContactsLabel) {
@@ -207,16 +206,17 @@ fun PaymentScreen(
             )
             Crossfade(targetState = contentState) { state ->
                 when {
-                    state is PaymentUiState.Success ||
-                        state is PaymentUiState.Error -> ResultLayout(
+                    state is PaymentScreenState.Success ||
+                        state is PaymentScreenState.Error -> ResultLayout(
                         modifier = Modifier.fillMaxSize(),
-                        result = state.toResultPresentation(errorMessageFor),
+                        result = state.toResultPresentation(),
                         receiptVisible = showReceipt,
                         estimatedFeeHint = estimatedFeeHint,
                         onViewReceipt = { showReceipt = true }
                     )
 
-                    state is PaymentUiState.Loading && state.kind == LoadingKind.Resolving -> {
+                    state is PaymentScreenState.Loading &&
+                        state.kind == PaymentLoadingKind.Resolving -> {
                         ResolvingPaymentLayout(modifier = Modifier.fillMaxSize())
                     }
 
@@ -229,7 +229,7 @@ fun PaymentScreen(
         }
     }
 
-    if (uiState is PaymentUiState.EnterAmount) {
+    if (uiState is PaymentScreenState.EnterAmount) {
         ManualAmountBottomSheet(
             state = uiState.entry,
             onKeyPress = onManualAmountKeyPress,
@@ -239,7 +239,7 @@ fun PaymentScreen(
         )
     }
 
-    if (uiState is PaymentUiState.Confirm) {
+    if (uiState is PaymentScreenState.Confirm) {
         ConfirmationBottomSheet(
             confirmAmount = uiState.amount,
             onPay = onConfirmPaymentSubmit,
@@ -247,13 +247,16 @@ fun PaymentScreen(
         )
     }
 
-    if (uiState is PaymentUiState.PendingRetry) {
+    if (uiState is PaymentScreenState.PendingRetry) {
         val retryTransaction = sessionTransactions.firstOrNull { transaction ->
-            transaction.id == uiState.id
+            transaction.id == uiState.transactionId
         }
-        val status = retryTransaction?.status ?: PendingStatus.Resolving
         RepeatPaymentClarificationBottomSheet(
-            clarification = RepeatPaymentClarification(status.toPreviousPaymentSituation()),
+            clarification =
+            RepeatPaymentClarification(
+                retryTransaction?.previousPaymentSituation
+                    ?: PreviousPaymentSituation.InProgress
+            ),
             onDecision = { decision ->
                 when (decision) {
                     RepeatPaymentDecision.RetryPreviousInvoice ->
@@ -294,17 +297,6 @@ fun PaymentScreen(
             onDismiss = onSaveContactPromptDismiss
         )
     }
-}
-
-private fun PendingStatus.toPreviousPaymentSituation(): PreviousPaymentSituation = when (this) {
-    PendingStatus.Sending,
-    PendingStatus.Resolving -> PreviousPaymentSituation.InProgress
-
-    PendingStatus.OutcomeUnknown -> PreviousPaymentSituation.OutcomeUnknown
-
-    PendingStatus.Succeeded -> PreviousPaymentSituation.Completed
-
-    PendingStatus.Failed -> PreviousPaymentSituation.Completed
 }
 
 @Composable

@@ -1,10 +1,6 @@
 <resources>
     <string name="retry_payment">Zahlung erneut versuchen</string>
     <string name="tap_dismiss_pending">Tippen zum Schließen. Zahlung läuft im Hintergrund weiter.</string>
-    <string name="open_shortcuts_contacts">Shortcuts und Kontakte öffnen</string>
-    <string name="point_camera_message_subtitle">Richte die Kamera auf eine Rechnung.</string>
-    <string name="resolving_payment_title">Zahlung wird vorbereitet</string>
-    <string name="resolving_payment_subtitle">Es wurde noch keine Zahlung gesendet.</string>
     <string name="session_transactions_title">Transaktionen</string>
     <string name="session_transactions_empty">Noch keine Transaktionen.</string>
     <string name="transaction_status_pending">Ausstehend</string>

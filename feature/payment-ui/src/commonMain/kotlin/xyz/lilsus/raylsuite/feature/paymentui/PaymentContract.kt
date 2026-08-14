@@ -1,16 +1,10 @@
-package xyz.lilsus.flint.feature.payment
+package xyz.lilsus.raylsuite.feature.paymentui
 
 import xyz.lilsus.raylsuite.core.model.ContactRole
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
-
-sealed interface PaymentEvent {
-    data class ShowError(val error: PaymentUiError) : PaymentEvent
-
-    data class ShowToast(val message: PaymentToastMessage) : PaymentEvent
-}
 
 sealed interface PaymentToastMessage {
     data object BitcoinAddressNotSupported : PaymentToastMessage

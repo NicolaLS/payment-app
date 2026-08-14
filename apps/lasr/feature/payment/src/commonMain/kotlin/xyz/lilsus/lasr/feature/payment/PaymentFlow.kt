@@ -50,9 +50,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.lasr.feature.payment.components.SessionTransactionsScreen
 import xyz.lilsus.lasr.feature.payment.generated.resources.Res
 import xyz.lilsus.lasr.feature.payment.generated.resources.retry_payment
+import xyz.lilsus.lasr.feature.payment.generated.resources.session_transactions_empty
+import xyz.lilsus.lasr.feature.payment.generated.resources.session_transactions_title
 import xyz.lilsus.lasr.feature.payment.generated.resources.tap_dismiss_pending
 import xyz.lilsus.lasr.feature.payment.generated.resources.toast_bitcoin_address
 import xyz.lilsus.lasr.feature.payment.generated.resources.toast_bolt12_not_supported
@@ -61,8 +62,15 @@ import xyz.lilsus.raylsuite.core.camera.QrScannerMode
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
+import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreen
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentHero
 import xyz.lilsus.raylsuite.feature.paymentui.components.ResultLayout
+import xyz.lilsus.raylsuite.feature.paymentui.components.SessionTransactionsScreen
+import xyz.lilsus.raylsuite.feature.paymentui.toHeroPhase
+import xyz.lilsus.raylsuite.feature.paymentui.toResultPresentation
 
 @Composable
 fun PaymentFlow(
@@ -416,12 +424,13 @@ private fun PaymentHomeEntry(
         PaymentScreen(
             appTitle = appTitle,
             onNavigateSettings = onNavigateSettings,
-            uiState = uiState,
-            sessionTransactions = sessionTransactions,
+            uiState = uiState.toPaymentScreenState(errorMessageFor),
+            sessionTransactions = sessionTransactions.map {
+                it.toPaymentSessionReference()
+            },
             newSessionTransactionCount = newSessionTransactionCount,
             contactsState = contactsState,
             snackbarHostState = snackbarHostState,
-            errorMessageFor = errorMessageFor,
             estimatedFeeHint = estimatedFeeHint,
             onManualAmountKeyPress = {
                 coordinator.dispatch(PaymentIntent.ManualAmountKeyPress(it))
@@ -537,12 +546,15 @@ private fun PaymentTransactionsEntry(
     onTransactionSelected: (String) -> Unit
 ) {
     val transactions by coordinator.sessionTransactions.collectAsState()
+    val formatter = rememberAmountFormatter()
     LaunchedEffect(coordinator) {
         coordinator.dispatch(PaymentIntent.SessionTransactionsOpened)
     }
     SessionTransactionsScreen(
         modifier = Modifier.fillMaxSize(),
-        transactions = transactions,
+        title = stringResource(Res.string.session_transactions_title),
+        emptyMessage = stringResource(Res.string.session_transactions_empty),
+        transactions = transactions.map { it.toPaymentSessionTransaction(formatter) },
         onBack = onBack,
         onTransactionSelected = onTransactionSelected
     )
@@ -587,6 +599,7 @@ private fun PaymentTransactionDetailScreen(
     onDismiss: () -> Unit
 ) {
     val detailState = transaction.toDetailUiState()
+    val detailPresentation = detailState.toPaymentScreenState(errorMessageFor)
     val receiptPreimage =
         (detailState as? PaymentUiState.Success)
             ?.preimage
@@ -607,7 +620,7 @@ private fun PaymentTransactionDetailScreen(
         ) {
             PaymentHero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
-                phase = detailState.toHeroPhase(),
+                phase = detailPresentation.toHeroPhase(),
                 receiptPreimage = receiptPreimage.takeIf { showReceipt }
             )
             when (detailState) {
@@ -615,7 +628,7 @@ private fun PaymentTransactionDetailScreen(
                 is PaymentUiState.Error ->
                     ResultLayout(
                         modifier = Modifier.fillMaxSize(),
-                        result = detailState.toResultPresentation(errorMessageFor),
+                        result = detailPresentation.toResultPresentation(),
                         receiptVisible = showReceipt,
                         estimatedFeeHint = estimatedFeeHint,
                         onViewReceipt = { showReceipt = true },

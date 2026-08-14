@@ -1,10 +1,6 @@
 <resources>
     <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
     <string name="tap_dismiss_pending_blink">Blink reported this payment as pending. Check your Blink wallet for its final status.</string>
-    <string name="open_shortcuts_contacts">Open shortcuts and contacts</string>
-    <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
-    <string name="resolving_payment_title">Preparing payment</string>
-    <string name="resolving_payment_subtitle">No payment has been sent yet.</string>
     <string name="retry_payment">Retry payment</string>
     <string name="session_transactions_title">Recent payments</string>
     <string name="session_transactions_empty">No payments in this session yet.</string>

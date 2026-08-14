@@ -9,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import xyz.lilsus.lasr.feature.payment.PaymentIntent
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
@@ -17,6 +16,7 @@ import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.platform.rememberRetainedInstance
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 
 @Composable
 fun App() {
