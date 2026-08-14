@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -26,6 +27,9 @@ import xyz.lilsus.flint.application.payment.ConfirmPaymentResult
 import xyz.lilsus.flint.application.payment.FiatAmountQuoteResult
 import xyz.lilsus.flint.application.payment.FiatMinorAmount
 import xyz.lilsus.flint.application.payment.PaymentActivity
+import xyz.lilsus.flint.application.payment.PaymentConfirmationMode as FlintConfirmationMode
+import xyz.lilsus.flint.application.payment.PaymentConfirmationPolicy
+import xyz.lilsus.flint.application.payment.PaymentCurrencyPreferences
 import xyz.lilsus.flint.application.payment.PaymentDraftHandle
 import xyz.lilsus.flint.application.payment.PaymentEngine
 import xyz.lilsus.flint.application.payment.PaymentLinkInbox
@@ -38,6 +42,8 @@ import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.LightningAddress
+import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
+import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.model.Satoshi
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
@@ -117,11 +123,26 @@ class PaymentCoordinator(
             paymentPreferences.preferences.collectLatest { preferences ->
                 vibrateOnScan = preferences.vibrateOnScan
                 vibrateOnPayment = preferences.vibrateOnPayment
+                engine.updateConfirmationPolicy(preferences.toFlintConfirmationPolicy())
             }
         }
         scope.launch {
             currencyPreferences.primaryCode.collectLatest { code ->
                 currencyManager.setPreferredCurrency(CurrencyCatalog.infoFor(code).currency)
+            }
+        }
+        scope.launch {
+            combine(
+                currencyPreferences.primaryCode,
+                currencyPreferences.secondaryCode,
+                ::Pair
+            ).collectLatest { (primary, secondary) ->
+                engine.amountAssistant.updateCurrencyPreferences(
+                    PaymentCurrencyPreferences(
+                        primaryCode = primary,
+                        secondaryCode = distinctSecondaryCode(primary, secondary)
+                    )
+                )
             }
         }
         scope.launch {
@@ -776,6 +797,26 @@ private fun PaymentRejection.toPaymentUiError(): PaymentUiError = when (this) {
 }
 
 private fun PaymentRejection.toReadableMessage(): String = name.lowercase().replace('_', ' ')
+
+private fun PaymentPreferences.toFlintConfirmationPolicy(): PaymentConfirmationPolicy =
+    PaymentConfirmationPolicy(
+        mode =
+            when (confirmationMode) {
+                PaymentConfirmationMode.Always -> FlintConfirmationMode.ALWAYS
+                PaymentConfirmationMode.Above -> FlintConfirmationMode.THRESHOLD
+            },
+        amountThresholdSats = Satoshi.positive(thresholdSats),
+        feeThresholdSats = Satoshi.nonNegative(Long.MAX_VALUE)
+    )
+
+private fun distinctSecondaryCode(primary: String, secondary: String): String =
+    if (primary != secondary) {
+        secondary
+    } else if (primary == "USD") {
+        "SAT"
+    } else {
+        "USD"
+    }
 
 private fun reusableLightningAddress(input: String): LightningAddress? =
     LightningAddress.parse(input)

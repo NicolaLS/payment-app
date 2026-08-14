@@ -22,21 +22,16 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import xyz.lilsus.flint.application.payment.ConfirmPaymentResult
 import xyz.lilsus.flint.application.payment.PaymentActivity
 import xyz.lilsus.flint.application.payment.PaymentAmountHandle
-import xyz.lilsus.flint.application.payment.PaymentConfirmationMode as FlintConfirmationMode
 import xyz.lilsus.flint.application.payment.PaymentConfirmationPolicy
-import xyz.lilsus.flint.application.payment.PaymentCurrencyPreferences
 import xyz.lilsus.flint.application.payment.PaymentDraftHandle
 import xyz.lilsus.flint.application.payment.PaymentEngine
 import xyz.lilsus.flint.application.payment.PaymentLinkInbox
 import xyz.lilsus.flint.application.payment.PaymentOrigin
 import xyz.lilsus.flint.application.payment.PreparePaymentResult
 import xyz.lilsus.flint.application.payment.UnavailablePaymentAmountAssistant
-import xyz.lilsus.flint.application.payment.UpdatePaymentPolicyResult
 import xyz.lilsus.flint.application.payment.createPaymentLinkInbox
 import xyz.lilsus.flint.application.wallet.ImportWalletResult
 import xyz.lilsus.flint.application.wallet.RemoveWalletResult
@@ -44,7 +39,6 @@ import xyz.lilsus.flint.application.wallet.WalletAccess
 import xyz.lilsus.flint.application.wallet.WalletAccessState
 import xyz.lilsus.flint.feature.payment.PaymentCoordinator
 import xyz.lilsus.flint.feature.wallet.WalletViewModel
-import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.Satoshi
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
@@ -110,40 +104,6 @@ fun App(bootstrapConfig: AppBootstrapConfig, runtime: AppRuntime, paymentLinks: 
     }
     LaunchedEffect(walletState.access) {
         if (!walletState.access.isInitialising()) navigationReady = true
-    }
-    LaunchedEffect(paymentPreferences, walletAccess) {
-        paymentPreferences.preferences.collectLatest { preferences ->
-            walletAccess.payments.updateConfirmationPolicy(
-                PaymentConfirmationPolicy(
-                    mode =
-                        when (preferences.confirmationMode) {
-                            PaymentConfirmationMode.Always -> FlintConfirmationMode.ALWAYS
-                            PaymentConfirmationMode.Above -> FlintConfirmationMode.THRESHOLD
-                        },
-                    amountThresholdSats = Satoshi.positive(preferences.thresholdSats),
-                    feeThresholdSats = Satoshi.nonNegative(Long.MAX_VALUE)
-                )
-            )
-        }
-    }
-    LaunchedEffect(currencyPreferences, walletAccess) {
-        combine(
-            currencyPreferences.primaryCode,
-            currencyPreferences.secondaryCode,
-            ::Pair
-        ).collectLatest { (primary, secondary) ->
-            val resolvedSecondary =
-                if (primary != secondary) {
-                    secondary
-                } else if (primary == "USD") {
-                    "SAT"
-                } else {
-                    "USD"
-                }
-            walletAccess.payments.amountAssistant.updateCurrencyPreferences(
-                PaymentCurrencyPreferences(primary, resolvedSecondary)
-            )
-        }
     }
     RaylSuiteTheme(themePreference = themePreference) {
         if (!navigationReady) {
@@ -213,8 +173,7 @@ fun previewWalletAccess(): WalletAccess = object : WalletAccess {
             PreparePaymentResult.WalletUnavailable
         override suspend fun prepareAmount(handle: PaymentAmountHandle, amountSats: Satoshi) =
             PreparePaymentResult.WalletUnavailable
-        override suspend fun updateConfirmationPolicy(policy: PaymentConfirmationPolicy) =
-            UpdatePaymentPolicyResult.STORAGE_FAILURE
+        override suspend fun updateConfirmationPolicy(policy: PaymentConfirmationPolicy) = Unit
         override suspend fun cancel(handle: PaymentDraftHandle) = Unit
         override suspend fun cancel(handle: PaymentAmountHandle) = Unit
         override suspend fun autoPay(handle: PaymentDraftHandle) =

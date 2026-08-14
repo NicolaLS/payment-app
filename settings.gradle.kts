@@ -73,9 +73,10 @@ includeApp(
     name = "flint",
     modules =
         listOf(
+            "application",
             "feature:payment",
             "feature:wallet-connection",
-            "integration:spark"
+            "integration:wallet"
         )
 )
 includeApp(

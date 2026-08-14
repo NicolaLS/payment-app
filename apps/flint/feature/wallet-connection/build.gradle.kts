@@ -13,7 +13,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(project(":flint:feature:payment"))
+            api(project(":flint:application"))
             implementation(project(":core:ui"))
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.compose.components.resources)

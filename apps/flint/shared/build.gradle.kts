@@ -23,9 +23,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(project(":flint:application"))
             api(project(":flint:feature:payment"))
             api(project(":flint:feature:wallet-connection"))
-            implementation(project(":flint:integration:spark"))
+            implementation(project(":flint:integration:wallet"))
             implementation(project(":core:camera"))
             implementation(project(":core:settings"))
             implementation(project(":core:ui"))
@@ -48,12 +49,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.multiplatform.settings)
-        }
-        androidMain.dependencies {
-            implementation(libs.sqldelight.android.driver)
-        }
-        iosMain.dependencies {
-            implementation(libs.sqldelight.native.driver)
         }
     }
 }

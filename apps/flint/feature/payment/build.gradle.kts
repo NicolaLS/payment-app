@@ -13,6 +13,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(project(":flint:application"))
             api(project(":core:model"))
             api(project(":core:payment"))
             implementation(project(":core:camera"))
@@ -32,7 +33,6 @@ kotlin {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.navigation.compose)
-            implementation(libs.okio)
         }
     }
 }

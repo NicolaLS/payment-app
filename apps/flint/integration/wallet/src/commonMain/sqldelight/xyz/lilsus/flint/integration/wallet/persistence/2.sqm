@@ -1,0 +1,2 @@
+DROP TABLE payment_currency_preference;
+DROP TABLE payment_policy;
