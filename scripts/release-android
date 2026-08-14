@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: scripts/release-android <blip|lasr> <version> [--skip-checks]" >&2
+    echo "Usage: scripts/release-android <blip|flint|lasr> <version> [--skip-checks]" >&2
 }
 
 die() {
@@ -20,8 +20,8 @@ version="$2"
 shift 2
 
 case "$app" in
-    blip|lasr) ;;
-    *) die "app must be blip or lasr" ;;
+    blip|flint|lasr) ;;
+    *) die "app must be blip, flint, or lasr" ;;
 esac
 
 skip_checks=false
@@ -58,6 +58,10 @@ require_identity() {
 
 require_identity RAYL_UPLOAD
 require_identity RAYL_APP_SIGNING
+
+if [[ "$app" == "flint" && -z "${FLINT_BREEZ_API_KEY-}" ]]; then
+    die "FLINT_BREEZ_API_KEY is required for a Flint release candidate"
+fi
 
 [[ -z "$(git -C "$repo" status --porcelain --untracked-files=all)" ]] ||
     die "working tree must be clean"

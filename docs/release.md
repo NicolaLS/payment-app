@@ -1,11 +1,12 @@
 # Release process
 
-Blip and Lasr start at version `1.0.0`/build code `1`. Use app-qualified tags:
-`blip-v1.0.0` and `lasr-v1.0.0`; use `-rc.N` while validating candidates.
+Blip, Flint, and Lasr start at version `1.0.0`/build code `1`. Use app-qualified
+tags such as `blip-v1.0.0`, `flint-v1.0.0`, and `lasr-v1.0.0`; use `-rc.N`
+while validating candidates.
 
 ## Signing model
 
-Blip and Lasr share one locally managed app-signing key and one locally
+Blip, Flint, and Lasr share one locally managed app-signing key and one locally
 managed, resettable Play upload key. A copy of the app-signing key is
 transferred to Play App Signing during enrollment, so Play can sign store
 deliveries with the same identity that signs artifacts built here.
@@ -35,6 +36,10 @@ Check readiness without revealing secrets:
 
 The last line must read `Release signing ready: true`.
 
+Flint release candidates additionally require `FLINT_BREEZ_API_KEY` to be
+loaded from the maintainer's secret manager. The release script rejects a Flint
+candidate when it is absent.
+
 `distribution/app-signing-certificate.sha256` pins the SHA-256 fingerprint of
 the app-signing certificate. `scripts/verify-release-apk` asserts it before any
 artifact is staged, because an APK published under the wrong key permanently
@@ -59,17 +64,17 @@ store install of the same app.
 
 1. Start from a clean `main` checkout.
 2. Confirm the app version and existing checks.
-3. Run `scripts/release-android <blip|lasr> 1.0.0`.
+3. Run `scripts/release-android <blip|flint|lasr> 1.0.0`.
 4. Collect both staged artifacts from `dist/<app>/`.
 5. Upload the `-play.aab` artifact to Play internal testing.
 6. Attach the verified `-universal.apk` artifact to a draft app-qualified
    GitHub release.
 7. Record the app-signing certificate and both SHA-256 values.
-8. Run `zsp publish --check` with `zapstore.yaml` for Lasr or
-   `distribution/blip/zapstore.yaml` for Blip.
+8. Run `zsp publish --check` with the owning app's reviewed Zapstore
+   configuration.
 
 Before the first Zapstore publication, add the same suite publisher `pubkey` to
-both configs and link the app-signing certificate to that identity.
+each app config and link the app-signing certificate to that identity.
 
 ## Before the first Play enrollment
 
@@ -102,8 +107,8 @@ checklist first.
 6. Export the app-signing key with the PEPK tool offered by the Play Console,
    choose **Export and upload a key from a Java keystore** during enrollment,
    and register the upload certificate separately.
-7. Register the second package with Play's **use the same key as another app**
-   option so Blip and Lasr keep one shared app-signing identity.
+7. Register the remaining packages with Play's **use the same key as another
+   app** option so Blip, Flint, and Lasr keep one shared app-signing identity.
 8. After enrollment, confirm the certificate Play reports matches the pinned
    fingerprint.
 
@@ -114,8 +119,10 @@ may be published.
 ## iOS candidate
 
 Archive the `iosApp` Release scheme for each app using the existing Apple team
-identity. Confirm bundle ID, version/build, privacy report, required-reason API
-manifest, export-compliance answers, and symbols before uploading to TestFlight.
+identity. Flint additionally requires its production Breez API key through the
+private Release configuration. Confirm bundle ID, version/build, privacy report,
+required-reason API manifest, export-compliance answers, and symbols before
+uploading to TestFlight.
 
 ## Go-live
 

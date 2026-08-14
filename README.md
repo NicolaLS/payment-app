@@ -1,9 +1,10 @@
 # Rayl Suite
 
-Rayl Suite contains two independent Kotlin Multiplatform Lightning clients and
+Rayl Suite contains three independent Kotlin Multiplatform Lightning clients and
 the provider-neutral modules they share:
 
 - **Blip** connects to one Blink wallet with an API key.
+- **Flint** opens one Spark wallet from its recovery phrase.
 - **Lasr** connects to one wallet through Nostr Wallet Connect.
 
 Neither app chooses providers at runtime or migrates data from the former
@@ -12,6 +13,7 @@ combined reference application.
 ## Project layout
 
 - `apps/blip`: Blip composition, Blink features, and Blink integration
+- `apps/flint`: Flint composition, Spark features, and Spark integration
 - `apps/lasr`: Lasr composition, NWC features, and NWC integration
 - `core/*`: provider-neutral models, platform services, and UI primitives
 - `feature/*`: reusable provider-neutral user stories
@@ -24,8 +26,10 @@ Use JDK 21 and the root Gradle wrapper.
 
 ```shell
 ./gradlew :blip:androidApp:assembleDebug
+./gradlew :flint:androidApp:assembleDebug
 ./gradlew :lasr:androidApp:assembleDebug
 ./gradlew :blip:androidApp:assembleE2e
+./gradlew :flint:androidApp:assembleE2e
 ./gradlew :lasr:androidApp:assembleE2e
 ./gradlew check
 ```
@@ -45,6 +49,7 @@ frameworks directly:
 
 ```shell
 ./gradlew :blip:shared:linkReleaseFrameworkIosArm64
+./gradlew :flint:shared:linkReleaseFrameworkIosArm64
 ./gradlew :lasr:shared:linkReleaseFrameworkIosArm64
 ```
 

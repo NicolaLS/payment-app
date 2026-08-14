@@ -4,9 +4,10 @@ The read-only multi-wallet reference application was archived at `papp-final`
 and `papp-legacy`, then removed from the active Gradle project. Git history
 remains the source for any future parity investigation.
 
-Blip and Lasr are independent, pre-release applications:
+The suite now contains three independent applications:
 
 - Blip owns the Blink integration and uses `xyz.lilsus.blip`.
+- Flint owns the Spark integration and uses `xyz.lilsus.flint`.
 - Lasr owns the NWC integration and uses `xyz.lilsus.lasr`.
 - Shared `core:*`, `feature:*`, and `integration:*` modules contain only
   provider-neutral code.
@@ -22,12 +23,17 @@ Blip and Lasr are independent, pre-release applications:
   details remain Blip-owned.
 - NWC credentials, discovery, relay lifecycle, wallet connection, and wallet
   details remain Lasr-owned.
+- Spark credentials, SDK lifecycle, payment state, and wallet connection remain
+  Flint-owned.
 - Provider selection and provider branching were removed from the new apps.
 - App identity, icons, legal links, store metadata, deep links, backup
   exclusions, Android release signing inputs, and iOS Release builds are
   app-specific and ready for candidate preparation.
 
-## Verified closeout
+## Verified extraction closeout
+
+The following records the Blip and Lasr extraction closeout. Flint was added
+after that closeout and is covered by the current CI matrices.
 
 - Repository ktlint and existing checks.
 - Blip and Lasr Android debug and minified E2E APK assembly.
@@ -51,9 +57,9 @@ to the dedicated QA/release pass.
   app after the ACINQ dependency graph was introduced; Debug builds did not
   exercise this Release optimizer phase.
 - One locally managed Android app-signing key and one local Play upload key are
-  shared by both packages. Locally signed universal APKs, built from the release
-  bundle and verified against the pinned app-signing certificate, are the
-  artifacts redistributed through GitHub and Zapstore.
+  shared by all three packages. Locally signed universal APKs, built from the
+  release bundle and verified against the pinned app-signing certificate, are
+  the artifacts redistributed through GitHub and Zapstore.
 - The Zapstore publisher key, store-account configuration, final localized
   screenshots, live-wallet smoke tests, signing/archive uploads, review forms,
   and production publication require owner or QA credentials and approval.

@@ -1,5 +1,5 @@
 # Copy this file to .envrc.local and load secrets from your preferred secret
-# manager. Blip and Lasr intentionally share both signing identities.
+# manager. Blip, Flint, and Lasr intentionally share both signing identities.
 #
 # Upload key: signs the App Bundle uploaded to Play. Resettable.
 export RAYL_UPLOAD_STORE_FILE="/absolute/path/to/rayl-suite-upload.jks"
@@ -16,6 +16,11 @@ export RAYL_UPLOAD_STORE_PASSWORD="$(pass show rayl-suite/android-upload | sed -
 export RAYL_UPLOAD_KEY_PASSWORD="$RAYL_UPLOAD_STORE_PASSWORD"
 export RAYL_APP_SIGNING_STORE_PASSWORD="$(pass show rayl-suite/android-app-signing | sed -n '1p')"
 export RAYL_APP_SIGNING_KEY_PASSWORD="$RAYL_APP_SIGNING_STORE_PASSWORD"
+
+# Flint production builds also require a Breez Spark API key. Load it from the
+# secret manager; never commit the value or place it in local.properties files
+# that could be shared.
+export FLINT_BREEZ_API_KEY="$(pass show rayl-suite/flint-breez-api-key | sed -n '1p')"
 
 # Key passwords default to the matching store password when unset. Each
 # password may instead be read from a file via the *_PASSWORD_FILE variables,

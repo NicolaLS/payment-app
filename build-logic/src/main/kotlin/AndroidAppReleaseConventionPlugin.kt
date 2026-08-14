@@ -12,7 +12,7 @@ import java.io.File
 import java.util.Properties
 
 /**
- * Local release signing for the Blip and Lasr Android applications.
+ * Local release signing for the Blip, Flint, and Lasr Android applications.
  *
  * Two identities are involved, and they are deliberately different:
  *  - `RAYL_UPLOAD_*` signs the App Bundle that is uploaded to Play.

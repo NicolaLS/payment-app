@@ -6,14 +6,15 @@ die() {
     exit 1
 }
 
-[[ $# -eq 2 ]] || die "usage: scripts/verify-release-apk <blip|lasr> <apk>"
+[[ $# -eq 2 ]] || die "usage: scripts/verify-release-apk <blip|flint|lasr> <apk>"
 app="$1"
 apk="$2"
 
 case "$app" in
     blip) expected_package="xyz.lilsus.blip" ;;
+    flint) expected_package="xyz.lilsus.flint" ;;
     lasr) expected_package="xyz.lilsus.lasr" ;;
-    *) die "app must be blip or lasr" ;;
+    *) die "app must be blip, flint, or lasr" ;;
 esac
 
 [[ -f "$apk" ]] || die "APK not found: $apk"

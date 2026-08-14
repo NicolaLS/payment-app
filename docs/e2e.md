@@ -3,12 +3,14 @@
 The supported E2E packages are:
 
 - `xyz.lilsus.blip.e2e`
+- `xyz.lilsus.flint.e2e`
 - `xyz.lilsus.lasr.e2e`
 
 Build them from the repository root:
 
 ```shell
 ./gradlew :blip:androidApp:assembleE2e
+./gradlew :flint:androidApp:assembleE2e
 ./gradlew :lasr:androidApp:assembleE2e
 ```
 
@@ -29,5 +31,6 @@ Android and iPhone devices for each app:
 5. contacts, shortcuts, settings, light/dark appearance; and
 6. English, German, and Spanish UI.
 
-Blink credentials and NWC URIs must be supplied through private maintainer or
-store-review channels, never committed or exposed to pull-request workflows.
+Blink credentials, Flint recovery phrases and Breez API keys, and NWC URIs must
+be supplied through private maintainer or store-review channels, never committed
+or exposed to pull-request workflows.
