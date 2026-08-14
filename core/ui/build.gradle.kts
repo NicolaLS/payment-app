@@ -29,6 +29,7 @@ kotlin {
             implementation(libs.androidx.appcompat)
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.lifecycle.process)
+            implementation(libs.androidx.window)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

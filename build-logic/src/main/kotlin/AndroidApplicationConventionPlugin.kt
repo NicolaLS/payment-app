@@ -66,7 +66,6 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
             dependencies.add("implementation", libs.findLibrary("androidx-activity-compose").get())
             dependencies.add("implementation", libs.findLibrary("androidx-appcompat").get())
-            dependencies.add("implementation", libs.findLibrary("androidx-window").get())
             dependencies.add("implementation", libs.findLibrary("compose-ui-tooling-preview").get())
             dependencies.add("debugImplementation", libs.findLibrary("compose-ui-tooling").get())
         }

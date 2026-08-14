@@ -1,28 +1,24 @@
 package xyz.lilsus.flint
 
 import android.content.Intent
-import android.content.pm.ActivityInfo
-import android.content.res.Configuration
 import android.os.Bundle
-import android.view.View
-import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.window.layout.WindowMetricsCalculator
+import xyz.lilsus.raylsuite.core.ui.orientation.CompactWindowOrientationPolicy
 
 class MainActivity : AppCompatActivity() {
-    private var orientationListenerView: View? = null
+    private val orientationPolicy = CompactWindowOrientationPolicy(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        enforceOrientationForCurrentWindow()
+        orientationPolicy.apply()
 
         setContent {
             App(
@@ -33,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         }
         deliverPaymentLink(intent)
 
-        addOrientationListener()
+        orientationPolicy.startListening()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -43,7 +39,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        removeOrientationListener()
+        orientationPolicy.stopListening()
         super.onDestroy()
     }
 
@@ -52,58 +48,7 @@ class MainActivity : AppCompatActivity() {
             intent.dataString?.let((application as FlintApplication).paymentLinks::offer)
         }
     }
-
-    private fun addOrientationListener() {
-        if (orientationListenerView != null) return
-
-        val container = window.decorView.findViewById<ViewGroup>(android.R.id.content) ?: return
-        val listenerView =
-            object : View(this) {
-                override fun onConfigurationChanged(newConfig: Configuration) {
-                    super.onConfigurationChanged(newConfig)
-                    enforceOrientationForCurrentWindow()
-                }
-            }.apply {
-                layoutParams = ViewGroup.LayoutParams(0, 0)
-                isFocusable = false
-                isClickable = false
-            }
-
-        container.addView(listenerView)
-        orientationListenerView = listenerView
-    }
-
-    private fun removeOrientationListener() {
-        val container = window.decorView.findViewById<ViewGroup>(android.R.id.content)
-        orientationListenerView?.let { listener ->
-            container?.removeView(listener)
-        }
-        orientationListenerView = null
-    }
-
-    private fun enforceOrientationForCurrentWindow() {
-        requestedOrientation =
-            if (isCompactScreen()) {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            } else {
-                ActivityInfo.SCREEN_ORIENTATION_FULL_USER
-            }
-    }
-
-    private fun isCompactScreen(): Boolean {
-        val metrics =
-            WindowMetricsCalculator
-                .getOrCreate()
-                .computeMaximumWindowMetrics(this)
-        val density = resources.displayMetrics.density
-        val widthDp = metrics.bounds.width() / density
-        val heightDp = metrics.bounds.height() / density
-
-        return widthDp < COMPACT_WINDOW_DP || heightDp < COMPACT_WINDOW_DP
-    }
 }
-
-private const val COMPACT_WINDOW_DP = 600f
 
 @Preview
 @Composable

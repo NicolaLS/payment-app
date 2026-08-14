@@ -46,6 +46,7 @@ android {
 dependencies {
     implementation(project(":lasr:shared"))
     implementation(project(":core:network"))
+    implementation(project(":core:ui"))
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.core.ktx)

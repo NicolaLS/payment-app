@@ -60,4 +60,5 @@ android {
 
 dependencies {
     implementation(project(":flint:shared"))
+    implementation(project(":core:ui"))
 }
