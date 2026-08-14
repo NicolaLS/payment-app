@@ -1,10 +1,10 @@
 package xyz.lilsus.flint.feature.payment
 
-import xyz.lilsus.flint.feature.payment.amount.ManualAmountKey
-import xyz.lilsus.flint.feature.payment.contacts.PaymentSheetTab
 import xyz.lilsus.raylsuite.core.model.ContactRole
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.LightningAddress
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
 
 sealed interface PaymentEvent {
     data class ShowError(val error: PaymentUiError) : PaymentEvent

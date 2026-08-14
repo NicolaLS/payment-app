@@ -1,0 +1,37 @@
+<resources>
+    <string name="settings_title">Ajustes</string>
+    <string name="tap_continue">Toca para continuar…</string>
+    <string name="confirm_payment_title">Confirmar pago</string>
+    <string name="pay_button">Pagar</string>
+    <string name="dismiss_button">Cerrar</string>
+    <string name="view_session_transactions">Ver transacciones de esta sesión</string>
+    <string name="enter_amount_title">Introduce el importe</string>
+    <string name="enter_amount_range_min">Mín %1$s</string>
+    <string name="enter_amount_range_max">Máx %1$s</string>
+    <string name="result_paid_title">Pagado</string>
+    <string name="result_paid_fee">Comisión: %1$s</string>
+    <string name="result_already_paid_title">Ya pagada</string>
+    <string name="result_already_paid_message">No se envió ningún pago. Esta factura ya fue pagada.</string>
+    <string name="result_view_receipt">Ver recibo</string>
+    <string name="result_receipt_title">Recibo de pago</string>
+    <string name="result_receipt_body_prefix">Este es el </string>
+    <string name="result_receipt_body_preimage">preimage</string>
+    <string name="result_receipt_body_middle"> de la factura pagada. El preimage </string>
+    <string name="result_receipt_body_only">solo</string>
+    <string name="result_receipt_body_suffix"> se puede conocer cuando el pago fue liquidado.</string>
+    <string name="payment_receipt_qr_content_description">Código QR del recibo de pago</string>
+    <string name="result_error_title">Error</string>
+    <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
+    <string name="pay_sheet_contacts_tab">Contactos</string>
+    <string name="shortcuts_empty">Todavía no hay shortcuts</string>
+    <string name="shortcuts_create_first">Crear shortcut</string>
+    <string name="contacts_empty">Todavía no hay contactos</string>
+    <string name="contacts_no_matching_contacts">No hay contactos coincidentes</string>
+    <string name="contacts_add">Añadir contacto</string>
+    <string name="contacts_alias_label">Alias</string>
+    <string name="contacts_save">Guardar</string>
+    <string name="contacts_save_prompt_title">¿Guardar contacto?</string>
+    <string name="contacts_save_prompt_body">Añade %1$s para pagar más rápido la próxima vez.</string>
+    <string name="contacts_not_now">Ahora no</string>
+    <string name="contacts_invalid_address">Introduce una dirección Lightning válida.</string>
+</resources>

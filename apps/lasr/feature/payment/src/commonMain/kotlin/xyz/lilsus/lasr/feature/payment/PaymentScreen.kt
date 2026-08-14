@@ -37,18 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.lasr.feature.payment.amount.ManualAmountKey
-import xyz.lilsus.lasr.feature.payment.components.BottomLayout
-import xyz.lilsus.lasr.feature.payment.components.ConfirmationBottomSheet
-import xyz.lilsus.lasr.feature.payment.components.ManualAmountBottomSheet
-import xyz.lilsus.lasr.feature.payment.components.PaymentHero
-import xyz.lilsus.lasr.feature.payment.components.ResultLayout
-import xyz.lilsus.lasr.feature.payment.components.SessionTransactionsIconButton
-import xyz.lilsus.lasr.feature.payment.components.SettingsIconButton
-import xyz.lilsus.lasr.feature.payment.contacts.PaymentContactsBottomSheet
-import xyz.lilsus.lasr.feature.payment.contacts.PaymentContactsUiState
-import xyz.lilsus.lasr.feature.payment.contacts.PaymentSheetTab
-import xyz.lilsus.lasr.feature.payment.contacts.SaveContactBottomSheet
 import xyz.lilsus.lasr.feature.payment.generated.resources.Res
 import xyz.lilsus.lasr.feature.payment.generated.resources.open_shortcuts_contacts
 import xyz.lilsus.lasr.feature.payment.generated.resources.point_camera_message_subtitle
@@ -61,6 +49,20 @@ import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
 import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentClarification
 import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentClarificationBottomSheet
 import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentDecision
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
+import xyz.lilsus.raylsuite.feature.paymentui.components.BottomLayout
+import xyz.lilsus.raylsuite.feature.paymentui.components.ConfirmationBottomSheet
+import xyz.lilsus.raylsuite.feature.paymentui.components.ManualAmountBottomSheet
+import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentHero
+import xyz.lilsus.raylsuite.feature.paymentui.components.ResultLayout
+import xyz.lilsus.raylsuite.feature.paymentui.components.SessionTransactionsIconButton
+import xyz.lilsus.raylsuite.feature.paymentui.components.SettingsIconButton
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsBottomSheet
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.SaveContactBottomSheet
+import xyz.lilsus.raylsuite.feature.paymentui.tapToDismiss
 
 @Composable
 fun PaymentScreen(
@@ -197,7 +199,7 @@ fun PaymentScreen(
         ) {
             PaymentHero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
-                uiState = uiState,
+                phase = uiState.toHeroPhase(),
                 receiptPreimage = receiptPreimage.takeIf { showReceipt },
                 scannerMode = scannerMode,
                 showScannerModeSelector = showScannerModeSelector,
@@ -208,10 +210,9 @@ fun PaymentScreen(
                     state is PaymentUiState.Success ||
                         state is PaymentUiState.Error -> ResultLayout(
                         modifier = Modifier.fillMaxSize(),
-                        result = state,
+                        result = state.toResultPresentation(errorMessageFor),
                         receiptVisible = showReceipt,
                         estimatedFeeHint = estimatedFeeHint,
-                        errorMessageFor = errorMessageFor,
                         onViewReceipt = { showReceipt = true }
                     )
 

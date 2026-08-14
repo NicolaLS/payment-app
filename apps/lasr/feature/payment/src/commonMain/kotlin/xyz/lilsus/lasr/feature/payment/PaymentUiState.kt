@@ -1,7 +1,7 @@
 package xyz.lilsus.lasr.feature.payment
 
-import xyz.lilsus.lasr.feature.payment.amount.ManualAmountUiState
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 
 sealed interface PaymentUiState {
     data object Active : PaymentUiState

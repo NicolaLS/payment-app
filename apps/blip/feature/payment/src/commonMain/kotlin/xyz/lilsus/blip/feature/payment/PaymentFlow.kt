@@ -50,8 +50,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.payment.components.PaymentHero
-import xyz.lilsus.blip.feature.payment.components.ResultLayout
 import xyz.lilsus.blip.feature.payment.components.SessionTransactionsScreen
 import xyz.lilsus.blip.feature.payment.generated.resources.Res
 import xyz.lilsus.blip.feature.payment.generated.resources.retry_payment
@@ -64,6 +62,8 @@ import xyz.lilsus.raylsuite.core.camera.QrScannerMode
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
+import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentHero
+import xyz.lilsus.raylsuite.feature.paymentui.components.ResultLayout
 
 @Composable
 fun PaymentFlow(
@@ -608,7 +608,7 @@ private fun PaymentTransactionDetailScreen(
         ) {
             PaymentHero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
-                uiState = detailState,
+                phase = detailState.toHeroPhase(),
                 receiptPreimage = receiptPreimage.takeIf { showReceipt }
             )
             when (detailState) {
@@ -616,10 +616,9 @@ private fun PaymentTransactionDetailScreen(
                 is PaymentUiState.Error ->
                     ResultLayout(
                         modifier = Modifier.fillMaxSize(),
-                        result = detailState,
+                        result = detailState.toResultPresentation(errorMessageFor),
                         receiptVisible = showReceipt,
                         estimatedFeeHint = estimatedFeeHint,
-                        errorMessageFor = errorMessageFor,
                         onViewReceipt = { showReceipt = true },
                         actionLabel =
                             if (transaction.status == PendingStatus.StatusUnknown) {

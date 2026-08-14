@@ -6,11 +6,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import xyz.lilsus.flint.feature.payment.contacts.ContactSavePromptUiState
-import xyz.lilsus.flint.feature.payment.contacts.PaymentContactListItem
-import xyz.lilsus.flint.feature.payment.contacts.PaymentContactsUiState
-import xyz.lilsus.flint.feature.payment.contacts.PaymentSheetTab
-import xyz.lilsus.flint.feature.payment.contacts.PaymentShortcutListItem
 import xyz.lilsus.raylsuite.core.model.Contact
 import xyz.lilsus.raylsuite.core.model.ContactPaymentRecord
 import xyz.lilsus.raylsuite.core.model.ContactPreferences
@@ -20,6 +15,11 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.PaymentShortcut
 import xyz.lilsus.raylsuite.core.model.ShortcutAmount
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.ContactSavePromptUiState
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactListItem
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentShortcutListItem
 
 internal class PaymentContactsController(
     private val repository: ContactsRepository,

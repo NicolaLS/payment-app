@@ -19,9 +19,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import xyz.lilsus.lasr.feature.payment.amount.ManualAmountConfig
-import xyz.lilsus.lasr.feature.payment.amount.ManualAmountController
-import xyz.lilsus.lasr.feature.payment.amount.ManualAmountKey
 import xyz.lilsus.lasr.integration.nwc.NwcPayOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
@@ -38,6 +35,9 @@ import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentConfirmationPolicy
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 
 class PaymentCoordinator(
     private val nwcWallet: NwcWallet,

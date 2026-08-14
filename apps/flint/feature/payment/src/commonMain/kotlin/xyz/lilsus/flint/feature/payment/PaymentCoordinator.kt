@@ -34,9 +34,6 @@ import xyz.lilsus.flint.application.payment.PaymentOutcome
 import xyz.lilsus.flint.application.payment.PaymentRejection
 import xyz.lilsus.flint.application.payment.PreparePaymentResult
 import xyz.lilsus.flint.application.payment.PreparedPayment
-import xyz.lilsus.flint.feature.payment.amount.ManualAmountConfig
-import xyz.lilsus.flint.feature.payment.amount.ManualAmountController
-import xyz.lilsus.flint.feature.payment.amount.ManualAmountKey
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
@@ -47,6 +44,9 @@ import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 
 class PaymentCoordinator(
     private val engine: PaymentEngine,

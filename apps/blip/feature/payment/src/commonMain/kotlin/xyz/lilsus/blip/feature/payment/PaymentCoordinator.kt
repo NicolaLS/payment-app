@@ -19,9 +19,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import xyz.lilsus.blip.feature.payment.amount.ManualAmountConfig
-import xyz.lilsus.blip.feature.payment.amount.ManualAmountController
-import xyz.lilsus.blip.feature.payment.amount.ManualAmountKey
 import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkPaymentOutcome
 import xyz.lilsus.blip.integration.blink.BlinkPaymentRequest
@@ -43,6 +40,9 @@ import xyz.lilsus.raylsuite.feature.paymentintent.lightningAddressPaymentIntentS
 import xyz.lilsus.raylsuite.feature.paymentintent.lnurlPaymentIntentSourceKey
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentConfirmationPolicy
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 
 class PaymentCoordinator(
     private val blinkWallet: BlinkWallet,

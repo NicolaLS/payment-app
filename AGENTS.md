@@ -19,6 +19,90 @@ orchestration belong to the owning app. Move code to a root `core/*`,
 provider-neutral and it has genuine consumers in multiple apps without
 provider branches. Duplication alone is not a reason to share code.
 
+## IMPORTANT: sharing policy and accepted duplication
+
+This policy is an architectural invariant. Consider it whenever adding a
+feature, moving code, removing duplication, or reviewing a refactor. Optimize
+each app for the simplest and most efficient implementation of its own product.
+Local clarity, small APIs, and freedom to use the provider's native concepts
+are more important than reducing line count or making the apps structurally
+alike. Duplication is an accepted design choice when it avoids coordination
+cost, unused concepts, or a broader abstraction.
+
+Share the smallest implementation whose meaning is genuinely common. All
+consumers must be able to use it directly, and its behavior, dependencies,
+policy, and expected evolution must belong to the suite rather than one wallet.
+Design tokens, stateless components, input presentation, and provider-neutral
+rendering are common examples. Similar code, package-normalized equality, or a
+large reduction in line count is evidence to investigate, not justification by
+itself.
+
+### Presentation projection is encouraged
+
+Different provider behavior does not require duplicated UI. An app may project
+its rich, provider-specific state into a deliberately small and lossy shared
+render model. For example, Blink, Spark, and NWC failures remain distinct in
+their repositories, coordinators, retry policy, and app state, while shared UI
+may receive `Error(message)`, render a failed hero phase, and invoke an ordinary
+user-action callback.
+
+A shared render model is appropriate when:
+
+- It contains only information the common UI renders.
+- Every variant is meaningful for every consumer; it is not a superset of
+  provider states.
+- Provider errors are converted by the app into localized display text or
+  another provider-neutral visual value before crossing the boundary.
+- Callbacks report UI intent such as click, dismiss, select, or retry request;
+  the app still decides what that intent means and whether it is allowed.
+- The mapping from app state to render state remains app-owned.
+
+This projection is not a backend adapter. It is the normal boundary between app
+logic and reusable presentation. Do not refuse to share genuinely identical UI
+merely because its upstream repositories or errors differ.
+
+### Keep app behavior app-owned
+
+Do not share code when doing so requires any of the following solely to
+reconcile the apps:
+
+- An app-facing adapter, compatibility wrapper, bridge, or type-alias layer
+  whose only purpose is preserving app APIs after an extraction.
+- A shared coordinator, payment engine, wallet interface, or provider contract
+  that app implementations must satisfy so common code can drive them.
+- Generic backend error plumbing, injected error factories, or callbacks that
+  choose provider policy rather than report a UI event.
+- A union state model or enum containing provider statuses, failure cases, or
+  lifecycle stages that are unused or impossible in another app.
+- Provider flags, conditional provider branches, no-op capabilities,
+  app-specific behavior overrides, or defaults that compensate for semantic
+  differences.
+- Additional dependencies, indirection, or public API that an app would not
+  need in its own direct implementation.
+
+Typical anti-patterns include moving a complete payment flow into a shared
+module because its screens currently look alike; parameterizing provider retry
+rules; using a generic error type to make unrelated failures fit one state
+machine; and leaving type aliases or thin wrappers in every app after moving
+their implementation. These produce nominal sharing while making each product
+harder to understand and optimize.
+
+Before extracting code:
+
+1. List each app's concrete behavior, dependencies, lifecycle, errors, and
+   policy.
+2. Separate app decisions from the provider-neutral values the UI actually
+   renders.
+3. Extract the smallest common leaf or render model that consumers can call
+   directly.
+4. Keep the projection and all provider decisions in the app.
+5. Recheck that removing one provider would not leave flags, impossible states,
+   no-ops, or compatibility layers in the others.
+
+Do not measure an architecture improvement by deleted lines or module symmetry.
+When the direct shared boundary remains unclear, prefer app ownership and wait
+for evidence from real shared evolution.
+
 ## Module boundaries
 
 - `core:model`: provider-neutral immutable values and pure Kotlin logic; no

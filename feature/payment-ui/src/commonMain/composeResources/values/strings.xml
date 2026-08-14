@@ -1,0 +1,37 @@
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="tap_continue">Tap to continue…</string>
+    <string name="confirm_payment_title">Confirm Payment</string>
+    <string name="pay_button">Pay</string>
+    <string name="dismiss_button">Dismiss</string>
+    <string name="view_session_transactions">View session transactions</string>
+    <string name="enter_amount_title">Enter amount</string>
+    <string name="enter_amount_range_min">Min %1$s</string>
+    <string name="enter_amount_range_max">Max %1$s</string>
+    <string name="result_paid_title">Paid</string>
+    <string name="result_paid_fee">Fee: %1$s</string>
+    <string name="result_already_paid_title">Already Paid</string>
+    <string name="result_already_paid_message">No payment was sent. This invoice was already paid.</string>
+    <string name="result_view_receipt">View receipt</string>
+    <string name="result_receipt_title">Payment receipt</string>
+    <string name="result_receipt_body_prefix">This is the </string>
+    <string name="result_receipt_body_preimage">preimage</string>
+    <string name="result_receipt_body_middle"> of the paid invoice. The preimage can </string>
+    <string name="result_receipt_body_only">only</string>
+    <string name="result_receipt_body_suffix"> be known when the payment was settled.</string>
+    <string name="payment_receipt_qr_content_description">Payment receipt QR code</string>
+    <string name="result_error_title">Error</string>
+    <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
+    <string name="pay_sheet_contacts_tab">Contacts</string>
+    <string name="shortcuts_empty">No shortcuts yet</string>
+    <string name="shortcuts_create_first">Create a shortcut</string>
+    <string name="contacts_empty">No contacts yet</string>
+    <string name="contacts_no_matching_contacts">No matching contacts</string>
+    <string name="contacts_add">Add contact</string>
+    <string name="contacts_alias_label">Alias</string>
+    <string name="contacts_save">Save</string>
+    <string name="contacts_save_prompt_title">Save contact?</string>
+    <string name="contacts_save_prompt_body">Add %1$s for faster payments next time.</string>
+    <string name="contacts_not_now">Not now</string>
+    <string name="contacts_invalid_address">Enter a valid Lightning address.</string>
+</resources>

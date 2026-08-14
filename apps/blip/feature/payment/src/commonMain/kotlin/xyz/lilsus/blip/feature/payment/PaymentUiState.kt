@@ -1,8 +1,8 @@
 package xyz.lilsus.blip.feature.payment
 
-import xyz.lilsus.blip.feature.payment.amount.ManualAmountUiState
 import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
+import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 
 sealed interface PaymentUiState {
     data object Active : PaymentUiState

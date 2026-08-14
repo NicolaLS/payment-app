@@ -22,6 +22,7 @@ kotlin {
             implementation(project(":feature:currency-settings"))
             implementation(project(":feature:payment-settings"))
             implementation(project(":feature:payment-intent"))
+            api(project(":feature:payment-ui"))
             implementation(libs.bitcoin.kmp)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
