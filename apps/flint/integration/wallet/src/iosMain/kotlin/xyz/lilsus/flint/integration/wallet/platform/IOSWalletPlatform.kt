@@ -49,7 +49,6 @@ import platform.Security.kSecMatchLimitOne
 import platform.Security.kSecReturnData
 import platform.Security.kSecValueData
 import xyz.lilsus.flint.AppBootstrapConfig
-import xyz.lilsus.flint.AppRuntime
 import xyz.lilsus.flint.application.payment.DefaultPaymentEngine
 import xyz.lilsus.flint.application.wallet.CredentialDeleteResult
 import xyz.lilsus.flint.application.wallet.CredentialLoadResult
@@ -63,7 +62,7 @@ import xyz.lilsus.flint.integration.wallet.persistence.FlintDatabase
 import xyz.lilsus.flint.integration.wallet.persistence.SqlPaymentAttemptRepository
 import xyz.lilsus.flint.integration.wallet.spark.BreezSparkSdkConnector
 
-fun createIOSWalletRuntime(bootstrapConfig: AppBootstrapConfig): AppRuntime {
+fun createIOSWalletAccess(bootstrapConfig: AppBootstrapConfig): WalletAccess {
     val directories = IOSWalletDirectories()
     val vault = IOSCredentialVault().also(IOSCredentialVault::purgeOrphanAfterFreshInstall)
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -82,7 +81,7 @@ fun createIOSWalletRuntime(bootstrapConfig: AppBootstrapConfig): AppRuntime {
         paymentLifecycle = paymentEngine,
         applicationScope = applicationScope
     ).also(WalletAccess::start)
-    return AppRuntime(walletAccess = walletAccess)
+    return walletAccess
 }
 
 private const val PAYMENT_DATABASE_NAME = "flint-payment-intents.db"

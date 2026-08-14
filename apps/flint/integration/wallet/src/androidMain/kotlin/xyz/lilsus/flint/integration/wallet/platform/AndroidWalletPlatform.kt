@@ -18,7 +18,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import xyz.lilsus.flint.AppBootstrapConfig
-import xyz.lilsus.flint.AppRuntime
 import xyz.lilsus.flint.application.payment.DefaultPaymentEngine
 import xyz.lilsus.flint.application.wallet.CredentialDeleteResult
 import xyz.lilsus.flint.application.wallet.CredentialLoadResult
@@ -32,7 +31,7 @@ import xyz.lilsus.flint.integration.wallet.persistence.FlintDatabase
 import xyz.lilsus.flint.integration.wallet.persistence.SqlPaymentAttemptRepository
 import xyz.lilsus.flint.integration.wallet.spark.BreezSparkSdkConnector
 
-fun createAndroidWalletRuntime(context: Context, bootstrapConfig: AppBootstrapConfig): AppRuntime {
+fun createAndroidWalletAccess(context: Context, bootstrapConfig: AppBootstrapConfig): WalletAccess {
     val appContext = context.applicationContext
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val driver = AndroidSqliteDriver(FlintDatabase.Schema, appContext, PAYMENT_DATABASE_NAME)
@@ -50,7 +49,7 @@ fun createAndroidWalletRuntime(context: Context, bootstrapConfig: AppBootstrapCo
         paymentLifecycle = paymentEngine,
         applicationScope = applicationScope
     ).also(WalletAccess::start)
-    return AppRuntime(walletAccess = walletAccess)
+    return walletAccess
 }
 
 private const val PAYMENT_DATABASE_NAME = "flint-payment-intents.db"

@@ -12,8 +12,7 @@ enum class PaymentMethod {
 enum class PaymentOrigin {
     DETECTED_CONTENT,
     DEEP_LINK,
-    MANUAL_RECOVERY,
-    CONTRACT_TEST
+    MANUAL_RECOVERY
 }
 
 enum class PaymentLinkPhase {

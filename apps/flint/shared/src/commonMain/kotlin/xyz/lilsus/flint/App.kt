@@ -44,7 +44,7 @@ fun App(host: FlintAppHost) {
     val themePreference by
         themePreferences.preference.collectAsState(initial = ThemePreference.System)
     val haptics = rememberHapticFeedbackManager()
-    val walletAccess = host.runtime.walletAccess
+    val walletAccess = host.walletAccess
     val paymentCoordinator =
         remember(
             walletAccess.payments,

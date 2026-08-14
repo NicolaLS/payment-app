@@ -2,6 +2,7 @@ package xyz.lilsus.flint
 
 import xyz.lilsus.flint.application.payment.PaymentLinkInbox
 import xyz.lilsus.flint.application.payment.createPaymentLinkInbox
+import xyz.lilsus.flint.application.wallet.WalletAccess
 
 enum class FlintEnvironment {
     DEBUG,
@@ -10,7 +11,7 @@ enum class FlintEnvironment {
 
 class FlintAppHost internal constructor(
     internal val bootstrapConfig: AppBootstrapConfig,
-    internal val runtime: AppRuntime,
+    internal val walletAccess: WalletAccess,
     internal val paymentLinks: PaymentLinkInbox = createPaymentLinkInbox()
 ) {
     fun offerPaymentLink(rawUrl: String) {

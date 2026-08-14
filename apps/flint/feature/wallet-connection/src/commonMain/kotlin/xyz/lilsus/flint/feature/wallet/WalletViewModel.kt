@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import xyz.lilsus.flint.application.wallet.CredentialProblemKind
 import xyz.lilsus.flint.application.wallet.ImportWalletResult
 import xyz.lilsus.flint.application.wallet.RemoveWalletResult
 import xyz.lilsus.flint.application.wallet.WalletAccess
@@ -36,7 +35,6 @@ sealed interface WalletAction {
     data object RequestRemoval : WalletAction
     data object CancelRemoval : WalletAction
     data object ConfirmRemoval : WalletAction
-    data object RefreshPayments : WalletAction
 }
 
 class WalletViewModel(private val walletAccess: WalletAccess) : ViewModel() {
@@ -76,8 +74,6 @@ class WalletViewModel(private val walletAccess: WalletAccess) : ViewModel() {
                 update { it.copy(confirmRemoval = false, recoveryPhrase = "") }
                 removeWallet()
             }
-
-            WalletAction.RefreshPayments -> walletAccess.payments.refresh()
         }
     }
 
@@ -106,11 +102,3 @@ class WalletViewModel(private val walletAccess: WalletAccess) : ViewModel() {
         mutableState.value = transform(mutableState.value)
     }
 }
-
-internal fun CredentialProblemKind.userMessage(): WalletCredentialMessage = when (this) {
-    CredentialProblemKind.UNAVAILABLE -> WalletCredentialMessage.UNAVAILABLE
-    CredentialProblemKind.INVALIDATED -> WalletCredentialMessage.INVALIDATED
-    CredentialProblemKind.CORRUPT -> WalletCredentialMessage.CORRUPT
-}
-
-internal enum class WalletCredentialMessage { UNAVAILABLE, INVALIDATED, CORRUPT }
