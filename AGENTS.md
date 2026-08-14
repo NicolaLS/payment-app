@@ -49,8 +49,9 @@ user-action callback.
 A shared render model is appropriate when:
 
 - It contains only information the common UI renders.
-- Every variant is meaningful for every consumer; it is not a superset of
-  provider states.
+- Every required variant is meaningful for every consumer; it is not a
+  superset of provider states. A concrete optional presentation section may be
+  absent instead of forcing unused states into every app.
 - Provider errors are converted by the app into localized display text or
   another provider-neutral visual value before crossing the boundary.
 - Callbacks report UI intent such as click, dismiss, select, or retry request;
@@ -60,6 +61,28 @@ A shared render model is appropriate when:
 This projection is not a backend adapter. It is the normal boundary between app
 logic and reusable presentation. Do not refuse to share genuinely identical UI
 merely because its upstream repositories or errors differ.
+
+### Optional provider-aware presentation is allowed
+
+Do not duplicate a whole screen merely because one app has an additional
+provider-specific setting or visual section. Shared presentation may expose a
+small, explicitly named optional model, callback group, or content slot. For
+example, a shared settings screen may render an optional fee-confirmation
+section that only Blip supplies.
+
+The owning app must still own whether the capability exists, its repository and
+persistence, provider interpretation, resources when appropriate, and the
+mapping into display state. Apps that do not have the capability pass nothing;
+they must not add placeholder settings, no-op implementations, or provider
+contracts. Prefer a concrete presentation name or app-supplied slot over a
+provider enum, `isBlink`/`isSpark` flag, generic capability registry, or switch
+inside the shared module.
+
+This rule also applies to payment results and settings rows: share the common
+layout and let an app add a genuinely app-specific rendered detail. Keep the
+entire component app-owned only when the variation contains substantial
+business decisions, drives provider behavior, or cannot be expressed as a
+small presentation-only input.
 
 ### Keep app behavior app-owned
 
