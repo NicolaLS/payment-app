@@ -10,6 +10,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.flint.application.wallet.WalletAccessState
+import xyz.lilsus.flint.feature.onboarding.FlintOnboardingDestination
 import xyz.lilsus.flint.feature.payment.PaymentCoordinator
 import xyz.lilsus.flint.feature.payment.PaymentFlow
 import xyz.lilsus.flint.feature.payment.PaymentIntent
@@ -99,7 +100,7 @@ internal fun NavGraphBuilder.flintHome(
         val state by walletViewModel.state.collectAsState()
         LaunchedEffect(state.access) {
             if (state.access == WalletAccessState.NoWallet) {
-                navController.navigate(FlintDestination.Welcome) {
+                navController.navigate(FlintOnboardingDestination.Welcome) {
                     popUpTo(navController.graph.id) { inclusive = true }
                     launchSingleTop = true
                 }
@@ -121,7 +122,9 @@ internal fun NavGraphBuilder.flintHome(
                     null
                 },
             onBack = navController::navigateUp,
-            onAddWallet = { navController.navigate(FlintDestination.AddWalletFromSettings) },
+            onAddWallet = {
+                navController.navigate(FlintOnboardingDestination.AddWalletFromSettings)
+            },
             onRemoveWallet = { walletViewModel.dispatch(WalletAction.ConfirmRemoval) }
         )
     }

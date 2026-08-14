@@ -24,10 +24,10 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":flint:application"))
+            implementation(project(":flint:feature:onboarding"))
             implementation(project(":flint:feature:payment"))
             implementation(project(":flint:feature:wallet-connection"))
             implementation(project(":flint:integration:wallet"))
-            implementation(project(":core:camera"))
             implementation(project(":core:settings"))
             implementation(project(":core:ui"))
             implementation(project(":feature:contacts"))

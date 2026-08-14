@@ -21,6 +21,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import xyz.lilsus.flint.application.wallet.WalletAccessState
+import xyz.lilsus.flint.feature.onboarding.FlintOnboardingDestination
+import xyz.lilsus.flint.feature.onboarding.flintOnboarding
 import xyz.lilsus.flint.feature.payment.PaymentCoordinator
 import xyz.lilsus.flint.feature.wallet.WalletViewModel
 import xyz.lilsus.raylsuite.core.model.ThemePreference
@@ -92,8 +94,8 @@ fun App(host: FlintAppHost) {
                 remember {
                     when (walletState.access) {
                         WalletAccessState.Connected -> FlintDestination.Home
-                        WalletAccessState.NoWallet -> FlintDestination.Welcome
-                        else -> FlintDestination.WalletRecovery
+                        WalletAccessState.NoWallet -> FlintOnboardingDestination.Welcome
+                        else -> FlintOnboardingDestination.WalletRecovery
                     }
                 }
             NavHost(
@@ -103,7 +105,13 @@ fun App(host: FlintAppHost) {
                 flintOnboarding(
                     navController = navController,
                     onboardingViewModel = onboardingViewModel,
-                    walletViewModel = walletViewModel
+                    walletViewModel = walletViewModel,
+                    onWalletConnected = {
+                        navController.navigate(FlintDestination.Home) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
                 )
                 flintHome(
                     navController = navController,

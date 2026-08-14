@@ -74,6 +74,7 @@ includeApp(
     modules =
         listOf(
             "application",
+            "feature:onboarding",
             "feature:payment",
             "feature:wallet-connection",
             "integration:wallet"
