@@ -3,32 +3,20 @@ import SwiftUI
 import Shared
 
 struct ComposeView: UIViewControllerRepresentable {
-    let bootstrapConfig: PaymentAppBootstrapConfig
-    let runtime: AppRuntime
-    let paymentLinks: PaymentPaymentLinkInbox
+    let appHost: FlintAppHost
 
     func makeUIViewController(context: Self.Context) -> UIViewController {
-        MainViewControllerKt.MainViewController(
-            bootstrapConfig: bootstrapConfig,
-            runtime: runtime,
-            paymentLinks: paymentLinks
-        )
+        MainViewControllerKt.MainViewController(host: appHost)
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Self.Context) {}
 }
 
 struct ContentView: View {
-    let bootstrapConfig: PaymentAppBootstrapConfig
-    let runtime: AppRuntime
-    let paymentLinks: PaymentPaymentLinkInbox
+    let appHost: FlintAppHost
 
     var body: some View {
-        ComposeView(
-            bootstrapConfig: bootstrapConfig,
-            runtime: runtime,
-            paymentLinks: paymentLinks
-        )
+        ComposeView(appHost: appHost)
             .ignoresSafeArea()
             .privacySensitive()
     }

@@ -23,9 +23,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api(project(":flint:application"))
-            api(project(":flint:feature:payment"))
-            api(project(":flint:feature:wallet-connection"))
+            implementation(project(":flint:application"))
+            implementation(project(":flint:feature:payment"))
+            implementation(project(":flint:feature:wallet-connection"))
             implementation(project(":flint:integration:wallet"))
             implementation(project(":core:camera"))
             implementation(project(":core:settings"))

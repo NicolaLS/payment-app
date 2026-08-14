@@ -1,4 +1,4 @@
 package xyz.lilsus.flint
 
-internal fun androidBootstrapConfig(): AppBootstrapConfig =
-    AppBootstrapConfig(environment = AppEnvironment.DEBUG)
+internal fun androidFlintConfiguration(): AndroidFlintConfiguration =
+    AndroidFlintConfiguration(environment = FlintEnvironment.DEBUG)

@@ -20,26 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import xyz.lilsus.flint.application.payment.ConfirmPaymentResult
-import xyz.lilsus.flint.application.payment.PaymentActivity
-import xyz.lilsus.flint.application.payment.PaymentAmountHandle
-import xyz.lilsus.flint.application.payment.PaymentConfirmationPolicy
-import xyz.lilsus.flint.application.payment.PaymentDraftHandle
-import xyz.lilsus.flint.application.payment.PaymentEngine
-import xyz.lilsus.flint.application.payment.PaymentLinkInbox
-import xyz.lilsus.flint.application.payment.PaymentOrigin
-import xyz.lilsus.flint.application.payment.PreparePaymentResult
-import xyz.lilsus.flint.application.payment.UnavailablePaymentAmountAssistant
-import xyz.lilsus.flint.application.payment.createPaymentLinkInbox
-import xyz.lilsus.flint.application.wallet.ImportWalletResult
-import xyz.lilsus.flint.application.wallet.RemoveWalletResult
-import xyz.lilsus.flint.application.wallet.WalletAccess
 import xyz.lilsus.flint.application.wallet.WalletAccessState
 import xyz.lilsus.flint.feature.payment.PaymentCoordinator
 import xyz.lilsus.flint.feature.wallet.WalletViewModel
-import xyz.lilsus.raylsuite.core.model.Satoshi
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
@@ -52,7 +35,7 @@ import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
 
 @Composable
-fun App(bootstrapConfig: AppBootstrapConfig, runtime: AppRuntime, paymentLinks: PaymentLinkInbox) {
+fun App(host: FlintAppHost) {
     val appSettings = rememberAppSettings(FLINT_PREFERENCES)
     val themePreferences = remember(appSettings) { DefaultThemePreferences(appSettings) }
     val currencyPreferences = remember(appSettings) { DefaultCurrencyPreferences(appSettings) }
@@ -63,11 +46,11 @@ fun App(bootstrapConfig: AppBootstrapConfig, runtime: AppRuntime, paymentLinks: 
     val themePreference by
         themePreferences.preference.collectAsState(initial = ThemePreference.System)
     val haptics = rememberHapticFeedbackManager()
-    val walletAccess = runtime.walletAccess
+    val walletAccess = host.runtime.walletAccess
     val paymentCoordinator =
         remember(
             walletAccess.payments,
-            paymentLinks,
+            host.paymentLinks,
             bitcoinPriceProvider,
             currencyPreferences,
             paymentPreferences,
@@ -76,7 +59,7 @@ fun App(bootstrapConfig: AppBootstrapConfig, runtime: AppRuntime, paymentLinks: 
         ) {
             PaymentCoordinator(
                 engine = walletAccess.payments,
-                paymentLinks = paymentLinks,
+                paymentLinks = host.paymentLinks,
                 bitcoinPriceProvider = bitcoinPriceProvider,
                 currencyPreferences = currencyPreferences,
                 paymentPreferences = paymentPreferences,
@@ -136,7 +119,7 @@ fun App(bootstrapConfig: AppBootstrapConfig, runtime: AppRuntime, paymentLinks: 
                     paymentPreferences = paymentPreferences,
                     contactsRepository = contactsRepository,
                     walletViewModel = walletViewModel,
-                    networkLabel = bootstrapConfig.environment.networkLabel
+                    networkLabel = host.bootstrapConfig.environment.networkLabel
                 )
             }
         }
@@ -162,35 +145,5 @@ private fun InitialWalletLoading() {
 
 private fun WalletAccessState.isInitialising(): Boolean =
     this == WalletAccessState.Loading || this == WalletAccessState.Connecting
-
-fun previewWalletAccess(): WalletAccess = object : WalletAccess {
-    override val state: StateFlow<WalletAccessState> = MutableStateFlow(WalletAccessState.NoWallet)
-    override val payments: PaymentEngine = object : PaymentEngine {
-        override val activity: StateFlow<List<PaymentActivity>> = MutableStateFlow(emptyList())
-        override val confirmationPolicy = MutableStateFlow(PaymentConfirmationPolicy.Default)
-        override val amountAssistant = UnavailablePaymentAmountAssistant
-        override suspend fun prepare(input: String, origin: PaymentOrigin) =
-            PreparePaymentResult.WalletUnavailable
-        override suspend fun prepareAmount(handle: PaymentAmountHandle, amountSats: Satoshi) =
-            PreparePaymentResult.WalletUnavailable
-        override suspend fun updateConfirmationPolicy(policy: PaymentConfirmationPolicy) = Unit
-        override suspend fun cancel(handle: PaymentDraftHandle) = Unit
-        override suspend fun cancel(handle: PaymentAmountHandle) = Unit
-        override suspend fun autoPay(handle: PaymentDraftHandle) =
-            ConfirmPaymentResult.WalletUnavailable
-        override suspend fun confirm(handle: PaymentDraftHandle) =
-            ConfirmPaymentResult.WalletUnavailable
-        override fun requestRefresh() = Unit
-        override suspend fun refresh() = Unit
-    }
-    override fun start() = Unit
-    override suspend fun importWallet(mnemonic: String) = ImportWalletResult.CONNECTION_FAILED
-    override suspend fun retryConnection() = Unit
-    override suspend fun removeWallet() = RemoveWalletResult.REMOVED
-}
-
-fun previewAppRuntime(): AppRuntime = AppRuntime(walletAccess = previewWalletAccess())
-
-fun createAppPaymentLinkInbox(): PaymentLinkInbox = createPaymentLinkInbox()
 
 internal const val FLINT_PREFERENCES = "flint_preferences"

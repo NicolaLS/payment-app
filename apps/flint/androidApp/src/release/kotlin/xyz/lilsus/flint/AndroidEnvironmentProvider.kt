@@ -1,6 +1,6 @@
 package xyz.lilsus.flint
 
-internal fun androidBootstrapConfig(): AppBootstrapConfig = AppBootstrapConfig(
-    environment = AppEnvironment.PRODUCTION,
+internal fun androidFlintConfiguration(): AndroidFlintConfiguration = AndroidFlintConfiguration(
+    environment = FlintEnvironment.PRODUCTION,
     breezApiKey = BuildConfig.BREEZ_API_KEY
 )

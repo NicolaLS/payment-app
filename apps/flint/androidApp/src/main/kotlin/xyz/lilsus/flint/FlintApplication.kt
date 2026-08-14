@@ -1,13 +1,19 @@
 package xyz.lilsus.flint
 
 import android.app.Application
-import xyz.lilsus.flint.application.payment.PaymentLinkInbox
-import xyz.lilsus.flint.application.payment.createPaymentLinkInbox
 
 class FlintApplication : Application() {
-    val paymentLinks: PaymentLinkInbox by lazy(::createPaymentLinkInbox)
-
-    val runtime: AppRuntime by lazy {
-        createAndroidAppRuntime(this, androidBootstrapConfig())
+    val appHost: FlintAppHost by lazy {
+        val configuration = androidFlintConfiguration()
+        createAndroidAppHost(
+            context = this,
+            environment = configuration.environment,
+            breezApiKey = configuration.breezApiKey
+        )
     }
 }
+
+internal data class AndroidFlintConfiguration(
+    val environment: FlintEnvironment,
+    val breezApiKey: String? = null
+)
