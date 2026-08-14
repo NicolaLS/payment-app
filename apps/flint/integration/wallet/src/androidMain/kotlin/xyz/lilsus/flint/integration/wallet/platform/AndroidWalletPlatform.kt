@@ -17,7 +17,7 @@ import javax.crypto.spec.GCMParameterSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import xyz.lilsus.flint.AppBootstrapConfig
+import xyz.lilsus.flint.application.AppBootstrapConfig
 import xyz.lilsus.flint.application.payment.DefaultPaymentEngine
 import xyz.lilsus.flint.application.wallet.CredentialDeleteResult
 import xyz.lilsus.flint.application.wallet.CredentialLoadResult

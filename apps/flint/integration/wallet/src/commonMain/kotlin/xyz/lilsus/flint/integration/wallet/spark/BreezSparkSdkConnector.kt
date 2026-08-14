@@ -3,7 +3,7 @@ package xyz.lilsus.flint.integration.wallet.spark
 import breez_sdk_spark.ConnectRequest
 import breez_sdk_spark.Seed
 import breez_sdk_spark.connect
-import xyz.lilsus.flint.AppBootstrapConfig
+import xyz.lilsus.flint.application.AppBootstrapConfig
 import xyz.lilsus.flint.application.wallet.SparkSdkConnector
 import xyz.lilsus.flint.application.wallet.SparkSdkSession
 import xyz.lilsus.flint.application.wallet.WalletCredential

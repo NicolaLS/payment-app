@@ -19,11 +19,11 @@ import xyz.lilsus.blip.feature.payment.blipPaymentErrorMessageFor
 import xyz.lilsus.blip.feature.payment.getBlipPaymentErrorMessageFor
 import xyz.lilsus.blip.feature.walletdetails.BlinkWalletDetailsScreen
 import xyz.lilsus.blip.feature.walletdetails.BlinkWalletDetailsViewModel
+import xyz.lilsus.blip.generated.resources.Res
+import xyz.lilsus.blip.generated.resources.app_name
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
 import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
-import xyz.lilsus.raylsuite.blip.generated.resources.Res
-import xyz.lilsus.raylsuite.blip.generated.resources.app_name
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository

@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import xyz.lilsus.flint.AppEnvironment
+import xyz.lilsus.flint.application.AppEnvironment
 import xyz.lilsus.raylsuite.core.model.Satoshi
 
 class DefaultPaymentEngine(

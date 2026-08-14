@@ -1,4 +1,4 @@
-package xyz.lilsus.flint
+package xyz.lilsus.flint.application
 
 enum class AppEnvironment {
     DEBUG,

@@ -24,7 +24,7 @@ import xyz.lilsus.flint.application.wallet.WalletAccessState
 import xyz.lilsus.flint.feature.onboarding.FlintOnboardingDestination
 import xyz.lilsus.flint.feature.onboarding.flintOnboarding
 import xyz.lilsus.flint.feature.payment.PaymentCoordinator
-import xyz.lilsus.flint.feature.wallet.WalletViewModel
+import xyz.lilsus.flint.feature.walletconnection.WalletViewModel
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager

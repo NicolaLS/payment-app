@@ -16,6 +16,8 @@ import xyz.lilsus.lasr.feature.payment.PaymentFlow
 import xyz.lilsus.lasr.feature.payment.getLasrPaymentErrorMessageFor
 import xyz.lilsus.lasr.feature.payment.lasrPaymentErrorMessageFor
 import xyz.lilsus.lasr.feature.walletdetails.NwcWalletDetailsScreen
+import xyz.lilsus.lasr.generated.resources.Res
+import xyz.lilsus.lasr.generated.resources.app_name
 import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.lasr.integration.nwc.NwcWalletConnection
 import xyz.lilsus.raylsuite.core.model.LightningAddress
@@ -34,8 +36,6 @@ import xyz.lilsus.raylsuite.feature.walletmanagement.WalletManagementScreen
 import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.Res as WalletRes
 import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet
 import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_subtitle
-import xyz.lilsus.raylsuite.lasr.generated.resources.Res
-import xyz.lilsus.raylsuite.lasr.generated.resources.app_name
 
 internal fun NavGraphBuilder.lasrHome(
     navController: NavController,

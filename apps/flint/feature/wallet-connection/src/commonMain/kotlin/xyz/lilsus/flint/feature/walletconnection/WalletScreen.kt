@@ -1,4 +1,4 @@
-package xyz.lilsus.flint.feature.wallet
+package xyz.lilsus.flint.feature.walletconnection
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

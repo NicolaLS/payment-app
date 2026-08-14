@@ -48,7 +48,7 @@ import platform.Security.kSecMatchLimit
 import platform.Security.kSecMatchLimitOne
 import platform.Security.kSecReturnData
 import platform.Security.kSecValueData
-import xyz.lilsus.flint.AppBootstrapConfig
+import xyz.lilsus.flint.application.AppBootstrapConfig
 import xyz.lilsus.flint.application.payment.DefaultPaymentEngine
 import xyz.lilsus.flint.application.wallet.CredentialDeleteResult
 import xyz.lilsus.flint.application.wallet.CredentialLoadResult

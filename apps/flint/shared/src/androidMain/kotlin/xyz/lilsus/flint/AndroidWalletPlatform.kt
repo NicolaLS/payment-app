@@ -1,6 +1,7 @@
 package xyz.lilsus.flint
 
 import android.content.Context
+import xyz.lilsus.flint.application.AppBootstrapConfig
 import xyz.lilsus.flint.integration.wallet.platform.createAndroidWalletAccess
 
 fun createAndroidAppHost(

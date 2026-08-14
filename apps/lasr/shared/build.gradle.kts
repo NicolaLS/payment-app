@@ -7,7 +7,7 @@ plugins {
 }
 
 compose.resources {
-    packageOfResClass = "xyz.lilsus.raylsuite.lasr.generated.resources"
+    packageOfResClass = "xyz.lilsus.lasr.generated.resources"
 }
 
 kotlin {

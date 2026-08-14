@@ -1,5 +1,6 @@
 package xyz.lilsus.flint
 
+import xyz.lilsus.flint.application.AppBootstrapConfig
 import xyz.lilsus.flint.integration.wallet.platform.createIOSWalletAccess
 
 fun createIOSAppHost(environment: FlintEnvironment, breezApiKey: String? = null): FlintAppHost {

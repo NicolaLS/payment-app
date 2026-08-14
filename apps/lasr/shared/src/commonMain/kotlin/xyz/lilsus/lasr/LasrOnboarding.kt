@@ -28,6 +28,21 @@ import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletViewModel
 import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletDialog
 import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletViewModel
+import xyz.lilsus.lasr.generated.resources.Res
+import xyz.lilsus.lasr.generated.resources.onboarding_agreement_body
+import xyz.lilsus.lasr.generated.resources.onboarding_autopay_body
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page1_body
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page1_subtitle
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page1_title
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page2_body
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page2_subtitle
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page2_title
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page3_body
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page3_subtitle
+import xyz.lilsus.lasr.generated.resources.onboarding_features_page3_title
+import xyz.lilsus.lasr.generated.resources.onboarding_welcome_subtitle_line1
+import xyz.lilsus.lasr.generated.resources.onboarding_welcome_subtitle_line2
+import xyz.lilsus.lasr.generated.resources.onboarding_welcome_title
 import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
@@ -39,21 +54,6 @@ import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingFeaturePage
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
-import xyz.lilsus.raylsuite.lasr.generated.resources.Res
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_agreement_body
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_autopay_body
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page1_body
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page1_subtitle
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page1_title
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page2_body
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page2_subtitle
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page2_title
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page3_body
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page3_subtitle
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_features_page3_title
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_welcome_subtitle_line1
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_welcome_subtitle_line2
-import xyz.lilsus.raylsuite.lasr.generated.resources.onboarding_welcome_title
 
 internal fun NavGraphBuilder.lasrOnboarding(
     navController: NavController,

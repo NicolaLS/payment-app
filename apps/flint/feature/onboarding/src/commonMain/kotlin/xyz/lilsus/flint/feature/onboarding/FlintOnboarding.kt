@@ -33,9 +33,9 @@ import xyz.lilsus.flint.feature.onboarding.generated.resources.onboarding_featur
 import xyz.lilsus.flint.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line1
 import xyz.lilsus.flint.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line2
 import xyz.lilsus.flint.feature.onboarding.generated.resources.onboarding_welcome_title
-import xyz.lilsus.flint.feature.wallet.WalletConnectionContent
-import xyz.lilsus.flint.feature.wallet.WalletConnectionScreen
-import xyz.lilsus.flint.feature.wallet.WalletViewModel
+import xyz.lilsus.flint.feature.walletconnection.WalletConnectionContent
+import xyz.lilsus.flint.feature.walletconnection.WalletConnectionScreen
+import xyz.lilsus.flint.feature.walletconnection.WalletViewModel
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.feature.onboarding.AgreementScreen

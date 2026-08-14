@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
-import xyz.lilsus.flint.AppBootstrapConfig
+import xyz.lilsus.flint.application.AppBootstrapConfig
 import xyz.lilsus.flint.application.payment.PaymentEngine
 import xyz.lilsus.flint.application.payment.PaymentSessionLifecycle
 import xyz.lilsus.flint.application.payment.SparkPaymentClient

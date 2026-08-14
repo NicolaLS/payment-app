@@ -15,8 +15,12 @@ import xyz.lilsus.flint.feature.payment.PaymentCoordinator
 import xyz.lilsus.flint.feature.payment.PaymentFlow
 import xyz.lilsus.flint.feature.payment.flintPaymentErrorMessageFor
 import xyz.lilsus.flint.feature.payment.getFlintPaymentErrorMessageFor
-import xyz.lilsus.flint.feature.wallet.WalletAction
-import xyz.lilsus.flint.feature.wallet.WalletViewModel
+import xyz.lilsus.flint.feature.walletconnection.WalletAction
+import xyz.lilsus.flint.feature.walletconnection.WalletViewModel
+import xyz.lilsus.flint.generated.resources.Res
+import xyz.lilsus.flint.generated.resources.app_name
+import xyz.lilsus.flint.generated.resources.settings_wallet_subtitle
+import xyz.lilsus.flint.generated.resources.settings_wallet_title
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
@@ -30,10 +34,6 @@ import xyz.lilsus.raylsuite.feature.settings.SettingsStartDestination
 import xyz.lilsus.raylsuite.feature.themesettings.ThemePreferences
 import xyz.lilsus.raylsuite.feature.walletmanagement.ManagedWallet
 import xyz.lilsus.raylsuite.feature.walletmanagement.WalletManagementScreen
-import xyz.lilsus.raylsuite.flint.generated.resources.Res
-import xyz.lilsus.raylsuite.flint.generated.resources.app_name
-import xyz.lilsus.raylsuite.flint.generated.resources.settings_wallet_subtitle
-import xyz.lilsus.raylsuite.flint.generated.resources.settings_wallet_title
 
 internal fun NavGraphBuilder.flintHome(
     navController: NavController,

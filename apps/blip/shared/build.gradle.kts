@@ -7,7 +7,7 @@ plugins {
 }
 
 compose.resources {
-    packageOfResClass = "xyz.lilsus.raylsuite.blip.generated.resources"
+    packageOfResClass = "xyz.lilsus.blip.generated.resources"
 }
 
 kotlin {
