@@ -35,57 +35,60 @@ dependencyResolutionManagement {
     }
 }
 
-fun includeApp(name: String) {
+fun includeApp(name: String, modules: List<String>) {
     val appPath = ":$name"
-    val modules = listOf("shared", "androidApp")
+    val allModules = listOf("shared", "androidApp") + modules
 
-    include(modules.map { module -> "$appPath:$module" })
+    include(allModules.map { module -> "$appPath:$module" })
 
     project(appPath).projectDir = file("apps/$name")
 
-    modules.forEach { module ->
-        project("$appPath:$module").projectDir =
-        file("apps/$name/$module")
-    }
+    allModules
+        .flatMap { module ->
+            val segments = module.split(":")
+            segments.indices.map { index ->
+                segments.take(index + 1).joinToString(":")
+            }
+        }.distinct()
+        .forEach { module ->
+            project("$appPath:$module").projectDir =
+                file("apps/$name/${module.replace(':', '/')}")
+        }
 }
 
-includeApp("blip")
-includeApp("flint")
-includeApp("lasr")
-
-include(":blip:feature:onboarding")
-project(":blip:feature:onboarding").projectDir = file("apps/blip/feature/onboarding")
-include(":blip:feature:payment")
-project(":blip:feature:payment").projectDir = file("apps/blip/feature/payment")
-include(":blip:feature:blink-contacts")
-project(":blip:feature:blink-contacts").projectDir = file("apps/blip/feature/blink-contacts")
-include(":blip:feature:wallet-connection")
-project(":blip:feature:wallet-connection").projectDir = file("apps/blip/feature/wallet-connection")
-include(":blip:feature:wallet-details")
-project(":blip:feature:wallet-details").projectDir = file("apps/blip/feature/wallet-details")
-include(":blip:integration:blink")
-project(":blip:integration:blink").projectDir = file("apps/blip/integration/blink")
-include(":blip:ui")
-project(":blip:ui").projectDir = file("apps/blip/ui")
-include(":lasr:feature:onboarding")
-project(":lasr:feature:onboarding").projectDir = file("apps/lasr/feature/onboarding")
-include(":lasr:feature:payment")
-project(":lasr:feature:payment").projectDir = file("apps/lasr/feature/payment")
-include(":lasr:feature:wallet-connection")
-project(":lasr:feature:wallet-connection").projectDir =
-    file("apps/lasr/feature/wallet-connection")
-include(":lasr:feature:wallet-details")
-project(":lasr:feature:wallet-details").projectDir =
-    file("apps/lasr/feature/wallet-details")
-include(":lasr:integration:nwc")
-project(":lasr:integration:nwc").projectDir = file("apps/lasr/integration/nwc")
-include(":flint:feature:payment")
-project(":flint:feature:payment").projectDir = file("apps/flint/feature/payment")
-include(":flint:feature:wallet-connection")
-project(":flint:feature:wallet-connection").projectDir =
-    file("apps/flint/feature/wallet-connection")
-include(":flint:integration:spark")
-project(":flint:integration:spark").projectDir = file("apps/flint/integration/spark")
+includeApp(
+    name = "blip",
+    modules =
+        listOf(
+            "feature:onboarding",
+            "feature:payment",
+            "feature:blink-contacts",
+            "feature:wallet-connection",
+            "feature:wallet-details",
+            "integration:blink",
+            "ui"
+        )
+)
+includeApp(
+    name = "flint",
+    modules =
+        listOf(
+            "feature:payment",
+            "feature:wallet-connection",
+            "integration:spark"
+        )
+)
+includeApp(
+    name = "lasr",
+    modules =
+        listOf(
+            "feature:onboarding",
+            "feature:payment",
+            "feature:wallet-connection",
+            "feature:wallet-details",
+            "integration:nwc"
+        )
+)
 
 include(":core:model")
 include(":core:camera")

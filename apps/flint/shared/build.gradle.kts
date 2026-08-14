@@ -1,12 +1,9 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
+import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.plugin.mpp.Framework
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidKmpLibrary)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.kotlinSerialization)
+    id("xyz.lilsus.raylsuite.app.shared")
 }
 
 compose.resources {
@@ -14,51 +11,17 @@ compose.resources {
 }
 
 kotlin {
-    jvmToolchain(21)
-
     android {
         namespace = "xyz.lilsus.flint.shared"
-        compileSdk = 37
-        minSdk = 24
-
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
-        }
-
-        androidResources {
-            enable = true
-        }
-
-        withHostTest {}
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
+    targets.withType<KotlinNativeTarget>().configureEach {
+        binaries.withType<Framework>().configureEach {
             binaryOption("bundleId", "xyz.lilsus.flint.shared")
-            if (buildType == NativeBuildType.RELEASE) {
-                freeCompilerArgs +=
-                    "-Xdisable-phases=RemoveRedundantCallsToStaticInitializersPhase"
-            }
         }
     }
 
     sourceSets {
-        val commonMain by getting
-        val iosMain by creating {
-            dependsOn(commonMain)
-        }
-        val iosArm64Main by getting {
-            dependsOn(iosMain)
-        }
-        val iosSimulatorArm64Main by getting {
-            dependsOn(iosMain)
-        }
-
         commonMain.dependencies {
             api(project(":flint:feature:payment"))
             api(project(":flint:feature:wallet-connection"))

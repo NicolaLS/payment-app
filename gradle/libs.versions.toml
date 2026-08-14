@@ -1,6 +1,8 @@
 [versions]
 agp = "9.3.0"
 ktlint = "14.2.0"
+ktlintCli = "1.8.0"
+kover = "0.9.8"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.19.0"
@@ -96,3 +98,4 @@ apollo = { id = "com.apollographql.apollo", version.ref = "apollo" }
 mokkery = { id = "dev.mokkery", version.ref = "mokkery" }
 breezSpark = { id = "technology.breez.spark.kmp", version.ref = "breezSpark" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
