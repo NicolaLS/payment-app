@@ -11,12 +11,12 @@ import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_se
 import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_success
 import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_unknown
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
-import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionReference
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionTransaction
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentStatusTone
+import xyz.lilsus.raylsuite.feature.paymentui.PreviousPaymentSituation
 
 @Composable
 internal fun PaymentUiState.toPaymentScreenState(

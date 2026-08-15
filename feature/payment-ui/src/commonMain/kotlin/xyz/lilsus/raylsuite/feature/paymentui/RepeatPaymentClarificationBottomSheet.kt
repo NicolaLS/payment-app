@@ -1,4 +1,4 @@
-package xyz.lilsus.raylsuite.feature.paymentintent
+package xyz.lilsus.raylsuite.feature.paymentui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,16 +24,16 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.completed_body
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.completed_title
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.create_additional_payment
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.in_progress_body
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.in_progress_title
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.outcome_unknown_body
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.outcome_unknown_title
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.retry_previous_invoice
-import xyz.lilsus.raylsuite.feature.paymentintent.generated.resources.view_previous_payment
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.completed_body
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.completed_title
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.create_additional_payment
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.in_progress_body
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.in_progress_title
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.outcome_unknown_body
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.outcome_unknown_title
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.retry_previous_invoice
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.view_previous_payment
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,7 +53,7 @@ fun RepeatPaymentClarificationBottomSheet(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .testTag(PaymentIntentTestTags.CLARIFICATION_SHEET)
+                    .testTag(RepeatPaymentTestTags.CLARIFICATION_SHEET)
                     .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -81,7 +81,7 @@ fun RepeatPaymentClarificationBottomSheet(
                 if (clarification.canRetryPreviousInvoice) {
                     ClarificationButton(
                         text = stringResource(Res.string.retry_previous_invoice),
-                        testTag = PaymentIntentTestTags.RETRY_PREVIOUS_INVOICE_BUTTON,
+                        testTag = RepeatPaymentTestTags.RETRY_PREVIOUS_INVOICE_BUTTON,
                         onClick = {
                             onDecision(RepeatPaymentDecision.RetryPreviousInvoice)
                         }
@@ -89,7 +89,7 @@ fun RepeatPaymentClarificationBottomSheet(
                 } else {
                     ClarificationButton(
                         text = stringResource(Res.string.view_previous_payment),
-                        testTag = PaymentIntentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON,
+                        testTag = RepeatPaymentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON,
                         onClick = {
                             onDecision(RepeatPaymentDecision.ViewPreviousPayment)
                         }
@@ -104,7 +104,7 @@ fun RepeatPaymentClarificationBottomSheet(
                         Modifier
                             .fillMaxWidth()
                             .testTag(
-                                PaymentIntentTestTags.CREATE_ADDITIONAL_PAYMENT_BUTTON
+                                RepeatPaymentTestTags.CREATE_ADDITIONAL_PAYMENT_BUTTON
                             )
                 ) {
                     Text(stringResource(Res.string.create_additional_payment))
@@ -119,7 +119,7 @@ fun RepeatPaymentClarificationBottomSheet(
                             Modifier
                                 .fillMaxWidth()
                                 .testTag(
-                                    PaymentIntentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON
+                                    RepeatPaymentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON
                                 )
                     ) {
                         Text(stringResource(Res.string.view_previous_payment))

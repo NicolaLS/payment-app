@@ -2,7 +2,6 @@ package xyz.lilsus.raylsuite.feature.paymentui
 
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.hero.RaylHeroPhase
-import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentResultPresentation
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState

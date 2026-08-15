@@ -26,11 +26,14 @@ import xyz.lilsus.raylsuite.core.model.CurrencyInfo
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
+import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.payment.LightningInputParser
 import xyz.lilsus.raylsuite.core.payment.LnurlError
 import xyz.lilsus.raylsuite.core.payment.LnurlPayClient
 import xyz.lilsus.raylsuite.core.payment.LnurlPayParams
 import xyz.lilsus.raylsuite.core.payment.LnurlResult
+import xyz.lilsus.raylsuite.core.payment.lightningAddressDynamicPaymentSourceKey
+import xyz.lilsus.raylsuite.core.payment.lnurlDynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
@@ -250,7 +253,7 @@ class PaymentCoordinator(
                     }
 
                     is LightningInputParser.Target.Lnurl -> {
-                        val sourceKey = lnurlSourceKey(target.endpoint)
+                        val sourceKey = lnurlDynamicPaymentSourceKey(target.endpoint)
                         val existing =
                             pendingTracker.findUnresolvedByDynamicSourceKey(sourceKey)
                         if (existing != null) {
@@ -270,7 +273,7 @@ class PaymentCoordinator(
                     }
 
                     is LightningInputParser.Target.LightningAddressTarget -> {
-                        val sourceKey = lightningAddressSourceKey(target.address)
+                        val sourceKey = lightningAddressDynamicPaymentSourceKey(target.address)
                         val contactContext =
                             contactsController.contextFor(
                                 target.address,
@@ -351,7 +354,8 @@ class PaymentCoordinator(
     private fun fetchLnurl(
         endpoint: String,
         paymentSource: PaymentRequestSource,
-        sourceKey: String?
+        sourceKey: DynamicPaymentSourceKey?,
+        replacesDynamicGuardId: String? = null
     ) {
         mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
         scope.launch {
@@ -360,7 +364,8 @@ class PaymentCoordinator(
                     handleLnurlParams(
                         params = result.data,
                         paymentSource = paymentSource,
-                        sourceKey = sourceKey
+                        sourceKey = sourceKey,
+                        replacesDynamicGuardId = replacesDynamicGuardId
                     )
 
                 is LnurlResult.Error -> emitError(result.error.toPaymentUiError())
@@ -371,10 +376,11 @@ class PaymentCoordinator(
     private fun resolveLightningAddress(
         address: LightningAddress,
         paymentSource: PaymentRequestSource,
-        sourceKey: String?,
+        sourceKey: DynamicPaymentSourceKey?,
         contactContext: PaymentContactContext? = null,
         shortcutAmountMsats: Long? = null,
-        shortcutComment: String? = null
+        shortcutComment: String? = null,
+        replacesDynamicGuardId: String? = null
     ) {
         mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
         scope.launch {
@@ -386,7 +392,8 @@ class PaymentCoordinator(
                         sourceKey = sourceKey,
                         contactContext = contactContext,
                         shortcutAmountMsats = shortcutAmountMsats,
-                        shortcutComment = shortcutComment
+                        shortcutComment = shortcutComment,
+                        replacesDynamicGuardId = replacesDynamicGuardId
                     )
 
                 is LnurlResult.Error -> emitError(result.error.toPaymentUiError())
@@ -400,7 +407,7 @@ class PaymentCoordinator(
         amountMsats: Long?,
         comment: String?
     ) {
-        val sourceKey = lightningAddressSourceKey(address)
+        val sourceKey = lightningAddressDynamicPaymentSourceKey(address)
         val existing = pendingTracker.findUnresolvedByDynamicSourceKey(sourceKey)
         if (existing != null) {
             showPendingRetryPrompt(
@@ -434,10 +441,11 @@ class PaymentCoordinator(
         forceManualEntry: Boolean = false,
         prefillMsats: Long? = null,
         inputCurrencyOverride: CurrencyInfo? = null,
-        sourceKey: String? = null,
+        sourceKey: DynamicPaymentSourceKey? = null,
         contactContext: PaymentContactContext? = null,
         shortcutAmountMsats: Long? = null,
-        shortcutComment: String? = null
+        shortcutComment: String? = null,
+        replacesDynamicGuardId: String? = null
     ) {
         if (params.minSendable <= 0 || params.maxSendable < params.minSendable) {
             emitError(PaymentUiError.InvalidInvoice("LNURL amount range is invalid"))
@@ -449,7 +457,8 @@ class PaymentCoordinator(
                 sourceKey = sourceKey,
                 paymentSource = paymentSource,
                 contactContext = contactContext?.copy(comment = shortcutComment),
-                comment = shortcutComment
+                comment = shortcutComment,
+                replacesDynamicGuardId = replacesDynamicGuardId
             )
         val currencyState = currencyManager.state.value
         val inputInfo = inputCurrencyOverride ?: currencyState.info
@@ -601,7 +610,8 @@ class PaymentCoordinator(
                 },
             source = session.paymentSource,
             dynamicSourceKey = session.sourceKey,
-            contactContext = session.contactContext
+            contactContext = session.contactContext,
+            replacesDynamicGuardId = session.replacesDynamicGuardId
         )
     }
 
@@ -696,7 +706,8 @@ class PaymentCoordinator(
             amountOverrideMsats = pending.amountOverrideMsats,
             origin = pending.origin,
             dynamicSourceKey = pending.dynamicSourceKey,
-            contactContext = pending.contactContext
+            contactContext = pending.contactContext,
+            replacesDynamicGuardId = pending.replacesDynamicGuardId
         )
     }
 
@@ -705,8 +716,9 @@ class PaymentCoordinator(
         amountOverrideMsats: Long?,
         origin: PendingOrigin,
         source: PaymentRequestSource,
-        dynamicSourceKey: String? = null,
-        contactContext: PaymentContactContext? = null
+        dynamicSourceKey: DynamicPaymentSourceKey? = null,
+        contactContext: PaymentContactContext? = null,
+        replacesDynamicGuardId: String? = null
     ) {
         if (paymentAdmissionInProgress) return
         paymentAdmissionInProgress = true
@@ -740,7 +752,8 @@ class PaymentCoordinator(
                             amountOverrideMsats = amountOverrideMsats,
                             origin = origin,
                             dynamicSourceKey = dynamicSourceKey,
-                            contactContext = contactContext
+                            contactContext = contactContext,
+                            replacesDynamicGuardId = replacesDynamicGuardId
                         )
                     mutableUiState.value = PaymentUiState.Confirm(display)
                 } else {
@@ -749,7 +762,8 @@ class PaymentCoordinator(
                         amountOverrideMsats,
                         origin,
                         dynamicSourceKey,
-                        contactContext
+                        contactContext,
+                        replacesDynamicGuardId
                     )
                 }
             } catch (cause: CancellationException) {
@@ -766,8 +780,9 @@ class PaymentCoordinator(
         invoice: Bolt11Invoice,
         amountOverrideMsats: Long?,
         origin: PendingOrigin,
-        dynamicSourceKey: String?,
-        contactContext: PaymentContactContext?
+        dynamicSourceKey: DynamicPaymentSourceKey?,
+        contactContext: PaymentContactContext?,
+        replacesDynamicGuardId: String? = null
     ) {
         mutableUiState.value = PaymentUiState.Loading()
         val amountMsats = amountOverrideMsats ?: invoice.amount?.msat ?: 0L
@@ -777,7 +792,8 @@ class PaymentCoordinator(
                 amountMsats = amountMsats,
                 amountOverrideMsats = amountOverrideMsats,
                 origin = origin,
-                dynamicSourceKey = dynamicSourceKey
+                dynamicSourceKey = dynamicSourceKey,
+                replacesDynamicGuardId = replacesDynamicGuardId
             )
         contactsController.bindPendingPayment(pendingId, contactContext)
         paymentJobs.remove(pendingId)?.cancel()
@@ -868,7 +884,7 @@ class PaymentCoordinator(
                         prefillMsats = amountSats * MSATS_PER_SAT,
                         inputCurrencyOverride =
                             CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE),
-                        sourceKey = lightningAddressSourceKey(address)
+                        sourceKey = lightningAddressDynamicPaymentSourceKey(address)
                     )
 
                 is LnurlResult.Error -> emitError(result.error.toPaymentUiError())
@@ -880,14 +896,14 @@ class PaymentCoordinator(
         val choice = pendingRetry ?: return
         val continuation = choice.continuation
         pendingRetry = null
-        pendingTracker.releaseDynamicSourceGuard(choice.recordId)
         notifyScanSuccess()
         when (continuation) {
             is PendingRetryContinuation.Lnurl ->
                 fetchLnurl(
                     continuation.endpoint,
                     continuation.paymentSource,
-                    continuation.sourceKey
+                    continuation.sourceKey,
+                    replacesDynamicGuardId = choice.recordId
                 )
 
             is PendingRetryContinuation.LightningAddress ->
@@ -897,7 +913,8 @@ class PaymentCoordinator(
                     continuation.sourceKey,
                     continuation.contactContext,
                     continuation.shortcutAmountMsats,
-                    continuation.shortcutComment
+                    continuation.shortcutComment,
+                    replacesDynamicGuardId = choice.recordId
                 )
         }
     }
@@ -1109,8 +1126,9 @@ private data class PendingPayment(
     val invoice: Bolt11Invoice,
     val amountOverrideMsats: Long?,
     val origin: PendingOrigin,
-    val dynamicSourceKey: String?,
-    val contactContext: PaymentContactContext?
+    val dynamicSourceKey: DynamicPaymentSourceKey?,
+    val contactContext: PaymentContactContext?,
+    val replacesDynamicGuardId: String?
 )
 
 private data class PendingRetryChoice(
@@ -1128,10 +1146,11 @@ private data class CompletedPayment(
 
 private data class LnurlSession(
     val params: LnurlPayParams,
-    val sourceKey: String?,
+    val sourceKey: DynamicPaymentSourceKey?,
     val paymentSource: PaymentRequestSource,
     val contactContext: PaymentContactContext?,
-    val comment: String?
+    val comment: String?,
+    val replacesDynamicGuardId: String?
 )
 
 private enum class PaymentRequestSource {
@@ -1150,13 +1169,13 @@ private sealed interface ManualEntryContext {
 private sealed interface PendingRetryContinuation {
     data class Lnurl(
         val endpoint: String,
-        val sourceKey: String,
+        val sourceKey: DynamicPaymentSourceKey,
         val paymentSource: PaymentRequestSource
     ) : PendingRetryContinuation
 
     data class LightningAddress(
         val address: xyz.lilsus.raylsuite.core.model.LightningAddress,
-        val sourceKey: String,
+        val sourceKey: DynamicPaymentSourceKey,
         val paymentSource: PaymentRequestSource,
         val contactContext: PaymentContactContext? = null,
         val shortcutAmountMsats: Long? = null,
@@ -1173,16 +1192,6 @@ private fun LnurlError.toPaymentUiError(): PaymentUiError = when (this) {
     is LnurlError.Protocol -> PaymentUiError.Lnurl(reason)
 
     is LnurlError.Unexpected -> PaymentUiError.Lnurl(detail)
-}
-
-private fun lnurlSourceKey(endpoint: String): String = "lnurl:${endpoint.trim().lowercase()}"
-
-private fun lightningAddressSourceKey(address: LightningAddress): String = buildString {
-    append("lud16:")
-    append(address.username)
-    address.tag?.let { append('+').append(it) }
-    append('@')
-    append(address.domain.lowercase())
 }
 
 internal fun roundToFullSatoshis(msats: Long): Long =

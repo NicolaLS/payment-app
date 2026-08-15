@@ -1,4 +1,4 @@
-package xyz.lilsus.raylsuite.feature.paymentintent
+package xyz.lilsus.raylsuite.feature.paymentui
 
 data class RepeatPaymentClarification(val situation: PreviousPaymentSituation) {
     val canRetryPreviousInvoice: Boolean

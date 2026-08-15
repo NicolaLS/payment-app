@@ -19,7 +19,6 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":feature:contacts"))
             implementation(project(":feature:currency-settings"))
-            implementation(project(":feature:payment-intent"))
             implementation(project(":feature:payment-settings"))
             api(project(":feature:payment-ui"))
             implementation(libs.compose.components.resources)

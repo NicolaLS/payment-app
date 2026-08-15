@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import xyz.lilsus.raylsuite.feature.paymentintent.PaymentIntentSourceKey
+import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 
 internal class PendingPaymentTracker(
     private val currencyManager: PaymentCurrencyManager,
@@ -36,7 +36,7 @@ internal class PendingPaymentTracker(
         amountMsats: Long,
         amountOverrideMsats: Long?,
         origin: PendingOrigin,
-        dynamicSourceKey: PaymentIntentSourceKey? = null,
+        dynamicSourceKey: DynamicPaymentSourceKey? = null,
         replacesDynamicGuardId: String? = null
     ): String {
         val id = "payment-${clock()}-${nextRecordSequence++}"
@@ -76,14 +76,15 @@ internal class PendingPaymentTracker(
         }
         .maxByOrNull(PendingRecord::createdAtMs)
 
-    fun findUnresolvedByDynamicSourceKey(dynamicSourceKey: PaymentIntentSourceKey): PendingRecord? =
-        records.value.values
-            .filter {
-                it.isUnresolved() &&
-                    it.guardsDynamicSource &&
-                    it.dynamicSourceKey == dynamicSourceKey
-            }
-            .maxByOrNull(PendingRecord::createdAtMs)
+    fun findUnresolvedByDynamicSourceKey(
+        dynamicSourceKey: DynamicPaymentSourceKey
+    ): PendingRecord? = records.value.values
+        .filter {
+            it.isUnresolved() &&
+                it.guardsDynamicSource &&
+                it.dynamicSourceKey == dynamicSourceKey
+        }
+        .maxByOrNull(PendingRecord::createdAtMs)
 
     fun markSuccess(
         id: String,
@@ -291,7 +292,7 @@ internal data class PendingRecord(
     val amountOverrideMsats: Long?,
     val origin: PendingOrigin,
     val createdAtMs: Long,
-    val dynamicSourceKey: PaymentIntentSourceKey?,
+    val dynamicSourceKey: DynamicPaymentSourceKey?,
     val guardsDynamicSource: Boolean,
     val paymentHashHex: String,
     val status: PendingStatus = PendingStatus.Sending,

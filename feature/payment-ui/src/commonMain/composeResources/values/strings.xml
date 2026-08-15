@@ -44,4 +44,13 @@
     <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
     <string name="resolving_payment_title">Preparing payment</string>
     <string name="resolving_payment_subtitle">No payment has been sent yet.</string>
+    <string name="in_progress_title">Payment may still complete</string>
+    <string name="in_progress_body">A payment for this request is still in progress. Review it to avoid paying twice, or create an additional payment only if you intend to pay again.</string>
+    <string name="outcome_unknown_title">Previous payment status unknown</string>
+    <string name="outcome_unknown_body">The previous payment may still have succeeded. Retry its exact invoice, review it, or intentionally create an additional payment.</string>
+    <string name="completed_title">Previous payment completed</string>
+    <string name="completed_body">The previous payment completed. Review it or create an additional payment if you intend to pay again.</string>
+    <string name="retry_previous_invoice">Retry previous invoice</string>
+    <string name="create_additional_payment">Create additional payment</string>
+    <string name="view_previous_payment">View previous payment</string>
 </resources>

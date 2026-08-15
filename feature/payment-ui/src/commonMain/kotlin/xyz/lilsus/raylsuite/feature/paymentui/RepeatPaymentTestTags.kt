@@ -1,6 +1,6 @@
-package xyz.lilsus.raylsuite.feature.paymentintent
+package xyz.lilsus.raylsuite.feature.paymentui
 
-object PaymentIntentTestTags {
+object RepeatPaymentTestTags {
     const val CLARIFICATION_SHEET = "payment_intent_clarification_sheet"
     const val RETRY_PREVIOUS_INVOICE_BUTTON =
         "payment_intent_retry_previous_invoice_button"

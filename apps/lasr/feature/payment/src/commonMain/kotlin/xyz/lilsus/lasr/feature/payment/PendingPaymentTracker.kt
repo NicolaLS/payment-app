@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import xyz.lilsus.lasr.integration.nwc.NwcLookupOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcPayOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcSentPayment
+import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 
 internal class PendingPaymentTracker(
     private val lookupInvoice: suspend (String, Long) -> NwcLookupOutcome,
@@ -43,7 +44,8 @@ internal class PendingPaymentTracker(
         amountMsats: Long,
         amountOverrideMsats: Long?,
         origin: PendingOrigin,
-        dynamicSourceKey: String? = null
+        dynamicSourceKey: DynamicPaymentSourceKey? = null,
+        replacesDynamicGuardId: String? = null
     ): String {
         val id = "payment-${clock()}-${nextSequence++}"
         val record = PendingRecord(
@@ -57,7 +59,15 @@ internal class PendingPaymentTracker(
             guardsDynamicSource = dynamicSourceKey != null,
             paymentHashHex = summary.paymentHash.toHex()
         )
-        records.update { it + (id to record) }
+        records.update { current ->
+            val acknowledged =
+                replacesDynamicGuardId?.let { replacedId ->
+                    current[replacedId]?.let { replaced ->
+                        current + (replacedId to replaced.copy(guardsDynamicSource = false))
+                    } ?: current
+                } ?: current
+            acknowledged + (id to record)
+        }
         scheduleVisibility(id)
         refreshDisplayItems()
         return id
@@ -70,19 +80,15 @@ internal class PendingPaymentTracker(
             .filter { it.status.isUnresolved() && it.summary.write() == paymentRequest }
             .maxByOrNull(PendingRecord::createdAtMs)
 
-    fun findUnresolvedByDynamicSourceKey(dynamicSourceKey: String): PendingRecord? =
-        records.value.values
-            .filter {
-                it.status.isUnresolved() &&
-                    it.guardsDynamicSource &&
-                    it.dynamicSourceKey == dynamicSourceKey
-            }
-            .maxByOrNull(PendingRecord::createdAtMs)
-
-    fun releaseDynamicSourceGuard(id: String) {
-        val status = records.value[id]?.status ?: return
-        transition(id = id, status = status, guardsDynamicSource = false)
-    }
+    fun findUnresolvedByDynamicSourceKey(
+        dynamicSourceKey: DynamicPaymentSourceKey
+    ): PendingRecord? = records.value.values
+        .filter {
+            it.status.isUnresolved() &&
+                it.guardsDynamicSource &&
+                it.dynamicSourceKey == dynamicSourceKey
+        }
+        .maxByOrNull(PendingRecord::createdAtMs)
 
     fun applyPayOutcome(id: String, outcome: NwcPayOutcome) {
         when (outcome) {
@@ -383,7 +389,7 @@ internal data class PendingRecord(
     val amountOverrideMsats: Long?,
     val origin: PendingOrigin,
     val createdAtMs: Long,
-    val dynamicSourceKey: String?,
+    val dynamicSourceKey: DynamicPaymentSourceKey?,
     val guardsDynamicSource: Boolean,
     val paymentHashHex: String,
     val status: PendingStatus = PendingStatus.Sending,

@@ -8,12 +8,12 @@ import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_f
 import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_pending
 import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_success
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
-import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionReference
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionTransaction
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentStatusTone
+import xyz.lilsus.raylsuite.feature.paymentui.PreviousPaymentSituation
 
 @Composable
 internal fun PaymentUiState.toPaymentScreenState(

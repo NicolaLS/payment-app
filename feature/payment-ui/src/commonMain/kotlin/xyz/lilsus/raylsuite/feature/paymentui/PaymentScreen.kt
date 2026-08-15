@@ -38,10 +38,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.camera.QrScannerMode
-import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
-import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentClarification
-import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentClarificationBottomSheet
-import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentDecision
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
 import xyz.lilsus.raylsuite.feature.paymentui.components.BottomLayout
 import xyz.lilsus.raylsuite.feature.paymentui.components.ConfirmationBottomSheet

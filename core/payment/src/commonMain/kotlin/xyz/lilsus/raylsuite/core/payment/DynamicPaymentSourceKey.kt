@@ -1,19 +1,19 @@
-package xyz.lilsus.raylsuite.feature.paymentintent
+package xyz.lilsus.raylsuite.core.payment
 
 import kotlin.jvm.JvmInline
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 
 @JvmInline
-value class PaymentIntentSourceKey(val value: String) {
+value class DynamicPaymentSourceKey(val value: String) {
     init {
-        require(value.isNotBlank()) { "Payment intent source key must not be blank" }
+        require(value.isNotBlank()) { "Dynamic payment source key must not be blank" }
     }
 }
 
-fun lnurlPaymentIntentSourceKey(endpoint: String): PaymentIntentSourceKey {
+fun lnurlDynamicPaymentSourceKey(endpoint: String): DynamicPaymentSourceKey {
     val trimmed = endpoint.trim()
     val schemeSeparator = trimmed.indexOf("://")
-    if (schemeSeparator < 0) return PaymentIntentSourceKey("lnurl:$trimmed")
+    if (schemeSeparator < 0) return DynamicPaymentSourceKey("lnurl:$trimmed")
 
     val authorityStart = schemeSeparator + SCHEME_SEPARATOR_LENGTH
     val authorityEnd =
@@ -22,12 +22,12 @@ fun lnurlPaymentIntentSourceKey(endpoint: String): PaymentIntentSourceKey {
             ?: trimmed.length
     val scheme = trimmed.substring(0, schemeSeparator).lowercase()
     val authority = trimmed.substring(authorityStart, authorityEnd).lowercase()
-    return PaymentIntentSourceKey(
+    return DynamicPaymentSourceKey(
         "lnurl:$scheme://$authority${trimmed.substring(authorityEnd)}"
     )
 }
 
-fun lightningAddressPaymentIntentSourceKey(address: LightningAddress): PaymentIntentSourceKey =
-    PaymentIntentSourceKey("lud16:${address.full.lowercase()}")
+fun lightningAddressDynamicPaymentSourceKey(address: LightningAddress): DynamicPaymentSourceKey =
+    DynamicPaymentSourceKey("lud16:${address.full.lowercase()}")
 
 private const val SCHEME_SEPARATOR_LENGTH = 3

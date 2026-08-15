@@ -25,6 +25,7 @@ import xyz.lilsus.lasr.integration.nwc.NwcLookupOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcPayOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcSentPayment
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
+import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PendingPaymentTrackerTest {
@@ -142,19 +143,20 @@ class PendingPaymentTrackerTest {
     @Test
     fun unknownRetryReusesRecordAndDefinitiveFailureReleasesDynamicGuard() = runTest {
         val tracker = tracker()
+        val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example")
         val id =
             tracker.register(
                 invoice(),
                 AMOUNT_MSATS,
                 null,
                 PendingOrigin.LnurlFixed,
-                dynamicSourceKey = "lnurl:https://pay.example"
+                dynamicSourceKey = sourceKey
             )
         tracker.makeVisible(id)
         tracker.applyPayOutcome(id, NwcPayOutcome.Uncertain("uncertain"))
         tracker.applyPayOutcome(id, NwcPayOutcome.WalletRejected("DENIED", "rejected"))
 
-        assertNull(tracker.findUnresolvedByDynamicSourceKey("lnurl:https://pay.example"))
+        assertNull(tracker.findUnresolvedByDynamicSourceKey(sourceKey))
 
         val unknownId =
             tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
