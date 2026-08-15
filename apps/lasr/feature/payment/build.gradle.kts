@@ -28,7 +28,6 @@ kotlin {
             implementation(libs.compose.ui)
             api(libs.lightning.kmp.core)
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.uri.kmp)
         }
         androidMain.dependencies {
             implementation(libs.secp256k1.kmp.jni.android)

@@ -10,6 +10,9 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":core:model"))
+            implementation(libs.bitcoin.kmp)
+            api(libs.lightning.kmp.core)
+            implementation(libs.uri.kmp)
         }
     }
 }

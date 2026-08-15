@@ -1,4 +1,4 @@
-package xyz.lilsus.blip.feature.payment
+package xyz.lilsus.raylsuite.core.payment
 
 import com.eygraber.uri.Uri
 import fr.acinq.bitcoin.Bech32
