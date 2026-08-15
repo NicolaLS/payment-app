@@ -5,6 +5,7 @@ import xyz.lilsus.raylsuite.core.ui.hero.RaylHeroPhase
 import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentResultPresentation
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState
 
 sealed interface PaymentScreenState {
     data object Active : PaymentScreenState
@@ -48,6 +49,23 @@ data class PaymentSessionReference(
     val id: String,
     val statusKey: String,
     val previousPaymentSituation: PreviousPaymentSituation
+)
+
+data class PaymentTransactionDetail(
+    val id: String,
+    val state: PaymentScreenState,
+    val canRetry: Boolean = false,
+    val pendingMessage: String? = null
+)
+
+data class PaymentFlowState(
+    val payment: PaymentScreenState,
+    val sessionReferences: List<PaymentSessionReference>,
+    val sessionTransactions: List<PaymentSessionTransaction>,
+    val transactionDetails: List<PaymentTransactionDetail>,
+    val newSessionTransactionCount: Int = 0,
+    val contacts: PaymentContactsUiState = PaymentContactsUiState(),
+    val transactionDetailNavigationTarget: String? = null
 )
 
 enum class PaymentStatusTone {

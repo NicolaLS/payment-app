@@ -5,6 +5,12 @@
     <string name="pay_button">Pagar</string>
     <string name="dismiss_button">Cerrar</string>
     <string name="view_session_transactions">Ver transacciones de esta sesión</string>
+    <string name="session_transactions_title">Pagos recientes</string>
+    <string name="session_transactions_empty">Aún no hay pagos en esta sesión.</string>
+    <string name="tap_dismiss_pending">Toca para cerrar. El pago continúa en segundo plano.</string>
+    <string name="retry_payment">Reintentar pago</string>
+    <string name="toast_bitcoin_address">Esto es una dirección Bitcoin. Pide una factura Lightning.</string>
+    <string name="toast_bolt12_not_supported">Las ofertas BOLT12 aún no son compatibles.</string>
     <string name="enter_amount_title">Introduce el importe</string>
     <string name="enter_amount_range_min">Mín %1$s</string>
     <string name="enter_amount_range_max">Máx %1$s</string>

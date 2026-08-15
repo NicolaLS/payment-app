@@ -38,14 +38,11 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.camera.QrScannerMode
-import xyz.lilsus.raylsuite.core.model.ContactRole
-import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.feature.paymentintent.PreviousPaymentSituation
 import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentClarification
 import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentClarificationBottomSheet
 import xyz.lilsus.raylsuite.feature.paymentintent.RepeatPaymentDecision
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
-import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 import xyz.lilsus.raylsuite.feature.paymentui.components.BottomLayout
 import xyz.lilsus.raylsuite.feature.paymentui.components.ConfirmationBottomSheet
 import xyz.lilsus.raylsuite.feature.paymentui.components.ManualAmountBottomSheet
@@ -55,7 +52,6 @@ import xyz.lilsus.raylsuite.feature.paymentui.components.SessionTransactionsIcon
 import xyz.lilsus.raylsuite.feature.paymentui.components.SettingsIconButton
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsBottomSheet
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.SaveContactBottomSheet
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.open_shortcuts_contacts
@@ -74,30 +70,10 @@ fun PaymentScreen(
     estimatedFeeHint: String? = null,
     newSessionTransactionCount: Int = 0,
     contactsState: PaymentContactsUiState = PaymentContactsUiState(),
-    onManualAmountKeyPress: (ManualAmountKey) -> Unit = {},
-    onManualAmountPreset: (DisplayAmount) -> Unit = {},
-    onManualAmountSubmit: () -> Unit = {},
-    onManualAmountDismiss: () -> Unit = {},
-    onConfirmPaymentSubmit: () -> Unit = {},
-    onConfirmPaymentDismiss: () -> Unit = {},
-    onPendingRetryCreateNewInvoice: () -> Unit = {},
-    onPendingRetryRetryPrevious: () -> Unit = {},
-    onPendingRetryViewPending: () -> Unit = {},
-    onPendingRetryDismiss: () -> Unit = {},
+    onIntent: (PaymentIntent) -> Unit = {},
     onOpenTransactions: () -> Unit = {},
-    onResultDismiss: () -> Unit = {},
-    onContactsOpen: () -> Unit = {},
-    onContactsDismiss: () -> Unit = {},
-    onPaymentSheetTabSelected: (PaymentSheetTab) -> Unit = {},
-    onContactsRoleSelected: (ContactRole?) -> Unit = {},
-    onShortcutSelected: (String) -> Unit = {},
     onCreateShortcut: () -> Unit = {},
     onCreateContact: () -> Unit = {},
-    onContactSelected: (String) -> Unit = {},
-    onSaveContactPromptAliasChange: (String) -> Unit = {},
-    onSaveContactPromptRoleSelected: (ContactRole?) -> Unit = {},
-    onSaveContactPromptSave: () -> Unit = {},
-    onSaveContactPromptDismiss: () -> Unit = {},
     scannerMode: QrScannerMode = QrScannerMode.Near,
     showScannerModeSelector: Boolean = false,
     onToggleScannerMode: (() -> Unit)? = null,
@@ -153,7 +129,7 @@ fun PaymentScreen(
             Modifier.semantics {
                 customActions = listOf(
                     CustomAccessibilityAction(openContactsLabel) {
-                        onContactsOpen()
+                        onIntent(PaymentIntent.OpenContacts)
                         true
                     }
                 )
@@ -190,7 +166,7 @@ fun PaymentScreen(
             modifier = activeContentModifier
                 .tapToDismiss(
                     enabled = isDismissable,
-                    onDismiss = onResultDismiss
+                    onDismiss = { onIntent(PaymentIntent.DismissResult) }
                 )
                 .fillMaxSize()
                 .padding(paddingValues),
@@ -232,18 +208,18 @@ fun PaymentScreen(
     if (uiState is PaymentScreenState.EnterAmount) {
         ManualAmountBottomSheet(
             state = uiState.entry,
-            onKeyPress = onManualAmountKeyPress,
-            onRangeClick = onManualAmountPreset,
-            onSubmit = onManualAmountSubmit,
-            onDismiss = onManualAmountDismiss
+            onKeyPress = { onIntent(PaymentIntent.ManualAmountKeyPress(it)) },
+            onRangeClick = { onIntent(PaymentIntent.ManualAmountPreset(it)) },
+            onSubmit = { onIntent(PaymentIntent.ManualAmountSubmit) },
+            onDismiss = { onIntent(PaymentIntent.ManualAmountDismiss) }
         )
     }
 
     if (uiState is PaymentScreenState.Confirm) {
         ConfirmationBottomSheet(
             confirmAmount = uiState.amount,
-            onPay = onConfirmPaymentSubmit,
-            onDismiss = onConfirmPaymentDismiss
+            onPay = { onIntent(PaymentIntent.ConfirmPaymentSubmit) },
+            onDismiss = { onIntent(PaymentIntent.ConfirmPaymentDismiss) }
         )
     }
 
@@ -260,16 +236,16 @@ fun PaymentScreen(
             onDecision = { decision ->
                 when (decision) {
                     RepeatPaymentDecision.RetryPreviousInvoice ->
-                        onPendingRetryRetryPrevious()
+                        onIntent(PaymentIntent.PendingRetryRetryPrevious)
 
                     RepeatPaymentDecision.CreateAdditionalPayment ->
-                        onPendingRetryCreateNewInvoice()
+                        onIntent(PaymentIntent.PendingRetryCreateNewInvoice)
 
                     RepeatPaymentDecision.ViewPreviousPayment ->
-                        onPendingRetryViewPending()
+                        onIntent(PaymentIntent.PendingRetryViewPending)
 
                     RepeatPaymentDecision.Dismiss ->
-                        onPendingRetryDismiss()
+                        onIntent(PaymentIntent.PendingRetryDismiss)
                 }
             }
         )
@@ -278,11 +254,11 @@ fun PaymentScreen(
     if (contactsState.isOpen) {
         PaymentContactsBottomSheet(
             state = contactsState,
-            onDismiss = onContactsDismiss,
-            onTabSelected = onPaymentSheetTabSelected,
-            onRoleSelected = onContactsRoleSelected,
-            onContactSelected = onContactSelected,
-            onShortcutSelected = onShortcutSelected,
+            onDismiss = { onIntent(PaymentIntent.DismissContacts) },
+            onTabSelected = { onIntent(PaymentIntent.PaymentSheetTabSelected(it)) },
+            onRoleSelected = { onIntent(PaymentIntent.ContactRoleSelected(it)) },
+            onContactSelected = { onIntent(PaymentIntent.SelectContact(it)) },
+            onShortcutSelected = { onIntent(PaymentIntent.SelectShortcut(it)) },
             onCreateShortcut = onCreateShortcut,
             onCreateContact = onCreateContact
         )
@@ -291,10 +267,10 @@ fun PaymentScreen(
     contactsState.savePrompt?.let { prompt ->
         SaveContactBottomSheet(
             state = prompt,
-            onAliasChange = onSaveContactPromptAliasChange,
-            onRoleSelected = onSaveContactPromptRoleSelected,
-            onSave = onSaveContactPromptSave,
-            onDismiss = onSaveContactPromptDismiss
+            onAliasChange = { onIntent(PaymentIntent.SaveContactPromptAliasChanged(it)) },
+            onRoleSelected = { onIntent(PaymentIntent.SaveContactPromptRoleSelected(it)) },
+            onSave = { onIntent(PaymentIntent.SaveContactPromptSave) },
+            onDismiss = { onIntent(PaymentIntent.SaveContactPromptDismiss) }
         )
     }
 }

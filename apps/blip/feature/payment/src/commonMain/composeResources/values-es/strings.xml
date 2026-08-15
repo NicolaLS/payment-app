@@ -1,9 +1,5 @@
 <resources>
-    <string name="tap_dismiss_pending">Toca para cerrar. El pago continúa en segundo plano.</string>
     <string name="tap_dismiss_pending_blink">Blink indicó que este pago está pendiente. Comprueba su estado final en tu billetera Blink.</string>
-    <string name="retry_payment">Reintentar pago</string>
-    <string name="session_transactions_title">Pagos recientes</string>
-    <string name="session_transactions_empty">Aún no hay pagos en esta sesión.</string>
     <string name="transaction_status_sending">Enviando</string>
     <string name="transaction_status_pending_blink">Pendiente en Blink</string>
     <string name="transaction_status_unknown">Estado desconocido</string>
@@ -33,7 +29,5 @@
     <string name="error_blink_limit_exceeded">Este pago excede los límites de tu cuenta.</string>
     <string name="error_blink_rate_limited">Demasiadas solicitudes. Espera un momento e intenta de nuevo.</string>
     <string name="error_blink_invalid_api_key">Clave API inválida o revocada. Crea una nueva clave para continuar.</string>
-    <string name="toast_bitcoin_address">Esto es una dirección Bitcoin. Pide una factura Lightning.</string>
-    <string name="toast_bolt12_not_supported">Las ofertas BOLT12 aún no son compatibles.</string>
     <string name="shortcuts_title">Shortcuts</string>
 </resources>

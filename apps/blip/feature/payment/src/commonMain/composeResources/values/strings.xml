@@ -1,9 +1,5 @@
 <resources>
-    <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
     <string name="tap_dismiss_pending_blink">Blink reported this payment as pending. Check your Blink wallet for its final status.</string>
-    <string name="retry_payment">Retry payment</string>
-    <string name="session_transactions_title">Recent payments</string>
-    <string name="session_transactions_empty">No payments in this session yet.</string>
     <string name="transaction_status_sending">Sending</string>
     <string name="transaction_status_pending_blink">Pending in Blink</string>
     <string name="transaction_status_unknown">Status unknown</string>
@@ -33,7 +29,5 @@
     <string name="error_blink_limit_exceeded">This payment exceeds your account limits.</string>
     <string name="error_blink_rate_limited">Too many requests. Please wait a moment and try again.</string>
     <string name="error_blink_invalid_api_key">Invalid or revoked API key. Create a new key to continue.</string>
-    <string name="toast_bitcoin_address">This is a Bitcoin address. Ask for a Lightning invoice.</string>
-    <string name="toast_bolt12_not_supported">BOLT12 offers are not yet supported.</string>
     <string name="shortcuts_title">Shortcuts</string>
 </resources>

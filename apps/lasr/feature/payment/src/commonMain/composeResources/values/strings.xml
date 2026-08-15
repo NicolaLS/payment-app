@@ -1,14 +1,8 @@
 <resources>
-    <string name="retry_payment">Retry payment</string>
-    <string name="tap_dismiss_pending">Tap to dismiss. Payment continues in background.</string>
-    <string name="session_transactions_title">Transactions</string>
-    <string name="session_transactions_empty">No transactions yet.</string>
     <string name="transaction_status_pending">Pending</string>
     <string name="transaction_status_success">Paid</string>
     <string name="transaction_status_failure">Failed</string>
     <string name="transaction_fee">Fee %1$s</string>
-    <string name="toast_bitcoin_address">This is a Bitcoin address. Ask for a Lightning invoice.</string>
-    <string name="toast_bolt12_not_supported">BOLT12 offers are not yet supported.</string>
     <string name="shortcuts_title">Shortcuts</string>
     <string name="error_missing_wallet_connection">Connect a wallet to continue.</string>
     <string name="error_payment_rejected_generic">Payment was rejected.</string>

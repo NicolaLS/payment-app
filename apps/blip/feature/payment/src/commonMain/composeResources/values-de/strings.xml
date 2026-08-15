@@ -1,9 +1,5 @@
 <resources>
-    <string name="tap_dismiss_pending">Tippen zum Schließen. Zahlung läuft im Hintergrund weiter.</string>
     <string name="tap_dismiss_pending_blink">Blink meldet diese Zahlung als ausstehend. Prüfe den endgültigen Status in deiner Blink-Wallet.</string>
-    <string name="retry_payment">Zahlung erneut versuchen</string>
-    <string name="session_transactions_title">Letzte Zahlungen</string>
-    <string name="session_transactions_empty">Noch keine Zahlungen in dieser Sitzung.</string>
     <string name="transaction_status_sending">Wird gesendet</string>
     <string name="transaction_status_pending_blink">In Blink ausstehend</string>
     <string name="transaction_status_unknown">Status unbekannt</string>
@@ -33,7 +29,5 @@
     <string name="error_blink_limit_exceeded">Diese Zahlung überschreitet deine Kontolimits.</string>
     <string name="error_blink_rate_limited">Zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.</string>
     <string name="error_blink_invalid_api_key">Ungültiger oder widerrufener API-Schlüssel. Erstelle einen neuen Schlüssel, um fortzufahren.</string>
-    <string name="toast_bitcoin_address">Das ist eine Bitcoin-Adresse. Bitte um eine Lightning-Rechnung.</string>
-    <string name="toast_bolt12_not_supported">BOLT12-Angebote werden noch nicht unterstützt.</string>
     <string name="shortcuts_title">Shortcuts</string>
 </resources>
