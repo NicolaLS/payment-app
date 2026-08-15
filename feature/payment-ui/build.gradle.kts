@@ -16,7 +16,7 @@ kotlin {
             api(project(":core:model"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
-            implementation(project(":feature:contacts"))
+            api(project(":feature:contacts"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)
@@ -25,7 +25,7 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(libs.kotlinx.coroutines.core)
+            api(libs.kotlinx.coroutines.core)
             implementation(libs.navigation.compose)
         }
         commonTest.dependencies {

@@ -44,6 +44,9 @@ import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactContext
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactSelection
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsController
 
 class PaymentCoordinator(
     private val nwcWallet: NwcWallet,
@@ -78,10 +81,9 @@ class PaymentCoordinator(
     private val contactsController =
         PaymentContactsController(
             repository = contactsRepository,
-            currencyManager = currencyManager,
             scope = scope,
-            onPaymentRequested = ::resolveContactPayment,
-            onError = ::emitError
+            onPaymentRequested = ::requestContactPayment,
+            clock = ::platformCurrentTimeMillis
         )
 
     private val mutableUiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Active)
@@ -163,6 +165,7 @@ class PaymentCoordinator(
         paymentJobs.values.forEach(Job::cancel)
         paymentJobs.clear()
         pendingTracker.resetSession()
+        contactsController.resetSession()
         knownSessionTransactionIds.clear()
         newSessionTransactionIds.clear()
         mutableNewSessionTransactionCount.value = 0
@@ -433,6 +436,29 @@ class PaymentCoordinator(
             shortcutAmountMsats = amountMsats,
             shortcutComment = comment
         )
+    }
+
+    private fun requestContactPayment(selection: PaymentContactSelection) {
+        val context = selection.context
+        val shortcutAmount = selection.shortcutAmount
+        if (shortcutAmount == null) {
+            resolveContactPayment(context.address, context, null, context.comment)
+            return
+        }
+        scope.launch {
+            // TODO: Move this to Lasr's improved app-owned currency manager during the deferred refactor.
+            val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcutAmount)
+            if (amountMsats == null || amountMsats <= 0L) {
+                emitError(PaymentUiError.InvalidInvoice("Shortcut amount could not be converted"))
+                return@launch
+            }
+            resolveContactPayment(
+                context.address,
+                context,
+                roundToFullSatoshis(amountMsats),
+                context.comment
+            )
+        }
     }
 
     private fun handleLnurlParams(
@@ -853,7 +879,7 @@ class PaymentCoordinator(
 
             is PendingEvent.Failed -> {
                 clearPaymentSessionState()
-                contactsController.paymentFailed(event.id)
+                contactsController.paymentFinishedWithoutSuccess(event.id)
                 if (pendingRetry?.recordId == event.id) {
                     pendingRetry = null
                     mutableUiState.value = PaymentUiState.Active
@@ -866,7 +892,7 @@ class PaymentCoordinator(
 
             is PendingEvent.OutcomeUnknown -> {
                 clearPaymentSessionState()
-                contactsController.paymentFailed(event.id)
+                contactsController.paymentFinishedWithoutSuccess(event.id)
             }
         }
     }

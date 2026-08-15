@@ -84,6 +84,12 @@ fun App(host: FlintAppHost) {
     }
     LaunchedEffect(walletState.access) {
         if (!walletState.access.isInitialising()) navigationReady = true
+        if (
+            walletState.access == WalletAccessState.NoWallet ||
+            walletState.access == WalletAccessState.ResetRequired
+        ) {
+            paymentCoordinator.resetSession()
+        }
     }
     RaylSuiteTheme(themePreference = themePreference) {
         if (!navigationReady) {

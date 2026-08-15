@@ -52,6 +52,9 @@ import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactContext
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactSelection
+import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsController
 
 class PaymentCoordinator(
     private val engine: PaymentEngine,
@@ -75,10 +78,9 @@ class PaymentCoordinator(
     private val contactsController =
         PaymentContactsController(
             repository = contactsRepository,
-            currencyManager = currencyManager,
             scope = scope,
-            onPaymentRequested = ::resolveContactPayment,
-            onError = ::showError
+            onPaymentRequested = ::requestContactPayment,
+            clock = ::platformCurrentTimeMillis
         )
 
     private val mutableUiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Active)
@@ -184,6 +186,7 @@ class PaymentCoordinator(
         mutableSessionTransactions.value = emptyList()
         mutableNewSessionTransactionCount.value = 0
         mutableTransactionDetailNavigationTarget.value = null
+        contactsController.resetSession()
         mutableUiState.value = PaymentUiState.Active
     }
 
@@ -618,7 +621,7 @@ class PaymentCoordinator(
 
             PaymentOutcome.FAILED -> {
                 terminalContactUpdates += activity.attemptId
-                contactsController.paymentFailed(activity.attemptId)
+                contactsController.paymentFinishedWithoutSuccess(activity.attemptId)
             }
 
             else -> Unit
@@ -663,6 +666,29 @@ class PaymentCoordinator(
                     requestedAmountMsats = amountMsats
                 )
             }
+        }
+    }
+
+    private fun requestContactPayment(selection: PaymentContactSelection) {
+        val context = selection.context
+        val shortcutAmount = selection.shortcutAmount
+        if (shortcutAmount == null) {
+            resolveContactPayment(context.address, context, null, context.comment)
+            return
+        }
+        scope.launch {
+            // TODO: Use Breez-native conversion when the deferred currency refactor begins.
+            val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcutAmount)
+            if (amountMsats == null || amountMsats <= 0L) {
+                showError(PaymentUiError.InvalidInvoice("Shortcut amount could not be converted"))
+                return@launch
+            }
+            resolveContactPayment(
+                context.address,
+                context,
+                roundToFullSatoshis(amountMsats),
+                context.comment
+            )
         }
     }
 

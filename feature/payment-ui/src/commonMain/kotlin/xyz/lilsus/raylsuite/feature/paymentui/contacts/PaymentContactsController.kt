@@ -1,4 +1,4 @@
-package xyz.lilsus.flint.feature.payment
+package xyz.lilsus.raylsuite.feature.paymentui.contacts
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,24 +15,12 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.PaymentShortcut
 import xyz.lilsus.raylsuite.core.model.ShortcutAmount
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.ContactSavePromptUiState
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactListItem
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentShortcutListItem
 
-internal class PaymentContactsController(
+class PaymentContactsController(
     private val repository: ContactsRepository,
-    private val currencyManager: PaymentCurrencyManager,
     private val scope: CoroutineScope,
-    private val onPaymentRequested: (
-        address: LightningAddress,
-        context: PaymentContactContext,
-        amountMsats: Long?,
-        comment: String?
-    ) -> Unit,
-    private val onError: (PaymentUiError) -> Unit,
-    private val clock: () -> Long = ::platformCurrentTimeMillis
+    private val onPaymentRequested: (PaymentContactSelection) -> Unit,
+    private val clock: () -> Long
 ) {
     private val mutableState = MutableStateFlow(PaymentContactsUiState())
     val state: StateFlow<PaymentContactsUiState> = mutableState.asStateFlow()
@@ -101,42 +89,36 @@ internal class PaymentContactsController(
         val contact = contacts.firstOrNull { it.id == id } ?: return
         dismiss()
         onPaymentRequested(
-            contact.address,
-            contextFor(contact.address, allowSavePrompt = false),
-            null,
-            null
+            PaymentContactSelection(
+                context = contextFor(contact.address, allowSavePrompt = false),
+                shortcutAmount = null
+            )
         )
     }
 
     fun selectShortcut(id: String) {
         val shortcut = shortcuts.firstOrNull { it.id == id } ?: return
         dismiss()
-        scope.launch {
-            val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcut.amount)
-            if (amountMsats == null || amountMsats <= 0L) {
-                onError(PaymentUiError.InvalidInvoice("Shortcut amount could not be converted"))
-                return@launch
-            }
-            onPaymentRequested(
-                shortcut.address,
-                PaymentContactContext(
-                    address = shortcut.address,
-                    shortcutId = shortcut.id,
-                    displayName = shortcut.displayName(),
-                    allowSavePrompt = false,
-                    comment = shortcut.comment
-                ),
-                roundToFullSatoshis(amountMsats),
-                shortcut.comment
+        onPaymentRequested(
+            PaymentContactSelection(
+                context =
+                    PaymentContactContext(
+                        address = shortcut.address,
+                        shortcutId = shortcut.id,
+                        displayName = shortcut.displayName(),
+                        allowSavePrompt = false,
+                        comment = shortcut.comment
+                    ),
+                shortcutAmount = shortcut.amount
             )
-        }
+        )
     }
 
     fun bindPendingPayment(id: String, context: PaymentContactContext?) {
         if (context != null) pendingContexts[id] = context
     }
 
-    fun paymentFailed(id: String) {
+    fun paymentFinishedWithoutSuccess(id: String) {
         pendingContexts.remove(id)
     }
 
@@ -225,6 +207,13 @@ internal class PaymentContactsController(
         mutableState.value = mutableState.value.copy(savePrompt = null)
     }
 
+    fun resetSession() {
+        pendingContexts.clear()
+        pendingSaveContact = null
+        mutableState.value = PaymentContactsUiState()
+        refreshDisplay()
+    }
+
     private fun refreshDisplay() {
         val current = mutableState.value
         val filteredContacts =
@@ -286,7 +275,12 @@ internal class PaymentContactsController(
     }
 }
 
-internal data class PaymentContactContext(
+data class PaymentContactSelection(
+    val context: PaymentContactContext,
+    val shortcutAmount: ShortcutAmount?
+)
+
+data class PaymentContactContext(
     val address: LightningAddress,
     val shortcutId: String?,
     val displayName: String,
