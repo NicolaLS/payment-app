@@ -1,4 +1,18 @@
 <resources>
+    <string name="onboarding_welcome_title">Willkommen bei Blip</string>
+    <string name="onboarding_welcome_subtitle_line1">von Bitcoin Coast</string>
+    <string name="onboarding_welcome_subtitle_line2">Der schnellste Weg, Zahlungen mit deiner vorhandenen Blink-Wallet zu empfangen.</string>
+    <string name="onboarding_features_page1_title">Leiser Scanner, schnelle Ergebnisse</string>
+    <string name="onboarding_features_page1_subtitle">Es funktioniert – auch wenn du die Kamera nicht siehst.</string>
+    <string name="onboarding_features_page1_body">Blip scannt im Hintergrund für einen reibungslosen Checkout. Richte auf den Code, warte kurz, fertig.</string>
+    <string name="onboarding_features_page2_title">Auto Pay, deine Regeln</string>
+    <string name="onboarding_features_page2_subtitle">Kleine Beträge sofort bezahlen – ohne zusätzliche Taps.</string>
+    <string name="onboarding_features_page2_body">Lege ein Limit fest, mit dem du dich wohl fühlst. Für alles darüber fragt Blip vor der Zahlung nach.</string>
+    <string name="onboarding_features_page3_title">Deine Wallet bleibt deine Wallet</string>
+    <string name="onboarding_features_page3_subtitle">Blip ist nur die Checkout-Abkürzung.</string>
+    <string name="onboarding_features_page3_body">Verbinde deine vorhandene Blink-Wallet. Blip konzentriert sich auf schnelle Zahlungen vor Ort – alles andere bleibt in deiner Wallet.</string>
+    <string name="onboarding_autopay_body">Wähle aus, wann Blip vor einer Zahlung um Bestätigung bitten soll.</string>
+    <string name="onboarding_agreement_body">Die Nutzung von Blip erfolgt auf eigenes Risiko. Diese App verbindet sich mit deiner eigenen Lightning-Wallet – du bist vollständig verantwortlich für die Gelder in deiner Wallet und alle getätigten Zahlungen.\n\nWir empfehlen dringend, Wallets mit kleinem Guthaben zu verbinden.</string>
     <string name="onboarding_add_wallet_title">Verbinde deine Blink-Wallet</string>
     <string name="onboarding_add_wallet_intro">Du verbindest dich über einen API-Schlüssel vom Blink-Dashboard.</string>
     <string name="onboarding_add_wallet_step1_prefix">Gehe zu </string>

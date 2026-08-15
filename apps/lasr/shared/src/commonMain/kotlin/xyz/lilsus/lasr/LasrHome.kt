@@ -11,6 +11,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.lasr.feature.onboarding.LasrOnboardingDestination
 import xyz.lilsus.lasr.feature.payment.PaymentCoordinator
 import xyz.lilsus.lasr.feature.payment.PaymentFlow
 import xyz.lilsus.lasr.feature.payment.getLasrPaymentErrorMessageFor
@@ -120,13 +121,13 @@ internal fun NavGraphBuilder.lasrHome(
                 },
             onBack = navController::navigateUp,
             onAddWallet = {
-                navController.navigate(LasrDestination.AddWalletFromSettings)
+                navController.navigate(LasrOnboardingDestination.AddWalletFromSettings)
             },
             onRemoveWallet = {
                 onRemoveWallet()
                 scope.launch {
                     nwcWallet.disconnect()
-                    navController.navigate(LasrDestination.Welcome) {
+                    navController.navigate(LasrOnboardingDestination.Welcome) {
                         popUpTo(navController.graph.id) {
                             inclusive = true
                         }

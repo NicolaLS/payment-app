@@ -1,4 +1,4 @@
-package xyz.lilsus.blip
+package xyz.lilsus.blip.feature.onboarding
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -10,29 +10,29 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportEvent
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
-import xyz.lilsus.blip.feature.onboarding.BlinkWalletInstructionsScreen
+import xyz.lilsus.blip.feature.onboarding.generated.resources.Res
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_agreement_body
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_autopay_body
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page1_body
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page1_subtitle
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page1_title
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page2_body
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page2_subtitle
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page2_title
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page3_body
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page3_subtitle
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page3_title
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line1
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line2
+import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_welcome_title
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletEvent
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletScreen
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletViewModel
-import xyz.lilsus.blip.generated.resources.Res
-import xyz.lilsus.blip.generated.resources.onboarding_agreement_body
-import xyz.lilsus.blip.generated.resources.onboarding_autopay_body
-import xyz.lilsus.blip.generated.resources.onboarding_features_page1_body
-import xyz.lilsus.blip.generated.resources.onboarding_features_page1_subtitle
-import xyz.lilsus.blip.generated.resources.onboarding_features_page1_title
-import xyz.lilsus.blip.generated.resources.onboarding_features_page2_body
-import xyz.lilsus.blip.generated.resources.onboarding_features_page2_subtitle
-import xyz.lilsus.blip.generated.resources.onboarding_features_page2_title
-import xyz.lilsus.blip.generated.resources.onboarding_features_page3_body
-import xyz.lilsus.blip.generated.resources.onboarding_features_page3_subtitle
-import xyz.lilsus.blip.generated.resources.onboarding_features_page3_title
-import xyz.lilsus.blip.generated.resources.onboarding_welcome_subtitle_line1
-import xyz.lilsus.blip.generated.resources.onboarding_welcome_subtitle_line2
-import xyz.lilsus.blip.generated.resources.onboarding_welcome_title
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
@@ -44,13 +44,41 @@ import xyz.lilsus.raylsuite.feature.onboarding.OnboardingFeaturePage
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
 
-internal fun NavGraphBuilder.blipOnboarding(
+@Serializable
+sealed interface BlipOnboardingDestination {
+    @Serializable
+    data object Welcome : BlipOnboardingDestination
+
+    @Serializable
+    data object Features : BlipOnboardingDestination
+
+    @Serializable
+    data object AutoPay : BlipOnboardingDestination
+
+    @Serializable
+    data object Agreement : BlipOnboardingDestination
+
+    @Serializable
+    data object WalletInstructions : BlipOnboardingDestination
+
+    @Serializable
+    data object AddWallet : BlipOnboardingDestination
+
+    @Serializable
+    data object AddWalletFromSettings : BlipOnboardingDestination
+
+    @Serializable
+    data object BlinkContactsImport : BlipOnboardingDestination
+}
+
+fun NavGraphBuilder.blipOnboarding(
     navController: NavController,
     blinkWallet: BlinkWallet,
     onboardingViewModel: OnboardingViewModel,
-    contactsRepository: ContactsRepository
+    contactsRepository: ContactsRepository,
+    onFinished: () -> Unit
 ) {
-    composable<BlipDestination.Welcome> {
+    composable<BlipOnboardingDestination.Welcome> {
         WelcomeScreen(
             title = stringResource(Res.string.onboarding_welcome_title),
             subtitle = stringResource(Res.string.onboarding_welcome_subtitle_line1),
@@ -58,11 +86,11 @@ internal fun NavGraphBuilder.blipOnboarding(
             stepIndex = OnboardingStep.Welcome.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onGetStarted = {
-                navController.navigate(BlipDestination.Features)
+                navController.navigate(BlipOnboardingDestination.Features)
             }
         )
     }
-    composable<BlipDestination.Features> {
+    composable<BlipOnboardingDestination.Features> {
         val state by onboardingViewModel.uiState.collectAsState()
         val cameraPermission = rememberCameraPermissionState()
         FeaturesScreen(
@@ -72,33 +100,32 @@ internal fun NavGraphBuilder.blipOnboarding(
             totalSteps = ONBOARDING_STEP_COUNT,
             onPageChanged = onboardingViewModel::setFeaturesPage,
             onContinue = {
-                navController.navigate(BlipDestination.AutoPay)
+                navController.navigate(BlipOnboardingDestination.AutoPay)
             },
             onRequestCameraPermission = cameraPermission::request,
             onBack = navController::navigateUp
         )
     }
-    composable<BlipDestination.AutoPay> {
+    composable<BlipOnboardingDestination.AutoPay> {
         val state by onboardingViewModel.uiState.collectAsState()
         val formatter = rememberAmountFormatter()
         AutoPaySettingsScreen(
             body = stringResource(Res.string.onboarding_autopay_body),
             confirmationMode = state.confirmationMode,
             thresholdSats = state.thresholdSats,
-            secondaryEquivalent =
-                state.thresholdSecondaryEquivalent?.let(formatter::format),
+            secondaryEquivalent = state.thresholdSecondaryEquivalent?.let(formatter::format),
             stepIndex = OnboardingStep.AutoPay.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onConfirmationModeChanged = onboardingViewModel::setConfirmationMode,
             onThresholdChanged = onboardingViewModel::setThreshold,
             onContinue = {
                 onboardingViewModel.persistAutoPaySettings()
-                navController.navigate(BlipDestination.Agreement)
+                navController.navigate(BlipOnboardingDestination.Agreement)
             },
             onBack = navController::navigateUp
         )
     }
-    composable<BlipDestination.Agreement> {
+    composable<BlipOnboardingDestination.Agreement> {
         val state by onboardingViewModel.uiState.collectAsState()
         AgreementScreen(
             body = stringResource(Res.string.onboarding_agreement_body),
@@ -107,49 +134,42 @@ internal fun NavGraphBuilder.blipOnboarding(
             totalSteps = ONBOARDING_STEP_COUNT,
             onAgreementChanged = onboardingViewModel::setAgreement,
             onContinue = {
-                navController.navigate(BlipDestination.WalletInstructions)
+                navController.navigate(BlipOnboardingDestination.WalletInstructions)
             },
             onBack = navController::navigateUp
         )
     }
-    composable<BlipDestination.WalletInstructions> {
+    composable<BlipOnboardingDestination.WalletInstructions> {
         BlinkWalletInstructionsScreen(
             stepIndex = OnboardingStep.WalletInstructions.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onConnectWallet = {
-                navController.navigate(BlipDestination.AddWallet)
+                navController.navigate(BlipOnboardingDestination.AddWallet)
             },
             onBack = navController::navigateUp
         )
     }
-    composable<BlipDestination.AddWallet> {
+    composable<BlipOnboardingDestination.AddWallet> {
         AddWalletDestination(
             blinkWallet = blinkWallet,
             onConnected = {
-                navController.navigate(BlipDestination.OnboardingBlinkContactsImport)
+                navController.navigate(BlipOnboardingDestination.BlinkContactsImport)
             },
             onBack = navController::navigateUp
         )
     }
-    composable<BlipDestination.AddWalletFromSettings> {
+    composable<BlipOnboardingDestination.AddWalletFromSettings> {
         AddWalletDestination(
             blinkWallet = blinkWallet,
             onConnected = navController::navigateUp,
             onBack = navController::navigateUp
         )
     }
-    composable<BlipDestination.OnboardingBlinkContactsImport> {
+    composable<BlipOnboardingDestination.BlinkContactsImport> {
         OnboardingBlinkContactsImportDestination(
             blinkWallet = blinkWallet,
             contactsRepository = contactsRepository,
-            onFinished = {
-                navController.navigate(BlipDestination.Home) {
-                    popUpTo(navController.graph.id) {
-                        inclusive = true
-                    }
-                    launchSingleTop = true
-                }
-            }
+            onFinished = onFinished
         )
     }
 }

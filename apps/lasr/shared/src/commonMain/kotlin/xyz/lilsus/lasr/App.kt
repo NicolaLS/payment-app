@@ -9,6 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import xyz.lilsus.lasr.feature.onboarding.LasrOnboardingDestination
+import xyz.lilsus.lasr.feature.onboarding.lasrOnboarding
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
@@ -57,7 +59,7 @@ fun App() {
     val startDestination =
         remember(nwcWallet) {
             if (nwcWallet.connection.value == null) {
-                LasrDestination.Welcome
+                LasrOnboardingDestination.Welcome
             } else {
                 LasrDestination.Home
             }
@@ -72,7 +74,7 @@ fun App() {
             if (scheme.equals(NWC_SCHEME, ignoreCase = true)) {
                 runtime.connectionDraft.set(normalizeNwcUri(uri))
                 navController.navigate(
-                    LasrDestination.ConfirmWallet(
+                    LasrOnboardingDestination.ConfirmWallet(
                         fromSettings = false
                     )
                 ) {
@@ -104,7 +106,13 @@ fun App() {
                 navController = navController,
                 nwcWallet = nwcWallet,
                 onboardingViewModel = onboardingViewModel,
-                connectionDraft = runtime.connectionDraft
+                connectionDraft = runtime.connectionDraft,
+                onWalletConnected = {
+                    navController.navigate(LasrDestination.Home) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
             lasrHome(
                 navController = navController,

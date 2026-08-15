@@ -1,4 +1,4 @@
-package xyz.lilsus.lasr
+package xyz.lilsus.lasr.feature.onboarding
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,29 +20,29 @@ import androidx.navigation.compose.dialog
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.lasr.feature.onboarding.NwcWalletInstructionsScreen
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.Res
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_agreement_body
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_autopay_body
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_body
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_subtitle
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_title
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_body
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_subtitle
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_title
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_body
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_subtitle
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_title
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line1
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line2
+import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_title
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletScreen
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletViewModel
 import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletDialog
 import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletViewModel
-import xyz.lilsus.lasr.generated.resources.Res
-import xyz.lilsus.lasr.generated.resources.onboarding_agreement_body
-import xyz.lilsus.lasr.generated.resources.onboarding_autopay_body
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page1_body
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page1_subtitle
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page1_title
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page2_body
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page2_subtitle
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page2_title
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page3_body
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page3_subtitle
-import xyz.lilsus.lasr.generated.resources.onboarding_features_page3_title
-import xyz.lilsus.lasr.generated.resources.onboarding_welcome_subtitle_line1
-import xyz.lilsus.lasr.generated.resources.onboarding_welcome_subtitle_line2
-import xyz.lilsus.lasr.generated.resources.onboarding_welcome_title
 import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
@@ -55,13 +55,54 @@ import xyz.lilsus.raylsuite.feature.onboarding.OnboardingFeaturePage
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
 
-internal fun NavGraphBuilder.lasrOnboarding(
+@Serializable
+sealed interface LasrOnboardingDestination {
+    @Serializable
+    data object Welcome : LasrOnboardingDestination
+
+    @Serializable
+    data object Features : LasrOnboardingDestination
+
+    @Serializable
+    data object AutoPay : LasrOnboardingDestination
+
+    @Serializable
+    data object Agreement : LasrOnboardingDestination
+
+    @Serializable
+    data object WalletInstructions : LasrOnboardingDestination
+
+    @Serializable
+    data object AddWallet : LasrOnboardingDestination
+
+    @Serializable
+    data object AddWalletFromSettings : LasrOnboardingDestination
+
+    @Serializable
+    data class ConfirmWallet(val fromSettings: Boolean) : LasrOnboardingDestination
+}
+
+class NwcConnectionDraft {
+    var uri: String? = null
+        private set
+
+    fun set(uri: String) {
+        this.uri = uri
+    }
+
+    fun clear() {
+        uri = null
+    }
+}
+
+fun NavGraphBuilder.lasrOnboarding(
     navController: NavController,
     nwcWallet: NwcWallet,
     onboardingViewModel: OnboardingViewModel,
-    connectionDraft: NwcConnectionDraft
+    connectionDraft: NwcConnectionDraft,
+    onWalletConnected: () -> Unit
 ) {
-    composable<LasrDestination.Welcome> {
+    composable<LasrOnboardingDestination.Welcome> {
         WelcomeScreen(
             title = stringResource(Res.string.onboarding_welcome_title),
             subtitle = stringResource(Res.string.onboarding_welcome_subtitle_line1),
@@ -69,11 +110,11 @@ internal fun NavGraphBuilder.lasrOnboarding(
             stepIndex = OnboardingStep.Welcome.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onGetStarted = {
-                navController.navigate(LasrDestination.Features)
+                navController.navigate(LasrOnboardingDestination.Features)
             }
         )
     }
-    composable<LasrDestination.Features> {
+    composable<LasrOnboardingDestination.Features> {
         val state by onboardingViewModel.uiState.collectAsState()
         val cameraPermission = rememberCameraPermissionState()
         FeaturesScreen(
@@ -83,33 +124,32 @@ internal fun NavGraphBuilder.lasrOnboarding(
             totalSteps = ONBOARDING_STEP_COUNT,
             onPageChanged = onboardingViewModel::setFeaturesPage,
             onContinue = {
-                navController.navigate(LasrDestination.AutoPay)
+                navController.navigate(LasrOnboardingDestination.AutoPay)
             },
             onRequestCameraPermission = cameraPermission::request,
             onBack = navController::navigateUp
         )
     }
-    composable<LasrDestination.AutoPay> {
+    composable<LasrOnboardingDestination.AutoPay> {
         val state by onboardingViewModel.uiState.collectAsState()
         val formatter = rememberAmountFormatter()
         AutoPaySettingsScreen(
             body = stringResource(Res.string.onboarding_autopay_body),
             confirmationMode = state.confirmationMode,
             thresholdSats = state.thresholdSats,
-            secondaryEquivalent =
-                state.thresholdSecondaryEquivalent?.let(formatter::format),
+            secondaryEquivalent = state.thresholdSecondaryEquivalent?.let(formatter::format),
             stepIndex = OnboardingStep.AutoPay.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onConfirmationModeChanged = onboardingViewModel::setConfirmationMode,
             onThresholdChanged = onboardingViewModel::setThreshold,
             onContinue = {
                 onboardingViewModel.persistAutoPaySettings()
-                navController.navigate(LasrDestination.Agreement)
+                navController.navigate(LasrOnboardingDestination.Agreement)
             },
             onBack = navController::navigateUp
         )
     }
-    composable<LasrDestination.Agreement> {
+    composable<LasrOnboardingDestination.Agreement> {
         val state by onboardingViewModel.uiState.collectAsState()
         AgreementScreen(
             body = stringResource(Res.string.onboarding_agreement_body),
@@ -118,37 +158,37 @@ internal fun NavGraphBuilder.lasrOnboarding(
             totalSteps = ONBOARDING_STEP_COUNT,
             onAgreementChanged = onboardingViewModel::setAgreement,
             onContinue = {
-                navController.navigate(LasrDestination.WalletInstructions)
+                navController.navigate(LasrOnboardingDestination.WalletInstructions)
             },
             onBack = navController::navigateUp
         )
     }
-    composable<LasrDestination.WalletInstructions> {
+    composable<LasrOnboardingDestination.WalletInstructions> {
         NwcWalletInstructionsScreen(
             stepIndex = OnboardingStep.WalletInstructions.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onConnectWallet = {
-                navController.navigate(LasrDestination.AddWallet)
+                navController.navigate(LasrOnboardingDestination.AddWallet)
             },
             onBack = navController::navigateUp
         )
     }
-    composable<LasrDestination.AddWallet> {
+    composable<LasrOnboardingDestination.AddWallet> {
         AddWalletDestination(
             navController = navController,
             fromSettings = false,
             connectionDraft = connectionDraft
         )
     }
-    composable<LasrDestination.AddWalletFromSettings> {
+    composable<LasrOnboardingDestination.AddWalletFromSettings> {
         AddWalletDestination(
             navController = navController,
             fromSettings = true,
             connectionDraft = connectionDraft
         )
     }
-    dialog<LasrDestination.ConfirmWallet> { backStackEntry ->
-        val route = backStackEntry.toRoute<LasrDestination.ConfirmWallet>()
+    dialog<LasrOnboardingDestination.ConfirmWallet> { backStackEntry ->
+        val route = backStackEntry.toRoute<LasrOnboardingDestination.ConfirmWallet>()
         ConfirmWalletDestination(
             uri = connectionDraft.uri,
             nwcWallet = nwcWallet,
@@ -157,12 +197,7 @@ internal fun NavGraphBuilder.lasrOnboarding(
                 if (route.fromSettings) {
                     navController.popBackStack()
                 } else {
-                    navController.navigate(LasrDestination.Home) {
-                        popUpTo(navController.graph.id) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
+                    onWalletConnected()
                 }
             },
             onCancelled = {
@@ -209,7 +244,7 @@ private fun AddWalletDestination(
                     connectionDraft.set(event.uri)
                     navController.popBackStack()
                     navController.navigate(
-                        LasrDestination.ConfirmWallet(
+                        LasrOnboardingDestination.ConfirmWallet(
                             fromSettings = fromSettings
                         )
                     )

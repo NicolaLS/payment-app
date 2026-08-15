@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import xyz.lilsus.lasr.feature.onboarding.NwcConnectionDraft
 import xyz.lilsus.lasr.feature.payment.PaymentCoordinator
 import xyz.lilsus.lasr.integration.nwc.createNwcWallet
 import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
@@ -70,18 +71,5 @@ internal class LasrRuntime(
             nwcWallet.close()
             scope.cancel()
         }
-    }
-}
-
-internal class NwcConnectionDraft {
-    var uri: String? = null
-        private set
-
-    fun set(uri: String) {
-        this.uri = uri
-    }
-
-    fun clear() {
-        uri = null
     }
 }

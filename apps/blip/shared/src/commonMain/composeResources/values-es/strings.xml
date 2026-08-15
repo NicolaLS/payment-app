@@ -1,18 +1,4 @@
 <resources>
     <string name="app_name">Blip</string>
     <string name="open_settings">Ajustes</string>
-    <string name="onboarding_welcome_title">Bienvenido a Blip</string>
-    <string name="onboarding_welcome_subtitle_line1">por Bitcoin Coast</string>
-    <string name="onboarding_welcome_subtitle_line2">La forma más rápida de recibir pagos con la billetera Blink que ya usas.</string>
-    <string name="onboarding_features_page1_title">Escáner silencioso, resultados rápidos</string>
-    <string name="onboarding_features_page1_subtitle">Está funcionando – aunque no veas la cámara.</string>
-    <string name="onboarding_features_page1_body">Blip escanea en segundo plano para un pago fluido. Apunta al código, espera un momento y listo.</string>
-    <string name="onboarding_features_page2_title">Auto Pay, tus reglas</string>
-    <string name="onboarding_features_page2_subtitle">Paga montos pequeños al instante – sin toques adicionales.</string>
-    <string name="onboarding_features_page2_body">Establece un límite con el que te sientas cómodo. Para cualquier monto superior, Blip preguntará antes de pagar.</string>
-    <string name="onboarding_features_page3_title">Tu billetera sigue siendo tu billetera</string>
-    <string name="onboarding_features_page3_subtitle">Blip es solo el atajo para pagar.</string>
-    <string name="onboarding_features_page3_body">Conecta la billetera Blink que ya usas. Blip se enfoca en pagos rápidos en persona – todo lo demás permanece en tu billetera.</string>
-    <string name="onboarding_autopay_body">Elige cuándo Blip debe pedir confirmación antes de pagar.</string>
-    <string name="onboarding_agreement_body">Usar Blip es bajo tu propio riesgo. Esta app se conecta a tu propia billetera Lightning – eres totalmente responsable de los fondos en tu billetera y de cualquier pago realizado.\n\nRecomendamos encarecidamente conectar billeteras con saldos pequeños.</string>
 </resources>

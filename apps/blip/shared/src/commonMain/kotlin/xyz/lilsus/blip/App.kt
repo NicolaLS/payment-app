@@ -9,6 +9,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import xyz.lilsus.blip.feature.onboarding.BlipOnboardingDestination
+import xyz.lilsus.blip.feature.onboarding.blipOnboarding
 import xyz.lilsus.blip.feature.payment.PaymentDeepLinkEvents
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
@@ -58,7 +60,7 @@ fun App() {
     val startDestination =
         remember(blinkWallet) {
             if (blinkWallet.connection.value == null) {
-                BlipDestination.Welcome
+                BlipOnboardingDestination.Welcome
             } else {
                 BlipDestination.Home
             }
@@ -90,7 +92,13 @@ fun App() {
                 navController = navController,
                 blinkWallet = blinkWallet,
                 onboardingViewModel = onboardingViewModel,
-                contactsRepository = contactsRepository
+                contactsRepository = contactsRepository,
+                onFinished = {
+                    navController.navigate(BlipDestination.Home) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
             blipHome(
                 navController = navController,
@@ -105,7 +113,7 @@ fun App() {
                     runtime.resetPaymentSession()
                     PaymentDeepLinkEvents.clear()
                     blinkWallet.disconnect()
-                    navController.navigate(BlipDestination.Welcome) {
+                    navController.navigate(BlipOnboardingDestination.Welcome) {
                         popUpTo(navController.graph.id) {
                             inclusive = true
                         }

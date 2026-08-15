@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
+import xyz.lilsus.blip.feature.onboarding.BlipOnboardingDestination
 import xyz.lilsus.blip.feature.payment.PaymentCoordinator
 import xyz.lilsus.blip.feature.payment.PaymentFlow
 import xyz.lilsus.blip.feature.payment.blipPaymentErrorMessageFor
@@ -122,7 +123,7 @@ internal fun NavGraphBuilder.blipHome(
                 },
             onBack = navController::navigateUp,
             onAddWallet = {
-                navController.navigate(BlipDestination.AddWalletFromSettings)
+                navController.navigate(BlipOnboardingDestination.AddWalletFromSettings)
             },
             onRemoveWallet = onRemoveWallet,
             onWalletDetails = {
