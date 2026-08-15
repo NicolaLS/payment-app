@@ -1,6 +1,6 @@
+import java.io.File
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
-import java.io.File
 
 /**
  * One keystore identity resolved from `<PREFIX>_*` environment variables.
@@ -8,10 +8,7 @@ import java.io.File
  * Each password may be given directly, or as a path to a file holding the password on its
  * first line. Key passwords fall back to the matching store password when unset.
  */
-internal class ReleaseSigningIdentity(
-    providers: ProviderFactory,
-    private val prefix: String,
-) {
+internal class ReleaseSigningIdentity(providers: ProviderFactory, private val prefix: String) {
     val storeFile: Provider<String> = providers.environmentVariable("${prefix}_STORE_FILE")
 
     val keyAlias: Provider<String> = providers.environmentVariable("${prefix}_KEY_ALIAS")
@@ -60,7 +57,7 @@ internal class ReleaseSigningIdentity(
             "$label keystore: ${storeFile.orNull ?: "unset"} ($located)",
             "$label key alias: ${keyAlias.orNull ?: "unset"}",
             "$label store password: ${describe(resolveStorePassword())}",
-            "$label key password: ${describe(resolveKeyPassword())}",
+            "$label key password: ${describe(resolveKeyPassword())}"
         )
     }
 

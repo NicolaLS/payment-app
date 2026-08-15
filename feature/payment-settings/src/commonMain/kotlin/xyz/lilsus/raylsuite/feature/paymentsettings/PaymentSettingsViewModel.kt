@@ -130,11 +130,11 @@ class PaymentSettingsViewModel(
         mutableUiState.value =
             mutableUiState.value.copy(
                 thresholdSecondaryEquivalent =
-                thresholdDisplayAmount(
-                    thresholdSats = mutableUiState.value.thresholdSats,
-                    currency = secondaryCurrency,
-                    pricePerBitcoin = pricePerBitcoin
-                )
+                    thresholdDisplayAmount(
+                        thresholdSats = mutableUiState.value.thresholdSats,
+                        currency = secondaryCurrency,
+                        pricePerBitcoin = pricePerBitcoin
+                    )
             )
     }
 }

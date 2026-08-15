@@ -148,9 +148,9 @@ fun SettingsScreen(
     ) { padding ->
         AppFadingLazyColumn(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding),
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
             contentPadding = AppListDefaults.ScreenPadding,
             verticalArrangement = Arrangement.spacedBy(AppListDefaults.SectionSpacing)
         ) {
@@ -219,10 +219,10 @@ private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
     ) {
         Text(
             text =
-            stringResource(
-                Res.string.settings_footer_version,
-                appVersionName()
-            ),
+                stringResource(
+                    Res.string.settings_footer_version,
+                    appVersionName()
+                ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -249,9 +249,9 @@ private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier =
-                Modifier.clickable {
-                    uriHandler.openUri(legalLinks.sourceCodeUrl)
-                }
+                    Modifier.clickable {
+                        uriHandler.openUri(legalLinks.sourceCodeUrl)
+                    }
             )
         }
     }
@@ -278,11 +278,11 @@ private fun SettingsScreenPreview() {
             onLanguage = {},
             onTheme = {},
             legalLinks =
-            SettingsLegalLinks(
-                privacyPolicyUrl = "https://example.com/privacy",
-                termsUrl = "https://example.com/terms",
-                sourceCodeUrl = "https://example.com/source"
-            ),
+                SettingsLegalLinks(
+                    privacyPolicyUrl = "https://example.com/privacy",
+                    termsUrl = "https://example.com/terms",
+                    sourceCodeUrl = "https://example.com/source"
+                ),
             currencySubtitle = "Primary SAT • Secondary USD",
             languageSubtitle = "English",
             themeSubtitle = "System default"

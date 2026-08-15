@@ -25,7 +25,7 @@ class KtorLnurlPayClientTest {
                 requestedPath = request.url.encodedPath
                 respond(
                     content =
-                    """
+                        """
                             {
                               "callback": "https://example.com/callback",
                               "maxSendable": 1000,
@@ -33,7 +33,7 @@ class KtorLnurlPayClientTest {
                               "metadata": "[[\"text/plain\",\"Payment\"]]",
                               "tag": "payRequest"
                             }
-                    """.trimIndent(),
+                        """.trimIndent(),
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json")
                 )

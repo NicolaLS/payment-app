@@ -63,13 +63,13 @@ class ContactsViewModel(
         mutableUiState.value =
             mutableUiState.value.copy(
                 editor =
-                ContactEditorState(
-                    contactId = null,
-                    address = "",
-                    alias = "",
-                    roles = emptySet(),
-                    addressEditable = true
-                )
+                    ContactEditorState(
+                        contactId = null,
+                        address = "",
+                        alias = "",
+                        roles = emptySet(),
+                        addressEditable = true
+                    )
             )
     }
 
@@ -151,14 +151,14 @@ class ContactsViewModel(
         mutableUiState.value =
             mutableUiState.value.copy(
                 editor =
-                ContactEditorState(
-                    contactId = contact.id,
-                    address = contact.address.full,
-                    alias = contact.alias.orEmpty(),
-                    roles = contact.roles,
-                    addressEditable = false,
-                    shortcuts = shortcuts.forContact(contact.id)
-                )
+                    ContactEditorState(
+                        contactId = contact.id,
+                        address = contact.address.full,
+                        alias = contact.alias.orEmpty(),
+                        roles = contact.roles,
+                        addressEditable = false,
+                        shortcuts = shortcuts.forContact(contact.id)
+                    )
             )
         return true
     }
@@ -205,9 +205,9 @@ class ContactsViewModel(
             mutableUiState.value.editor?.let { editor ->
                 editor.copy(
                     shortcuts =
-                    editor.contactId
-                        ?.let(shortcuts::forContact)
-                        .orEmpty()
+                        editor.contactId
+                            ?.let(shortcuts::forContact)
+                            .orEmpty()
                 )
             }
         mutableUiState.value =

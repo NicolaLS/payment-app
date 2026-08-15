@@ -61,9 +61,12 @@ fun RaylHero(
 ) {
     val color = when (phase) {
         RaylHeroPhase.Ready -> MaterialTheme.colorScheme.onSurfaceVariant
+
         RaylHeroPhase.Acknowledged, RaylHeroPhase.Processing ->
             MaterialTheme.colorScheme.primary
+
         RaylHeroPhase.Succeeded -> MaterialTheme.colorScheme.tertiary
+
         RaylHeroPhase.Failed -> MaterialTheme.colorScheme.error
     }
 

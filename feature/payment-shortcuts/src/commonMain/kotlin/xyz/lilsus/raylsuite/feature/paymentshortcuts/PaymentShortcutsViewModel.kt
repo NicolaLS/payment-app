@@ -161,14 +161,14 @@ class PaymentShortcutsViewModel(
         mutableUiState.value =
             mutableUiState.value.copy(
                 editor =
-                PaymentShortcutEditorState(
-                    shortcutId = null,
-                    title = "",
-                    selectedContact = contact?.toOption(),
-                    amount = "",
-                    currencyCode = defaultCurrencyCode(),
-                    comment = ""
-                )
+                    PaymentShortcutEditorState(
+                        shortcutId = null,
+                        title = "",
+                        selectedContact = contact?.toOption(),
+                        amount = "",
+                        currencyCode = defaultCurrencyCode(),
+                        comment = ""
+                    )
             )
         return true
     }
@@ -179,17 +179,17 @@ class PaymentShortcutsViewModel(
         mutableUiState.value =
             mutableUiState.value.copy(
                 editor =
-                PaymentShortcutEditorState(
-                    shortcutId = shortcut.id,
-                    title = shortcut.title,
-                    selectedContact = contact.toOption(),
-                    amount = shortcut.amount.inputText(),
-                    currencyCode =
-                    CurrencyCatalog
-                        .infoFor(shortcut.amount.normalizedCurrencyCode)
-                        .code,
-                    comment = shortcut.comment.orEmpty()
-                )
+                    PaymentShortcutEditorState(
+                        shortcutId = shortcut.id,
+                        title = shortcut.title,
+                        selectedContact = contact.toOption(),
+                        amount = shortcut.amount.inputText(),
+                        currencyCode =
+                            CurrencyCatalog
+                                .infoFor(shortcut.amount.normalizedCurrencyCode)
+                                .code,
+                        comment = shortcut.comment.orEmpty()
+                    )
             )
         return true
     }
@@ -249,10 +249,10 @@ class PaymentShortcutsViewModel(
             title = resolvedTitle,
             contactId = contact.id,
             amount =
-            ShortcutAmount(
-                minor = amountMinor,
-                currencyCode = currency.code
-            ),
+                ShortcutAmount(
+                    minor = amountMinor,
+                    currencyCode = currency.code
+                ),
             comment = comment.trim().takeIf(String::isNotEmpty)
         )
     }
@@ -287,9 +287,9 @@ class PaymentShortcutsViewModel(
                 val contactId = current.selectedContact?.id
                 current.copy(
                     selectedContact =
-                    contactId
-                        ?.let { id -> contacts.firstOrNull { it.id == id } }
-                        ?.toOption()
+                        contactId
+                            ?.let { id -> contacts.firstOrNull { it.id == id } }
+                            ?.toOption()
                 )
             }
         mutableUiState.value =

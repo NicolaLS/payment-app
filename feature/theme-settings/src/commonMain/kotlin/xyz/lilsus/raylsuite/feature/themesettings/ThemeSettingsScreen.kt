@@ -73,12 +73,12 @@ fun ThemeSettingsScreen(
             isEmpty = false,
             emptyMessage = null,
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
-                .padding(AppListDefaults.ScreenPadding)
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(AppListDefaults.ScreenPadding)
         ) {
             items(options, key = { it.first }) { (preference, title) ->
                 AppSelectableListRow(

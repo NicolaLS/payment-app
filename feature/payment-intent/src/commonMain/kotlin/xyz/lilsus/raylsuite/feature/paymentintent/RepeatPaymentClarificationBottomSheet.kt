@@ -51,10 +51,10 @@ fun RepeatPaymentClarificationBottomSheet(
     ) {
         Column(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .testTag(PaymentIntentTestTags.CLARIFICATION_SHEET)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .testTag(PaymentIntentTestTags.CLARIFICATION_SHEET)
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -101,11 +101,11 @@ fun RepeatPaymentClarificationBottomSheet(
                         onDecision(RepeatPaymentDecision.CreateAdditionalPayment)
                     },
                     modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .testTag(
-                            PaymentIntentTestTags.CREATE_ADDITIONAL_PAYMENT_BUTTON
-                        )
+                        Modifier
+                            .fillMaxWidth()
+                            .testTag(
+                                PaymentIntentTestTags.CREATE_ADDITIONAL_PAYMENT_BUTTON
+                            )
                 ) {
                     Text(stringResource(Res.string.create_additional_payment))
                 }
@@ -116,11 +116,11 @@ fun RepeatPaymentClarificationBottomSheet(
                             onDecision(RepeatPaymentDecision.ViewPreviousPayment)
                         },
                         modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .testTag(
-                                PaymentIntentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON
-                            )
+                            Modifier
+                                .fillMaxWidth()
+                                .testTag(
+                                    PaymentIntentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON
+                                )
                     ) {
                         Text(stringResource(Res.string.view_previous_payment))
                     }
@@ -168,9 +168,9 @@ private fun RepeatPaymentClarificationBottomSheetPreview() {
     RaylSuiteTheme {
         RepeatPaymentClarificationBottomSheet(
             clarification =
-            RepeatPaymentClarification(
-                situation = PreviousPaymentSituation.OutcomeUnknown
-            ),
+                RepeatPaymentClarification(
+                    situation = PreviousPaymentSituation.OutcomeUnknown
+                ),
             onDecision = {}
         )
     }

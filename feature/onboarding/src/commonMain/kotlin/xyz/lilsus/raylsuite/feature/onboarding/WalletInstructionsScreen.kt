@@ -47,10 +47,10 @@ fun WalletInstructionsScreen(
     ) {
         Column(
             modifier =
-            modifier
-                .fillMaxSize()
-                .testTag(OnboardingTestTags.WALLET_INSTRUCTIONS_SCREEN)
-                .verticalScroll(rememberScrollState()),
+                modifier
+                    .fillMaxSize()
+                    .testTag(OnboardingTestTags.WALLET_INSTRUCTIONS_SCREEN)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -70,9 +70,9 @@ fun WalletInstructionsScreen(
             Button(
                 onClick = onConnectWallet,
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .testTag(OnboardingTestTags.WALLET_INSTRUCTIONS_CONTINUE)
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag(OnboardingTestTags.WALLET_INSTRUCTIONS_CONTINUE)
             ) {
                 Text(stringResource(Res.string.onboarding_add_wallet_button))
             }
@@ -86,9 +86,9 @@ private fun InstructionSteps(steps: List<AnnotatedString>) {
 
     Card(
         colors =
-        CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -108,9 +108,9 @@ private fun InstructionSteps(steps: List<AnnotatedString>) {
                     BasicText(
                         text = step,
                         style =
-                        bodyStyle.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                            bodyStyle.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                     )
                 }
             }

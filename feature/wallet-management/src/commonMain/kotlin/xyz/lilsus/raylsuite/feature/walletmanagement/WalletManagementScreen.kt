@@ -62,12 +62,12 @@ fun WalletManagementScreen(
     ) { padding ->
         Box(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             wallet?.let {
                 WalletCard(
@@ -90,16 +90,16 @@ private fun WalletCard(
 ) {
     Surface(
         modifier =
-        modifier
-            .fillMaxWidth()
-            .testTag(WalletManagementTestTags.walletRow(wallet.id))
-            .then(
-                if (onDetails == null) {
-                    Modifier
-                } else {
-                    Modifier.clickable(onClick = onDetails)
-                }
-            ),
+            modifier
+                .fillMaxWidth()
+                .testTag(WalletManagementTestTags.walletRow(wallet.id))
+                .then(
+                    if (onDetails == null) {
+                        Modifier
+                    } else {
+                        Modifier.clickable(onClick = onDetails)
+                    }
+                ),
         tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.large
     ) {
@@ -122,9 +122,9 @@ private fun WalletCard(
             }
             OutlinedButton(
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .testTag(WalletManagementTestTags.removeButton(wallet.id)),
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag(WalletManagementTestTags.removeButton(wallet.id)),
                 onClick = onRemoveWallet
             ) {
                 Text(stringResource(Res.string.settings_manage_wallet_remove))
@@ -137,9 +137,9 @@ private fun WalletCard(
 private fun EmptyWalletState(onAddWallet: () -> Unit) {
     Column(
         modifier =
-        Modifier
-            .fillMaxSize()
-            .testTag(WalletManagementTestTags.EMPTY),
+            Modifier
+                .fillMaxSize()
+                .testTag(WalletManagementTestTags.EMPTY),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

@@ -17,6 +17,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
             pluginManager.apply("com.android.application")
             pluginManager.apply("org.jetbrains.compose")
             pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
+            pluginManager.apply("org.jlleitschuh.gradle.ktlint")
             pluginManager.apply("xyz.lilsus.raylsuite.android.release")
 
             extensions.configure<JavaPluginExtension> {
@@ -40,7 +41,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                         isShrinkResources = true
                         proguardFiles(
                             getDefaultProguardFile("proguard-android-optimize.txt"),
-                            target.file("proguard-rules.pro"),
+                            target.file("proguard-rules.pro")
                         )
                     }
                 }

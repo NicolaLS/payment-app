@@ -32,18 +32,15 @@ fun Project.configureKtlint() {
     }
 }
 
-configureKtlint()
+allprojects {
+    pluginManager.withPlugin("org.jlleitschuh.gradle.ktlint") {
+        configureKtlint()
+    }
+}
 
 fun String.appOwner(): String? = removePrefix(":")
     .substringBefore(":")
     .takeIf(appProjectNames::contains)
-
-subprojects {
-    if (path.appOwner() != null) {
-        apply(plugin = "org.jlleitschuh.gradle.ktlint")
-        configureKtlint()
-    }
-}
 
 val verifyModuleDependencies = tasks.register("verifyModuleDependencies") {
     group = "verification"

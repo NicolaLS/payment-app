@@ -36,9 +36,9 @@ fun WelcomeScreen(
     ) {
         Column(
             modifier =
-            modifier
-                .fillMaxSize()
-                .testTag(OnboardingTestTags.WELCOME_SCREEN),
+                modifier
+                    .fillMaxSize()
+                    .testTag(OnboardingTestTags.WELCOME_SCREEN),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -73,9 +73,9 @@ fun WelcomeScreen(
             Button(
                 onClick = onGetStarted,
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .testTag(OnboardingTestTags.WELCOME_CONTINUE)
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag(OnboardingTestTags.WELCOME_CONTINUE)
             ) {
                 Text(stringResource(Res.string.onboarding_welcome_get_started))
             }

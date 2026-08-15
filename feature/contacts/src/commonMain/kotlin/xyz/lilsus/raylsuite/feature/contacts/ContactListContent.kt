@@ -89,17 +89,17 @@ fun ContactListContent(
                 showRoles = showRowRoles,
                 testTag = rowTestTag(contact),
                 trailingContent =
-                if (showNavigationIndicator) {
-                    {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    null
-                },
+                    if (showNavigationIndicator) {
+                        {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    } else {
+                        null
+                    },
                 onClick = { onContactClick(contact) }
             )
         }
@@ -161,9 +161,9 @@ fun ContactSummary(
         Text(
             text = contact.displayName,
             style =
-            MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-            ),
+                MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                ),
             color = titleColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -207,9 +207,9 @@ fun ContactRoleChips(
                         selected = role in selectedRoles,
                         onClick = { onSelected(role) },
                         modifier =
-                        Modifier
-                            .weight(1f)
-                            .heightIn(min = 36.dp),
+                            Modifier
+                                .weight(1f)
+                                .heightIn(min = 36.dp),
                         label = {
                             Text(
                                 text = contactRoleLabel(role),
@@ -219,10 +219,10 @@ fun ContactRoleChips(
                             )
                         },
                         colors =
-                        FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = contactRoleColor(role),
-                            selectedLabelColor = Color.White
-                        )
+                            FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = contactRoleColor(role),
+                                selectedLabelColor = Color.White
+                            )
                     )
                 }
                 repeat(ROLE_CHIPS_PER_ROW - rowRoles.size) {

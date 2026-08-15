@@ -15,10 +15,10 @@ data class PaymentPreferences(
 ) {
     fun normalise(): PaymentPreferences = copy(
         thresholdSats =
-        thresholdSats.coerceIn(
-            minimumValue = MIN_CONFIRMATION_THRESHOLD_SATS,
-            maximumValue = MAX_CONFIRMATION_THRESHOLD_SATS
-        )
+            thresholdSats.coerceIn(
+                minimumValue = MIN_CONFIRMATION_THRESHOLD_SATS,
+                maximumValue = MAX_CONFIRMATION_THRESHOLD_SATS
+            )
     )
 
     companion object {

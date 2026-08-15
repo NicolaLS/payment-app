@@ -67,12 +67,12 @@ fun LanguageSettingsScreen(
             isEmpty = filtered.isEmpty(),
             emptyMessage = null,
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
-                .padding(AppListDefaults.ScreenPadding),
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(AppListDefaults.ScreenPadding),
             showSearchBar = true,
             searchQuery = state.searchQuery,
             onSearchQueryChange = onQueryChange,
@@ -103,10 +103,10 @@ private fun LanguageSettingsScreenPreview() {
     RaylSuiteTheme {
         LanguageSettingsScreen(
             state =
-            LanguageSettingsUiState(
-                selectedCode = "de",
-                deviceCode = "de"
-            ),
+                LanguageSettingsUiState(
+                    selectedCode = "de",
+                    deviceCode = "de"
+                ),
             onQueryChange = {},
             onOptionSelected = {},
             onBack = {}

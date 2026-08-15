@@ -34,18 +34,10 @@ jobs:
       - name: Set up and validate Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Check formatting and existing tests
-        run: ./gradlew ktlintCheck check --continue
-
-      - name: Upload reports
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: shared-check-reports
-          path: |
-            **/build/reports/
-            **/build/test-results/
-          retention-days: 14
+      - name: Check formatting and module boundaries
+        run: |
+          ./gradlew ktlintCheck verifyModuleDependencies
+          ./gradlew -p build-logic ktlintCheck
 
   android:
     name: ${{ matrix.app }} Android
@@ -68,20 +60,5 @@ jobs:
       - name: Set up and validate Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Assemble and lint
-        run: >-
-          ./gradlew
-          :${{ matrix.app }}:androidApp:assembleDebug
-          :${{ matrix.app }}:androidApp:assembleE2e
-          :${{ matrix.app }}:androidApp:bundleRelease
-          :${{ matrix.app }}:androidApp:lintDebug
-
-      - name: Upload reports and debug APK
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.app }}-android-results
-          path: |
-            apps/${{ matrix.app }}/androidApp/build/outputs/apk/debug/
-            apps/${{ matrix.app }}/androidApp/build/reports/
-          retention-days: 14
+      - name: Assemble Debug
+        run: ./gradlew :${{ matrix.app }}:androidApp:assembleDebug

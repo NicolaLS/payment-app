@@ -424,19 +424,19 @@ private fun PaymentHome(
             scannerMode = scannerMode,
             showScannerModeSelector = canSelectScannerMode,
             onToggleScannerMode =
-            if (canSelectScannerMode) {
-                {
-                    updateScannerMode(
-                        if (scannerMode == QrScannerMode.Near) {
-                            QrScannerMode.Far
-                        } else {
-                            QrScannerMode.Near
-                        }
-                    )
-                }
-            } else {
-                null
-            },
+                if (canSelectScannerMode) {
+                    {
+                        updateScannerMode(
+                            if (scannerMode == QrScannerMode.Near) {
+                                QrScannerMode.Far
+                            } else {
+                                QrScannerMode.Near
+                            }
+                        )
+                    }
+                } else {
+                    null
+                },
             modifier = if (previewVisible) Modifier.alpha(0.05f) else Modifier
         )
 
@@ -445,10 +445,10 @@ private fun PaymentHome(
                 controller = scannerController,
                 visible = true,
                 modifier =
-                Modifier
-                    .fillMaxSize()
-                    .alpha(if (previewVisible) 1f else 0f)
-                    .zIndex(if (previewVisible) 1f else -1f),
+                    Modifier
+                        .fillMaxSize()
+                        .alpha(if (previewVisible) 1f else 0f)
+                        .zIndex(if (previewVisible) 1f else -1f),
                 preferCompatibleMode = true,
                 onPreviewStreamingChanged = { previewStreaming = it }
             )
@@ -499,10 +499,10 @@ private fun PaymentTransactionDetailScreen(
     Scaffold { paddingValues ->
         Column(
             modifier =
-            Modifier
-                .clickable(indication = null, interactionSource = null) { onDismiss() }
-                .fillMaxSize()
-                .padding(paddingValues),
+                Modifier
+                    .clickable(indication = null, interactionSource = null) { onDismiss() }
+                    .fillMaxSize()
+                    .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             PaymentHero(
@@ -520,26 +520,26 @@ private fun PaymentTransactionDetailScreen(
                         estimatedFeeHint = estimatedFeeHint,
                         onViewReceipt = { showReceipt = true },
                         actionLabel =
-                        if (detail.canRetry) {
-                            stringResource(Res.string.retry_payment)
-                        } else {
-                            null
-                        },
+                            if (detail.canRetry) {
+                                stringResource(Res.string.retry_payment)
+                            } else {
+                                null
+                            },
                         onAction = onRetry
                     )
 
                 else ->
                     Box(
                         modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(top = 24.dp, start = 24.dp, end = 24.dp),
+                            Modifier
+                                .fillMaxSize()
+                                .padding(top = 24.dp, start = 24.dp, end = 24.dp),
                         contentAlignment = Alignment.TopCenter
                     ) {
                         Text(
                             text =
-                            detail.pendingMessage
-                                ?: stringResource(Res.string.tap_dismiss_pending),
+                                detail.pendingMessage
+                                    ?: stringResource(Res.string.tap_dismiss_pending),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center

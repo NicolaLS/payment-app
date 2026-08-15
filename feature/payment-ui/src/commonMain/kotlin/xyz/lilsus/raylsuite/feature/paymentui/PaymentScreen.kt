@@ -229,10 +229,10 @@ fun PaymentScreen(
         }
         RepeatPaymentClarificationBottomSheet(
             clarification =
-            RepeatPaymentClarification(
-                retryTransaction?.previousPaymentSituation
-                    ?: PreviousPaymentSituation.InProgress
-            ),
+                RepeatPaymentClarification(
+                    retryTransaction?.previousPaymentSituation
+                        ?: PreviousPaymentSituation.InProgress
+                ),
             onDecision = { decision ->
                 when (decision) {
                     RepeatPaymentDecision.RetryPreviousInvoice ->

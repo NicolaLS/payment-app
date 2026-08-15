@@ -188,13 +188,13 @@ class DefaultContactsRepository(
                     ?: return@updateState current
             current.copy(
                 shortcuts =
-                current.shortcuts.replace(
-                    shortcut.copy(
-                        paymentCount = shortcut.paymentCount + 1,
-                        lastPaidAtMs = paidAtMs,
-                        updatedAtMs = paidAtMs
+                    current.shortcuts.replace(
+                        shortcut.copy(
+                            paymentCount = shortcut.paymentCount + 1,
+                            lastPaidAtMs = paidAtMs,
+                            updatedAtMs = paidAtMs
+                        )
                     )
-                )
             )
         }
     }
@@ -207,13 +207,13 @@ class DefaultContactsRepository(
                     ?: return@updateState current
             current.copy(
                 contacts =
-                current.contacts.replace(
-                    contact.copy(
-                        paymentCount = contact.paymentCount + 1,
-                        lastPaidAtMs = record.paidAtMs,
-                        updatedAtMs = record.paidAtMs
+                    current.contacts.replace(
+                        contact.copy(
+                            paymentCount = contact.paymentCount + 1,
+                            lastPaidAtMs = record.paidAtMs,
+                            updatedAtMs = record.paidAtMs
+                        )
                     )
-                )
             )
         }
     }
@@ -269,18 +269,18 @@ private fun ContactsState.toShortcuts(): List<PaymentShortcut> =
 private fun ContactRecord.toDomain(): Contact = Contact(
     id = id,
     address =
-    LightningAddress(
-        username = username,
-        domain = domain,
-        tag = tag
-    ),
+        LightningAddress(
+            username = username,
+            domain = domain,
+            tag = tag
+        ),
     alias = alias,
     roles = roles.mapNotNull(::parseContactRole).toSet(),
     stats =
-    ContactStats(
-        paymentCount = paymentCount,
-        lastPaidAtMs = lastPaidAtMs
-    ),
+        ContactStats(
+            paymentCount = paymentCount,
+            lastPaidAtMs = lastPaidAtMs
+        ),
     createdAtMs = createdAtMs,
     updatedAtMs = updatedAtMs
 )
@@ -292,22 +292,22 @@ private fun ShortcutRecord.toDomain(contacts: List<ContactRecord>): PaymentShort
         title = title,
         contactId = contactId,
         address =
-        LightningAddress(
-            username = contact.username,
-            domain = contact.domain,
-            tag = contact.tag
-        ),
+            LightningAddress(
+                username = contact.username,
+                domain = contact.domain,
+                tag = contact.tag
+            ),
         amount =
-        ShortcutAmount(
-            minor = amountMinor,
-            currencyCode = amountCurrencyCode
-        ),
+            ShortcutAmount(
+                minor = amountMinor,
+                currencyCode = amountCurrencyCode
+            ),
         comment = comment,
         stats =
-        ShortcutStats(
-            paymentCount = paymentCount,
-            lastPaidAtMs = lastPaidAtMs
-        ),
+            ShortcutStats(
+                paymentCount = paymentCount,
+                lastPaidAtMs = lastPaidAtMs
+            ),
         createdAtMs = createdAtMs,
         updatedAtMs = updatedAtMs
     )

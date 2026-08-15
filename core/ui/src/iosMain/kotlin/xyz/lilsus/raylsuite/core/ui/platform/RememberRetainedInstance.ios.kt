@@ -22,15 +22,15 @@ actual fun <T : Any> rememberRetainedInstance(
             viewModelStoreOwner = owner,
             key = key,
             factory =
-            object : ViewModelProvider.Factory {
-                override fun <VM : ViewModel> create(
-                    modelClass: KClass<VM>,
-                    extras: CreationExtras
-                ): VM {
-                    @Suppress("UNCHECKED_CAST")
-                    return RetainedHolder(factory(), onDispose) as VM
+                object : ViewModelProvider.Factory {
+                    override fun <VM : ViewModel> create(
+                        modelClass: KClass<VM>,
+                        extras: CreationExtras
+                    ): VM {
+                        @Suppress("UNCHECKED_CAST")
+                        return RetainedHolder(factory(), onDispose) as VM
+                    }
                 }
-            }
         )
 
     return holder.delegate

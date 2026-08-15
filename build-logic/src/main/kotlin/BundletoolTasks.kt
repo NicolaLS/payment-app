@@ -1,3 +1,8 @@
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
+import javax.inject.Inject
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -9,11 +14,6 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.process.ExecOperations
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.attribute.PosixFilePermission
-import java.nio.file.attribute.PosixFilePermissions
-import javax.inject.Inject
 
 /** Reports release signing readiness without printing secret material. */
 abstract class PrintReleaseSigningConfigTask : DefaultTask() {
@@ -80,7 +80,13 @@ abstract class BundletoolBuildApksTask : DefaultTask() {
         val scratchFiles = mutableListOf<File>()
         try {
             val storePasswordArgument =
-                passwordArgument(storePasswordFile, storePassword, scratchDir, "store", scratchFiles)
+                passwordArgument(
+                    storePasswordFile,
+                    storePassword,
+                    scratchDir,
+                    "store",
+                    scratchFiles
+                )
             val keyPasswordArgument =
                 passwordArgument(keyPasswordFile, keyPassword, scratchDir, "key", scratchFiles)
 
@@ -92,7 +98,7 @@ abstract class BundletoolBuildApksTask : DefaultTask() {
                 "--ks=${keystore.get()}",
                 "--ks-key-alias=${keyAlias.get()}",
                 "--ks-pass=$storePasswordArgument",
-                "--key-pass=$keyPasswordArgument",
+                "--key-pass=$keyPasswordArgument"
             )
             if (universal.get()) {
                 arguments += "--mode=universal"
@@ -141,7 +147,7 @@ private fun passwordArgument(
     valueProperty: Property<String>,
     scratchDir: File,
     name: String,
-    scratchFiles: MutableList<File>,
+    scratchFiles: MutableList<File>
 ): String {
     val suppliedFile = fileProperty.orNull?.takeIf { it.isNotBlank() }?.let(::File)
     if (suppliedFile != null && suppliedFile.isFile) {
@@ -165,15 +171,15 @@ private fun writeOwnerOnlyFile(scratchDir: File, fileName: String, content: Stri
             setOf(
                 PosixFilePermission.OWNER_READ,
                 PosixFilePermission.OWNER_WRITE,
-                PosixFilePermission.OWNER_EXECUTE,
-            ),
+                PosixFilePermission.OWNER_EXECUTE
+            )
         )
     }
 
     val target = directory.resolve(fileName)
     Files.deleteIfExists(target)
     val ownerOnly = PosixFilePermissions.asFileAttribute(
-        setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+        setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE)
     )
     Files.createFile(target, ownerOnly)
     // No trailing newline: bundletool reads the password file verbatim.

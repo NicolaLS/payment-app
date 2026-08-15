@@ -101,17 +101,17 @@ fun FeaturesScreen(
     ) {
         Column(
             modifier =
-            modifier
-                .fillMaxSize()
-                .testTag(OnboardingTestTags.FEATURES_SCREEN),
+                modifier
+                    .fillMaxSize()
+                    .testTag(OnboardingTestTags.FEATURES_SCREEN),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             HorizontalPager(
                 state = pagerState,
                 modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
             ) { page ->
                 FeatureCard(
                     content = pages[page],
@@ -132,9 +132,9 @@ fun FeaturesScreen(
                     onContinue()
                 },
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .testTag(OnboardingTestTags.FEATURES_CONTINUE)
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag(OnboardingTestTags.FEATURES_CONTINUE)
             ) {
                 Text(stringResource(Res.string.onboarding_features_continue))
             }
@@ -147,15 +147,15 @@ private fun FeatureCard(content: OnboardingFeaturePage, modifier: Modifier = Mod
     Card(
         modifier = modifier.padding(horizontal = 8.dp),
         colors =
-        CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
     ) {
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(24.dp),
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -198,16 +198,16 @@ private fun PageIndicator(pagerState: PagerState, pageCount: Int, modifier: Modi
                 )
             Box(
                 modifier =
-                Modifier
-                    .size(size)
-                    .clip(CircleShape)
-                    .background(
-                        if (index == pagerState.currentPage) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        }
-                    )
+                    Modifier
+                        .size(size)
+                        .clip(CircleShape)
+                        .background(
+                            if (index == pagerState.currentPage) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        )
             )
         }
     }

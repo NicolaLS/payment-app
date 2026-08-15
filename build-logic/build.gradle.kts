@@ -1,16 +1,30 @@
+import org.jlleitschuh.gradle.ktlint.KtlintExtension
+
 plugins {
     `kotlin-dsl`
+    alias(libs.plugins.ktlint)
 }
 
 group = "xyz.lilsus.raylsuite.buildlogic"
 
+extensions.configure<KtlintExtension> {
+    version.set(libs.versions.ktlintCli)
+    android.set(true)
+    outputToConsole.set(true)
+    outputColorName.set("RED")
+    ignoreFailures.set(false)
+    filter {
+        exclude { it.file.path.contains("/build/") }
+    }
+}
+
 dependencies {
     implementation("com.android.tools.build:gradle:${libs.versions.agp.get()}")
     implementation(
-        "org.jetbrains.compose:compose-gradle-plugin:${libs.versions.composeMultiplatform.get()}",
+        "org.jetbrains.compose:compose-gradle-plugin:${libs.versions.composeMultiplatform.get()}"
     )
     implementation(
-        "org.jetbrains.kotlin:compose-compiler-gradle-plugin:${libs.versions.kotlin.get()}",
+        "org.jetbrains.kotlin:compose-compiler-gradle-plugin:${libs.versions.kotlin.get()}"
     )
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${libs.versions.kotlin.get()}")
     implementation("org.jlleitschuh.gradle:ktlint-gradle:${libs.versions.ktlint.get()}")

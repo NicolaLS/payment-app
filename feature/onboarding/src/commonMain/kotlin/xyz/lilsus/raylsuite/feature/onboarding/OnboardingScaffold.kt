@@ -40,10 +40,10 @@ fun OnboardingScaffold(
     ) {
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(systemBarsPadding)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
+                Modifier
+                    .fillMaxSize()
+                    .padding(systemBarsPadding)
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -85,16 +85,16 @@ private fun StepIndicator(stepIndex: Int, totalSteps: Int) {
         repeat(safeStepCount) { index ->
             Box(
                 modifier =
-                Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (index <= currentStep) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        }
-                    )
+                    Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (index <= currentStep) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        )
             )
         }
     }

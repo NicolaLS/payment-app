@@ -102,13 +102,13 @@ fun PaymentSettingsScreen(
     ) { padding ->
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
-                .verticalScroll(rememberScrollState()),
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ConfirmationSection(
@@ -210,9 +210,9 @@ private fun SettingsSection(
     ) {
         Column(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -235,14 +235,14 @@ private fun SettingsToggle(
 ) {
     Row(
         modifier =
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(
-                value = checked,
-                role = Role.Switch,
-                onValueChange = onCheckedChange
-            ),
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .toggleable(
+                    value = checked,
+                    role = Role.Switch,
+                    onValueChange = onCheckedChange
+                ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -251,9 +251,9 @@ private fun SettingsToggle(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier =
-            Modifier
-                .weight(1f)
-                .padding(end = 16.dp)
+                Modifier
+                    .weight(1f)
+                    .padding(end = 16.dp)
         )
         Switch(
             checked = checked,

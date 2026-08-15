@@ -192,6 +192,7 @@ class KtorLnurlPayClient(
 
     private fun requestFailure(cause: Throwable, message: String): LnurlResult.Error = when {
         !networkConnectivity.isNetworkAvailable() -> networkUnavailable(cause)
+
         cause is kotlinx.io.IOException ->
             LnurlResult.Error(LnurlError.Protocol(message), cause)
 

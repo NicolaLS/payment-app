@@ -46,9 +46,9 @@ fun AgreementScreen(
     ) {
         Column(
             modifier =
-            modifier
-                .fillMaxSize()
-                .testTag(OnboardingTestTags.AGREEMENT_SCREEN),
+                modifier
+                    .fillMaxSize()
+                    .testTag(OnboardingTestTags.AGREEMENT_SCREEN),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -60,9 +60,9 @@ fun AgreementScreen(
 
             Card(
                 colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
             ) {
                 Text(
                     text = body,
@@ -76,15 +76,15 @@ fun AgreementScreen(
 
             Row(
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(48.dp)
-                    .toggleable(
-                        value = hasAgreed,
-                        role = Role.Checkbox,
-                        onValueChange = onAgreementChanged
-                    )
-                    .testTag(OnboardingTestTags.AGREEMENT_CHECKBOX),
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(48.dp)
+                        .toggleable(
+                            value = hasAgreed,
+                            role = Role.Checkbox,
+                            onValueChange = onAgreementChanged
+                        )
+                        .testTag(OnboardingTestTags.AGREEMENT_CHECKBOX),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
@@ -104,9 +104,9 @@ fun AgreementScreen(
                 onClick = onContinue,
                 enabled = hasAgreed,
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .testTag(OnboardingTestTags.AGREEMENT_CONTINUE)
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag(OnboardingTestTags.AGREEMENT_CONTINUE)
             ) {
                 Text(stringResource(Res.string.onboarding_agreement_continue))
             }

@@ -83,12 +83,12 @@ fun ContactsScreen(
     ) { padding ->
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
-                .padding(AppListDefaults.ScreenPadding),
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(AppListDefaults.ScreenPadding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             OutlinedButton(
@@ -106,9 +106,9 @@ fun ContactsScreen(
                 contacts = state.contacts,
                 onContactClick = { contact -> onEditContact(contact.id) },
                 modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                 showSearchBar = true,
                 searchQuery = state.query,
                 onSearchQueryChange = onSearchChange,
@@ -116,13 +116,13 @@ fun ContactsScreen(
                 showRowRoles = true,
                 showNavigationIndicator = true,
                 emptyMessage =
-                stringResource(
-                    if (state.query.isBlank()) {
-                        Res.string.contacts_empty
-                    } else {
-                        Res.string.contacts_no_matching_contacts
-                    }
-                )
+                    stringResource(
+                        if (state.query.isBlank()) {
+                            Res.string.contacts_empty
+                        } else {
+                            Res.string.contacts_no_matching_contacts
+                        }
+                    )
             )
         }
     }
@@ -164,12 +164,12 @@ fun ContactEditorScreen(
                 onDelete = onDelete.takeIf { editor.contactId != null },
                 onCreateShortcut = onCreateShortcut.takeIf { editor.contactId != null },
                 modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .consumeWindowInsets(padding)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .consumeWindowInsets(padding)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
             )
         }
     }
@@ -293,10 +293,10 @@ private fun ContactShortcutRow(shortcut: ContactShortcutItem) {
     ) {
         Row(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Column(modifier = Modifier.weight(1f)) {

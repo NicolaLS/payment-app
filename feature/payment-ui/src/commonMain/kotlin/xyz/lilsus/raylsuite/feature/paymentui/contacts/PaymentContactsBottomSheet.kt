@@ -170,11 +170,11 @@ private fun PaymentSheetContent(
     ) {
         PrimaryTabRow(
             selectedTabIndex =
-            if (state.selectedTab == PaymentSheetTab.Shortcuts) {
-                0
-            } else {
-                1
-            }
+                if (state.selectedTab == PaymentSheetTab.Shortcuts) {
+                    0
+                } else {
+                    1
+                }
         ) {
             Tab(
                 selected = state.selectedTab == PaymentSheetTab.Shortcuts,

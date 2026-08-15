@@ -61,9 +61,9 @@ fun AutoPaySettingsScreen(
     ) {
         Column(
             modifier =
-            modifier
-                .fillMaxSize()
-                .testTag(OnboardingTestTags.AUTO_PAY_SCREEN),
+                modifier
+                    .fillMaxSize()
+                    .testTag(OnboardingTestTags.AUTO_PAY_SCREEN),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -81,15 +81,15 @@ fun AutoPaySettingsScreen(
 
             Card(
                 colors =
-                CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
             ) {
                 Column(
                     modifier =
-                    Modifier
-                        .padding(16.dp)
-                        .selectableGroup(),
+                        Modifier
+                            .padding(16.dp)
+                            .selectableGroup(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     ConfirmationModeRow(

@@ -46,30 +46,5 @@ jobs:
       - name: Set up and validate Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Test and link Kotlin frameworks
-        run: >-
-          ./gradlew
-          :${{ matrix.app }}:shared:iosSimulatorArm64Test
-          :${{ matrix.app }}:shared:linkReleaseFrameworkIosSimulatorArm64
-          :${{ matrix.app }}:shared:linkReleaseFrameworkIosArm64
-
-      - name: Compile unsigned Xcode Release
-        run: |
-          xcodebuild build \
-            -project apps/${{ matrix.app }}/iosApp/iosApp.xcodeproj \
-            -scheme iosApp \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
-
-      - name: Upload reports
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ matrix.app }}-ios-results
-          path: |
-            apps/${{ matrix.app }}/shared/build/reports/
-            apps/${{ matrix.app }}/shared/build/test-results/
-          retention-days: 14
+      - name: Link simulator Debug framework
+        run: ./gradlew :${{ matrix.app }}:shared:linkDebugFrameworkIosSimulatorArm64

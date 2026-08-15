@@ -145,6 +145,7 @@ fun SettingsFlow(
             }
 
             SettingsDestination.ContactEditor -> contactsViewModel.dismissEditor()
+
             SettingsDestination.ShortcutEditor -> shortcutsViewModel.dismissEditor()
 
             SettingsDestination.ShortcutContactPicker -> {
@@ -281,16 +282,16 @@ fun SettingsFlow(
                 onBack = ::navigateBack,
                 onModeSelected = paymentSettingsViewModel::selectConfirmationMode,
                 onThresholdChanged =
-                paymentSettingsViewModel::updateConfirmationThreshold,
+                    paymentSettingsViewModel::updateConfirmationThreshold,
                 onConfirmManualEntryChanged =
-                paymentSettingsViewModel::setConfirmManualEntry,
+                    paymentSettingsViewModel::setConfirmManualEntry,
                 onConfirmShortcutPaymentsChanged =
-                paymentSettingsViewModel::setConfirmShortcutPayments,
+                    paymentSettingsViewModel::setConfirmShortcutPayments,
                 onAskToSaveNewContactsChanged =
-                paymentSettingsViewModel::setAskToSaveNewContacts,
+                    paymentSettingsViewModel::setAskToSaveNewContacts,
                 onVibrateOnScanChanged = paymentSettingsViewModel::setVibrateOnScan,
                 onVibrateOnPaymentChanged =
-                paymentSettingsViewModel::setVibrateOnPayment,
+                    paymentSettingsViewModel::setVibrateOnPayment,
                 onAddShortcut = {
                     shortcutsViewModel.startAdd()
                     shortcutReturnDestination = SettingsDestination.Payments
@@ -375,8 +376,8 @@ fun SettingsFlow(
         SettingsDestination.ShortcutCurrencyPicker -> {
             PaymentShortcutCurrencyPickerScreen(
                 selectedCode =
-                shortcutsState.editor?.currencyCode
-                    ?: CurrencyCatalog.DEFAULT_CODE,
+                    shortcutsState.editor?.currencyCode
+                        ?: CurrencyCatalog.DEFAULT_CODE,
                 searchQuery = shortcutCurrencySearch,
                 onBack = ::navigateBack,
                 onSearchChange = { shortcutCurrencySearch = it },
@@ -493,6 +494,7 @@ private fun themeSubtitle(preference: ThemePreference): String = when (preferenc
         )
 
     ThemePreference.Light -> stringResource(Res.string.settings_theme_light)
+
     ThemePreference.Dark -> stringResource(Res.string.settings_theme_dark)
 }
 

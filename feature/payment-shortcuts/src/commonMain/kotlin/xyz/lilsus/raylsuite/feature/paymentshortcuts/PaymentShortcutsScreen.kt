@@ -104,9 +104,9 @@ fun PaymentShortcutsSection(
     ) {
         Column(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
@@ -159,11 +159,11 @@ private fun PaymentShortcutRow(shortcut: PaymentShortcutItem, onClick: () -> Uni
             )
             Text(
                 text =
-                listOfNotNull(
-                    amount,
-                    shortcut.contactName,
-                    shortcut.comment
-                ).joinToString(" - "),
+                    listOfNotNull(
+                        amount,
+                        shortcut.contactName,
+                        shortcut.comment
+                    ).joinToString(" - "),
                 style = MaterialTheme.typography.bodySmall,
                 color = contentColor.copy(alpha = 0.72f),
                 maxLines = 2,
@@ -226,12 +226,12 @@ fun PaymentShortcutEditorScreen(
                 onSave = onSave.takeIf { editor.shortcutId == null },
                 onDelete = onDelete.takeIf { editor.shortcutId != null },
                 modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .consumeWindowInsets(padding)
-                    .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .consumeWindowInsets(padding)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
             )
         }
     }
@@ -288,33 +288,33 @@ private fun PaymentShortcutEditorContent(
             label = { Text(stringResource(Res.string.shortcut_title_label)) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             keyboardActions =
-            KeyboardActions(
-                onNext = { commentFocusRequester.requestFocus() }
-            ),
+                KeyboardActions(
+                    onNext = { commentFocusRequester.requestFocus() }
+                ),
             singleLine = true
         )
         OutlinedTextField(
             value = state.comment,
             onValueChange = onCommentChange,
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .focusRequester(commentFocusRequester),
+                Modifier
+                    .fillMaxWidth()
+                    .focusRequester(commentFocusRequester),
             label = { Text(stringResource(Res.string.shortcut_comment_label)) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             keyboardActions =
-            KeyboardActions(
-                onNext = { amountFocusRequester.requestFocus() }
-            ),
+                KeyboardActions(
+                    onNext = { amountFocusRequester.requestFocus() }
+                ),
             singleLine = true
         )
         OutlinedTextField(
             value = state.amount,
             onValueChange = onAmountChange,
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .focusRequester(amountFocusRequester),
+                Modifier
+                    .fillMaxWidth()
+                    .focusRequester(amountFocusRequester),
             label = { Text(stringResource(Res.string.shortcut_amount_label)) },
             trailingIcon = {
                 ShortcutAmountCurrencyButton(
@@ -323,23 +323,23 @@ private fun PaymentShortcutEditorContent(
                 )
             },
             supportingText =
-            amountSupportingText?.let { text ->
-                { Text(text) }
-            },
+                amountSupportingText?.let { text ->
+                    { Text(text) }
+                },
             keyboardOptions =
-            KeyboardOptions(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Done,
-                platformImeOptions =
-                doneKeyboardPlatformImeOptions(
-                    doneLabel = doneLabel,
-                    onDone = finishAmountEditing
-                )
-            ),
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = ImeAction.Done,
+                    platformImeOptions =
+                        doneKeyboardPlatformImeOptions(
+                            doneLabel = doneLabel,
+                            onDone = finishAmountEditing
+                        )
+                ),
             keyboardActions =
-            KeyboardActions(
-                onDone = { finishAmountEditing() }
-            ),
+                KeyboardActions(
+                    onDone = { finishAmountEditing() }
+                ),
             singleLine = true
         )
         state.error?.let { error ->
@@ -403,12 +403,12 @@ fun PaymentShortcutContactPickerScreen(
             contacts = state.contactOptions.map(PaymentShortcutContactOption::toListEntry),
             onContactClick = { contact -> onContactSelected(contact.id) },
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
-                .padding(AppListDefaults.ScreenPadding),
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(AppListDefaults.ScreenPadding),
             showSearchBar = true,
             searchQuery = state.contactSearch,
             onSearchQueryChange = onSearchChange,
@@ -416,13 +416,13 @@ fun PaymentShortcutContactPickerScreen(
             selectedContactId = selectedContactId,
             showSelectedIndicator = true,
             emptyMessage =
-            stringResource(
-                if (state.contactSearch.isBlank()) {
-                    Res.string.shortcut_no_contacts
-                } else {
-                    Res.string.shortcut_no_matching_contacts
-                }
-            )
+                stringResource(
+                    if (state.contactSearch.isBlank()) {
+                        Res.string.shortcut_no_contacts
+                    } else {
+                        Res.string.shortcut_no_matching_contacts
+                    }
+                )
         )
     }
 }
@@ -456,12 +456,12 @@ fun PaymentShortcutCurrencyPickerScreen(
             onQueryChange = onSearchChange,
             onCurrencySelected = onCurrencySelected,
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
-                .padding(AppListDefaults.ScreenPadding)
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
+                    .padding(AppListDefaults.ScreenPadding)
         )
     }
 }
@@ -476,9 +476,9 @@ private fun ShortcutAmountCurrencyButton(currencyCode: String, onClick: () -> Un
     TextButton(
         onClick = onClick,
         modifier =
-        Modifier
-            .heightIn(min = 48.dp)
-            .semantics { contentDescription = description },
+            Modifier
+                .heightIn(min = 48.dp)
+                .semantics { contentDescription = description },
         contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
         Text(currencyCode)
@@ -494,22 +494,22 @@ private fun ShortcutSelectedContactRow(option: PaymentShortcutContactOption, onC
     val changeLabel = stringResource(Res.string.shortcut_change)
     Surface(
         modifier =
-        Modifier
-            .fillMaxWidth()
-            .clickable(
-                role = Role.Button,
-                onClickLabel = changeLabel,
-                onClick = onClick
-            ),
+            Modifier
+                .fillMaxWidth()
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = changeLabel,
+                    onClick = onClick
+                ),
         tonalElevation = 1.dp,
         shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-                .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -553,11 +553,11 @@ private fun ShortcutSurfaceRow(onClick: () -> Unit, content: @Composable RowScop
     ) {
         Row(
             modifier =
-            Modifier
-                .heightIn(min = 64.dp)
-                .fillMaxWidth()
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                Modifier
+                    .heightIn(min = 64.dp)
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button, onClick = onClick)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
             content = content
@@ -588,10 +588,14 @@ private val PaymentShortcutEditorError.stringResource: StringResource
     get() =
         when (this) {
             PaymentShortcutEditorError.NoContacts -> Res.string.shortcut_no_contacts
+
             PaymentShortcutEditorError.SelectContact -> Res.string.shortcut_error_select_contact
+
             PaymentShortcutEditorError.EnterAmount -> Res.string.shortcut_error_enter_amount
+
             PaymentShortcutEditorError.WholeAmountRequired ->
                 Res.string.shortcut_error_whole_amount
+
             PaymentShortcutEditorError.EnterTitle -> Res.string.shortcut_error_enter_title
         }
 

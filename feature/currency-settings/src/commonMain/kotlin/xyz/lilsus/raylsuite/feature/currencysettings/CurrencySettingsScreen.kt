@@ -65,11 +65,11 @@ fun CurrencySettingsScreen(
     ) { padding ->
         Column(
             modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-                .navigationBarsPadding()
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .consumeWindowInsets(padding)
+                    .navigationBarsPadding()
         ) {
             PrimaryTabRow(selectedTabIndex = state.activePreference.ordinal) {
                 CurrencyPreference.entries.forEach { preference ->
@@ -99,9 +99,9 @@ fun CurrencySettingsScreen(
                 onQueryChange = onQueryChange,
                 onCurrencySelected = onCurrencySelected,
                 modifier =
-                Modifier
-                    .weight(1f)
-                    .padding(AppListDefaults.ScreenPadding)
+                    Modifier
+                        .weight(1f)
+                        .padding(AppListDefaults.ScreenPadding)
             )
         }
     }

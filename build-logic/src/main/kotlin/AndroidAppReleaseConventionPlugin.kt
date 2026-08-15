@@ -1,6 +1,8 @@
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import java.io.File
+import java.util.Properties
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -8,8 +10,6 @@ import org.gradle.api.Task
 import org.gradle.api.tasks.Copy
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.register
-import java.io.File
-import java.util.Properties
 
 /**
  * Local release signing for the Blip, Flint, and Lasr Android applications.
@@ -75,7 +75,7 @@ private fun Project.configureReleaseSigning() {
                 upload.statusLines("Upload") +
                     appSigning.statusLines("App signing") +
                     "Release signing ready: ${upload.isConfigured && appSigning.isConfigured}"
-            },
+            }
         )
     }
 
@@ -184,7 +184,7 @@ private fun BundletoolBuildApksTask.applySigningIdentity(identity: ReleaseSignin
 
 private fun Task.requireSigningIdentities(
     upload: ReleaseSigningIdentity,
-    appSigning: ReleaseSigningIdentity,
+    appSigning: ReleaseSigningIdentity
 ) {
     val missing = upload.missingVariables() + appSigning.missingVariables()
     if (missing.isEmpty()) return
@@ -198,7 +198,7 @@ private fun Task.requireSigningIdentities(
             appendLine()
             append("Copy .envrc.example to .envrc.local and load the passwords from a ")
             append("secret manager, then re-run. See docs/release.md.")
-        },
+        }
     )
 }
 
@@ -211,19 +211,18 @@ private fun Task.requireBundletool() {
     if (!onPath) {
         throw GradleException(
             "bundletool is required to build signed release APKs. Install it with " +
-                "`brew install bundletool` or from https://github.com/google/bundletool.",
+                "`brew install bundletool` or from https://github.com/google/bundletool."
         )
     }
 }
 
-private fun Project.resolveAdbExecutable(): String? =
-    listOfNotNull(
-        providers.environmentVariable("ANDROID_HOME").orNull,
-        providers.environmentVariable("ANDROID_SDK_ROOT").orNull,
-        localPropertiesSdkDir(),
-    ).map { File(it, "platform-tools/adb") }
-        .firstOrNull { it.canExecute() }
-        ?.absolutePath
+private fun Project.resolveAdbExecutable(): String? = listOfNotNull(
+    providers.environmentVariable("ANDROID_HOME").orNull,
+    providers.environmentVariable("ANDROID_SDK_ROOT").orNull,
+    localPropertiesSdkDir()
+).map { File(it, "platform-tools/adb") }
+    .firstOrNull { it.canExecute() }
+    ?.absolutePath
 
 private fun Project.localPropertiesSdkDir(): String? {
     val localProperties = rootProject.file("local.properties")
