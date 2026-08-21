@@ -1,6 +1,7 @@
 package xyz.lilsus.blip
 
 import com.russhwolf.settings.Settings
+import xyz.lilsus.blip.feature.payment.BlipPaymentPreferences
 import xyz.lilsus.blip.feature.payment.PaymentCoordinator
 import xyz.lilsus.blip.integration.blink.createBlinkWallet
 import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
@@ -20,6 +21,7 @@ internal class BlipRuntime(
     val themePreferences = DefaultThemePreferences(appSettings)
     val currencyPreferences = DefaultCurrencyPreferences(appSettings)
     val paymentPreferences = DefaultPaymentPreferencesRepository(appSettings)
+    val blipPaymentPreferences = BlipPaymentPreferences(appSettings)
     val contactsRepository = DefaultContactsRepository(appSettings)
 
     private val networkConnectivity = createNetworkConnectivity()
