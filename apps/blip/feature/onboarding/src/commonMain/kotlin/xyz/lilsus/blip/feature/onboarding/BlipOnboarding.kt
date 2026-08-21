@@ -65,9 +65,6 @@ sealed interface BlipOnboardingDestination {
     data object AddWallet : BlipOnboardingDestination
 
     @Serializable
-    data object AddWalletFromSettings : BlipOnboardingDestination
-
-    @Serializable
     data object BlinkContactsImport : BlipOnboardingDestination
 }
 
@@ -158,13 +155,6 @@ fun NavGraphBuilder.blipOnboarding(
             onBack = navController::navigateUp
         )
     }
-    composable<BlipOnboardingDestination.AddWalletFromSettings> {
-        AddWalletDestination(
-            blinkWallet = blinkWallet,
-            onConnected = navController::navigateUp,
-            onBack = navController::navigateUp
-        )
-    }
     composable<BlipOnboardingDestination.BlinkContactsImport> {
         OnboardingBlinkContactsImportDestination(
             blinkWallet = blinkWallet,
@@ -189,7 +179,7 @@ private fun AddWalletDestination(
     LaunchedEffect(viewModel) {
         viewModel.events.collectLatest { event ->
             when (event) {
-                is AddBlinkWalletEvent.Success -> onConnected()
+                AddBlinkWalletEvent.Success -> onConnected()
                 AddBlinkWalletEvent.Cancelled -> onBack()
             }
         }
@@ -198,7 +188,6 @@ private fun AddWalletDestination(
     AddBlinkWalletScreen(
         state = state,
         onBack = viewModel::cancel,
-        onAliasChange = viewModel::updateAlias,
         onApiKeyChange = viewModel::updateApiKey,
         onSubmit = viewModel::submit
     )

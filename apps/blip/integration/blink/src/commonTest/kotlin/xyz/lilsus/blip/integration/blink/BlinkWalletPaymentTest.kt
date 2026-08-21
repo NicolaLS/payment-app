@@ -90,8 +90,7 @@ class BlinkWalletPaymentTest {
         store.save(
             BlinkCredentials(
                 apiKey = "test-api-key",
-                defaultWalletId = "wallet-123",
-                alias = "Test"
+                defaultWalletId = "wallet-123"
             )
         )
         return BlinkWallet(

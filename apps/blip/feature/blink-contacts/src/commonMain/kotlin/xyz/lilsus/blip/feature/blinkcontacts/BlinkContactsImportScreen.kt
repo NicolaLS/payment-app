@@ -17,6 +17,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,6 +41,7 @@ import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_transactions
 import xyz.lilsus.blip.ui.blinkErrorMessageFor
 import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
+import xyz.lilsus.blip.ui.generated.resources.blink_contacts_import
 import xyz.lilsus.blip.ui.generated.resources.blink_contacts_import_hint
 import xyz.lilsus.blip.ui.generated.resources.blink_contacts_title
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
@@ -50,6 +52,16 @@ import xyz.lilsus.raylsuite.feature.contacts.ContactSummary
 import xyz.lilsus.raylsuite.feature.contacts.generated.resources.Res as ContactsRes
 import xyz.lilsus.raylsuite.feature.contacts.generated.resources.contacts_no_matching_contacts
 import xyz.lilsus.raylsuite.feature.contacts.generated.resources.contacts_search_label
+
+@Composable
+fun BlinkContactsImportButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Text(stringResource(BlipUiRes.string.blink_contacts_import))
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

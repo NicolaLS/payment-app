@@ -12,8 +12,7 @@ class BlinkCredentialStoreTest {
         val credentials =
             BlinkCredentials(
                 apiKey = "blink_test",
-                defaultWalletId = "wallet-id",
-                alias = "Shop"
+                defaultWalletId = "wallet-id"
             )
 
         store.save(credentials)

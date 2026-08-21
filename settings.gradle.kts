@@ -64,7 +64,7 @@ includeApp(
             "feature:payment",
             "feature:blink-contacts",
             "feature:wallet-connection",
-            "feature:wallet-details",
+            "feature:wallet-settings",
             "integration:blink",
             "ui"
         )

@@ -33,8 +33,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
@@ -44,8 +42,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.Res
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_alias_label
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_alias_placeholder
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_api_key_label
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_api_key_placeholder
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_connect
@@ -61,14 +57,12 @@ import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 fun AddBlinkWalletScreen(
     state: AddBlinkWalletUiState,
     onBack: () -> Unit,
-    onAliasChange: (String) -> Unit,
     onApiKeyChange: (String) -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val focusManager = LocalFocusManager.current
-    val apiKeyFocusRequester = remember { FocusRequester() }
     var apiKeyVisible by remember { mutableStateOf(false) }
     val submitOrClearFocus = {
         focusManager.clearFocus(force = true)
@@ -107,29 +101,10 @@ fun AddBlinkWalletScreen(
             )
 
             OutlinedTextField(
-                value = state.alias,
-                onValueChange = onAliasChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(BlinkWalletConnectionTestTags.ALIAS_FIELD),
-                singleLine = true,
-                label = { Text(stringResource(Res.string.add_blink_wallet_alias_label)) },
-                placeholder = {
-                    Text(stringResource(Res.string.add_blink_wallet_alias_placeholder))
-                },
-                enabled = !state.isSaving,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(
-                    onNext = { apiKeyFocusRequester.requestFocus() }
-                )
-            )
-
-            OutlinedTextField(
                 value = state.apiKey,
                 onValueChange = onApiKeyChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(apiKeyFocusRequester)
                     .testTag(BlinkWalletConnectionTestTags.API_KEY_FIELD),
                 singleLine = true,
                 label = { Text(stringResource(Res.string.add_blink_wallet_api_key_label)) },
@@ -202,7 +177,6 @@ fun AddBlinkWalletScreen(
 
 object BlinkWalletConnectionTestTags {
     const val SCREEN = "blink_wallet_screen"
-    const val ALIAS_FIELD = "blink_wallet_alias_field"
     const val API_KEY_FIELD = "blink_wallet_api_key_field"
     const val CONNECT_BUTTON = "blink_wallet_connect_button"
 }

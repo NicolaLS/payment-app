@@ -52,9 +52,6 @@ private fun errorMessageFor(error: BlinkConnectionError): String = when (error) 
 
     BlinkConnectionError.PaymentPermissionRequired ->
         stringResource(Res.string.error_blink_permission_denied)
-
-    BlinkConnectionError.AliasRequired ->
-        stringResource(Res.string.error_unexpected_generic)
 }
 
 @Composable

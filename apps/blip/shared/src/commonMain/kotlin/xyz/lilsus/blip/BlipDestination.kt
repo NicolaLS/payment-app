@@ -16,11 +16,5 @@ internal sealed interface BlipDestination {
     data object ShortcutCreate : BlipDestination
 
     @Serializable
-    data object WalletManagement : BlipDestination
-
-    @Serializable
-    data object WalletDetails : BlipDestination
-
-    @Serializable
     data object BlinkContactsImport : BlipDestination
 }

@@ -4,11 +4,7 @@ import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-internal data class BlinkCredentials(
-    val apiKey: String,
-    val defaultWalletId: String,
-    val alias: String
-)
+internal data class BlinkCredentials(val apiKey: String, val defaultWalletId: String)
 
 internal class BlinkCredentialStore(private val settings: Settings, private val json: Json = Json) {
     fun read(): BlinkCredentials? {
@@ -23,8 +19,6 @@ internal class BlinkCredentialStore(private val settings: Settings, private val 
         require(credentials.defaultWalletId.isNotBlank()) {
             "Blink wallet ID cannot be blank"
         }
-        require(credentials.alias.isNotBlank()) { "Wallet alias cannot be blank" }
-
         settings.putString(
             CREDENTIALS_KEY,
             json.encodeToString(credentials.toStored())
@@ -37,24 +31,18 @@ internal class BlinkCredentialStore(private val settings: Settings, private val 
 }
 
 @Serializable
-private data class StoredBlinkCredentials(
-    val apiKey: String,
-    val defaultWalletId: String,
-    val alias: String
-)
+private data class StoredBlinkCredentials(val apiKey: String, val defaultWalletId: String)
 
 private fun BlinkCredentials.toStored(): StoredBlinkCredentials = StoredBlinkCredentials(
     apiKey = apiKey,
-    defaultWalletId = defaultWalletId,
-    alias = alias
+    defaultWalletId = defaultWalletId
 )
 
 private fun StoredBlinkCredentials.toCredentials(): BlinkCredentials? {
-    if (apiKey.isBlank() || defaultWalletId.isBlank() || alias.isBlank()) return null
+    if (apiKey.isBlank() || defaultWalletId.isBlank()) return null
     return BlinkCredentials(
         apiKey = apiKey,
-        defaultWalletId = defaultWalletId,
-        alias = alias
+        defaultWalletId = defaultWalletId
     )
 }
 

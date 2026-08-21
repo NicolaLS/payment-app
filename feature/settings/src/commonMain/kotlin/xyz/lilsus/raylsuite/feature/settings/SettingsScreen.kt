@@ -82,6 +82,7 @@ fun SettingsScreen(
     currencySubtitle: String? = null,
     languageSubtitle: String? = null,
     themeSubtitle: String? = null,
+    overviewBottomContent: (@Composable () -> Unit)? = null,
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList(),
     donationAppName: String? = null,
@@ -165,6 +166,11 @@ fun SettingsScreen(
                         onDonate5k = { onDonate(5_000) },
                         onDonate10k = { onDonate(10_000) }
                     )
+                }
+            }
+            overviewBottomContent?.let { content ->
+                item(key = "overview-bottom-content") {
+                    content()
                 }
             }
             item {

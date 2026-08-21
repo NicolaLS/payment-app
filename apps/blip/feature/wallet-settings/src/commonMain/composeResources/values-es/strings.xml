@@ -1,0 +1,9 @@
+<resources>
+    <string name="settings_blink_connection_refresh">Actualizar conexión</string>
+    <string name="settings_blink_connection_refresh_success">Conexión actualizada.</string>
+    <string name="settings_blink_connection_remove">Eliminar billetera</string>
+    <string name="settings_blink_connection_remove_title">¿Eliminar la billetera Blink?</string>
+    <string name="settings_blink_connection_remove_description">Blip eliminará la clave API guardada en este dispositivo. Tendrás que volver a conectarla antes de realizar pagos.</string>
+    <string name="settings_blink_connection_remove_confirm">Eliminar billetera</string>
+    <string name="settings_blink_connection_remove_cancel">Cancelar</string>
+</resources>

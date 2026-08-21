@@ -1,4 +1,4 @@
-package xyz.lilsus.blip.feature.walletdetails
+package xyz.lilsus.blip.feature.walletsettings
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -11,54 +11,28 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.lilsus.blip.integration.blink.BlinkApiException
-import xyz.lilsus.blip.integration.blink.BlinkConnectionError
 import xyz.lilsus.blip.integration.blink.BlinkConnectionException
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.blip.ui.BlinkUiError
 
-class BlinkWalletDetailsViewModel(
+class BlinkWalletSettingsViewModel(
     private val blinkWallet: BlinkWallet,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
-    private val mutableUiState = MutableStateFlow(BlinkWalletDetailsUiState())
-    val uiState: StateFlow<BlinkWalletDetailsUiState> = mutableUiState.asStateFlow()
+    private val mutableUiState = MutableStateFlow(BlinkWalletSettingsUiState())
+    val uiState: StateFlow<BlinkWalletSettingsUiState> = mutableUiState.asStateFlow()
 
-    init {
+    fun refreshConnection() {
         scope.launch {
-            val connection = blinkWallet.connection.value
-            if (connection == null) {
-                mutableUiState.update {
-                    it.copy(
-                        error = BlinkUiError.Connection(
-                            BlinkConnectionError.MissingConnection
-                        ),
-                        isMissing = true
-                    )
-                }
-                return@launch
-            }
-
             mutableUiState.update {
-                it.copy(
-                    alias = connection.alias,
-                    defaultWalletId = blinkWallet.getCachedDefaultWalletId()
-                )
+                it.copy(isRefreshing = true, refreshSucceeded = false, error = null)
             }
-        }
-    }
-
-    fun refreshDefaultWalletId() {
-        scope.launch {
-            mutableUiState.update { it.copy(isRefreshing = true, error = null) }
             try {
-                val defaultWalletId = blinkWallet.refreshDefaultWalletId()
+                blinkWallet.refreshDefaultWalletId()
                 mutableUiState.update {
-                    it.copy(
-                        isRefreshing = false,
-                        defaultWalletId = defaultWalletId
-                    )
+                    it.copy(isRefreshing = false, refreshSucceeded = true)
                 }
             } catch (error: BlinkApiException) {
                 mutableUiState.update {
@@ -66,10 +40,7 @@ class BlinkWalletDetailsViewModel(
                 }
             } catch (error: BlinkConnectionException) {
                 mutableUiState.update {
-                    it.copy(
-                        isRefreshing = false,
-                        error = BlinkUiError.Connection(error.error)
-                    )
+                    it.copy(isRefreshing = false, error = BlinkUiError.Connection(error.error))
                 }
             } catch (error: Exception) {
                 mutableUiState.update {
@@ -87,10 +58,8 @@ class BlinkWalletDetailsViewModel(
     }
 }
 
-data class BlinkWalletDetailsUiState(
-    val alias: String = "",
-    val defaultWalletId: String? = null,
+data class BlinkWalletSettingsUiState(
     val isRefreshing: Boolean = false,
-    val isMissing: Boolean = false,
+    val refreshSucceeded: Boolean = false,
     val error: BlinkUiError? = null
 )

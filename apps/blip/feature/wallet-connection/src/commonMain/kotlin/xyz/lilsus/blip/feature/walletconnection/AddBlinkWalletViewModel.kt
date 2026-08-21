@@ -17,7 +17,6 @@ import xyz.lilsus.blip.integration.blink.BlinkApiException
 import xyz.lilsus.blip.integration.blink.BlinkConnectionError
 import xyz.lilsus.blip.integration.blink.BlinkConnectionException
 import xyz.lilsus.blip.integration.blink.BlinkWallet
-import xyz.lilsus.blip.integration.blink.BlinkWalletConnection
 import xyz.lilsus.blip.ui.BlinkUiError
 
 class AddBlinkWalletViewModel(
@@ -33,25 +32,13 @@ class AddBlinkWalletViewModel(
         MutableSharedFlow<AddBlinkWalletEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<AddBlinkWalletEvent> = mutableEvents.asSharedFlow()
 
-    fun updateAlias(alias: String) {
-        mutableUiState.update { it.copy(alias = alias, error = null) }
-    }
-
     fun updateApiKey(apiKey: String) {
         mutableUiState.update { it.copy(apiKey = apiKey, error = null) }
     }
 
     fun submit() {
         val state = mutableUiState.value
-        val alias = state.alias.trim()
         val apiKey = state.apiKey.trim()
-
-        if (alias.isBlank()) {
-            mutableUiState.update {
-                it.copy(error = BlinkUiError.Connection(BlinkConnectionError.AliasRequired))
-            }
-            return
-        }
 
         if (apiKey.isBlank()) {
             mutableUiState.update {
@@ -64,10 +51,10 @@ class AddBlinkWalletViewModel(
             mutableUiState.update { it.copy(isSaving = true, error = null) }
 
             try {
-                val connection = blinkWallet.connect(apiKey = apiKey, alias = alias)
+                blinkWallet.connect(apiKey = apiKey)
 
                 mutableUiState.update { it.copy(isSaving = false) }
-                mutableEvents.emit(AddBlinkWalletEvent.Success(connection))
+                mutableEvents.emit(AddBlinkWalletEvent.Success)
             } catch (error: BlinkApiException) {
                 mutableUiState.update {
                     it.copy(isSaving = false, error = BlinkUiError.Api(error.error))
@@ -99,17 +86,16 @@ class AddBlinkWalletViewModel(
 }
 
 data class AddBlinkWalletUiState(
-    val alias: String = "",
     val apiKey: String = "",
     val isSaving: Boolean = false,
     val error: BlinkUiError? = null
 ) {
     val canSubmit: Boolean
-        get() = alias.isNotBlank() && apiKey.isNotBlank() && !isSaving
+        get() = apiKey.isNotBlank() && !isSaving
 }
 
 sealed interface AddBlinkWalletEvent {
-    data class Success(val connection: BlinkWalletConnection) : AddBlinkWalletEvent
+    data object Success : AddBlinkWalletEvent
 
     data object Cancelled : AddBlinkWalletEvent
 }

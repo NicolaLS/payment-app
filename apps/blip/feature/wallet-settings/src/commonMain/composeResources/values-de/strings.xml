@@ -1,0 +1,9 @@
+<resources>
+    <string name="settings_blink_connection_refresh">Verbindung aktualisieren</string>
+    <string name="settings_blink_connection_refresh_success">Verbindung aktualisiert.</string>
+    <string name="settings_blink_connection_remove">Wallet entfernen</string>
+    <string name="settings_blink_connection_remove_title">Blink-Wallet entfernen?</string>
+    <string name="settings_blink_connection_remove_description">Blip entfernt den gespeicherten API-Schlüssel von diesem Gerät. Du musst die Wallet erneut verbinden, bevor du Zahlungen senden kannst.</string>
+    <string name="settings_blink_connection_remove_confirm">Wallet entfernen</string>
+    <string name="settings_blink_connection_remove_cancel">Abbrechen</string>
+</resources>

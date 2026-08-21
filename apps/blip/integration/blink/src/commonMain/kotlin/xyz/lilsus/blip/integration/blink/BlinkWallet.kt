@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withTimeoutOrNull
 
-data class BlinkWalletConnection(val alias: String)
+data object BlinkWalletConnection
 
 data class BlinkPaymentRequest(val invoice: String, val amountMsats: Long? = null) {
     init {
@@ -34,8 +34,6 @@ sealed interface BlinkConnectionError {
 
     data object MissingConnection : BlinkConnectionError
 
-    data object AliasRequired : BlinkConnectionError
-
     data object ApiKeyRequired : BlinkConnectionError
 
     data object PaymentPermissionRequired : BlinkConnectionError
@@ -49,18 +47,16 @@ class BlinkWallet internal constructor(
     private val isNetworkAvailable: () -> Boolean
 ) {
     private val mutableConnection =
-        MutableStateFlow(credentialStore.read()?.toConnection())
+        MutableStateFlow(
+            credentialStore.read()?.let { BlinkWalletConnection }
+        )
 
     val connection: StateFlow<BlinkWalletConnection?> = mutableConnection.asStateFlow()
 
-    suspend fun connect(apiKey: String, alias: String): BlinkWalletConnection {
+    suspend fun connect(apiKey: String) {
         ensureNotConnected()
 
         val normalizedApiKey = apiKey.trim()
-        val normalizedAlias = alias.trim()
-        if (normalizedAlias.isEmpty()) {
-            throw BlinkConnectionException(BlinkConnectionError.AliasRequired)
-        }
         if (normalizedApiKey.isEmpty()) {
             throw BlinkConnectionException(BlinkConnectionError.ApiKeyRequired)
         }
@@ -75,22 +71,17 @@ class BlinkWallet internal constructor(
 
         val credentials = BlinkCredentials(
             apiKey = normalizedApiKey,
-            defaultWalletId = defaultWalletId,
-            alias = normalizedAlias
+            defaultWalletId = defaultWalletId
         )
         credentialStore.save(credentials)
 
-        return credentials.toConnection().also {
-            mutableConnection.value = it
-        }
+        mutableConnection.value = BlinkWalletConnection
     }
 
     fun disconnect() {
         credentialStore.clear()
         mutableConnection.value = null
     }
-
-    suspend fun getCachedDefaultWalletId(): String = requireCredentials().defaultWalletId
 
     suspend fun refreshDefaultWalletId(): String {
         val credentials = requireCredentials()
@@ -174,9 +165,6 @@ fun createBlinkWallet(secureSettings: Settings, isNetworkAvailable: () -> Boolea
         credentialStore = BlinkCredentialStore(secureSettings),
         isNetworkAvailable = isNetworkAvailable
     )
-
-private fun BlinkCredentials.toConnection(): BlinkWalletConnection =
-    BlinkWalletConnection(alias = alias)
 
 private fun Long.toSatsRoundedUp(): Long = (this + 999L) / 1_000L
 
