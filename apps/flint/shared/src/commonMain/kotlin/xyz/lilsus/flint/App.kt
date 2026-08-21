@@ -68,10 +68,15 @@ fun App(host: FlintAppHost) {
     val walletViewModel = viewModel { WalletViewModel(walletAccess) }
     val walletState by walletViewModel.state.collectAsState()
     val onboardingViewModel =
-        remember(paymentPreferences, currencyPreferences) {
+        remember(
+            paymentPreferences,
+            currencyPreferences,
+            walletAccess.payments.amountAssistant
+        ) {
             OnboardingViewModel(
                 paymentPreferences = paymentPreferences,
-                currencyPreferences = currencyPreferences
+                currencyPreferences = currencyPreferences,
+                bitcoinPriceProvider = walletAccess.payments.amountAssistant
             )
         }
     var navigationReady by remember { mutableStateOf(!walletState.access.isInitialising()) }

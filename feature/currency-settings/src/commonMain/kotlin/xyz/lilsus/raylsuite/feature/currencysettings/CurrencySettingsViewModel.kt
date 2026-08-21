@@ -13,23 +13,9 @@ import kotlinx.coroutines.launch
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 
 data class CurrencySettingsUiState(
-    val selectedPrimaryCode: String = CurrencyCatalog.DEFAULT_CODE,
-    val selectedSecondaryCode: String = CurrencyCatalog.DEFAULT_SECONDARY_CODE,
-    val activePreference: CurrencyPreference = CurrencyPreference.Primary,
+    val selectedCode: String = CurrencyCatalog.DEFAULT_CODE,
     val searchQuery: String = ""
-) {
-    val selectedCode: String
-        get() =
-            when (activePreference) {
-                CurrencyPreference.Primary -> selectedPrimaryCode
-                CurrencyPreference.Secondary -> selectedSecondaryCode
-            }
-}
-
-enum class CurrencyPreference {
-    Primary,
-    Secondary
-}
+)
 
 class CurrencySettingsViewModel(
     private val preferences: CurrencyPreferences,
@@ -42,13 +28,8 @@ class CurrencySettingsViewModel(
 
     init {
         scope.launch {
-            preferences.primaryCode.collectLatest { code ->
-                mutableUiState.value = mutableUiState.value.copy(selectedPrimaryCode = code)
-            }
-        }
-        scope.launch {
-            preferences.secondaryCode.collectLatest { code ->
-                mutableUiState.value = mutableUiState.value.copy(selectedSecondaryCode = code)
+            preferences.code.collectLatest { code ->
+                mutableUiState.value = mutableUiState.value.copy(selectedCode = code)
             }
         }
     }
@@ -57,28 +38,11 @@ class CurrencySettingsViewModel(
         mutableUiState.value = mutableUiState.value.copy(searchQuery = query)
     }
 
-    fun selectPreference(preference: CurrencyPreference) {
-        mutableUiState.value = mutableUiState.value.copy(activePreference = preference)
-    }
-
     fun selectCurrency(code: String) {
         val normalisedCode = CurrencyCatalog.infoFor(code).code
-        when (mutableUiState.value.activePreference) {
-            CurrencyPreference.Primary -> {
-                mutableUiState.value =
-                    mutableUiState.value.copy(selectedPrimaryCode = normalisedCode)
-                scope.launch {
-                    preferences.setPrimaryCode(normalisedCode)
-                }
-            }
-
-            CurrencyPreference.Secondary -> {
-                mutableUiState.value =
-                    mutableUiState.value.copy(selectedSecondaryCode = normalisedCode)
-                scope.launch {
-                    preferences.setSecondaryCode(normalisedCode)
-                }
-            }
+        mutableUiState.value = mutableUiState.value.copy(selectedCode = normalisedCode)
+        scope.launch {
+            preferences.setCode(normalisedCode)
         }
     }
 

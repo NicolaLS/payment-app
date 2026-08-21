@@ -18,6 +18,7 @@ class PaymentSettingsViewModelTest {
     fun updatesSharedPreferencesAndThresholdPreview() = runTest {
         val paymentPreferences = DefaultPaymentPreferencesRepository(MapSettings())
         val currencyPreferences = DefaultCurrencyPreferences(MapSettings())
+        currencyPreferences.setCode("USD")
         val contactsRepository = DefaultContactsRepository(MapSettings())
         val viewModel =
             PaymentSettingsViewModel(
@@ -31,7 +32,7 @@ class PaymentSettingsViewModelTest {
 
         assertEquals(
             DisplayAmount(600L, DisplayCurrency.Fiat("USD")),
-            viewModel.uiState.value.thresholdSecondaryEquivalent
+            viewModel.uiState.value.thresholdCurrencyEquivalent
         )
 
         viewModel.updateConfirmationThreshold(20_000L)
@@ -42,7 +43,7 @@ class PaymentSettingsViewModelTest {
         assertEquals(false, viewModel.uiState.value.askToSaveNewContacts)
         assertEquals(
             DisplayAmount(1_200L, DisplayCurrency.Fiat("USD")),
-            viewModel.uiState.value.thresholdSecondaryEquivalent
+            viewModel.uiState.value.thresholdCurrencyEquivalent
         )
 
         viewModel.clear()

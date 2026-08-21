@@ -46,7 +46,6 @@ import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutEditorScreen
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutsEvent
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutsViewModel
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency_subtitle_format
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_english
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_german
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_spanish
@@ -92,8 +91,8 @@ fun SettingsFlow(
     val resolvedCurrencyPreferences = currencyPreferences ?: storedCurrencyPreferences
     val resolvedContactsRepository = contactsRepository ?: storedContactsRepository
     val resolvedPaymentPreferences = paymentPreferences ?: storedPaymentPreferences
-    val primaryCurrencyState =
-        resolvedCurrencyPreferences.primaryCode.collectAsState(CurrencyCatalog.DEFAULT_CODE)
+    val currencyState =
+        resolvedCurrencyPreferences.code.collectAsState(CurrencyCatalog.DEFAULT_CODE)
 
     val contactsViewModel =
         remember(resolvedContactsRepository) {
@@ -103,7 +102,7 @@ fun SettingsFlow(
         remember(resolvedContactsRepository) {
             PaymentShortcutsViewModel(
                 repository = resolvedContactsRepository,
-                preferredCurrencyCode = { primaryCurrencyState.value }
+                preferredCurrencyCode = { currencyState.value }
             )
         }
     val paymentSettingsViewModel =
@@ -239,7 +238,6 @@ fun SettingsFlow(
             CurrencySettingsScreen(
                 state = state,
                 onQueryChange = viewModel::updateSearch,
-                onPreferenceSelected = viewModel::selectPreference,
                 onCurrencySelected = viewModel::selectCurrency,
                 onBack = ::navigateBack,
                 modifier = modifier
@@ -412,20 +410,11 @@ private fun SettingsOverview(
     donationAppName: String?,
     onDonate: ((Long) -> Unit)?
 ) {
-    val primaryCode by currencyPreferences.primaryCode.collectAsState(
+    val currencyCode by currencyPreferences.code.collectAsState(
         CurrencyCatalog.DEFAULT_CODE
-    )
-    val secondaryCode by currencyPreferences.secondaryCode.collectAsState(
-        CurrencyCatalog.DEFAULT_SECONDARY_CODE
     )
     val languagePreference by languageRepository.preference.collectAsState()
     val themePreference by themePreferences.preference.collectAsState(ThemePreference.System)
-    val currencyLabel =
-        stringResource(
-            Res.string.settings_currency_subtitle_format,
-            primaryCode,
-            secondaryCode
-        )
 
     SettingsScreen(
         onBack = onBack,
@@ -436,7 +425,7 @@ private fun SettingsOverview(
         onTheme = onTheme,
         legalLinks = legalLinks,
         modifier = modifier,
-        currencySubtitle = currencyLabel,
+        currencySubtitle = currencyCode,
         languageSubtitle = languageSubtitle(languagePreference),
         themeSubtitle = themeSubtitle(themePreference),
         overviewBottomContent = overviewBottomContent,

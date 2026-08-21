@@ -27,7 +27,7 @@ data class OnboardingUiState(
     val confirmationMode: PaymentConfirmationMode = PaymentConfirmationMode.Above,
     val thresholdSats: Long = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val hasAgreed: Boolean = false,
-    val thresholdSecondaryEquivalent: DisplayAmount? = null
+    val thresholdCurrencyEquivalent: DisplayAmount? = null
 )
 
 class OnboardingViewModel(
@@ -37,8 +37,7 @@ class OnboardingViewModel(
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private var secondaryCurrency =
-        CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_SECONDARY_CODE)
+    private var selectedCurrency = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
     private var pricePerBitcoin: Double? = null
     private var priceRequestId = 0
 
@@ -47,7 +46,7 @@ class OnboardingViewModel(
 
     init {
         scope.launch {
-            currencyPreferences.secondaryCode.collectLatest(::updateSecondaryCurrency)
+            currencyPreferences.code.collectLatest(::updateSelectedCurrency)
         }
     }
 
@@ -89,10 +88,10 @@ class OnboardingViewModel(
         scope.cancel()
     }
 
-    private suspend fun updateSecondaryCurrency(code: String) {
+    private suspend fun updateSelectedCurrency(code: String) {
         val currency = CurrencyCatalog.infoFor(code)
         val requestId = ++priceRequestId
-        secondaryCurrency = currency
+        selectedCurrency = currency
         pricePerBitcoin = null
         publishThresholdPreview()
 
@@ -106,14 +105,13 @@ class OnboardingViewModel(
 
     private fun publishThresholdPreview() {
         mutableUiState.update { state ->
-            val secondaryEquivalent =
-                thresholdDisplayAmount(
-                    thresholdSats = state.thresholdSats,
-                    currency = secondaryCurrency,
-                    pricePerBitcoin = pricePerBitcoin
-                )
             state.copy(
-                thresholdSecondaryEquivalent = secondaryEquivalent
+                thresholdCurrencyEquivalent =
+                    thresholdDisplayAmount(
+                        thresholdSats = state.thresholdSats,
+                        currency = selectedCurrency,
+                        pricePerBitcoin = pricePerBitcoin
+                    )?.takeUnless { it.currency == DisplayCurrency.Satoshi }
             )
         }
     }

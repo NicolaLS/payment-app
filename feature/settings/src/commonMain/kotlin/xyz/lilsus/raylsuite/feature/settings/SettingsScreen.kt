@@ -289,7 +289,7 @@ private fun SettingsScreenPreview() {
                     termsUrl = "https://example.com/terms",
                     sourceCodeUrl = "https://example.com/source"
                 ),
-            currencySubtitle = "Primary SAT • Secondary USD",
+            currencySubtitle = "SAT",
             languageSubtitle = "English",
             themeSubtitle = "System default"
         )

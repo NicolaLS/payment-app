@@ -49,7 +49,7 @@ fun App() {
     val blinkWallet = runtime.blinkWallet
     val paymentCoordinator = runtime.paymentCoordinator
     val onboardingViewModel =
-        remember(paymentPreferences, currencyPreferences) {
+        remember(paymentPreferences, currencyPreferences, runtime.bitcoinPriceProvider) {
             OnboardingViewModel(
                 paymentPreferences = paymentPreferences,
                 currencyPreferences = currencyPreferences,

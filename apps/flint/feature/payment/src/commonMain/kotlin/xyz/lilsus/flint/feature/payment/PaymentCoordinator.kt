@@ -127,7 +127,7 @@ class PaymentCoordinator(
             }
         }
         scope.launch {
-            currencyPreferences.primaryCode.collectLatest { code ->
+            currencyPreferences.code.collectLatest { code ->
                 currencyManager.setPreferredCurrency(CurrencyCatalog.infoFor(code).currency)
             }
         }

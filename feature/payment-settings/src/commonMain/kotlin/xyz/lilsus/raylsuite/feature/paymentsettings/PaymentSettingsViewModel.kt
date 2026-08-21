@@ -23,14 +23,13 @@ import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 
 class PaymentSettingsViewModel(
     private val paymentPreferences: PaymentPreferencesRepository,
-    private val currencyPreferences: CurrencyPreferences,
+    currencyPreferences: CurrencyPreferences,
     private val contactsRepository: ContactsRepository,
     private val bitcoinPriceProvider: BitcoinPriceProvider,
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private var secondaryCurrency =
-        CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_SECONDARY_CODE)
+    private var selectedCurrency = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
     private var pricePerBitcoin: Double? = null
     private var priceRequestId = 0
 
@@ -61,7 +60,7 @@ class PaymentSettingsViewModel(
             }
         }
         scope.launch {
-            currencyPreferences.secondaryCode.collectLatest(::updateSecondaryCurrency)
+            currencyPreferences.code.collectLatest(::updateSelectedCurrency)
         }
     }
 
@@ -111,10 +110,10 @@ class PaymentSettingsViewModel(
         scope.cancel()
     }
 
-    private suspend fun updateSecondaryCurrency(code: String) {
+    private suspend fun updateSelectedCurrency(code: String) {
         val currency = CurrencyCatalog.infoFor(code)
         val requestId = ++priceRequestId
-        secondaryCurrency = currency
+        selectedCurrency = currency
         pricePerBitcoin = null
         publishThresholdPreview()
 
@@ -129,12 +128,12 @@ class PaymentSettingsViewModel(
     private fun publishThresholdPreview() {
         mutableUiState.value =
             mutableUiState.value.copy(
-                thresholdSecondaryEquivalent =
+                thresholdCurrencyEquivalent =
                     thresholdDisplayAmount(
                         thresholdSats = mutableUiState.value.thresholdSats,
-                        currency = secondaryCurrency,
+                        currency = selectedCurrency,
                         pricePerBitcoin = pricePerBitcoin
-                    )
+                    )?.takeUnless { it.currency == DisplayCurrency.Satoshi }
             )
     }
 }
@@ -147,7 +146,7 @@ data class PaymentSettingsUiState(
     val vibrateOnScan: Boolean = PaymentPreferences().vibrateOnScan,
     val vibrateOnPayment: Boolean = PaymentPreferences().vibrateOnPayment,
     val askToSaveNewContacts: Boolean = true,
-    val thresholdSecondaryEquivalent: DisplayAmount? = null
+    val thresholdCurrencyEquivalent: DisplayAmount? = null
 )
 
 private fun thresholdDisplayAmount(
@@ -156,9 +155,8 @@ private fun thresholdDisplayAmount(
     pricePerBitcoin: Double?
 ): DisplayAmount? {
     if (thresholdSats < 0 || thresholdSats > Long.MAX_VALUE / MSATS_PER_SAT) return null
-    val thresholdMsats = thresholdSats * MSATS_PER_SAT
     return convertMsatsToDisplayAmount(
-        msats = thresholdMsats,
+        msats = thresholdSats * MSATS_PER_SAT,
         info = currency,
         fiatPricePerBitcoin = pricePerBitcoin
     )

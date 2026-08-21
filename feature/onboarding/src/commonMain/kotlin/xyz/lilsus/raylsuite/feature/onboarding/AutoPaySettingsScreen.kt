@@ -43,7 +43,7 @@ fun AutoPaySettingsScreen(
     body: String,
     confirmationMode: PaymentConfirmationMode,
     thresholdSats: Long,
-    secondaryEquivalent: String?,
+    currencyEquivalent: String?,
     stepIndex: Int,
     totalSteps: Int,
     onConfirmationModeChanged: (PaymentConfirmationMode) -> Unit,
@@ -116,13 +116,11 @@ fun AutoPaySettingsScreen(
                                         DisplayCurrency.Satoshi
                                     )
                                 )
-                            val formattedThreshold =
-                                secondaryEquivalent?.let { "$satsFormatted ($it)" }
-                                    ?: satsFormatted
                             val thresholdLabel =
                                 stringResource(
                                     Res.string.onboarding_autopay_threshold_label,
-                                    formattedThreshold
+                                    currencyEquivalent?.let { "$satsFormatted ($it)" }
+                                        ?: satsFormatted
                                 )
                             Text(
                                 text = thresholdLabel,

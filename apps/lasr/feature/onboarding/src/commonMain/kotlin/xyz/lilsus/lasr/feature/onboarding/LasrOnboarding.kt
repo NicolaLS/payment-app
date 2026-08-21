@@ -137,7 +137,7 @@ fun NavGraphBuilder.lasrOnboarding(
             body = stringResource(Res.string.onboarding_autopay_body),
             confirmationMode = state.confirmationMode,
             thresholdSats = state.thresholdSats,
-            secondaryEquivalent = state.thresholdSecondaryEquivalent?.let(formatter::format),
+            currencyEquivalent = state.thresholdCurrencyEquivalent?.let(formatter::format),
             stepIndex = OnboardingStep.AutoPay.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onConfirmationModeChanged = onboardingViewModel::setConfirmationMode,

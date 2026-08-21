@@ -8,21 +8,15 @@ import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 
 class DefaultCurrencyPreferencesTest {
     @Test
-    fun storesPrimaryAndSecondaryIndependently() = runTest {
+    fun storesSelectedCurrency() = runTest {
         val settings = MapSettings()
         val preferences = DefaultCurrencyPreferences(settings)
 
-        assertEquals(CurrencyCatalog.DEFAULT_CODE, preferences.currentPrimaryCode())
-        assertEquals(
-            CurrencyCatalog.DEFAULT_SECONDARY_CODE,
-            preferences.currentSecondaryCode()
-        )
+        assertEquals(CurrencyCatalog.DEFAULT_CODE, preferences.currentCode())
 
-        preferences.setPrimaryCode("eur")
-        preferences.setSecondaryCode("gbp")
+        preferences.setCode("eur")
 
         val restored = DefaultCurrencyPreferences(settings)
-        assertEquals("EUR", restored.currentPrimaryCode())
-        assertEquals("GBP", restored.currentSecondaryCode())
+        assertEquals("EUR", restored.currentCode())
     }
 }

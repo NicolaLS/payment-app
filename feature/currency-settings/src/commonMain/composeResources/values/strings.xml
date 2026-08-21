@@ -1,7 +1,5 @@
 <resources>
     <string name="settings_currency">Currency</string>
-    <string name="settings_currency_primary">Primary</string>
-    <string name="settings_currency_secondary">Secondary</string>
     <string name="search_placeholder">Search…</string>
     <string name="settings_currency_satoshi">Satoshi</string>
     <string name="settings_currency_bitcoin">Bitcoin</string>

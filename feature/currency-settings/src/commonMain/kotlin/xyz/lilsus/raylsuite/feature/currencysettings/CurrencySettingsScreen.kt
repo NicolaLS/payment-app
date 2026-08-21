@@ -1,6 +1,5 @@
 package xyz.lilsus.raylsuite.feature.currencysettings
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -8,9 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -34,9 +31,7 @@ import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.setting
 import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.settings_currency_eur
 import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.settings_currency_gbp
 import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.settings_currency_jpy
-import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.settings_currency_primary
 import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.settings_currency_satoshi
-import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.settings_currency_secondary
 import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.settings_currency_usd
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +39,6 @@ import xyz.lilsus.raylsuite.feature.currencysettings.generated.resources.setting
 fun CurrencySettingsScreen(
     state: CurrencySettingsUiState,
     onQueryChange: (String) -> Unit,
-    onPreferenceSelected: (CurrencyPreference) -> Unit,
     onCurrencySelected: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -63,47 +57,19 @@ fun CurrencySettingsScreen(
             )
         }
     ) { padding ->
-        Column(
+        CurrencyPicker(
+            selectedCode = state.selectedCode,
+            searchQuery = state.searchQuery,
+            onQueryChange = onQueryChange,
+            onCurrencySelected = onCurrencySelected,
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .consumeWindowInsets(padding)
                     .navigationBarsPadding()
-        ) {
-            PrimaryTabRow(selectedTabIndex = state.activePreference.ordinal) {
-                CurrencyPreference.entries.forEach { preference ->
-                    Tab(
-                        selected = state.activePreference == preference,
-                        onClick = { onPreferenceSelected(preference) },
-                        text = {
-                            Text(
-                                stringResource(
-                                    when (preference) {
-                                        CurrencyPreference.Primary ->
-                                            Res.string.settings_currency_primary
-
-                                        CurrencyPreference.Secondary ->
-                                            Res.string.settings_currency_secondary
-                                    }
-                                )
-                            )
-                        }
-                    )
-                }
-            }
-
-            CurrencyPicker(
-                selectedCode = state.selectedCode,
-                searchQuery = state.searchQuery,
-                onQueryChange = onQueryChange,
-                onCurrencySelected = onCurrencySelected,
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .padding(AppListDefaults.ScreenPadding)
-            )
-        }
+                    .padding(AppListDefaults.ScreenPadding)
+        )
     }
 }
 
@@ -168,7 +134,6 @@ private fun CurrencySettingsScreenPreview() {
         CurrencySettingsScreen(
             state = CurrencySettingsUiState(),
             onQueryChange = {},
-            onPreferenceSelected = {},
             onCurrencySelected = {},
             onBack = {}
         )

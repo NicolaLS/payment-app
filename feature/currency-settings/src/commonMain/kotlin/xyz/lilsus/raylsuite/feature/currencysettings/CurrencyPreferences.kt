@@ -10,53 +10,31 @@ import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 
 interface CurrencyPreferences {
-    val primaryCode: Flow<String>
-    val secondaryCode: Flow<String>
+    val code: Flow<String>
 
-    suspend fun currentPrimaryCode(): String
+    suspend fun currentCode(): String
 
-    suspend fun currentSecondaryCode(): String
-
-    suspend fun setPrimaryCode(code: String)
-
-    suspend fun setSecondaryCode(code: String)
+    suspend fun setCode(code: String)
 }
 
 class DefaultCurrencyPreferences(private val settings: Settings) : CurrencyPreferences {
-    private val primaryState = MutableStateFlow(loadPrimaryCode())
-    private val secondaryState = MutableStateFlow(loadSecondaryCode())
+    private val state = MutableStateFlow(loadCode())
 
-    override val primaryCode: Flow<String> = primaryState.asStateFlow()
-    override val secondaryCode: Flow<String> = secondaryState.asStateFlow()
+    override val code: Flow<String> = state.asStateFlow()
 
-    override suspend fun currentPrimaryCode(): String = primaryState.value
+    override suspend fun currentCode(): String = state.value
 
-    override suspend fun currentSecondaryCode(): String = secondaryState.value
-
-    override suspend fun setPrimaryCode(code: String) {
+    override suspend fun setCode(code: String) {
         val normalised = CurrencyCatalog.infoFor(code).code
-        if (normalised == primaryState.value) return
+        if (normalised == state.value) return
 
-        settings.putString(KEY_DISPLAY_CURRENCY, normalised)
-        primaryState.value = normalised
+        settings.putString(KEY_CURRENCY, normalised)
+        state.value = normalised
     }
 
-    override suspend fun setSecondaryCode(code: String) {
-        val normalised = CurrencyCatalog.infoFor(code).code
-        if (normalised == secondaryState.value) return
-
-        settings.putString(KEY_SECONDARY_DISPLAY_CURRENCY, normalised)
-        secondaryState.value = normalised
-    }
-
-    private fun loadPrimaryCode(): String = normalisedStoredCode(
-        key = KEY_DISPLAY_CURRENCY,
+    private fun loadCode(): String = normalisedStoredCode(
+        key = KEY_CURRENCY,
         fallback = CurrencyCatalog.DEFAULT_CODE
-    )
-
-    private fun loadSecondaryCode(): String = normalisedStoredCode(
-        key = KEY_SECONDARY_DISPLAY_CURRENCY,
-        fallback = CurrencyCatalog.DEFAULT_SECONDARY_CODE
     )
 
     private fun normalisedStoredCode(key: String, fallback: String): String {
@@ -69,8 +47,7 @@ class DefaultCurrencyPreferences(private val settings: Settings) : CurrencyPrefe
     }
 
     private companion object {
-        const val KEY_DISPLAY_CURRENCY = "currency.primaryCode"
-        const val KEY_SECONDARY_DISPLAY_CURRENCY = "currency.secondaryCode"
+        const val KEY_CURRENCY = "currency.code"
     }
 }
 

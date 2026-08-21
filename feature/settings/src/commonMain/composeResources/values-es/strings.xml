@@ -5,8 +5,7 @@
     <string name="settings_contacts">Contactos</string>
     <string name="settings_contacts_subtitle">Contactos guardados</string>
     <string name="settings_currency">Moneda</string>
-    <string name="settings_currency_subtitle">Principal y secundaria</string>
-    <string name="settings_currency_subtitle_format">Principal %1$s • Secundaria %2$s</string>
+    <string name="settings_currency_subtitle">Moneda para mostrar pagos</string>
     <string name="settings_language">Idioma</string>
     <string name="settings_language_subtitle">Inglés</string>
     <string name="settings_language_system_default">Usar idioma del dispositivo (%1$s)</string>
