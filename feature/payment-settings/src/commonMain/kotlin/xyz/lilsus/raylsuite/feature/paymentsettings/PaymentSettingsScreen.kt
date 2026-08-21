@@ -180,12 +180,6 @@ private fun ConfirmationSection(
             selected = state.confirmationMode,
             onSelected = onModeSelected
         )
-        SettingsToggle(
-            label = stringResource(Res.string.settings_payments_confirm_manual_entry),
-            checked = state.confirmManualEntry,
-            onCheckedChange = onConfirmManualEntryChanged,
-            modifier = Modifier.testTag(PaymentSettingsTestTags.CONFIRM_MANUAL_ENTRY)
-        )
         if (state.confirmationMode == PaymentConfirmationMode.Above) {
             ThresholdSlider(
                 thresholdSats = state.thresholdSats,
@@ -194,6 +188,12 @@ private fun ConfirmationSection(
         } else {
             Spacer(modifier = Modifier.height(8.dp))
         }
+        SettingsToggle(
+            label = stringResource(Res.string.settings_payments_confirm_manual_entry),
+            checked = state.confirmManualEntry,
+            onCheckedChange = onConfirmManualEntryChanged,
+            modifier = Modifier.testTag(PaymentSettingsTestTags.CONFIRM_MANUAL_ENTRY)
+        )
     }
 }
 
