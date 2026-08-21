@@ -566,6 +566,8 @@ class PaymentCoordinator(
         mutableUiState.value = PaymentUiState.Loading()
         scope.launch {
             val roundedAmount = roundToFullSatoshis(amountMsats)
+            // Shortcut comments currently double as local notes and receiver-facing LNURL
+            // messages. TODO: Clarify whether those should remain one concept or be separated.
             val comment = session.comment?.takeIf(String::isNotBlank)
             val commentAllowed = session.params.commentAllowed
             if (

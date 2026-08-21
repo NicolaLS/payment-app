@@ -34,6 +34,7 @@ class DefaultContactsRepository(
             encodeDefaults = false
         }
     private val state = MutableStateFlow(loadState())
+    private val askToSaveNewContacts = MutableStateFlow(loadAskToSaveNewContacts())
 
     override val contacts: Flow<List<Contact>> =
         state
@@ -48,11 +49,11 @@ class DefaultContactsRepository(
             .distinctUntilChanged()
 
     override val preferences: Flow<ContactPreferences> =
-        state
+        askToSaveNewContacts
             .asStateFlow()
-            .map { stored ->
+            .map { enabled ->
                 ContactPreferences(
-                    askToSaveNewContacts = stored.askToSaveNewContacts
+                    askToSaveNewContacts = enabled
                 )
             }.distinctUntilChanged()
 
@@ -219,9 +220,10 @@ class DefaultContactsRepository(
     }
 
     override suspend fun setAskToSaveNewContacts(enabled: Boolean) {
-        updateState { current ->
-            current.copy(askToSaveNewContacts = enabled)
-        }
+        if (enabled == askToSaveNewContacts.value) return
+
+        settings.putBoolean(ASK_TO_SAVE_NEW_CONTACTS_KEY, enabled)
+        askToSaveNewContacts.value = enabled
     }
 
     private fun updateState(transform: (ContactsState) -> ContactsState) {
@@ -234,24 +236,34 @@ class DefaultContactsRepository(
     }
 
     private fun loadState(): ContactsState {
-        val encoded = settings.getStringOrNull(CONTACTS_KEY) ?: return ContactsState()
+        val encoded = settings.getStringOrNull(CONTACTS_DOCUMENT_KEY)
+            ?: return emptyContactsState()
         return runCatching {
-            json.decodeFromString<ContactsState>(encoded)
+            json.decodeFromString<ContactsState>(encoded).also { stored ->
+                require(stored.schemaVersion == CONTACTS_SCHEMA_VERSION) {
+                    "Unsupported contacts schema version: ${stored.schemaVersion}"
+                }
+            }
         }.getOrElse {
-            ContactsState()
+            emptyContactsState()
         }
     }
 
     private fun persist(state: ContactsState) {
-        if (state == ContactsState()) {
-            settings.remove(CONTACTS_KEY)
+        if (state == emptyContactsState()) {
+            settings.remove(CONTACTS_DOCUMENT_KEY)
         } else {
-            settings.putString(CONTACTS_KEY, json.encodeToString(state))
+            settings.putString(CONTACTS_DOCUMENT_KEY, json.encodeToString(state))
         }
     }
 
+    private fun loadAskToSaveNewContacts(): Boolean =
+        settings.getBoolean(ASK_TO_SAVE_NEW_CONTACTS_KEY, DEFAULT_ASK_TO_SAVE_NEW_CONTACTS)
+
     private companion object {
-        const val CONTACTS_KEY = "contacts"
+        const val CONTACTS_DOCUMENT_KEY = "contacts.document"
+        const val ASK_TO_SAVE_NEW_CONTACTS_KEY = "contacts.askToSaveNewContacts"
+        const val DEFAULT_ASK_TO_SAVE_NEW_CONTACTS = true
     }
 }
 
@@ -337,10 +349,20 @@ private fun String?.cleanOptionalText(): String? = this?.trim()?.takeIf(String::
 private fun String.cleanRequiredText(): String? = trim().takeIf(String::isNotEmpty)
 
 private fun Set<ContactRole>.toStoredRoles(): List<String> =
-    ContactRole.entries.filter { it in this }.map(ContactRole::name)
+    ContactRole.entries.filter { it in this }.map(ContactRole::toStoredValue)
 
-private fun parseContactRole(raw: String): ContactRole? =
-    runCatching { ContactRole.valueOf(raw) }.getOrNull()
+private fun ContactRole.toStoredValue(): String = when (this) {
+    ContactRole.Favorite -> ROLE_FAVORITE
+    ContactRole.People -> ROLE_PEOPLE
+    ContactRole.Merchants -> ROLE_MERCHANTS
+}
+
+private fun parseContactRole(raw: String): ContactRole? = when (raw) {
+    ROLE_FAVORITE -> ContactRole.Favorite
+    ROLE_PEOPLE -> ContactRole.People
+    ROLE_MERCHANTS -> ContactRole.Merchants
+    else -> null
+}
 
 private fun ShortcutAmount.normalizedForStorage(): ShortcutAmount? {
     val code = normalizedCurrencyCode
@@ -355,10 +377,13 @@ internal expect fun platformCurrentTimeMillis(): Long
 
 @Serializable
 private data class ContactsState(
+    val schemaVersion: Int,
     val contacts: List<ContactRecord> = emptyList(),
-    val shortcuts: List<ShortcutRecord> = emptyList(),
-    val askToSaveNewContacts: Boolean = true
+    val shortcuts: List<ShortcutRecord> = emptyList()
 )
+
+private fun emptyContactsState(): ContactsState =
+    ContactsState(schemaVersion = CONTACTS_SCHEMA_VERSION)
 
 @Serializable
 private data class ContactRecord(
@@ -388,3 +413,8 @@ private data class ShortcutRecord(
     val createdAtMs: Long,
     val updatedAtMs: Long
 )
+
+private const val CONTACTS_SCHEMA_VERSION = 1
+private const val ROLE_FAVORITE = "favorite"
+private const val ROLE_PEOPLE = "people"
+private const val ROLE_MERCHANTS = "merchants"

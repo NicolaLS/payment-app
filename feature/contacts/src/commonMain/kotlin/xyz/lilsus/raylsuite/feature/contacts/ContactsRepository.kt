@@ -9,6 +9,10 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.PaymentShortcut
 import xyz.lilsus.raylsuite.core.model.ShortcutAmount
 
+/**
+ * App-owned contacts and shortcuts that intentionally survive wallet credential removal or
+ * replacement.
+ */
 interface ContactsRepository {
     val contacts: Flow<List<Contact>>
     val shortcuts: Flow<List<PaymentShortcut>>

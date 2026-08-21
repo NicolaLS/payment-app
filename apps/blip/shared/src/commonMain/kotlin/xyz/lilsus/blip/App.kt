@@ -112,6 +112,7 @@ fun App() {
                 onRemoveWallet = {
                     runtime.resetPaymentSession()
                     PaymentDeepLinkEvents.clear()
+                    // Contacts, shortcuts, and app preferences intentionally survive disconnect.
                     blinkWallet.disconnect()
                     navController.navigate(BlipOnboardingDestination.Welcome) {
                         popUpTo(navController.graph.id) {

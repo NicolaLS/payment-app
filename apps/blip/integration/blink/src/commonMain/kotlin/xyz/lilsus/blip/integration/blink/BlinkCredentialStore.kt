@@ -6,7 +6,10 @@ import kotlinx.serialization.json.Json
 
 internal data class BlinkCredentials(val apiKey: String, val defaultWalletId: String)
 
-internal class BlinkCredentialStore(private val settings: Settings, private val json: Json = Json) {
+internal class BlinkCredentialStore(
+    private val settings: Settings,
+    private val json: Json = Json { ignoreUnknownKeys = true }
+) {
     fun read(): BlinkCredentials? {
         val encoded = settings.getStringOrNull(CREDENTIALS_KEY) ?: return null
         return runCatching {
