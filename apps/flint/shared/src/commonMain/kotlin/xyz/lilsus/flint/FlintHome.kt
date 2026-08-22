@@ -178,4 +178,4 @@ private val FLINT_DONATION_ADDRESS =
     checkNotNull(LightningAddress.parse("lilsus@blink.sv"))
 
 private val FLINT_LEGAL_LINKS =
-    SettingsLegalLinks(sourceCodeUrl = "https://github.com/NicolaLS/lasr")
+    SettingsLegalLinks(sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite")

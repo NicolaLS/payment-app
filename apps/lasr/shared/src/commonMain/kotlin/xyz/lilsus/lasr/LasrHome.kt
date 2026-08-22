@@ -231,8 +231,8 @@ private val LASR_DONATION_ADDRESS =
 private val LASR_LEGAL_LINKS =
     SettingsLegalLinks(
         privacyPolicyUrl =
-            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/lasr/privacy.md",
+            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/lasr/privacy.md",
         termsUrl =
-            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/lasr/terms.md",
-        sourceCodeUrl = "https://github.com/NicolaLS/lasr"
+            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/lasr/terms.md",
+        sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite"
     )

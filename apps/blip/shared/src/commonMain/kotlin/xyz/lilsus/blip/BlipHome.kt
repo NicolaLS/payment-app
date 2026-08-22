@@ -208,8 +208,8 @@ private val BLIP_DONATION_ADDRESS =
 private val BLIP_LEGAL_LINKS =
     SettingsLegalLinks(
         privacyPolicyUrl =
-            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/blip/privacy.md",
+            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/blip/privacy.md",
         termsUrl =
-            "https://github.com/NicolaLS/lasr/blob/main/docs/legal/blip/terms.md",
-        sourceCodeUrl = "https://github.com/NicolaLS/lasr"
+            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/blip/terms.md",
+        sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite"
     )

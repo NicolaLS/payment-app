@@ -1,6 +1,6 @@
 # Lasr is the root Zapstore configuration so repository verification can find
 # it. Add the suite publisher's `pubkey: npub1...` before the first publish.
-repository: https://github.com/NicolaLS/lasr
+repository: https://github.com/NicolaLS/rayl-suite
 name: Lasr
 summary: A focused Nostr Wallet Connect client for Lightning payments
 description: |

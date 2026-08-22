@@ -1,6 +1,6 @@
 # Use the same suite publisher npub as the root Lasr config.
-repository: https://github.com/NicolaLS/lasr
-name: Blip
+repository: https://github.com/NicolaLS/rayl-suite
+name: Blip by RAYL
 summary: A focused Blink client for Lightning payments
 description: |
   Blip connects to one Blink wallet using an API key. Pay Lightning invoices,
