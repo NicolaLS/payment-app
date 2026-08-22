@@ -8,7 +8,8 @@
     <string name="error_unexpected_generic">Es ist ein Fehler aufgetreten.</string>
     <string name="error_unexpected_with_details">Es ist ein Fehler aufgetreten: %1$s</string>
     <string name="error_authentication_failure">Authentifizierung fehlgeschlagen. Prüfe deinen API-Schlüssel.</string>
-    <string name="error_blink_permission_denied">Dein API-Schlüssel hat keine Berechtigung zum Senden von Zahlungen. Erstelle einen neuen Schlüssel mit allen Berechtigungen.</string>
+    <string name="error_blink_permission_denied">Dein API-Schlüssel hat keinen Schreibzugriff. Erstelle im Blink-Dashboard einen neuen Schlüssel mit aktiviertem Schreibzugriff.</string>
+    <string name="error_blink_required_permissions">Für deinen API-Schlüssel müssen Lesen und Schreiben aktiviert sein. Erstelle im Blink-Dashboard einen neuen Schlüssel mit beiden Berechtigungen.</string>
     <string name="error_blink_insufficient_balance">Nicht genügend Guthaben in deiner Blink-Wallet.</string>
     <string name="error_blink_route_not_found">Es konnte keine Route für diese Zahlung gefunden werden. Der Empfänger ist möglicherweise offline oder nicht erreichbar.</string>
     <string name="error_blink_invoice_expired">Diese Rechnung ist abgelaufen. Bitte fordere eine neue an.</string>

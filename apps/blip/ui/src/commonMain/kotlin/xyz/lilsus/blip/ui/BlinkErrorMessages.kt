@@ -15,6 +15,7 @@ import xyz.lilsus.blip.ui.generated.resources.error_blink_invoice_expired
 import xyz.lilsus.blip.ui.generated.resources.error_blink_limit_exceeded
 import xyz.lilsus.blip.ui.generated.resources.error_blink_permission_denied
 import xyz.lilsus.blip.ui.generated.resources.error_blink_rate_limited
+import xyz.lilsus.blip.ui.generated.resources.error_blink_required_permissions
 import xyz.lilsus.blip.ui.generated.resources.error_blink_route_not_found
 import xyz.lilsus.blip.ui.generated.resources.error_blink_self_payment
 import xyz.lilsus.blip.ui.generated.resources.error_missing_wallet_connection
@@ -50,8 +51,8 @@ private fun errorMessageFor(error: BlinkConnectionError): String = when (error) 
     BlinkConnectionError.ApiKeyRequired ->
         stringResource(Res.string.error_authentication_failure)
 
-    BlinkConnectionError.PaymentPermissionRequired ->
-        stringResource(Res.string.error_blink_permission_denied)
+    BlinkConnectionError.RequiredPermissionsMissing ->
+        stringResource(Res.string.error_blink_required_permissions)
 }
 
 @Composable

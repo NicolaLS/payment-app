@@ -26,13 +26,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
@@ -40,6 +44,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.Res
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_api_key_label
@@ -47,10 +52,12 @@ import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wa
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_connect
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_description
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_hide_api_key
+import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_paste
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_show_api_key
 import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_title
 import xyz.lilsus.blip.ui.blinkErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
+import xyz.lilsus.raylsuite.core.ui.platform.readPlainText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +70,8 @@ fun AddBlinkWalletScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val focusManager = LocalFocusManager.current
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
     var apiKeyVisible by remember { mutableStateOf(false) }
     val submitOrClearFocus = {
         focusManager.clearFocus(force = true)
@@ -100,51 +109,76 @@ fun AddBlinkWalletScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            OutlinedTextField(
-                value = state.apiKey,
-                onValueChange = onApiKeyChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(BlinkWalletConnectionTestTags.API_KEY_FIELD),
-                singleLine = true,
-                label = { Text(stringResource(Res.string.add_blink_wallet_api_key_label)) },
-                placeholder = {
-                    Text(stringResource(Res.string.add_blink_wallet_api_key_placeholder))
-                },
-                enabled = !state.isSaving,
-                visualTransformation = if (apiKeyVisible) {
-                    VisualTransformation.None
-                } else {
-                    PasswordVisualTransformation()
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Go
-                ),
-                keyboardActions = KeyboardActions(
-                    onGo = { submitOrClearFocus() },
-                    onDone = { submitOrClearFocus() }
-                ),
-                trailingIcon = {
-                    val visibilityDescription = stringResource(
+            Column {
+                OutlinedTextField(
+                    value = state.apiKey,
+                    onValueChange = onApiKeyChange,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .testTag(BlinkWalletConnectionTestTags.API_KEY_FIELD),
+                    singleLine = true,
+                    label = { Text(stringResource(Res.string.add_blink_wallet_api_key_label)) },
+                    placeholder = {
+                        Text(stringResource(Res.string.add_blink_wallet_api_key_placeholder))
+                    },
+                    enabled = !state.isSaving,
+                    visualTransformation =
                         if (apiKeyVisible) {
-                            Res.string.add_blink_wallet_hide_api_key
+                            VisualTransformation.None
                         } else {
-                            Res.string.add_blink_wallet_show_api_key
+                            PasswordVisualTransformation()
+                        },
+                    keyboardOptions =
+                        KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Go
+                        ),
+                    keyboardActions =
+                        KeyboardActions(
+                            onGo = { submitOrClearFocus() },
+                            onDone = { submitOrClearFocus() }
+                        ),
+                    trailingIcon = {
+                        val visibilityDescription =
+                            stringResource(
+                                if (apiKeyVisible) {
+                                    Res.string.add_blink_wallet_hide_api_key
+                                } else {
+                                    Res.string.add_blink_wallet_show_api_key
+                                }
+                            )
+                        IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
+                            Icon(
+                                imageVector =
+                                    if (apiKeyVisible) {
+                                        Icons.Default.VisibilityOff
+                                    } else {
+                                        Icons.Default.Visibility
+                                    },
+                                contentDescription = visibilityDescription
+                            )
                         }
-                    )
-                    IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
-                        Icon(
-                            imageVector = if (apiKeyVisible) {
-                                Icons.Default.VisibilityOff
-                            } else {
-                                Icons.Default.Visibility
-                            },
-                            contentDescription = visibilityDescription
-                        )
                     }
+                )
+
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            clipboard
+                                .getClipEntry()
+                                ?.readPlainText()
+                                ?.trim()
+                                ?.takeIf(String::isNotEmpty)
+                                ?.let(onApiKeyChange)
+                        }
+                    },
+                    enabled = !state.isSaving,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text(stringResource(Res.string.add_blink_wallet_paste))
                 }
-            )
+            }
 
             if (state.error != null) {
                 Text(

@@ -8,7 +8,8 @@
     <string name="error_unexpected_generic">Algo salió mal.</string>
     <string name="error_unexpected_with_details">Algo salió mal: %1$s</string>
     <string name="error_authentication_failure">Autenticación fallida. Verifica tu clave API.</string>
-    <string name="error_blink_permission_denied">Tu clave API no tiene permiso para enviar pagos. Crea una nueva clave con todos los permisos habilitados.</string>
+    <string name="error_blink_permission_denied">Tu clave API no tiene permiso de Escritura. Crea una nueva clave en el panel de Blink con Escritura activada.</string>
+    <string name="error_blink_required_permissions">Tu clave API debe tener Lectura y Escritura activadas. Crea una nueva clave en el panel de Blink con ambos permisos.</string>
     <string name="error_blink_insufficient_balance">Saldo insuficiente en tu billetera Blink.</string>
     <string name="error_blink_route_not_found">No se encontró una ruta para completar este pago. El destinatario puede estar desconectado o inalcanzable.</string>
     <string name="error_blink_invoice_expired">Esta factura ha expirado. Solicita una nueva.</string>

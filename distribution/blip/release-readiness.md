@@ -18,9 +18,12 @@ Store Connect declarations.
   <https://github.com/NicolaLS/rayl-suite/blob/main/docs/support.md>.
 - Blip connects to one existing Blink wallet. It does not create an account,
   custody funds, exchange assets, sell cryptocurrency, or provide lending.
-- Connecting requires a Blink API key with `WRITE` permission. Blip stores the
-  API key and default Blink wallet identifier in Android Keystore-backed
-  encrypted preferences or the iOS Keychain.
+- Connecting requires a Blink API key with `READ` and `WRITE` permissions. Blip
+  stores the API key and default Blink wallet identifier in Android
+  Keystore-backed encrypted preferences or the iOS Keychain.
+- Onboarding opens the dashboard's API Keys route directly, suggests email
+  sign-in while allowing any working login method, and guides the user to
+  create a dedicated expiring API key with `READ` and `WRITE` enabled.
 - Removing the wallet deletes the stored Blink credential. Contacts,
   shortcuts, and ordinary app preferences intentionally remain until the user
   removes them or clears/uninstalls the app.

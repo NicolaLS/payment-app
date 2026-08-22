@@ -36,7 +36,7 @@ sealed interface BlinkConnectionError {
 
     data object ApiKeyRequired : BlinkConnectionError
 
-    data object PaymentPermissionRequired : BlinkConnectionError
+    data object RequiredPermissionsMissing : BlinkConnectionError
 }
 
 class BlinkConnectionException(val error: BlinkConnectionError) : Exception(error.toString())
@@ -62,8 +62,8 @@ class BlinkWallet internal constructor(
         }
 
         val scopes = apiClient.fetchAuthorizationScopes(normalizedApiKey)
-        if (REQUIRED_SCOPE !in scopes) {
-            throw BlinkConnectionException(BlinkConnectionError.PaymentPermissionRequired)
+        if (!scopes.containsAll(REQUIRED_SCOPES)) {
+            throw BlinkConnectionException(BlinkConnectionError.RequiredPermissionsMissing)
         }
 
         val defaultWalletId = apiClient.fetchDefaultWalletId(normalizedApiKey)
@@ -178,5 +178,5 @@ private fun BlinkApiException.toPaymentOutcome(): BlinkPaymentOutcome = when (er
     is BlinkApiError.PaymentRejected -> BlinkPaymentOutcome.DefinitiveFailure(error)
 }
 
-private const val REQUIRED_SCOPE = "WRITE"
+private val REQUIRED_SCOPES = setOf("READ", "WRITE")
 private const val PAYMENT_RESOURCE_GUARD_MS = 90_000L

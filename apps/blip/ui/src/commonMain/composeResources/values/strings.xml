@@ -8,7 +8,8 @@
     <string name="error_unexpected_generic">Something went wrong.</string>
     <string name="error_unexpected_with_details">Something went wrong: %1$s</string>
     <string name="error_authentication_failure">Authentication failed. Check your API key.</string>
-    <string name="error_blink_permission_denied">Your API key doesn't have permission to send payments. Create a new key with all permissions enabled.</string>
+    <string name="error_blink_permission_denied">Your API key doesn’t have Write permission. Create a new key in the Blink dashboard with Write enabled.</string>
+    <string name="error_blink_required_permissions">Your API key must have Read and Write enabled. Create a new key in the Blink dashboard with both permissions.</string>
     <string name="error_blink_insufficient_balance">Insufficient balance in your Blink wallet.</string>
     <string name="error_blink_route_not_found">Could not find a route to complete this payment. The recipient may be offline or unreachable.</string>
     <string name="error_blink_invoice_expired">This invoice has expired. Please request a new one.</string>
