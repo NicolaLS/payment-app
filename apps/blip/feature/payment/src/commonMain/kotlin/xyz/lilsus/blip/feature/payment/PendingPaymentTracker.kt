@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 
 internal class PendingPaymentTracker(
     private val currencyManager: PaymentCurrencyManager,
@@ -253,6 +254,7 @@ internal class PendingPaymentTracker(
         is PaymentUiError.Blink -> error.shortMessage()
         is PaymentUiError.InvalidInvoice -> reason
         is PaymentUiError.Lnurl -> reason
+        is PaymentUiError.ExchangeRateUnavailable -> "Exchange rate unavailable for $currencyCode"
         is PaymentUiError.Unexpected -> detail
     }
 

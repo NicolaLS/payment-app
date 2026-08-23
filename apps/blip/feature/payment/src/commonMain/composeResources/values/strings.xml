@@ -15,6 +15,7 @@
     <string name="error_payment_rejected_generic">Payment was rejected.</string>
     <string name="error_payment_rejected_message">Payment was rejected: %1$s</string>
     <string name="error_network_unavailable">No internet connection. Check your network.</string>
+    <string name="error_exchange_rate_unavailable">Exchange rate unavailable for %1$s.</string>
     <string name="error_payment_unconfirmed">Payment status unknown. It may have succeeded.</string>
     <string name="error_payment_unconfirmed_message">Payment status unknown: %1$s</string>
     <string name="error_unexpected_generic">Something went wrong.</string>

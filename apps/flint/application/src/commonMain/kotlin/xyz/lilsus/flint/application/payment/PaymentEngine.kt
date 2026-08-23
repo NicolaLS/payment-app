@@ -6,17 +6,12 @@ import xyz.lilsus.raylsuite.core.model.Satoshi
 interface PaymentEngine {
     val activity: StateFlow<List<PaymentActivity>>
     val confirmationPolicy: StateFlow<PaymentConfirmationPolicy>
-    val amountAssistant: PaymentAmountAssistant
 
     suspend fun prepare(input: String, origin: PaymentOrigin): PreparePaymentResult
     suspend fun prepareAmount(
         handle: PaymentAmountHandle,
         amountSats: Satoshi
     ): PreparePaymentResult
-    suspend fun prepareAmount(
-        handle: PaymentAmountHandle,
-        quote: FiatAmountQuote
-    ): PreparePaymentResult = prepareAmount(handle, quote.sats)
     suspend fun updateConfirmationPolicy(policy: PaymentConfirmationPolicy)
     suspend fun cancel(handle: PaymentDraftHandle)
     suspend fun cancel(handle: PaymentAmountHandle)
@@ -207,7 +202,6 @@ interface SparkPaymentClient {
     suspend fun send(prepared: SdkPreparedPayment, idempotencyKey: String): SdkPayment
     suspend fun getPayment(paymentId: String): SdkPayment
     suspend fun listSentPayments(method: PaymentMethod, fromEpochSeconds: Long): List<SdkPayment>
-    suspend fun loadFiatMarket(): SdkFiatMarket
     suspend fun addEventListener(listener: SparkPaymentEventListener): String
     suspend fun removeEventListener(listenerId: String)
 }

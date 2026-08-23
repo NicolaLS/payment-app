@@ -2,6 +2,7 @@ package xyz.lilsus.flint.feature.payment
 
 import androidx.compose.runtime.Composable
 import xyz.lilsus.flint.feature.payment.generated.resources.Res
+import xyz.lilsus.flint.feature.payment.generated.resources.error_exchange_rate_unavailable
 import xyz.lilsus.flint.feature.payment.generated.resources.error_invalid_invoice
 import xyz.lilsus.flint.feature.payment.generated.resources.error_invalid_invoice_with_details
 import xyz.lilsus.flint.feature.payment.generated.resources.error_lnurl
@@ -70,6 +71,9 @@ private fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
             Res.string.error_lnurl,
             Res.string.error_lnurl_with_details
         )
+
+    is PaymentUiError.ExchangeRateUnavailable ->
+        LocalizedText(Res.string.error_exchange_rate_unavailable, currencyCode)
 
     is PaymentUiError.Unexpected ->
         localizedTextWithOptionalDetail(

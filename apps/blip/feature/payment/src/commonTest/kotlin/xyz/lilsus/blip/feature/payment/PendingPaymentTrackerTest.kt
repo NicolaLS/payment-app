@@ -17,6 +17,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 
 class PendingPaymentTrackerTest {
     @Test

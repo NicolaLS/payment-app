@@ -23,8 +23,6 @@ import kotlinx.coroutines.sync.withLock
 import xyz.lilsus.flint.application.payment.AmountRequiredPayment
 import xyz.lilsus.flint.application.payment.ClaimedPaymentLink
 import xyz.lilsus.flint.application.payment.ConfirmPaymentResult
-import xyz.lilsus.flint.application.payment.FiatAmountQuoteResult
-import xyz.lilsus.flint.application.payment.FiatMinorAmount
 import xyz.lilsus.flint.application.payment.PaymentActivity
 import xyz.lilsus.flint.application.payment.PaymentConfirmationMode as FlintConfirmationMode
 import xyz.lilsus.flint.application.payment.PaymentConfirmationPolicy
@@ -43,9 +41,12 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.model.Satoshi
+import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
+import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
@@ -59,6 +60,7 @@ import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsController
 class PaymentCoordinator(
     private val engine: PaymentEngine,
     private val paymentLinks: PaymentLinkInbox,
+    bitcoinPriceProvider: BitcoinPriceProvider,
     private val currencyPreferences: CurrencyPreferences,
     private val paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
@@ -67,7 +69,7 @@ class PaymentCoordinator(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + coroutineContext)
     private val actionMutex = Mutex()
-    private val currencyManager = PaymentCurrencyManager(engine.amountAssistant, scope)
+    private val currencyManager = PaymentCurrencyManager(bitcoinPriceProvider, scope)
     private val manualAmount =
         ManualAmountController(
             ManualAmountConfig(
@@ -137,7 +139,9 @@ class PaymentCoordinator(
             }
         }
         scope.launch {
-            currencyManager.errors.collectLatest { mutableEvents.emit(PaymentEvent.ShowError(it)) }
+            currencyManager.errors.collectLatest {
+                mutableEvents.emit(PaymentEvent.ShowError(it.toPaymentUiError()))
+            }
         }
         scope.launch {
             engine.activity.collectLatest(::handleActivityUpdate)
@@ -400,43 +404,21 @@ class PaymentCoordinator(
 
     private suspend fun submitManualAmount() {
         val request = manualRequest ?: return
-        val entered = manualAmount.current().amount ?: return
+        val amountMsats = manualAmount.enteredAmountMsats()
+        val sats = amountMsats?.let(::msatsToSatoshi)
+        if (sats == null) {
+            currencyManager.ensureExchangeRateIfNeeded()
+            return
+        }
+        if (currencyManager.needsExchangeRate()) {
+            currencyManager.ensureExchangeRateIfNeeded()
+        }
         mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
-        val result =
-            when (val currency = entered.currency) {
-                is DisplayCurrency.Fiat ->
-                    when (
-                        val quote =
-                            engine.amountAssistant.quoteFiatAmount(
-                                FiatMinorAmount(currency.iso4217.uppercase(), entered.minor)
-                            )
-                    ) {
-                        is FiatAmountQuoteResult.Quoted ->
-                            engine.prepareAmount(request.payment.handle, quote.quote)
-
-                        FiatAmountQuoteResult.WalletUnavailable ->
-                            PreparePaymentResult.WalletUnavailable
-
-                        FiatAmountQuoteResult.CurrencyUnavailable,
-                        FiatAmountQuoteResult.RateUnavailable ->
-                            PreparePaymentResult.SdkFailure
-
-                        FiatAmountQuoteResult.InvalidAmount ->
-                            PreparePaymentResult.Rejected(PaymentRejection.INVALID_AMOUNT)
-                    }
-
-                DisplayCurrency.Bitcoin,
-                DisplayCurrency.Satoshi -> {
-                    val amountMsats = manualAmount.enteredAmountMsats()
-                    val sats = amountMsats?.let(::msatsToSatoshi)
-                    if (sats == null) {
-                        PreparePaymentResult.Rejected(PaymentRejection.INVALID_AMOUNT)
-                    } else {
-                        engine.prepareAmount(request.payment.handle, sats)
-                    }
-                }
-            }
-        applyPrepareResult(result, request.contactContext, requestedAmountMsats = null)
+        applyPrepareResult(
+            engine.prepareAmount(request.payment.handle, sats),
+            request.contactContext,
+            requestedAmountMsats = null
+        )
     }
 
     private suspend fun prepareRequestedAmount(
@@ -677,7 +659,6 @@ class PaymentCoordinator(
             return
         }
         scope.launch {
-            // TODO: Use Breez-native conversion when the deferred currency refactor begins.
             val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcutAmount)
             if (amountMsats == null || amountMsats <= 0L) {
                 showError(PaymentUiError.InvalidInvoice("Shortcut amount could not be converted"))
@@ -804,6 +785,11 @@ private fun PaymentRejection.toPaymentUiError(): PaymentUiError = when (this) {
 
     PaymentRejection.INSUFFICIENT_FUNDS ->
         PaymentUiError.Spark(SparkPaymentError.Rejected("Insufficient balance"))
+}
+
+private fun CurrencyManagerError.toPaymentUiError(): PaymentUiError = when (this) {
+    is CurrencyManagerError.ExchangeRateUnavailable ->
+        PaymentUiError.ExchangeRateUnavailable(currencyCode)
 }
 
 private fun PaymentRejection.toReadableMessage(): String = name.lowercase().replace('_', ' ')

@@ -40,6 +40,8 @@ sealed interface PaymentUiError {
 
     data class Lnurl(val reason: String? = null) : PaymentUiError
 
+    data class ExchangeRateUnavailable(val currencyCode: String) : PaymentUiError
+
     data class Unexpected(val detail: String? = null) : PaymentUiError
 }
 

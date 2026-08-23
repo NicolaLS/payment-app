@@ -12,6 +12,7 @@ import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_permissio
 import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_rate_limited
 import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_route_not_found
 import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_self_payment
+import xyz.lilsus.blip.feature.payment.generated.resources.error_exchange_rate_unavailable
 import xyz.lilsus.blip.feature.payment.generated.resources.error_invalid_invoice
 import xyz.lilsus.blip.feature.payment.generated.resources.error_invalid_invoice_with_details
 import xyz.lilsus.blip.feature.payment.generated.resources.error_lnurl
@@ -51,6 +52,9 @@ private fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
             generic = Res.string.error_lnurl,
             withDetails = Res.string.error_lnurl_with_details
         )
+
+    is PaymentUiError.ExchangeRateUnavailable ->
+        LocalizedText(Res.string.error_exchange_rate_unavailable, currencyCode)
 
     is PaymentUiError.Unexpected ->
         localizedTextWithOptionalDetail(

@@ -32,9 +32,6 @@ import xyz.lilsus.flint.application.payment.ParsedSdkInput
 import xyz.lilsus.flint.application.payment.PaymentMethod
 import xyz.lilsus.flint.application.payment.PaymentNetwork
 import xyz.lilsus.flint.application.payment.PreparedSdkPayload
-import xyz.lilsus.flint.application.payment.SdkFiatCurrency
-import xyz.lilsus.flint.application.payment.SdkFiatMarket
-import xyz.lilsus.flint.application.payment.SdkFiatRate
 import xyz.lilsus.flint.application.payment.SdkPayment
 import xyz.lilsus.flint.application.payment.SdkPaymentStatus
 import xyz.lilsus.flint.application.payment.SdkPreparationResult
@@ -192,20 +189,6 @@ class BreezSparkPaymentClient(private val sdk: BreezSdk) : SparkPaymentClient {
             if (batch.size < RECOVERY_PAGE_SIZE.toInt()) return payments
         }
         error("Bounded Breez recovery search was truncated")
-    }
-
-    override suspend fun loadFiatMarket(): SdkFiatMarket {
-        val currencies = sdk.listFiatCurrencies().currencies.map { currency ->
-            SdkFiatCurrency(
-                code = currency.id,
-                name = currency.info.name,
-                fractionDigits = currency.info.fractionSize.toInt()
-            )
-        }
-        val rates = sdk.listFiatRates().rates.map { rate ->
-            SdkFiatRate(code = rate.coin, pricePerBitcoin = rate.value)
-        }
-        return SdkFiatMarket(currencies, rates)
     }
 
     override suspend fun addEventListener(listener: SparkPaymentEventListener): String =

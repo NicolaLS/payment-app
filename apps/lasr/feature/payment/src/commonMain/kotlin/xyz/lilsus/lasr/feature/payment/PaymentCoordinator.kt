@@ -37,6 +37,9 @@ import xyz.lilsus.raylsuite.core.payment.lnurlDynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
+import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
+import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentConfirmationPolicy
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
@@ -133,7 +136,7 @@ class PaymentCoordinator(
         }
         scope.launch {
             currencyManager.errors.collect { error ->
-                mutableEvents.tryEmit(PaymentEvent.ShowError(error))
+                mutableEvents.tryEmit(PaymentEvent.ShowError(error.toPaymentUiError()))
             }
         }
         scope.launch {
@@ -446,7 +449,6 @@ class PaymentCoordinator(
             return
         }
         scope.launch {
-            // TODO: Move this to Lasr's improved app-owned currency manager during the deferred refactor.
             val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcutAmount)
             if (amountMsats == null || amountMsats <= 0L) {
                 emitError(PaymentUiError.InvalidInvoice("Shortcut amount could not be converted"))
@@ -1210,6 +1212,11 @@ private sealed interface PendingRetryContinuation {
 }
 
 private fun Throwable.toPaymentUiError(): PaymentUiError = PaymentUiError.Unexpected(message)
+
+private fun CurrencyManagerError.toPaymentUiError(): PaymentUiError = when (this) {
+    is CurrencyManagerError.ExchangeRateUnavailable ->
+        PaymentUiError.ExchangeRateUnavailable(currencyCode)
+}
 
 private fun LnurlError.toPaymentUiError(): PaymentUiError = when (this) {
     LnurlError.NetworkUnavailable ->

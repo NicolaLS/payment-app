@@ -17,6 +17,7 @@ import xyz.lilsus.lasr.integration.nwc.NwcLookupOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcPayOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcSentPayment
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 
 internal class PendingPaymentTracker(
     private val lookupInvoice: suspend (String, Long) -> NwcLookupOutcome,

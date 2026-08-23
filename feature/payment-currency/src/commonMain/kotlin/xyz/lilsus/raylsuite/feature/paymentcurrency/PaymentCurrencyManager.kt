@@ -1,6 +1,5 @@
-package xyz.lilsus.lasr.feature.payment
+package xyz.lilsus.raylsuite.feature.paymentcurrency
 
-import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToLong
 import kotlin.time.ComparableTimeMark
@@ -37,8 +36,8 @@ class PaymentCurrencyManager(
         )
     val state: StateFlow<CurrencyState> = mutableState.asStateFlow()
 
-    private val mutableErrors = MutableSharedFlow<PaymentUiError>(extraBufferCapacity = 4)
-    val errors: SharedFlow<PaymentUiError> = mutableErrors.asSharedFlow()
+    private val mutableErrors = MutableSharedFlow<CurrencyManagerError>(extraBufferCapacity = 4)
+    val errors: SharedFlow<CurrencyManagerError> = mutableErrors.asSharedFlow()
 
     private var exchangeRateJob: Job? = null
     private var exchangeRateRequestId: Int = 0
@@ -109,19 +108,20 @@ class PaymentCurrencyManager(
         val requestId = exchangeRateRequestId
         exchangeRateJob =
             scope.launch {
-                val price = bitcoinPriceProvider.pricePerBitcoin(info.code)
+                val price =
+                    bitcoinPriceProvider
+                        .pricePerBitcoin(info.code)
+                        ?.takeIf { it.isFinite() && it > 0.0 }
                 if (requestId != exchangeRateRequestId) return@launch
                 if (price == null) {
                     lastExchangeRateRefresh = null
-                    mutableErrors.tryEmit(
-                        PaymentUiError.Unexpected("Exchange rate unavailable")
-                    )
+                    mutableErrors.tryEmit(CurrencyManagerError.ExchangeRateUnavailable(info.code))
                     return@launch
                 }
                 mutableState.value =
                     CurrencyState(
                         info = info,
-                        exchangeRate = max(price, 0.0)
+                        exchangeRate = price
                     )
                 lastExchangeRateRefresh = timeSource.markNow()
             }
@@ -155,11 +155,9 @@ class PaymentCurrencyManager(
         val price =
             bitcoinPriceProvider
                 .pricePerBitcoin(code)
-                ?.let { max(it, 0.0) }
+                ?.takeIf { it.isFinite() && it > 0.0 }
                 ?: run {
-                    mutableErrors.tryEmit(
-                        PaymentUiError.Unexpected("Exchange rate unavailable")
-                    )
+                    mutableErrors.tryEmit(CurrencyManagerError.ExchangeRateUnavailable(code))
                     return null
                 }
         shortcutExchangeRates[code] =
@@ -182,5 +180,9 @@ class PaymentCurrencyManager(
 }
 
 data class CurrencyState(val info: CurrencyInfo, val exchangeRate: Double?)
+
+sealed interface CurrencyManagerError {
+    data class ExchangeRateUnavailable(val currencyCode: String) : CurrencyManagerError
+}
 
 private data class CachedExchangeRate(val pricePerBitcoin: Double, val storedAt: ComparableTimeMark)

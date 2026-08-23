@@ -21,14 +21,12 @@ class DefaultPaymentEngine(
     private val nowEpochSeconds: () -> Long = ::currentEpochSeconds,
     private val newAttemptId: () -> String = { Uuid.random().toString() }
 ) : PaymentEngine,
-    PaymentAmountAssistant,
     PaymentSessionLifecycle {
     private val draftMutex = Mutex()
     private val submissionMutex = Mutex()
     private val sessionMutex = Mutex()
     private val refreshMutex = Mutex()
     private val policyMutex = Mutex()
-    private val fiatMutex = Mutex()
     private val drafts = mutableMapOf<String, VerifiedDraft>()
     private val amountDrafts = mutableMapOf<String, AmountDraft>()
     private val handlesByFingerprint = mutableMapOf<InvoiceFingerprint, String>()
@@ -38,12 +36,10 @@ class DefaultPaymentEngine(
     private var client: SparkPaymentClient? = null
     private var listenerId: String? = null
     private var sessionGeneration = 0L
-    private var fiatMarketSnapshot: FiatMarketSnapshot? = null
 
     override val activity: StateFlow<List<PaymentActivity>> = mutableActivity.asStateFlow()
     override val confirmationPolicy: StateFlow<PaymentConfirmationPolicy> =
         mutableConfirmationPolicy.asStateFlow()
-    override val amountAssistant: PaymentAmountAssistant = this
 
     override suspend fun attach(client: SparkPaymentClient) {
         val attached = sessionMutex.withLock {
@@ -201,17 +197,6 @@ class DefaultPaymentEngine(
         amountSats: Satoshi
     ): PreparePaymentResult = prepareAmountInternal(handle, amountSats)
 
-    override suspend fun prepareAmount(
-        handle: PaymentAmountHandle,
-        quote: FiatAmountQuote
-    ): PreparePaymentResult {
-        val age = nowEpochSeconds() - quote.rate.observedAtEpochSeconds
-        if (age !in 0 until FIAT_RATE_TTL_SECONDS) {
-            return PreparePaymentResult.Rejected(PaymentRejection.INVALID_AMOUNT)
-        }
-        return prepareAmountInternal(handle, quote.sats)
-    }
-
     private suspend fun prepareAmountInternal(
         handle: PaymentAmountHandle,
         amountSats: Satoshi
@@ -293,18 +278,6 @@ class DefaultPaymentEngine(
         policyMutex.withLock {
             mutableConfirmationPolicy.value = policy
         }
-
-    override suspend fun pricePerBitcoin(fiatCurrencyCode: String): Double? =
-        loadFiatMarket()?.rates?.get(normalizeCurrencyCode(fiatCurrencyCode))
-
-    override suspend fun quoteFiatAmount(amount: FiatMinorAmount): FiatAmountQuoteResult {
-        val market = loadFiatMarket() ?: return if (client == null) {
-            FiatAmountQuoteResult.WalletUnavailable
-        } else {
-            FiatAmountQuoteResult.RateUnavailable
-        }
-        return market.quote(amount)
-    }
 
     override suspend fun cancel(handle: PaymentDraftHandle) = draftMutex.withLock {
         consumeDraft(handle)
@@ -424,36 +397,6 @@ class DefaultPaymentEngine(
 
     private suspend fun currentPolicy(): PaymentConfirmationPolicy =
         policyMutex.withLock { mutableConfirmationPolicy.value }
-
-    private suspend fun loadFiatMarket(): FiatMarketSnapshot? = fiatMutex.withLock {
-        val now = nowEpochSeconds()
-        fiatMarketSnapshot?.takeIf {
-            now - it.observedAtEpochSeconds in
-                0 until FIAT_RATE_TTL_SECONDS
-        }
-            ?.let { return@withLock it }
-        val currentClient = client ?: return@withLock null
-        val market = sdkResult(operationTimeouts.lookupMillis) { currentClient.loadFiatMarket() }
-            ?: return@withLock null
-        val currencies = market.currencies.mapNotNull { item ->
-            val code = normalizeCurrencyCode(item.code)
-            val name = item.name.trim().take(MAX_CURRENCY_NAME_LENGTH).ifBlank { code }
-            runCatching { FiatCurrency(code, name, item.fractionDigits) }.getOrNull()
-        }.distinctBy(FiatCurrency::code)
-        if (currencies.isEmpty()) return@withLock null
-        val supportedCodes = currencies.mapTo(mutableSetOf(), FiatCurrency::code)
-        val rates = market.rates.mapNotNull { item ->
-            val code = normalizeCurrencyCode(item.code)
-            if (code !in supportedCodes || !item.pricePerBitcoin.isFinite() ||
-                item.pricePerBitcoin <= 0.0
-            ) {
-                null
-            } else {
-                code to item.pricePerBitcoin
-            }
-        }.toMap()
-        FiatMarketSnapshot(currencies, rates, now).also { fiatMarketSnapshot = it }
-    }
 
     override fun requestRefresh() {
         applicationScope.launch {
@@ -803,7 +746,6 @@ class DefaultPaymentEngine(
             }
         } finally {
             paymentsById.clear()
-            fiatMarketSnapshot = null
             publishActivity()
         }
     }
@@ -827,11 +769,6 @@ class DefaultPaymentEngine(
             require(submissionMillis > 0)
             require(lookupMillis > 0)
         }
-    }
-
-    private companion object {
-        const val FIAT_RATE_TTL_SECONDS = 60L
-        const val MAX_CURRENCY_NAME_LENGTH = 80
     }
 
     private fun consumeDraft(handle: PaymentDraftHandle): VerifiedDraft? {

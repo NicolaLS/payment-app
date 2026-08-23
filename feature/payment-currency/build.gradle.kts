@@ -4,14 +4,14 @@ plugins {
 
 kotlin {
     android {
-        namespace = "xyz.lilsus.flint.application"
+        namespace = "xyz.lilsus.raylsuite.feature.paymentcurrency"
     }
 
     sourceSets {
         commonMain.dependencies {
             api(project(":core:model"))
+            api(project(":core:payment"))
             api(libs.kotlinx.coroutines.core)
-            implementation(libs.okio)
         }
     }
 }
