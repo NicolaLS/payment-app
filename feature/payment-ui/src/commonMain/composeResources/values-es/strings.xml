@@ -27,6 +27,13 @@
     <string name="result_receipt_body_suffix"> se puede conocer cuando el pago fue liquidado.</string>
     <string name="payment_receipt_qr_content_description">Código QR del recibo de pago</string>
     <string name="result_error_title">Error</string>
+    <string name="error_invalid_invoice">Esta factura es inválida o está malformada.</string>
+    <string name="error_invalid_invoice_with_details">Esta factura es inválida: %1$s</string>
+    <string name="error_lnurl">No se pudo resolver esta dirección de pago.</string>
+    <string name="error_lnurl_with_details">No se pudo resolver la dirección de pago: %1$s</string>
+    <string name="error_exchange_rate_unavailable">El tipo de cambio para %1$s no está disponible.</string>
+    <string name="error_unexpected_generic">Algo salió mal.</string>
+    <string name="error_unexpected_with_details">Algo salió mal: %1$s</string>
     <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
     <string name="pay_sheet_contacts_tab">Contactos</string>
     <string name="shortcuts_empty">Todavía no hay shortcuts</string>

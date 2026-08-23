@@ -27,6 +27,13 @@
     <string name="result_receipt_body_suffix"> bekannt sein, wenn die Zahlung abgeschlossen wurde.</string>
     <string name="payment_receipt_qr_content_description">QR-Code des Zahlungsbelegs</string>
     <string name="result_error_title">Fehler</string>
+    <string name="error_invalid_invoice">Diese Rechnung ist ungültig oder fehlerhaft.</string>
+    <string name="error_invalid_invoice_with_details">Diese Rechnung ist ungültig: %1$s</string>
+    <string name="error_lnurl">Diese Zahlungsadresse konnte nicht aufgelöst werden.</string>
+    <string name="error_lnurl_with_details">Zahlungsadresse konnte nicht aufgelöst werden: %1$s</string>
+    <string name="error_exchange_rate_unavailable">Wechselkurs für %1$s nicht verfügbar.</string>
+    <string name="error_unexpected_generic">Es ist ein Fehler aufgetreten.</string>
+    <string name="error_unexpected_with_details">Es ist ein Fehler aufgetreten: %1$s</string>
     <string name="pay_sheet_shortcuts_tab">Shortcuts</string>
     <string name="pay_sheet_contacts_tab">Kontakte</string>
     <string name="shortcuts_empty">Noch keine Shortcuts</string>

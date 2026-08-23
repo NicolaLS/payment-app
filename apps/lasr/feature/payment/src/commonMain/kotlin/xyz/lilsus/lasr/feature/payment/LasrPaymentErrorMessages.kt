@@ -2,11 +2,6 @@ package xyz.lilsus.lasr.feature.payment
 
 import androidx.compose.runtime.Composable
 import xyz.lilsus.lasr.feature.payment.generated.resources.Res
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_exchange_rate_unavailable
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_invalid_invoice
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_invalid_invoice_with_details
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_lnurl
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_lnurl_with_details
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_missing_wallet_connection
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_network_unavailable
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_rejected_generic
@@ -14,10 +9,12 @@ import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_rejecte
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_unconfirmed
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_unconfirmed_message
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_relay_connection_failed
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_unexpected_generic
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_unexpected_with_details
 import xyz.lilsus.raylsuite.core.ui.resources.LocalizedText
 import xyz.lilsus.raylsuite.core.ui.resources.localizedTextWithOptionalDetail
+import xyz.lilsus.raylsuite.feature.paymentui.exchangeRateUnavailablePaymentErrorText
+import xyz.lilsus.raylsuite.feature.paymentui.invalidInvoicePaymentErrorText
+import xyz.lilsus.raylsuite.feature.paymentui.lnurlPaymentErrorText
+import xyz.lilsus.raylsuite.feature.paymentui.unexpectedPaymentErrorText
 
 @Composable
 fun lasrPaymentErrorMessageFor(error: PaymentUiError): String = error.toLocalizedText().resolve()
@@ -51,35 +48,15 @@ private fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
             )
 
         is NwcPaymentError.DefinitelyNotSent,
-        is NwcPaymentError.Unexpected ->
-            localizedTextWithOptionalDetail(
-                nwcError.detail,
-                Res.string.error_unexpected_generic,
-                Res.string.error_unexpected_with_details
-            )
+        is NwcPaymentError.Unexpected -> unexpectedPaymentErrorText(nwcError.detail)
     }
 
-    is PaymentUiError.InvalidInvoice ->
-        localizedTextWithOptionalDetail(
-            reason,
-            Res.string.error_invalid_invoice,
-            Res.string.error_invalid_invoice_with_details
-        )
+    is PaymentUiError.InvalidInvoice -> invalidInvoicePaymentErrorText(reason)
 
-    is PaymentUiError.Lnurl ->
-        localizedTextWithOptionalDetail(
-            reason,
-            Res.string.error_lnurl,
-            Res.string.error_lnurl_with_details
-        )
+    is PaymentUiError.Lnurl -> lnurlPaymentErrorText(reason)
 
     is PaymentUiError.ExchangeRateUnavailable ->
-        LocalizedText(Res.string.error_exchange_rate_unavailable, currencyCode)
+        exchangeRateUnavailablePaymentErrorText(currencyCode)
 
-    is PaymentUiError.Unexpected ->
-        localizedTextWithOptionalDetail(
-            detail,
-            Res.string.error_unexpected_generic,
-            Res.string.error_unexpected_with_details
-        )
+    is PaymentUiError.Unexpected -> unexpectedPaymentErrorText(detail)
 }
