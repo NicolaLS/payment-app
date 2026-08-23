@@ -2,6 +2,7 @@ package xyz.lilsus.blip.feature.payment
 
 import fr.acinq.lightning.payment.Bolt11Invoice
 import fr.acinq.lightning.utils.msat
+import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -20,7 +21,7 @@ internal class PendingPaymentTracker(
     private val currencyManager: PaymentCurrencyManager,
     private val scope: CoroutineScope,
     private val showEstimatedFeeHint: Boolean,
-    private val clock: () -> Long = ::platformCurrentTimeMillis
+    private val clock: () -> Long = ::currentTimeMillis
 ) {
     private val records = MutableStateFlow<Map<String, PendingRecord>>(emptyMap())
     private val visibilityJobs = mutableMapOf<String, Job>()
@@ -312,4 +313,4 @@ private fun PendingStatus.isUnresolved(): Boolean = this == PendingStatus.Sendin
     this == PendingStatus.PendingInBlink ||
     this == PendingStatus.StatusUnknown
 
-internal expect fun platformCurrentTimeMillis(): Long
+internal fun currentTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()

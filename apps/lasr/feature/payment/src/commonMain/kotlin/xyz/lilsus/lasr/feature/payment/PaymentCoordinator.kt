@@ -86,7 +86,7 @@ class PaymentCoordinator(
             repository = contactsRepository,
             scope = scope,
             onPaymentRequested = ::requestContactPayment,
-            clock = ::platformCurrentTimeMillis
+            clock = ::currentTimeMillis
         )
 
     private val mutableUiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Active)

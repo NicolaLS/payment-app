@@ -82,7 +82,7 @@ class PaymentCoordinator(
             repository = contactsRepository,
             scope = scope,
             onPaymentRequested = ::requestContactPayment,
-            clock = ::platformCurrentTimeMillis
+            clock = ::currentTimeMillis
         )
 
     private val mutableUiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Active)
@@ -825,7 +825,7 @@ private inline fun ignoreHapticFailure(block: () -> Unit) {
     }
 }
 
-internal fun platformCurrentTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()
+internal fun currentTimeMillis(): Long = Clock.System.now().toEpochMilliseconds()
 
 internal fun roundToFullSatoshis(msats: Long): Long =
     ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
