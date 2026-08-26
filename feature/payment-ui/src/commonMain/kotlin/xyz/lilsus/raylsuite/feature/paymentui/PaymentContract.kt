@@ -10,6 +10,10 @@ sealed interface PaymentToastMessage {
     data object BitcoinAddressNotSupported : PaymentToastMessage
 
     data object Bolt12NotSupported : PaymentToastMessage
+
+    data object LnurlRequestNotSupported : PaymentToastMessage
+
+    data object PaymentLinkNotSupported : PaymentToastMessage
 }
 
 sealed interface PaymentIntent {

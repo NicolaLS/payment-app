@@ -1,25 +1,90 @@
 package xyz.lilsus.raylsuite.core.payment
 
 import com.eygraber.uri.Uri
-import fr.acinq.bitcoin.Bech32
 import fr.acinq.bitcoin.Bitcoin
 import fr.acinq.bitcoin.Chain
 import fr.acinq.bitcoin.utils.Try
 import fr.acinq.lightning.payment.Bolt11Invoice
-import fr.acinq.lightning.payment.Bolt12Invoice
 import fr.acinq.lightning.payment.PaymentRequest
-import fr.acinq.lightning.utils.currentTimestampSeconds
 import fr.acinq.lightning.wire.OfferTypes
-import kotlin.math.min
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 
-class LightningInputParser(private val nowSeconds: () -> Long = ::currentTimestampSeconds) {
-    fun parse(raw: String): ParseResult {
-        val trimmed = raw.trim()
-        if (trimmed.isEmpty()) {
-            return ParseResult.Failure(FailureReason.Empty)
+/**
+ * Suite-level composition of provider-neutral payment-input parsers.
+ *
+ * [additionalInstantParsers] are placed immediately after raw BOLT11, so an app such as Flint
+ * can add its native Spark parser without changing shared priorities. List order is the only
+ * priority mechanism; there is no mutable or numeric parser registry.
+ */
+class LightningInputParser(
+    additionalInstantParsers: List<PaymentInputParser<Target, FailureReason>> = emptyList(),
+    private val lnurlParser: LnurlParser = DefaultLnurlParser()
+) {
+    private val parser =
+        OrderedPaymentInputParser(
+            supportedParsers =
+                buildList {
+                    add(PaymentInputParser(::parseBolt11))
+                    addAll(additionalInstantParsers)
+                    add(PaymentInputParser(::unwrapLightningScheme))
+                    add(PaymentInputParser(::parseLnurl))
+                    add(PaymentInputParser(::unwrapLightningFallback))
+                },
+            unsupportedParsers =
+                listOf(
+                    PaymentInputParser(::recognizeUnsupportedLnurl),
+                    PaymentInputParser(::recognizeBolt12),
+                    PaymentInputParser(::recognizeBitcoin)
+                )
+        )
+
+    suspend fun parse(raw: String): ParseResult {
+        val input = raw.trim()
+        if (input.isEmpty()) return ParseResult.Failure(FailureReason.Empty)
+
+        return parser.parse(input).toParseResult()
+    }
+
+    /**
+     * Admits only the two external URL contracts registered by the apps:
+     * `lightning:<BOLT11>` and LUD17 `lnurlp://...`.
+     */
+    suspend fun parseDeepLink(raw: String): ParseResult {
+        val input = raw.trim()
+        if (input.isEmpty()) return ParseResult.Failure(FailureReason.Empty)
+        if (input.length > MAX_DEEP_LINK_LENGTH || input.any(::isUnsafeDeepLinkCharacter)) {
+            return ParseResult.Failure(FailureReason.UnsupportedDeepLink)
         }
-        return parseInternal(trimmed, allowBitcoinScheme = true)
+
+        return when {
+            input.startsWith(LIGHTNING_PREFIX, ignoreCase = true) -> {
+                val payload = input.substring(LIGHTNING_PREFIX.length)
+                if (payload.isEmpty() || payload.startsWith("//") || ':' in payload) {
+                    ParseResult.Failure(FailureReason.UnsupportedDeepLink)
+                } else {
+                    when (val result = parser.parse(payload).toParseResult()) {
+                        is ParseResult.Success ->
+                            result.takeIf { it.target is Target.Bolt11 }
+                                ?: ParseResult.Failure(FailureReason.UnsupportedDeepLink)
+
+                        is ParseResult.Failure -> result
+                    }
+                }
+            }
+
+            input.startsWith(LUD17_PAY_PREFIX, ignoreCase = true) ->
+                when (val result = parser.parse(input).toParseResult()) {
+                    is ParseResult.Success ->
+                        result.takeIf {
+                            (it.target as? Target.Lnurl)?.request?.inputFormat ==
+                                LnurlInputFormat.LUD17_PAY
+                        } ?: ParseResult.Failure(FailureReason.UnsupportedDeepLink)
+
+                    is ParseResult.Failure -> result
+                }
+
+            else -> ParseResult.Failure(FailureReason.UnsupportedDeepLink)
+        }
     }
 
     sealed interface ParseResult {
@@ -35,172 +100,171 @@ class LightningInputParser(private val nowSeconds: () -> Long = ::currentTimesta
 
         data object Bolt12 : FailureReason
 
-        data class InvalidInvoice(val reason: String?) : FailureReason
+        data object UnsupportedLnurl : FailureReason
 
-        data object ExpiredInvoice : FailureReason
+        data object InvalidLnurl : FailureReason
+
+        data object UnsupportedDeepLink : FailureReason
+
+        data class InvalidInvoice(val reason: String?) : FailureReason
 
         data object Unrecognized : FailureReason
     }
 
-    sealed interface Target {
-        data class Lnurl(val endpoint: String) : Target
+    interface Target {
+        data class Lnurl(val request: ParsedLnurl) : Target {
+            val endpoint: String
+                get() = request.serviceUrl
+        }
 
         data class LightningAddressTarget(val address: LightningAddress) : Target
 
         data class Bolt11(val invoice: Bolt11Invoice) : Target
     }
 
-    private fun parseInternal(value: String, allowBitcoinScheme: Boolean): ParseResult {
-        var current = value.trim()
+    private fun parseBolt11(value: String): PaymentInputParseAttempt<Target, FailureReason> {
+        if (!looksLikeBolt11(value)) return PaymentInputParseAttempt.NoMatch
 
-        if (current.startsWith("lightning:", ignoreCase = true)) {
-            current = current.substringAfter(':')
-        }
-
-        if (allowBitcoinScheme && current.startsWith("bitcoin:", ignoreCase = true)) {
-            val withoutScheme = current.substring(BITCOIN_SCHEME_LENGTH)
-            val queryIndex = withoutScheme.indexOf('?')
-            if (queryIndex != -1 && queryIndex < withoutScheme.lastIndex) {
-                val query = withoutScheme.substring(queryIndex + 1)
-                val lightningParam = parseQuery(query)["lightning"]
-                if (!lightningParam.isNullOrBlank()) {
-                    return parseInternal(lightningParam, allowBitcoinScheme = false)
-                }
+        return when (val decoded = PaymentRequest.read(value)) {
+            is Try.Success -> {
+                val invoice = decoded.result as? Bolt11Invoice
+                    ?: return PaymentInputParseAttempt.Rejected(FailureReason.Bolt12)
+                PaymentInputParseAttempt.Parsed(Target.Bolt11(invoice))
             }
 
-            val beforeQuery =
-                if (queryIndex == -1) {
-                    withoutScheme
-                } else {
-                    withoutScheme.substring(0, queryIndex)
-                }
-            if (looksLikeLnurl(beforeQuery)) {
-                return parseInternal(beforeQuery, allowBitcoinScheme = false)
-            }
-            return ParseResult.Failure(FailureReason.BitcoinAddress)
+            is Try.Failure ->
+                PaymentInputParseAttempt.Rejected(
+                    FailureReason.InvalidInvoice(decoded.error.message)
+                )
         }
+    }
 
-        LightningAddress.parse(current)?.let { address ->
-            return ParseResult.Success(Target.LightningAddressTarget(address))
+    private fun unwrapLightningScheme(
+        value: String
+    ): PaymentInputParseAttempt<Target, FailureReason> {
+        if (!value.startsWith(LIGHTNING_PREFIX, ignoreCase = true)) {
+            return PaymentInputParseAttempt.NoMatch
         }
-
-        val lnurlEndpoint =
-            when {
-                current.startsWith("lnurlp://", ignoreCase = true) ->
-                    convertSchemeToHttp(current, "lnurlp")
-
-                current.startsWith("lnurlw://", ignoreCase = true) ->
-                    convertSchemeToHttp(current, "lnurlw")
-
-                current.startsWith("lnurl://", ignoreCase = true) ->
-                    convertSchemeToHttp(current, "lnurl")
-
-                looksLikeLnurl(current) -> decodeBech32Lnurl(current)
-
-                current.startsWith("https://", ignoreCase = true) ||
-                    current.startsWith("http://", ignoreCase = true) ->
-                    current.takeIf(::looksLikeLnurlHttpUrl)
-
-                else -> null
-            }
-        if (lnurlEndpoint != null) {
-            return ParseResult.Success(Target.Lnurl(lnurlEndpoint))
+        val payload = value.substring(LIGHTNING_PREFIX.length)
+        return if (payload.isEmpty() || payload.startsWith("//") || ':' in payload) {
+            PaymentInputParseAttempt.Rejected(FailureReason.Unrecognized)
+        } else {
+            PaymentInputParseAttempt.Reparse(payload)
         }
+    }
 
-        if (OfferTypes.Offer.decode(current) is Try.Success) {
-            return ParseResult.Failure(FailureReason.Bolt12)
-        }
-
-        if (looksLikePaymentRequest(current)) {
-            return when (val decoded = PaymentRequest.read(current)) {
-                is Try.Success ->
-                    when (val request = decoded.result) {
-                        is Bolt11Invoice ->
-                            if (request.isExpired(nowSeconds())) {
-                                ParseResult.Failure(FailureReason.ExpiredInvoice)
-                            } else {
-                                ParseResult.Success(Target.Bolt11(request))
-                            }
-
-                        is Bolt12Invoice -> ParseResult.Failure(FailureReason.Bolt12)
+    private fun parseLnurl(value: String): PaymentInputParseAttempt<Target, FailureReason> =
+        when (val result = lnurlParser.parse(value)) {
+            is LnurlParseResult.Parsed -> {
+                val request = result.request
+                val address =
+                    if (request.inputFormat == LnurlInputFormat.LIGHTNING_ADDRESS) {
+                        LightningAddress.parse(value)
+                    } else {
+                        null
                     }
-
-                is Try.Failure ->
-                    ParseResult.Failure(
-                        FailureReason.InvalidInvoice(decoded.error.message)
-                    )
+                if (address != null) {
+                    PaymentInputParseAttempt.Parsed(Target.LightningAddressTarget(address))
+                } else {
+                    PaymentInputParseAttempt.Parsed(Target.Lnurl(request))
+                }
             }
+
+            LnurlParseResult.Invalid ->
+                PaymentInputParseAttempt.Rejected(FailureReason.InvalidLnurl)
+
+            LnurlParseResult.UnsupportedSubprotocol ->
+                PaymentInputParseAttempt.Rejected(FailureReason.UnsupportedLnurl)
+
+            LnurlParseResult.NoMatch -> PaymentInputParseAttempt.NoMatch
         }
 
-        if (looksLikeBitcoinAddress(current)) {
-            return ParseResult.Failure(FailureReason.BitcoinAddress)
+    private fun unwrapLightningFallback(
+        value: String
+    ): PaymentInputParseAttempt<Target, FailureReason> {
+        if ('?' !in value || ':' !in value ||
+            UNSUPPORTED_LNURL_PREFIXES.any { value.startsWith(it, ignoreCase = true) }
+        ) {
+            return PaymentInputParseAttempt.NoMatch
         }
-
-        return ParseResult.Failure(FailureReason.Unrecognized)
+        val query = value.substringAfter('?', missingDelimiterValue = "")
+        val lightningValues = parseQuery(query).filter { it.first.equals("lightning", true) }
+        return when (lightningValues.size) {
+            0 -> PaymentInputParseAttempt.NoMatch
+            1 -> PaymentInputParseAttempt.Reparse(lightningValues.single().second)
+            else -> PaymentInputParseAttempt.Rejected(FailureReason.Unrecognized)
+        }
     }
 
-    private fun looksLikeLnurl(value: String): Boolean {
-        if (value.length < MIN_LNURL_PREFIX_LENGTH) return false
-        val prefix = value.substring(0, min(MIN_LNURL_PREFIX_LENGTH, value.length)).lowercase()
-        return prefix.startsWith("lnurl")
-    }
-
-    private fun looksLikePaymentRequest(value: String): Boolean =
-        value.startsWith("ln", ignoreCase = true)
-
-    private fun looksLikeBitcoinAddress(value: String): Boolean =
-        SUPPORTED_BITCOIN_CHAINS.any { chain ->
-            Bitcoin.addressToPublicKeyScript(chain.chainHash, value).isRight
+    private fun recognizeUnsupportedLnurl(
+        value: String
+    ): PaymentInputParseAttempt<Target, FailureReason> =
+        if (UNSUPPORTED_LNURL_PREFIXES.any { value.startsWith(it, ignoreCase = true) }) {
+            PaymentInputParseAttempt.Rejected(FailureReason.UnsupportedLnurl)
+        } else {
+            PaymentInputParseAttempt.NoMatch
         }
 
-    private fun decodeBech32Lnurl(value: String): String? = runCatching {
-        val (humanReadablePart, data, _) = Bech32.decode(value)
-        if (!humanReadablePart.equals("lnurl", ignoreCase = true)) {
-            return@runCatching null
+    private fun recognizeBolt12(value: String): PaymentInputParseAttempt<Target, FailureReason> =
+        if (value.startsWith(BOLT12_OFFER_PREFIX, ignoreCase = true) &&
+            OfferTypes.Offer.decode(value) is Try.Success
+        ) {
+            PaymentInputParseAttempt.Rejected(FailureReason.Bolt12)
+        } else {
+            PaymentInputParseAttempt.NoMatch
         }
-        Bech32.five2eight(data, 0).decodeToString()
-    }.getOrNull()
 
-    private fun convertSchemeToHttp(value: String, scheme: String): String? {
-        val withoutScheme = value.substringAfter("$scheme://", missingDelimiterValue = "")
-        if (withoutScheme.isEmpty()) return null
-        val protocol =
-            if (withoutScheme.contains(".onion", ignoreCase = true)) {
-                "http"
-            } else {
-                "https"
+    private fun recognizeBitcoin(value: String): PaymentInputParseAttempt<Target, FailureReason> {
+        if (value.startsWith(BITCOIN_PREFIX, ignoreCase = true)) {
+            return PaymentInputParseAttempt.Rejected(FailureReason.BitcoinAddress)
+        }
+        val isAddress =
+            SUPPORTED_BITCOIN_CHAINS.any { chain ->
+                Bitcoin.addressToPublicKeyScript(chain.chainHash, value).isRight
             }
-        return "$protocol://$withoutScheme"
+        return if (isAddress) {
+            PaymentInputParseAttempt.Rejected(FailureReason.BitcoinAddress)
+        } else {
+            PaymentInputParseAttempt.NoMatch
+        }
     }
 
-    private fun looksLikeLnurlHttpUrl(value: String): Boolean {
-        val lower = value.lowercase()
-        return lower.contains("/.well-known/lnurlp/") ||
-            lower.contains("/lnurlp/") ||
-            lower.contains("/lnurl/") ||
-            lower.contains("tag=payrequest") ||
-            lower.contains("lnurl=") ||
-            lower.contains("lightning=")
+    private fun looksLikeBolt11(value: String): Boolean =
+        BOLT11_PREFIXES.any { value.startsWith(it, ignoreCase = true) }
+
+    private fun parseQuery(query: String): List<Pair<String, String>> {
+        if (query.isEmpty()) return emptyList()
+        return query.split('&').mapNotNull { pair ->
+            if (pair.isEmpty()) return@mapNotNull null
+            val parts = pair.split('=', limit = 2)
+            val key = parts.firstOrNull() ?: return@mapNotNull null
+            runCatching {
+                Uri.decode(key, convertPlus = true) to
+                    Uri.decode(parts.getOrNull(1).orEmpty(), convertPlus = true)
+            }.getOrNull()
+        }
     }
 
-    private fun parseQuery(query: String): Map<String, String> {
-        if (query.isEmpty()) return emptyMap()
-        return query
-            .split('&')
-            .mapNotNull { pair ->
-                if (pair.isEmpty()) return@mapNotNull null
-                val parts = pair.split('=', limit = 2)
-                val key = parts.firstOrNull() ?: return@mapNotNull null
-                val value = parts.getOrNull(1).orEmpty()
-                Uri.decode(key, convertPlus = true).lowercase() to
-                    Uri.decode(value, convertPlus = true)
-            }.toMap()
-    }
+    private fun PaymentInputParseAttempt<Target, FailureReason>.toParseResult(): ParseResult =
+        when (this) {
+            is PaymentInputParseAttempt.Parsed -> ParseResult.Success(value)
+
+            is PaymentInputParseAttempt.Rejected -> ParseResult.Failure(reason)
+
+            PaymentInputParseAttempt.NoMatch,
+            is PaymentInputParseAttempt.Reparse
+            -> ParseResult.Failure(FailureReason.Unrecognized)
+        }
 
     private companion object {
-        const val BITCOIN_SCHEME_LENGTH = 8
-        const val MIN_LNURL_PREFIX_LENGTH = 6
+        const val LIGHTNING_PREFIX = "lightning:"
+        const val BITCOIN_PREFIX = "bitcoin:"
+        const val LUD17_PAY_PREFIX = "lnurlp://"
+        const val BOLT12_OFFER_PREFIX = "lno1"
+        const val MAX_DEEP_LINK_LENGTH = 8 * 1024
 
+        val BOLT11_PREFIXES = listOf("lnbcrt", "lntbs", "lnbc", "lntb")
+        val UNSUPPORTED_LNURL_PREFIXES = listOf("lnurlw://", "lnurlc://", "keyauth://")
         val SUPPORTED_BITCOIN_CHAINS =
             listOf(
                 Chain.Mainnet,
@@ -209,5 +273,8 @@ class LightningInputParser(private val nowSeconds: () -> Long = ::currentTimesta
                 Chain.Signet,
                 Chain.Regtest
             )
+
+        fun isUnsafeDeepLinkCharacter(character: Char): Boolean =
+            character.code <= 0x20 || character.code >= 0x7f
     }
 }

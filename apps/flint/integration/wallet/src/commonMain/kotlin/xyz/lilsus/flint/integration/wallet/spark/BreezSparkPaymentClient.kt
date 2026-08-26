@@ -25,6 +25,8 @@ import breez_sdk_spark.SendPaymentMethod
 import breez_sdk_spark.SendPaymentOptions
 import breez_sdk_spark.SendPaymentRequest
 import com.ionspin.kotlin.bignum.integer.BigInteger
+import fr.acinq.bitcoin.Chain
+import fr.acinq.lightning.payment.Bolt11Invoice
 import kotlinx.coroutines.CancellationException
 import xyz.lilsus.flint.application.payment.InvoiceFingerprint
 import xyz.lilsus.flint.application.payment.LnurlPayRequestPayload
@@ -40,14 +42,65 @@ import xyz.lilsus.flint.application.payment.SparkPaymentClient
 import xyz.lilsus.flint.application.payment.SparkPaymentEvent
 import xyz.lilsus.flint.application.payment.SparkPaymentEventListener
 import xyz.lilsus.raylsuite.core.model.Satoshi
+import xyz.lilsus.raylsuite.core.payment.LightningInputParser
+import xyz.lilsus.raylsuite.core.payment.PaymentInputParseAttempt
+import xyz.lilsus.raylsuite.core.payment.PaymentInputParser
 
 class BreezSparkPaymentClient(private val sdk: BreezSdk) : SparkPaymentClient {
+    private val inputParser =
+        LightningInputParser(
+            additionalInstantParsers = listOf(PaymentInputParser(::parseSparkInput))
+        )
+
     override suspend fun parse(input: String): ParsedSdkInput = try {
-        normalizeBreezInput(sdk.parse(input))
+        when (val result = inputParser.parse(input)) {
+            is LightningInputParser.ParseResult.Success ->
+                when (val target = result.target) {
+                    is LightningInputParser.Target.Bolt11 ->
+                        if (input.startsWith("bitcoin:", ignoreCase = true)) {
+                            normalizeBreezInput(sdk.parse(input))
+                        } else {
+                            target.invoice.toParsedSdkInput()
+                        }
+
+                    is SparkInputTarget -> target.input
+
+                    is LightningInputParser.Target.Lnurl,
+                    is LightningInputParser.Target.LightningAddressTarget ->
+                        normalizeBreezInput(sdk.parse(input))
+
+                    else -> ParsedSdkInput.Unsupported
+                }
+
+            is LightningInputParser.ParseResult.Failure ->
+                when (result.reason) {
+                    LightningInputParser.FailureReason.BitcoinAddress -> ParsedSdkInput.OnChain
+                    else -> ParsedSdkInput.Unsupported
+                }
+        }
     } catch (cancellation: CancellationException) {
         throw cancellation
     } catch (_: SdkException) {
         ParsedSdkInput.Unsupported
+    }
+
+    private suspend fun parseSparkInput(
+        input: String
+    ): PaymentInputParseAttempt<
+        LightningInputParser.Target,
+        LightningInputParser.FailureReason
+        > {
+        if (!SPARK_PREFIXES.any { input.startsWith(it, ignoreCase = true) }) {
+            return PaymentInputParseAttempt.NoMatch
+        }
+        return when (val parsed = normalizeBreezInput(sdk.parse(input))) {
+            is ParsedSdkInput.SparkInvoice ->
+                PaymentInputParseAttempt.Parsed(SparkInputTarget(parsed))
+
+            else -> PaymentInputParseAttempt.Rejected(
+                LightningInputParser.FailureReason.Unrecognized
+            )
+        }
     }
 
     override suspend fun identityPublicKey(): String =
@@ -271,7 +324,30 @@ class BreezSparkPaymentClient(private val sdk: BreezSdk) : SparkPaymentClient {
     companion object {
         private const val RECOVERY_PAGE_SIZE = 200u
         private const val MAX_RECOVERY_PAGES = 5
+        private val SPARK_PREFIXES =
+            listOf("spark1", "sparkt1", "sparkrt1", "sparks1", "sp1", "spt1", "sprt1", "sps1")
     }
+}
+
+private data class SparkInputTarget(val input: ParsedSdkInput.SparkInvoice) :
+    LightningInputParser.Target
+
+private fun Bolt11Invoice.toParsedSdkInput(): ParsedSdkInput.Bolt11 {
+    val timestamp = timestampSeconds.coerceAtLeast(0).toULong()
+    val expiry =
+        (expirySeconds ?: Bolt11Invoice.DEFAULT_EXPIRY_SECONDS.toLong()).coerceAtLeast(0).toULong()
+    return ParsedSdkInput.Bolt11(
+        invoice = write(),
+        paymentHash = paymentHash.toHex(),
+        amountMsat = amount?.msat?.takeIf { it > 0 }?.toULong(),
+        network =
+            when (chain) {
+                Chain.Mainnet -> PaymentNetwork.MAINNET
+                Chain.Regtest -> PaymentNetwork.REGTEST
+                else -> PaymentNetwork.OTHER
+            },
+        expiresAtEpochSeconds = timestamp.saturatingAdd(expiry)
+    )
 }
 
 fun normalizeBreezInput(input: InputType): ParsedSdkInput =

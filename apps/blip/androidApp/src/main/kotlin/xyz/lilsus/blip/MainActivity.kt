@@ -19,7 +19,7 @@ open class MainActivity : AppCompatActivity() {
         setContent {
             App()
         }
-        intent?.data?.let { BlipDeepLinks.emit(it.toString()) }
+        deliverPaymentLink(intent)
 
         orientationPolicy.startListening()
     }
@@ -27,11 +27,22 @@ open class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        intent.data?.let { BlipDeepLinks.emit(it.toString()) }
+        deliverPaymentLink(intent)
     }
 
     override fun onDestroy() {
         orientationPolicy.stopListening()
         super.onDestroy()
+    }
+
+    private fun deliverPaymentLink(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        intent.dataString
+            ?.takeIf { it.length <= MAX_PAYMENT_LINK_LENGTH }
+            ?.let(BlipDeepLinks::emit)
+    }
+
+    private companion object {
+        const val MAX_PAYMENT_LINK_LENGTH = 8 * 1024
     }
 }

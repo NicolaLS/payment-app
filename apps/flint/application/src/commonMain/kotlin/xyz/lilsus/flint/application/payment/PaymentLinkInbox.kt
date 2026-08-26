@@ -143,8 +143,7 @@ class SensitivePaymentRequest(private val bytes: ByteArray) {
 
 private object PaymentLinkAdapter {
     private const val LIGHTNING_SCHEME = "lightning"
-    private const val LNURL_SCHEME = "lnurl"
-    private const val BITCOIN_SCHEME = "bitcoin"
+    private const val LNURL_PAY_SCHEME = "lnurlp"
     private const val MAX_ENCODED_LENGTH = 8 * 1024
 
     fun admit(rawUrl: String): PaymentLinkAdmission {
@@ -161,13 +160,13 @@ private object PaymentLinkAdapter {
         val scheme = rawUrl.substring(0, separator).lowercase()
         val encoded = rawUrl.substring(separator + 1)
         return when (scheme) {
-            LIGHTNING_SCHEME, LNURL_SCHEME -> admitWrapped(encoded)
-            BITCOIN_SCHEME -> admitBitcoin(rawUrl, encoded)
+            LIGHTNING_SCHEME -> admitLightning(encoded)
+            LNURL_PAY_SCHEME -> admitLnurlPay(rawUrl, encoded)
             else -> PaymentLinkAdmission.Rejected(PaymentLinkRejection.UNSUPPORTED_SCHEME)
         }
     }
 
-    private fun admitWrapped(encoded: String): PaymentLinkAdmission {
+    private fun admitLightning(encoded: String): PaymentLinkAdmission {
         if (encoded.isEmpty() || encoded.startsWith("//") || '#' in encoded) {
             return PaymentLinkAdmission.Rejected(PaymentLinkRejection.MALFORMED)
         }
@@ -180,13 +179,22 @@ private object PaymentLinkAdapter {
             decoded.fill(0)
             return PaymentLinkAdmission.Rejected(PaymentLinkRejection.MALFORMED)
         }
+        val paymentRequest = decoded.decodeToString(throwOnInvalidSequence = true)
+        if (!BOLT11_PREFIXES.any { paymentRequest.startsWith(it, ignoreCase = true) }) {
+            decoded.fill(0)
+            return PaymentLinkAdmission.Rejected(PaymentLinkRejection.UNSUPPORTED_SCHEME)
+        }
         return PaymentLinkAdmission.Accepted(SensitivePaymentRequest(decoded))
     }
 
-    private fun admitBitcoin(rawUrl: String, encoded: String): PaymentLinkAdmission {
-        if (encoded.isEmpty() || encoded.startsWith("//") || '#' in encoded ||
+    private fun admitLnurlPay(rawUrl: String, encoded: String): PaymentLinkAdmission {
+        if (!encoded.startsWith("//") || '#' in encoded ||
             !hasValidPercentEncoding(rawUrl)
         ) {
+            return PaymentLinkAdmission.Rejected(PaymentLinkRejection.MALFORMED)
+        }
+        val authority = encoded.substring(2).substringBefore('/').substringBefore('?')
+        if (authority.isEmpty() || '@' in authority) {
             return PaymentLinkAdmission.Rejected(PaymentLinkRejection.MALFORMED)
         }
         return PaymentLinkAdmission.Accepted(SensitivePaymentRequest(rawUrl.encodeToByteArray()))
@@ -246,4 +254,6 @@ private object PaymentLinkAdapter {
 
     private fun ByteArray.startsWithHierarchicalPrefix(): Boolean =
         size >= 2 && this[0] == '/'.code.toByte() && this[1] == '/'.code.toByte()
+
+    private val BOLT11_PREFIXES = listOf("lnbcrt", "lntbs", "lnbc", "lntb")
 }

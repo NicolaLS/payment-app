@@ -21,8 +21,7 @@
 			<array>
 				<string>nostr+walletconnect</string>
 				<string>lightning</string>
-				<string>bitcoin</string>
-				<string>lnurl</string>
+				<string>lnurlp</string>
 			</array>
 		</dict>
 	</array>

@@ -12,6 +12,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":flint:application"))
+            implementation(project(":core:payment"))
             implementation(libs.breez.sdk.spark)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.okio)

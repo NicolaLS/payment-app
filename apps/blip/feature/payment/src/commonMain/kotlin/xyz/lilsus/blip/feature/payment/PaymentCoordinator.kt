@@ -2,6 +2,7 @@ package xyz.lilsus.blip.feature.payment
 
 import fr.acinq.bitcoin.Crypto
 import fr.acinq.lightning.payment.Bolt11Invoice
+import fr.acinq.lightning.utils.currentTimestampSeconds
 import fr.acinq.lightning.utils.msat
 import fr.acinq.lightning.utils.toByteVector32
 import kotlin.coroutines.CoroutineContext
@@ -242,16 +243,23 @@ class PaymentCoordinator(
         }
     }
 
-    private fun handlePaymentInput(rawInput: String, source: PaymentRequestSource) {
+    private suspend fun handlePaymentInput(rawInput: String, source: PaymentRequestSource) {
         if (paymentAdmissionInProgress || mutableUiState.value != PaymentUiState.Active) return
         manualEntryContext = null
 
-        when (val result = inputParser.parse(rawInput)) {
+        val parseResult =
+            if (source == PaymentRequestSource.DeepLink) {
+                inputParser.parseDeepLink(rawInput)
+            } else {
+                inputParser.parse(rawInput)
+            }
+        when (val result = parseResult) {
             is LightningInputParser.ParseResult.Failure -> handleParseFailure(result.reason)
 
             is LightningInputParser.ParseResult.Success ->
                 when (val target = result.target) {
                     is LightningInputParser.Target.Bolt11 -> {
+                        if (rejectExpiredInvoice(target.invoice)) return
                         pendingTracker.findUnresolvedByPaymentHash(
                             target.invoice.paymentHash.toHex()
                         )
@@ -314,6 +322,8 @@ class PaymentCoordinator(
                             contactContext = contactContext
                         )
                     }
+
+                    else -> Unit
                 }
         }
     }
@@ -330,11 +340,21 @@ class PaymentCoordinator(
                     PaymentEvent.ShowToast(PaymentToastMessage.Bolt12NotSupported)
                 )
 
+            LightningInputParser.FailureReason.UnsupportedLnurl ->
+                mutableEvents.tryEmit(
+                    PaymentEvent.ShowToast(PaymentToastMessage.LnurlRequestNotSupported)
+                )
+
+            LightningInputParser.FailureReason.InvalidLnurl ->
+                emitError(PaymentUiError.InvalidInvoice("Invalid LNURL request"))
+
+            LightningInputParser.FailureReason.UnsupportedDeepLink ->
+                mutableEvents.tryEmit(
+                    PaymentEvent.ShowToast(PaymentToastMessage.PaymentLinkNotSupported)
+                )
+
             is LightningInputParser.FailureReason.InvalidInvoice ->
                 emitError(PaymentUiError.InvalidInvoice(reason.reason))
-
-            LightningInputParser.FailureReason.ExpiredInvoice ->
-                emitError(PaymentUiError.InvalidInvoice("Invoice has expired"))
 
             LightningInputParser.FailureReason.Empty,
             LightningInputParser.FailureReason.Unrecognized -> Unit
@@ -606,7 +626,7 @@ class PaymentCoordinator(
         }
     }
 
-    private fun handleLnurlInvoice(
+    private suspend fun handleLnurlInvoice(
         session: LnurlSession,
         amountMsats: Long,
         encodedInvoice: String,
@@ -624,6 +644,7 @@ class PaymentCoordinator(
             emitError(PaymentUiError.InvalidInvoice("Failed to parse BOLT11 invoice"))
             return
         }
+        if (rejectExpiredInvoice(invoice)) return
         if (invoice.amount?.msat != amountMsats) {
             manualEntryContext = null
             emitError(PaymentUiError.InvalidInvoice("LNURL invoice amount does not match"))
@@ -655,6 +676,13 @@ class PaymentCoordinator(
             contactContext = session.contactContext,
             replacesDynamicGuardId = session.replacesDynamicGuardId
         )
+    }
+
+    private fun rejectExpiredInvoice(invoice: Bolt11Invoice): Boolean {
+        if (!invoice.isExpired(currentTimestampSeconds())) return false
+        manualEntryContext = null
+        emitError(PaymentUiError.InvalidInvoice("Invoice has expired"))
+        return true
     }
 
     private fun validateLnurlDescription(invoice: Bolt11Invoice, params: LnurlPayParams): Boolean {

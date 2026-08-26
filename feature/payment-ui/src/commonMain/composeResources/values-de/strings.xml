@@ -11,6 +11,8 @@
     <string name="retry_payment">Zahlung erneut versuchen</string>
     <string name="toast_bitcoin_address">Das ist eine Bitcoin-Adresse. Bitte um eine Lightning-Rechnung.</string>
     <string name="toast_bolt12_not_supported">BOLT12-Angebote werden noch nicht unterstützt.</string>
+    <string name="toast_lnurl_request_not_supported">Diese LNURL-Anfrage kann nicht bezahlt werden.</string>
+    <string name="toast_payment_link_not_supported">Dieser Zahlungslink wird nicht unterstützt.</string>
     <string name="enter_amount_title">Betrag eingeben</string>
     <string name="enter_amount_range_min">Min %1$s</string>
     <string name="enter_amount_range_max">Max %1$s</string>

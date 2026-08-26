@@ -12,8 +12,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>lightning</string>
-				<string>lnurl</string>
-				<string>bitcoin</string>
+				<string>lnurlp</string>
 			</array>
 		</dict>
 	</array>
