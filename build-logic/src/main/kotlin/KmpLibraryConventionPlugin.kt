@@ -11,6 +11,7 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
         with(target) {
             pluginManager.apply("org.jetbrains.kotlin.multiplatform")
             pluginManager.apply("com.android.kotlin.multiplatform.library")
+            pluginManager.apply("xyz.lilsus.raylsuite.kover")
             pluginManager.apply("org.jlleitschuh.gradle.ktlint")
 
             extensions.configure<KotlinMultiplatformExtension> {

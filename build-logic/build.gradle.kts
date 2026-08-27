@@ -27,6 +27,9 @@ dependencies {
         "org.jetbrains.kotlin:compose-compiler-gradle-plugin:${libs.versions.kotlin.get()}"
     )
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:${libs.versions.kotlin.get()}")
+    implementation(
+        "org.jetbrains.kotlinx:kover-gradle-plugin:${libs.versions.kover.get()}"
+    )
     implementation("org.jlleitschuh.gradle:ktlint-gradle:${libs.versions.ktlint.get()}")
 }
 
@@ -35,6 +38,10 @@ gradlePlugin {
         register("kmpLibrary") {
             id = "xyz.lilsus.raylsuite.kmp.library"
             implementationClass = "KmpLibraryConventionPlugin"
+        }
+        register("kover") {
+            id = "xyz.lilsus.raylsuite.kover"
+            implementationClass = "KoverConventionPlugin"
         }
         register("kmpComposeLibrary") {
             id = "xyz.lilsus.raylsuite.kmp.compose"
