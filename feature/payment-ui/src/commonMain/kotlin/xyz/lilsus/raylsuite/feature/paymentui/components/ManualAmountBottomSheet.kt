@@ -43,6 +43,7 @@ import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
+import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
@@ -57,6 +58,7 @@ import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.pay_button
 @Composable
 fun ManualAmountBottomSheet(
     state: ManualAmountUiState,
+    lnurlPayDisplay: LnurlPayDisplay? = null,
     onKeyPress: (ManualAmountKey) -> Unit,
     onRangeClick: (DisplayAmount) -> Unit,
     onSubmit: () -> Unit,
@@ -83,6 +85,11 @@ fun ManualAmountBottomSheet(
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            lnurlPayDisplay?.let {
+                LnurlPayReviewSection(it)
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             AmountInputDisplay(state)
 

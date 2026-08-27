@@ -28,9 +28,9 @@ internal fun PaymentUiState.toPaymentScreenState(
 
     is PaymentUiState.Loading -> PaymentScreenState.Loading(kind.toPresentation())
 
-    is PaymentUiState.EnterAmount -> PaymentScreenState.EnterAmount(entry)
+    is PaymentUiState.EnterAmount -> PaymentScreenState.EnterAmount(entry, lnurlPayDisplay)
 
-    is PaymentUiState.Confirm -> PaymentScreenState.Confirm(amount)
+    is PaymentUiState.Confirm -> PaymentScreenState.Confirm(amount, lnurlPayDisplay)
 
     is PaymentUiState.PendingRetry -> PaymentScreenState.PendingRetry(id)
 

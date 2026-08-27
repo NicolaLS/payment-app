@@ -2,6 +2,7 @@ package xyz.lilsus.blip.feature.payment
 
 import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
+import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 
 sealed interface PaymentUiState {
@@ -11,9 +12,13 @@ sealed interface PaymentUiState {
 
     data class Loading(val kind: LoadingKind = LoadingKind.Paying) : PaymentUiState
 
-    data class EnterAmount(val entry: ManualAmountUiState) : PaymentUiState
+    data class EnterAmount(
+        val entry: ManualAmountUiState,
+        val lnurlPayDisplay: LnurlPayDisplay? = null
+    ) : PaymentUiState
 
-    data class Confirm(val amount: DisplayAmount) : PaymentUiState
+    data class Confirm(val amount: DisplayAmount, val lnurlPayDisplay: LnurlPayDisplay? = null) :
+        PaymentUiState
 
     data class PendingRetry(val id: String) : PaymentUiState
 

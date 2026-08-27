@@ -47,7 +47,15 @@ data class AmountRequiredPayment(
     val method: PaymentMethod,
     val expiresAtEpochSeconds: Long?,
     val minimumAmountSats: Satoshi = Satoshi.positive(1),
-    val maximumAmountSats: Satoshi? = null
+    val maximumAmountSats: Satoshi? = null,
+    val lnurlPayDetails: LnurlPayReviewDetails? = null
+)
+
+data class LnurlPayReviewDetails(
+    val domain: String,
+    val description: String?,
+    val imagePngBase64: String?,
+    val imageJpegBase64: String?
 )
 
 sealed interface PreparePaymentResult {
@@ -138,6 +146,7 @@ sealed interface ParsedSdkInput {
         val requestFingerprint: InvoiceFingerprint,
         val minSendableMsat: ULong,
         val maxSendableMsat: ULong,
+        val reviewDetails: LnurlPayReviewDetails,
         val payload: LnurlPayRequestPayload,
         val amountOverrideSats: Long? = null
     ) : ParsedSdkInput {

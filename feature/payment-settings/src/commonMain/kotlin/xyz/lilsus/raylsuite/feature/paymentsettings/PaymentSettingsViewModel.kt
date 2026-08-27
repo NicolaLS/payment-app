@@ -45,6 +45,7 @@ class PaymentSettingsViewModel(
                         thresholdSats = preferences.thresholdSats,
                         confirmManualEntry = preferences.confirmManualEntry,
                         confirmShortcutPayments = preferences.confirmShortcutPayments,
+                        showLnurlPayDetails = preferences.showLnurlPayDetails,
                         vibrateOnScan = preferences.vibrateOnScan,
                         vibrateOnPayment = preferences.vibrateOnPayment
                     )
@@ -85,6 +86,12 @@ class PaymentSettingsViewModel(
     fun setConfirmShortcutPayments(enabled: Boolean) {
         scope.launch {
             paymentPreferences.setConfirmShortcutPayments(enabled)
+        }
+    }
+
+    fun setShowLnurlPayDetails(enabled: Boolean) {
+        scope.launch {
+            paymentPreferences.setShowLnurlPayDetails(enabled)
         }
     }
 
@@ -143,6 +150,7 @@ data class PaymentSettingsUiState(
     val thresholdSats: Long = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val confirmManualEntry: Boolean = PaymentPreferences().confirmManualEntry,
     val confirmShortcutPayments: Boolean = PaymentPreferences().confirmShortcutPayments,
+    val showLnurlPayDetails: Boolean = PaymentPreferences().showLnurlPayDetails,
     val vibrateOnScan: Boolean = PaymentPreferences().vibrateOnScan,
     val vibrateOnPayment: Boolean = PaymentPreferences().vibrateOnPayment,
     val askToSaveNewContacts: Boolean = true,

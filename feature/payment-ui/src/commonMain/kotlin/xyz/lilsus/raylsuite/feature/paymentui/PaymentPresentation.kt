@@ -13,9 +13,13 @@ sealed interface PaymentScreenState {
 
     data class Loading(val kind: PaymentLoadingKind) : PaymentScreenState
 
-    data class EnterAmount(val entry: ManualAmountUiState) : PaymentScreenState
+    data class EnterAmount(
+        val entry: ManualAmountUiState,
+        val lnurlPayDisplay: LnurlPayDisplay? = null
+    ) : PaymentScreenState
 
-    data class Confirm(val amount: DisplayAmount) : PaymentScreenState
+    data class Confirm(val amount: DisplayAmount, val lnurlPayDisplay: LnurlPayDisplay? = null) :
+        PaymentScreenState
 
     data class PendingRetry(val transactionId: String) : PaymentScreenState
 

@@ -287,6 +287,8 @@ fun SettingsFlow(
                     paymentSettingsViewModel::setConfirmManualEntry,
                 onConfirmShortcutPaymentsChanged =
                     paymentSettingsViewModel::setConfirmShortcutPayments,
+                onShowLnurlPayDetailsChanged =
+                    paymentSettingsViewModel::setShowLnurlPayDetails,
                 onAskToSaveNewContactsChanged =
                     paymentSettingsViewModel::setAskToSaveNewContacts,
                 onVibrateOnScanChanged = paymentSettingsViewModel::setVibrateOnScan,

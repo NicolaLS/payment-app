@@ -34,12 +34,15 @@ class PaymentSettingsViewModelTest {
             DisplayAmount(600L, DisplayCurrency.Fiat("USD")),
             viewModel.uiState.value.thresholdCurrencyEquivalent
         )
+        assertEquals(false, paymentPreferences.current().showLnurlPayDetails)
 
         viewModel.updateConfirmationThreshold(20_000L)
+        viewModel.setShowLnurlPayDetails(true)
         viewModel.setAskToSaveNewContacts(false)
         advanceUntilIdle()
 
         assertEquals(20_000L, paymentPreferences.current().thresholdSats)
+        assertEquals(true, paymentPreferences.current().showLnurlPayDetails)
         assertEquals(false, viewModel.uiState.value.askToSaveNewContacts)
         assertEquals(
             DisplayAmount(1_200L, DisplayCurrency.Fiat("USD")),

@@ -204,6 +204,7 @@ fun PaymentScreen(
     if (uiState is PaymentScreenState.EnterAmount) {
         ManualAmountBottomSheet(
             state = uiState.entry,
+            lnurlPayDisplay = uiState.lnurlPayDisplay,
             onKeyPress = { onIntent(PaymentIntent.ManualAmountKeyPress(it)) },
             onRangeClick = { onIntent(PaymentIntent.ManualAmountPreset(it)) },
             onSubmit = { onIntent(PaymentIntent.ManualAmountSubmit) },
@@ -214,6 +215,7 @@ fun PaymentScreen(
     if (uiState is PaymentScreenState.Confirm) {
         ConfirmationBottomSheet(
             confirmAmount = uiState.amount,
+            lnurlPayDisplay = uiState.lnurlPayDisplay,
             onPay = { onIntent(PaymentIntent.ConfirmPaymentSubmit) },
             onDismiss = { onIntent(PaymentIntent.ConfirmPaymentDismiss) }
         )

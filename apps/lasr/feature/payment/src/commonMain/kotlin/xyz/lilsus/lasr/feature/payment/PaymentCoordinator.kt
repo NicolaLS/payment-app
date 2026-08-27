@@ -43,6 +43,7 @@ import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentConfirmationPolicy
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
@@ -109,12 +110,14 @@ class PaymentCoordinator(
 
     private var manualEntryContext: ManualEntryContext? = null
     private var pendingPayment: PendingPayment? = null
+    private var pendingLnurlReview: PendingLnurlReview? = null
     private var pendingRetry: PendingRetryChoice? = null
     private var lastPaymentResult: CompletedPayment? = null
     private val knownSessionTransactionIds = mutableSetOf<String>()
     private val newSessionTransactionIds = mutableSetOf<String>()
     private var vibrateOnScan = true
     private var vibrateOnPayment = true
+    private var showLnurlPayDetails = false
     private val paymentJobs = mutableMapOf<String, Job>()
     private var paymentAdmissionInProgress = false
 
@@ -123,6 +126,7 @@ class PaymentCoordinator(
             paymentPreferences.preferences.collectLatest { preferences ->
                 vibrateOnScan = preferences.vibrateOnScan
                 vibrateOnPayment = preferences.vibrateOnPayment
+                showLnurlPayDetails = preferences.showLnurlPayDetails
             }
         }
         scope.launch {
@@ -172,6 +176,9 @@ class PaymentCoordinator(
         contactsController.resetSession()
         knownSessionTransactionIds.clear()
         newSessionTransactionIds.clear()
+        manualEntryContext = null
+        pendingPayment = null
+        pendingLnurlReview = null
         mutableNewSessionTransactionCount.value = 0
         mutableTransactionDetailNavigationTarget.value = null
         mutableUiState.value = PaymentUiState.Active
@@ -499,9 +506,24 @@ class PaymentCoordinator(
             emitError(PaymentUiError.InvalidInvoice("LNURL amount range is invalid"))
             return
         }
+        val lnurlPayDisplay =
+            if (showLnurlPayDetails) {
+                LnurlPayDisplay.fromUntrusted(
+                    domain = params.domain,
+                    description = params.metadata.plainText,
+                    imagePngBase64 = params.metadata.imagePng,
+                    imageJpegBase64 = params.metadata.imageJpeg
+                ) ?: run {
+                    emitError(PaymentUiError.InvalidInvoice("LNURL payment details are invalid"))
+                    return
+                }
+            } else {
+                null
+            }
         val session =
             LnurlSession(
                 params = params,
+                display = lnurlPayDisplay,
                 sourceKey = sourceKey,
                 paymentSource = paymentSource,
                 contactContext = contactContext?.copy(comment = shortcutComment),
@@ -539,12 +561,20 @@ class PaymentCoordinator(
                 )
                 return
             }
-            payLnurlInvoice(session, roundedAmount, isManualEntry = false)
+            if (session.display != null) {
+                reviewLnurlPayment(session, roundedAmount, isManualEntry = false)
+            } else {
+                payLnurlInvoice(session, roundedAmount, isManualEntry = false)
+            }
             return
         }
 
         if (!forceManualEntry && params.minSendable == params.maxSendable) {
-            payLnurlInvoice(session, params.minSendable, isManualEntry = false)
+            if (session.display != null) {
+                reviewLnurlPayment(session, params.minSendable, isManualEntry = false)
+            } else {
+                payLnurlInvoice(session, params.minSendable, isManualEntry = false)
+            }
             return
         }
 
@@ -575,7 +605,22 @@ class PaymentCoordinator(
                         currencyManager.convertMsatsToDisplay(amount, manualCurrencyState)
                     )
                 } ?: baseEntry
-        mutableUiState.value = PaymentUiState.EnterAmount(entry)
+        mutableUiState.value = PaymentUiState.EnterAmount(entry, session.display)
+    }
+
+    private fun reviewLnurlPayment(
+        session: LnurlSession,
+        amountMsats: Long,
+        isManualEntry: Boolean
+    ) {
+        val display = session.display ?: return
+        val roundedAmount = roundToFullSatoshis(amountMsats)
+        pendingLnurlReview = PendingLnurlReview(session, roundedAmount, isManualEntry)
+        mutableUiState.value =
+            PaymentUiState.Confirm(
+                amount = currencyManager.convertMsatsToDisplay(roundedAmount),
+                lnurlPayDisplay = display
+            )
     }
 
     private fun payLnurlInvoice(session: LnurlSession, amountMsats: Long, isManualEntry: Boolean) {
@@ -660,7 +705,8 @@ class PaymentCoordinator(
             source = session.paymentSource,
             dynamicSourceKey = session.sourceKey,
             contactContext = session.contactContext,
-            replacesDynamicGuardId = session.replacesDynamicGuardId
+            replacesDynamicGuardId = session.replacesDynamicGuardId,
+            lnurlAuthorized = session.display != null
         )
     }
 
@@ -682,17 +728,23 @@ class PaymentCoordinator(
     }
 
     private fun updateManualAmount(key: ManualAmountKey) {
-        if (mutableUiState.value !is PaymentUiState.EnterAmount) return
+        val state = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
         manualEntryContext ?: return
         mutableUiState.value =
-            PaymentUiState.EnterAmount(manualAmount.handleKeyPress(key))
+            PaymentUiState.EnterAmount(
+                manualAmount.handleKeyPress(key),
+                state.lnurlPayDisplay
+            )
     }
 
     private fun presetManualAmount(amount: DisplayAmount) {
-        if (mutableUiState.value !is PaymentUiState.EnterAmount) return
+        val state = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
         manualEntryContext ?: return
         mutableUiState.value =
-            PaymentUiState.EnterAmount(manualAmount.presetAmount(amount))
+            PaymentUiState.EnterAmount(
+                manualAmount.presetAmount(amount),
+                state.lnurlPayDisplay
+            )
     }
 
     private fun submitManualAmount() {
@@ -741,6 +793,16 @@ class PaymentCoordinator(
     }
 
     private fun dismissConfirmation() {
+        pendingLnurlReview?.let { review ->
+            pendingLnurlReview = null
+            mutableUiState.value =
+                if (review.isManualEntry) {
+                    PaymentUiState.EnterAmount(manualAmount.current(), review.session.display)
+                } else {
+                    PaymentUiState.Active
+                }
+            return
+        }
         val pending = pendingPayment ?: return
         pendingPayment = null
         mutableUiState.value =
@@ -755,6 +817,11 @@ class PaymentCoordinator(
     }
 
     private fun submitConfirmation() {
+        pendingLnurlReview?.let { review ->
+            pendingLnurlReview = null
+            payLnurlInvoice(review.session, review.amountMsats, review.isManualEntry)
+            return
+        }
         val pending = pendingPayment ?: return
         pendingPayment = null
         startPayment(
@@ -774,7 +841,8 @@ class PaymentCoordinator(
         source: PaymentRequestSource,
         dynamicSourceKey: DynamicPaymentSourceKey? = null,
         contactContext: PaymentContactContext? = null,
-        replacesDynamicGuardId: String? = null
+        replacesDynamicGuardId: String? = null,
+        lnurlAuthorized: Boolean = false
     ) {
         if (paymentAdmissionInProgress) return
         paymentAdmissionInProgress = true
@@ -787,14 +855,17 @@ class PaymentCoordinator(
                 val isManualEntry =
                     origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
                 val requiresConfirmation =
-                    source == PaymentRequestSource.DeepLink ||
+                    !lnurlAuthorized &&
                         (
-                            amountMsats != null &&
-                                confirmationPolicy.shouldConfirm(
-                                    amountMsats = amountMsats,
-                                    isManualEntry = isManualEntry,
-                                    isShortcut = contactContext?.shortcutId != null
-                                )
+                            source == PaymentRequestSource.DeepLink ||
+                                (
+                                    amountMsats != null &&
+                                        confirmationPolicy.shouldConfirm(
+                                            amountMsats = amountMsats,
+                                            isManualEntry = isManualEntry,
+                                            isShortcut = contactContext?.shortcutId != null
+                                        )
+                                    )
                             )
                 if (requiresConfirmation) {
                     val display =
@@ -1126,7 +1197,8 @@ class PaymentCoordinator(
             }
         val entry = manualAmount.reset(config, clearInput = !preserveInput)
         if (mutableUiState.value is PaymentUiState.EnterAmount) {
-            mutableUiState.value = PaymentUiState.EnterAmount(entry)
+            val display = (manualEntryContext as? ManualEntryContext.Lnurl)?.session?.display
+            mutableUiState.value = PaymentUiState.EnterAmount(entry, display)
         }
     }
 
@@ -1138,6 +1210,14 @@ class PaymentCoordinator(
             }
 
             is PaymentUiState.Confirm -> {
+                pendingLnurlReview?.let { review ->
+                    mutableUiState.value =
+                        PaymentUiState.Confirm(
+                            currencyManager.convertMsatsToDisplay(review.amountMsats),
+                            review.session.display
+                        )
+                    return
+                }
                 val pending = pendingPayment ?: return
                 val amount =
                     pending.amountOverrideMsats ?: pending.invoice.amount?.msat ?: return
@@ -1155,6 +1235,7 @@ class PaymentCoordinator(
         val currencyState = currencyManager.state.value
         manualEntryContext = null
         pendingPayment = null
+        pendingLnurlReview = null
         manualAmount.reset(
             ManualAmountConfig(
                 info = currencyState.info,
@@ -1187,6 +1268,12 @@ private data class PendingPayment(
     val replacesDynamicGuardId: String?
 )
 
+private data class PendingLnurlReview(
+    val session: LnurlSession,
+    val amountMsats: Long,
+    val isManualEntry: Boolean
+)
+
 private data class PendingRetryChoice(
     val recordId: String,
     val continuation: PendingRetryContinuation
@@ -1202,6 +1289,7 @@ private data class CompletedPayment(
 
 private data class LnurlSession(
     val params: LnurlPayParams,
+    val display: LnurlPayDisplay?,
     val sourceKey: DynamicPaymentSourceKey?,
     val paymentSource: PaymentRequestSource,
     val contactContext: PaymentContactContext?,

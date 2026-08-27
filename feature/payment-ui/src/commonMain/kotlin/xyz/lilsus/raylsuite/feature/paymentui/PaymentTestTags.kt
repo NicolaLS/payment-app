@@ -13,6 +13,7 @@ object PaymentTestTags {
     const val CONFIRMATION_SHEET = "payment_confirmation_sheet"
     const val CONFIRMATION_PAY_BUTTON = "payment_confirmation_pay_button"
     const val CONFIRMATION_DISMISS_BUTTON = "payment_confirmation_dismiss_button"
+    const val LNURL_PAY_DETAILS = "payment_lnurl_pay_details"
 
     const val MANUAL_AMOUNT_SHEET = "payment_manual_amount_sheet"
     const val MANUAL_AMOUNT_DISPLAY = "payment_manual_amount_display"

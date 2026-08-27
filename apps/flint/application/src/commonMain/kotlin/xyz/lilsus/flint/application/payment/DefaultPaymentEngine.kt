@@ -118,16 +118,27 @@ class DefaultPaymentEngine(
                 handlesByFingerprint.remove(admitted.fingerprint)
             }
 
-            if (admitted.amountSats == null) {
+            val lnurlReviewDetails =
+                admitted.lnurlRequest
+                    ?.takeIf { currentPolicy().showLnurlPayDetails }
+                    ?.reviewDetails
+            if (admitted.amountSats == null || lnurlReviewDetails != null) {
                 val handle = PaymentAmountHandle(Uuid.random().toString())
                 val projection = AmountRequiredPayment(
                     handle = handle,
                     method = admitted.method,
                     expiresAtEpochSeconds = admitted.expiresAtEpochSeconds,
                     minimumAmountSats = admitted.minimumAmountSats,
-                    maximumAmountSats = admitted.maximumAmountSats
+                    maximumAmountSats = admitted.maximumAmountSats,
+                    lnurlPayDetails = lnurlReviewDetails
                 )
-                amountDrafts[handle.value] = AmountDraft(admitted, projection, origin)
+                amountDrafts[handle.value] =
+                    AmountDraft(
+                        admission = admitted,
+                        projection = projection,
+                        origin = origin,
+                        lnurlAuthorized = lnurlReviewDetails != null
+                    )
                 handlesByFingerprint[admitted.fingerprint] = handle.value
                 return@withLock PreparePaymentResult.AmountRequired(projection)
             }
@@ -259,7 +270,7 @@ class DefaultPaymentEngine(
                 feeSats = prepared.feeSats,
                 origin = amountDraft.origin,
                 amountEnteredByUser = true
-            )
+            ) && !amountDraft.lnurlAuthorized
         )
         registerDraft(
             draftHandle,
@@ -822,7 +833,8 @@ class DefaultPaymentEngine(
     private data class AmountDraft(
         val admission: Admission.Accepted,
         val projection: AmountRequiredPayment,
-        val origin: PaymentOrigin
+        val origin: PaymentOrigin,
+        val lnurlAuthorized: Boolean = false
     ) {
         fun isExpired(nowEpochSeconds: Long): Boolean =
             admission.expiresAtEpochSeconds?.let { it <= nowEpochSeconds } ?: false

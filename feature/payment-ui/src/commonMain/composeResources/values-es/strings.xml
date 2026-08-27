@@ -3,6 +3,8 @@
     <string name="tap_continue">Toca para continuar…</string>
     <string name="confirm_payment_title">Confirmar pago</string>
     <string name="pay_button">Pagar</string>
+    <string name="lnurl_payment_recipient">Destinatario: %1$s</string>
+    <string name="lnurl_payment_image_description">Imagen del destinatario</string>
     <string name="dismiss_button">Cerrar</string>
     <string name="view_session_transactions">Ver transacciones de esta sesión</string>
     <string name="session_transactions_title">Pagos recientes</string>

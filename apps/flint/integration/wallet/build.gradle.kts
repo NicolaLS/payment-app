@@ -15,6 +15,7 @@ kotlin {
             implementation(project(":core:payment"))
             implementation(libs.breez.sdk.spark)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.okio)
         }
         androidMain.dependencies {

@@ -28,6 +28,7 @@ import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
+import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_title
@@ -38,6 +39,7 @@ import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.pay_button
 @OptIn(ExperimentalMaterial3Api::class)
 fun ConfirmationBottomSheet(
     confirmAmount: DisplayAmount,
+    lnurlPayDisplay: LnurlPayDisplay? = null,
     onPay: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -65,6 +67,11 @@ fun ConfirmationBottomSheet(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            lnurlPayDisplay?.let {
+                LnurlPayReviewSection(it)
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
             Text(
                 text = formatter.format(confirmAmount),

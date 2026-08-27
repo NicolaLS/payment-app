@@ -28,8 +28,13 @@ import com.ionspin.kotlin.bignum.integer.BigInteger
 import fr.acinq.bitcoin.Chain
 import fr.acinq.lightning.payment.Bolt11Invoice
 import kotlinx.coroutines.CancellationException
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import xyz.lilsus.flint.application.payment.InvoiceFingerprint
 import xyz.lilsus.flint.application.payment.LnurlPayRequestPayload
+import xyz.lilsus.flint.application.payment.LnurlPayReviewDetails
 import xyz.lilsus.flint.application.payment.ParsedSdkInput
 import xyz.lilsus.flint.application.payment.PaymentMethod
 import xyz.lilsus.flint.application.payment.PaymentNetwork
@@ -378,6 +383,7 @@ private fun normalizeBreezInput(input: InputType, allowBip21: Boolean): ParsedSd
             requestFingerprint = InvoiceFingerprint.lnurl(input.v1.address.lowercase()),
             minSendableMsat = input.v1.payRequest.minSendable,
             maxSendableMsat = input.v1.payRequest.maxSendable,
+            reviewDetails = input.v1.payRequest.toReviewDetails(),
             payload = BreezLnurlRequestPayload(input.v1.payRequest)
         )
 
@@ -387,6 +393,7 @@ private fun normalizeBreezInput(input: InputType, allowBip21: Boolean): ParsedSd
             ),
             minSendableMsat = input.v1.minSendable,
             maxSendableMsat = input.v1.maxSendable,
+            reviewDetails = input.v1.toReviewDetails(),
             payload = BreezLnurlRequestPayload(input.v1)
         )
 
@@ -448,6 +455,7 @@ private fun applyBip21Amount(amountSats: ULong?, input: ParsedSdkInput): ParsedS
             requestFingerprint = input.requestFingerprint,
             minSendableMsat = input.minSendableMsat,
             maxSendableMsat = input.maxSendableMsat,
+            reviewDetails = input.reviewDetails,
             payload = input.payload,
             amountOverrideSats = amount
         )
@@ -468,4 +476,27 @@ private fun ULong.saturatingAdd(other: ULong): ULong =
 private class BreezLnurlRequestPayload(val details: LnurlPayRequestDetails) :
     LnurlPayRequestPayload {
     override fun toString(): String = "BreezLnurlRequestPayload(<redacted>)"
+}
+
+private fun LnurlPayRequestDetails.toReviewDetails(): LnurlPayReviewDetails {
+    var description: String? = null
+    var imagePng: String? = null
+    var imageJpeg: String? = null
+    val metadata = runCatching { Json.parseToJsonElement(metadataStr) }.getOrNull() as? JsonArray
+    metadata?.forEach { entry ->
+        val values = entry as? JsonArray ?: return@forEach
+        val type = (values.firstOrNull() as? JsonPrimitive)?.contentOrNull ?: return@forEach
+        val value = (values.getOrNull(1) as? JsonPrimitive)?.contentOrNull
+        when (type.lowercase()) {
+            "text/plain" -> description = value
+            "image/png;base64" -> imagePng = value
+            "image/jpeg;base64" -> imageJpeg = value
+        }
+    }
+    return LnurlPayReviewDetails(
+        domain = domain,
+        description = description,
+        imagePngBase64 = imagePng,
+        imageJpegBase64 = imageJpeg
+    )
 }

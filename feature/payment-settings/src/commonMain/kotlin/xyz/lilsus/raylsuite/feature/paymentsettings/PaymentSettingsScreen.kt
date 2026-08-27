@@ -51,6 +51,8 @@ import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_payment
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_scan
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_title
+import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_lnurl_review
+import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_lnurl_review_description
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_option_above
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_option_always
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutItem
@@ -66,6 +68,7 @@ fun PaymentSettingsScreen(
     onThresholdChanged: (Long) -> Unit,
     onConfirmManualEntryChanged: (Boolean) -> Unit,
     onConfirmShortcutPaymentsChanged: (Boolean) -> Unit,
+    onShowLnurlPayDetailsChanged: (Boolean) -> Unit,
     onAskToSaveNewContactsChanged: (Boolean) -> Unit,
     onVibrateOnScanChanged: (Boolean) -> Unit,
     onVibrateOnPaymentChanged: (Boolean) -> Unit,
@@ -118,6 +121,16 @@ fun PaymentSettingsScreen(
                 onThresholdChanged = onThresholdChanged,
                 onConfirmManualEntryChanged = onConfirmManualEntryChanged
             )
+            SettingsSection(title = stringResource(Res.string.settings_payments_lnurl_review)) {
+                SettingsToggle(
+                    label = stringResource(
+                        Res.string.settings_payments_lnurl_review_description
+                    ),
+                    checked = state.showLnurlPayDetails,
+                    onCheckedChange = onShowLnurlPayDetailsChanged,
+                    modifier = Modifier.testTag(PaymentSettingsTestTags.LNURL_PAY_DETAILS)
+                )
+            }
             PaymentShortcutsSection(
                 shortcuts = shortcuts,
                 onAddShortcut = onAddShortcut,
@@ -315,5 +328,6 @@ object PaymentSettingsTestTags {
     const val MODE_ALWAYS = "payment_settings_mode_always"
     const val MODE_ABOVE = "payment_settings_mode_above"
     const val CONFIRM_MANUAL_ENTRY = "payment_settings_confirm_manual_entry"
+    const val LNURL_PAY_DETAILS = "payment_settings_lnurl_pay_details"
     const val ASK_TO_SAVE_CONTACTS = "payment_settings_ask_to_save_contacts"
 }

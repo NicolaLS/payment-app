@@ -23,6 +23,8 @@ interface PaymentPreferencesRepository {
 
     suspend fun setConfirmShortcutPayments(enabled: Boolean)
 
+    suspend fun setShowLnurlPayDetails(enabled: Boolean)
+
     suspend fun setVibrateOnScan(enabled: Boolean)
 
     suspend fun setVibrateOnPayment(enabled: Boolean)
@@ -50,6 +52,10 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
 
     override suspend fun setConfirmShortcutPayments(enabled: Boolean) {
         update { it.copy(confirmShortcutPayments = enabled) }
+    }
+
+    override suspend fun setShowLnurlPayDetails(enabled: Boolean) {
+        update { it.copy(showLnurlPayDetails = enabled) }
     }
 
     override suspend fun setVibrateOnScan(enabled: Boolean) {
@@ -87,6 +93,7 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
             thresholdSats = thresholdSats,
             confirmManualEntry = settings.getBoolean(KEY_CONFIRM_MANUAL_ENTRY, false),
             confirmShortcutPayments = confirmShortcutPayments,
+            showLnurlPayDetails = settings.getBoolean(KEY_SHOW_LNURL_PAY_DETAILS, false),
             vibrateOnScan = settings.getBoolean(KEY_VIBRATE_SCAN, true),
             vibrateOnPayment = settings.getBoolean(KEY_VIBRATE_PAYMENT, true)
         ).normalise()
@@ -106,6 +113,7 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
             KEY_CONFIRM_SHORTCUT_PAYMENTS,
             preferences.confirmShortcutPayments
         )
+        settings.putBoolean(KEY_SHOW_LNURL_PAY_DETAILS, preferences.showLnurlPayDetails)
         settings.putBoolean(KEY_VIBRATE_SCAN, preferences.vibrateOnScan)
         settings.putBoolean(KEY_VIBRATE_PAYMENT, preferences.vibrateOnPayment)
     }
@@ -115,6 +123,7 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
         const val KEY_CONFIRM_THRESHOLD_SATS = "payments.confirmationThresholdSats"
         const val KEY_CONFIRM_MANUAL_ENTRY = "payments.confirmManualEntry"
         const val KEY_CONFIRM_SHORTCUT_PAYMENTS = "payments.confirmShortcuts"
+        const val KEY_SHOW_LNURL_PAY_DETAILS = "payments.showLnurlPayDetails"
         const val KEY_VIBRATE_SCAN = "payments.vibrateOnScan"
         const val KEY_VIBRATE_PAYMENT = "payments.vibrateOnPayment"
         const val MODE_ALWAYS = "always"

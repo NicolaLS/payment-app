@@ -10,6 +10,7 @@ data class PaymentPreferences(
     val thresholdSats: Long = DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val confirmManualEntry: Boolean = false,
     val confirmShortcutPayments: Boolean = false,
+    val showLnurlPayDetails: Boolean = false,
     val vibrateOnScan: Boolean = true,
     val vibrateOnPayment: Boolean = true
 ) {
