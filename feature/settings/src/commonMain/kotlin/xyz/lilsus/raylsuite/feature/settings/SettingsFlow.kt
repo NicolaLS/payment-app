@@ -84,13 +84,13 @@ fun SettingsFlow(
     }
     var shortcutCurrencySearch by remember { mutableStateOf("") }
 
-    val storedCurrencyPreferences = rememberCurrencyPreferences(storageName)
     val languageRepository = rememberLanguageRepository()
-    val storedContactsRepository = rememberContactsRepository(storageName)
-    val storedPaymentPreferences = rememberPaymentPreferencesRepository(storageName)
-    val resolvedCurrencyPreferences = currencyPreferences ?: storedCurrencyPreferences
-    val resolvedContactsRepository = contactsRepository ?: storedContactsRepository
-    val resolvedPaymentPreferences = paymentPreferences ?: storedPaymentPreferences
+    val resolvedCurrencyPreferences =
+        currencyPreferences ?: rememberCurrencyPreferences(storageName)
+    val resolvedContactsRepository =
+        contactsRepository ?: rememberContactsRepository(storageName)
+    val resolvedPaymentPreferences =
+        paymentPreferences ?: rememberPaymentPreferencesRepository(storageName)
     val currencyState =
         resolvedCurrencyPreferences.code.collectAsState(CurrencyCatalog.DEFAULT_CODE)
 
