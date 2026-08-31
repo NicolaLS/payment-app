@@ -4,6 +4,8 @@ import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 
@@ -30,6 +32,7 @@ interface PaymentPreferencesRepository {
 class DefaultPaymentPreferencesRepository(private val settings: Settings) :
     PaymentPreferencesRepository {
     private val state = MutableStateFlow(loadPreferences())
+    private val mutationMutex = Mutex()
 
     override val preferences: Flow<PaymentPreferences> = state.asStateFlow()
 
@@ -63,13 +66,15 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
         update { it.copy(vibrateOnPayment = enabled) }
     }
 
-    private fun update(transform: (PaymentPreferences) -> PaymentPreferences) {
-        val current = state.value
-        val updated = transform(current).normalise()
-        if (updated == current) return
+    private suspend fun update(transform: (PaymentPreferences) -> PaymentPreferences) {
+        mutationMutex.withLock {
+            val current = state.value
+            val updated = transform(current).normalise()
+            if (updated == current) return
 
-        persist(updated)
-        state.value = updated
+            persist(updated)
+            state.value = updated
+        }
     }
 
     private fun loadPreferences(): PaymentPreferences {

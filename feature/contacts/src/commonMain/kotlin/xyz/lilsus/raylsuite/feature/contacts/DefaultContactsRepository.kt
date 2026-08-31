@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import xyz.lilsus.raylsuite.core.model.Contact
@@ -32,6 +34,7 @@ class DefaultContactsRepository(
         }
     private val state = MutableStateFlow(loadState())
     private val askToSaveNewContacts = MutableStateFlow(loadAskToSaveNewContacts())
+    private val mutationMutex = Mutex()
 
     override val contacts: Flow<List<Contact>> =
         state
@@ -217,19 +220,23 @@ class DefaultContactsRepository(
     }
 
     override suspend fun setAskToSaveNewContacts(enabled: Boolean) {
-        if (enabled == askToSaveNewContacts.value) return
+        mutationMutex.withLock {
+            if (enabled == askToSaveNewContacts.value) return
 
-        settings.putBoolean(ASK_TO_SAVE_NEW_CONTACTS_KEY, enabled)
-        askToSaveNewContacts.value = enabled
+            settings.putBoolean(ASK_TO_SAVE_NEW_CONTACTS_KEY, enabled)
+            askToSaveNewContacts.value = enabled
+        }
     }
 
-    private fun updateState(transform: (ContactsState) -> ContactsState) {
-        val current = state.value
-        val updated = transform(current)
-        if (updated == current) return
+    private suspend fun updateState(transform: (ContactsState) -> ContactsState) {
+        mutationMutex.withLock {
+            val current = state.value
+            val updated = transform(current)
+            if (updated == current) return
 
-        persist(updated)
-        state.value = updated
+            persist(updated)
+            state.value = updated
+        }
     }
 
     private fun loadState(): ContactsState {
