@@ -1,0 +1,95 @@
+name: Android performance
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '21'
+
+on:
+  schedule:
+    - cron: '23 8 * * 1'
+  workflow_dispatch:
+  push:
+    tags:
+      - 'blip-v*'
+      - 'flint-v*'
+      - 'lasr-v*'
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'performance'
+    name: Blip startup and camera
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up and validate Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Restore previous benchmark
+        uses: actions/cache/restore@v5
+        with:
+          path: performance-baseline/latest.json
+          key: android-performance-api35-${{ github.run_id }}
+          restore-keys: |
+            android-performance-api35-
+
+      - name: Run benchmarks
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: false
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+            -camera-back virtualscene
+          script: >-
+            ./gradlew perfCheck
+            -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR
+
+      - name: Summarize benchmark
+        run: |
+          scripts/summarize-android-benchmarks \
+            apps/blip/benchmark/build/outputs/connected_android_test_additional_output \
+            --baseline performance-baseline/latest.json \
+            --save-current performance-baseline/latest.json \
+            | tee performance-summary.md
+          cat performance-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload benchmark reports and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blip-android-performance-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            apps/blip/benchmark/build/outputs/connected_android_test_additional_output/**
+            performance-summary.md
+
+      - name: Save scheduled or release baseline
+        if: >-
+          success() &&
+          (github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'push')
+        uses: actions/cache/save@v5
+        with:
+          path: performance-baseline/latest.json
+          key: android-performance-api35-${{ github.run_id }}

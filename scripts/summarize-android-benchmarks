@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+"""Print an AndroidX Benchmark markdown summary and optionally retain a baseline."""
+
+import argparse
+import json
+import shutil
+from pathlib import Path
+
+
+def arguments() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("report_root", type=Path)
+    parser.add_argument("--baseline", type=Path)
+    parser.add_argument("--save-current", type=Path)
+    return parser.parse_args()
+
+
+def find_report(root: Path) -> Path:
+    reports = sorted(root.rglob("*-benchmarkData.json"))
+    if not reports:
+        raise SystemExit(f"No AndroidX benchmark report found below {root}")
+    return reports[-1]
+
+
+def load_report(path: Path) -> dict:
+    with path.open(encoding="utf-8") as source:
+        return json.load(source)
+
+
+def medians(report: dict) -> dict[str, float]:
+    result = {}
+    for benchmark in report.get("benchmarks", []):
+        benchmark_name = benchmark.get("name", "unknown")
+        for metric_name, metric in benchmark.get("metrics", {}).items():
+            median = metric.get("median")
+            if isinstance(median, (int, float)):
+                result[f"{benchmark_name} / {metric_name}"] = float(median)
+    return result
+
+
+def format_change(current: float, baseline: float | None) -> str:
+    if baseline is None or baseline == 0:
+        return "—"
+    change = ((current / baseline) - 1) * 100
+    return f"{change:+.1f}%"
+
+
+def main() -> None:
+    options = arguments()
+    report_path = find_report(options.report_root)
+    report = load_report(report_path)
+    current = medians(report)
+    baseline = {}
+    if options.baseline and options.baseline.is_file():
+        baseline = medians(load_report(options.baseline))
+
+    model = report.get("context", {}).get("build", {}).get("model", "unknown device")
+    print("## Android performance")
+    print()
+    print(f"Device: `{model}`. Lower is better for duration metrics.")
+    print()
+    print("| Benchmark metric | Median | Previous run | Change |")
+    print("| --- | ---: | ---: | ---: |")
+    for name, value in sorted(current.items()):
+        old_value = baseline.get(name)
+        old_display = f"{old_value:.2f}" if old_value is not None else "—"
+        print(
+            f"| `{name}` | {value:.2f} | {old_display} | "
+            f"{format_change(value, old_value)} |"
+        )
+
+    if not current:
+        print("| No metrics found | — | — | — |")
+
+    print()
+    print("Emulator changes are directional evidence, not a merge gate. Download the")
+    print("artifact and inspect its Perfetto traces when a change looks suspicious.")
+
+    if options.save_current:
+        options.save_current.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(report_path, options.save_current)
+
+
+if __name__ == "__main__":
+    main()
