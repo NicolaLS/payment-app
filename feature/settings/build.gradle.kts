@@ -22,6 +22,7 @@ kotlin {
             api(project(":feature:payment-settings"))
             implementation(project(":feature:payment-shortcuts"))
             api(project(":feature:theme-settings"))
+            api(libs.kotlinx.coroutines.core)
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)

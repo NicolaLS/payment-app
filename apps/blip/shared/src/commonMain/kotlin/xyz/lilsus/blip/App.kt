@@ -20,9 +20,10 @@ import xyz.lilsus.raylsuite.core.ui.platform.rememberRetainedInstance
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 
 @Composable
-fun App() {
+fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
     val appSettings = rememberAppSettings(BLIP_PREFERENCES)
     val secureSettings = rememberSecureSettings(BLIP_CREDENTIALS)
     val haptics = rememberHapticFeedbackManager()
@@ -111,6 +112,7 @@ fun App() {
                 contactsRepository = contactsRepository,
                 paymentCoordinator = paymentCoordinator,
                 blinkWallet = blinkWallet,
+                performanceDiagnostics = performanceDiagnostics,
                 onRemoveWallet = {
                     runtime.resetPaymentSession()
                     PaymentDeepLinkEvents.clear()

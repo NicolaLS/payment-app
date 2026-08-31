@@ -7,9 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import xyz.lilsus.raylsuite.core.ui.orientation.CompactWindowOrientationPolicy
+import xyz.lilsus.raylsuite.integration.performancemonitoring.createFirebasePerformanceDiagnostics
 
 class MainActivity : AppCompatActivity() {
     private val orientationPolicy = CompactWindowOrientationPolicy(this)
+    private val performanceDiagnostics by lazy {
+        createFirebasePerformanceDiagnostics(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -19,7 +23,10 @@ class MainActivity : AppCompatActivity() {
         orientationPolicy.apply()
 
         setContent {
-            App((application as FlintApplication).appHost)
+            App(
+                host = (application as FlintApplication).appHost,
+                performanceDiagnostics = performanceDiagnostics
+            )
         }
         deliverPaymentLink(intent)
 

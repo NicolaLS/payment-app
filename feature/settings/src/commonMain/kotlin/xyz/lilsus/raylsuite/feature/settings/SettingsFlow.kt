@@ -68,6 +68,7 @@ fun SettingsFlow(
     overviewBottomContent: (@Composable () -> Unit)? = null,
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList(),
+    performanceDiagnostics: PerformanceDiagnostics? = null,
     donationAppName: String? = null,
     onDonate: ((Long) -> Unit)? = null,
     additionalContactActions: @Composable ColumnScope.() -> Unit = {}
@@ -212,6 +213,7 @@ fun SettingsFlow(
                 overviewBottomContent = overviewBottomContent,
                 leadingEntries = leadingEntries,
                 trailingEntries = trailingEntries,
+                performanceDiagnostics = performanceDiagnostics,
                 donationAppName = donationAppName,
                 onDonate = onDonate
             )
@@ -398,9 +400,12 @@ private fun SettingsOverview(
     overviewBottomContent: (@Composable () -> Unit)?,
     leadingEntries: List<SettingsEntry>,
     trailingEntries: List<SettingsEntry>,
+    performanceDiagnostics: PerformanceDiagnostics?,
     donationAppName: String?,
     onDonate: ((Long) -> Unit)?
 ) {
+    val performanceDiagnosticsEnabled =
+        performanceDiagnostics?.sharingEnabled?.collectAsState()?.value
     val currencyCode by currencyPreferences.code.collectAsState(
         CurrencyCatalog.DEFAULT_CODE
     )
@@ -422,6 +427,11 @@ private fun SettingsOverview(
         overviewBottomContent = overviewBottomContent,
         leadingEntries = leadingEntries,
         trailingEntries = trailingEntries,
+        performanceDiagnosticsEnabled = performanceDiagnosticsEnabled,
+        onPerformanceDiagnosticsChanged =
+            performanceDiagnostics?.let { diagnostics ->
+                diagnostics::setSharingEnabled
+            },
         donationAppName = donationAppName,
         onDonate = onDonate
     )

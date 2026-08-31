@@ -19,9 +19,10 @@ import xyz.lilsus.raylsuite.core.ui.platform.rememberRetainedInstance
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 
 @Composable
-fun App() {
+fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
     val appSettings = rememberAppSettings(LASR_PREFERENCES)
     val secureSettings = rememberSecureSettings(LASR_CREDENTIALS)
     val haptics = rememberHapticFeedbackManager()
@@ -125,6 +126,7 @@ fun App() {
                 contactsRepository = contactsRepository,
                 paymentCoordinator = paymentCoordinator,
                 nwcWallet = nwcWallet,
+                performanceDiagnostics = performanceDiagnostics,
                 onRemoveWallet = {
                     runtime.resetPaymentSession()
                 }

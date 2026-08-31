@@ -37,7 +37,7 @@ kotlin {
             implementation(project(":feature:language-settings"))
             implementation(project(":feature:onboarding"))
             implementation(project(":feature:payment-settings"))
-            implementation(project(":feature:settings"))
+            api(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
             implementation(project(":integration:exchange-rate"))
             implementation(project(":integration:lnurl"))

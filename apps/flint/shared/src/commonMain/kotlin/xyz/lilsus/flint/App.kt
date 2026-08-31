@@ -34,11 +34,12 @@ import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
+import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
 
 @Composable
-fun App(host: FlintAppHost) {
+fun App(host: FlintAppHost, performanceDiagnostics: PerformanceDiagnostics? = null) {
     val appSettings = rememberAppSettings(FLINT_PREFERENCES)
     val themePreferences = remember(appSettings) { DefaultThemePreferences(appSettings) }
     val currencyPreferences = remember(appSettings) { DefaultCurrencyPreferences(appSettings) }
@@ -143,6 +144,7 @@ fun App(host: FlintAppHost) {
                     paymentPreferences = paymentPreferences,
                     contactsRepository = contactsRepository,
                     walletViewModel = walletViewModel,
+                    performanceDiagnostics = performanceDiagnostics,
                     networkLabel = host.bootstrapConfig.environment.networkLabel
                 )
             }

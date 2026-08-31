@@ -16,6 +16,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -48,6 +49,8 @@ import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_langua
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments_subtitle
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_performance_diagnostics
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_performance_diagnostics_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_title
@@ -89,6 +92,8 @@ fun SettingsScreen(
     overviewBottomContent: (@Composable () -> Unit)? = null,
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList(),
+    performanceDiagnosticsEnabled: Boolean? = null,
+    onPerformanceDiagnosticsChanged: ((Boolean) -> Unit)? = null,
     donationAppName: String? = null,
     onDonate: ((Long) -> Unit)? = null
 ) {
@@ -141,6 +146,12 @@ fun SettingsScreen(
     require(entries.distinctBy(SettingsEntry::id).size == entries.size) {
         "Settings entry IDs must be unique"
     }
+    require(
+        (performanceDiagnosticsEnabled == null) ==
+            (onPerformanceDiagnosticsChanged == null)
+    ) {
+        "Performance diagnostics state and callback must be provided together"
+    }
 
     Scaffold(
         modifier = modifier.testTag(SettingsTestTags.SCREEN),
@@ -165,6 +176,17 @@ fun SettingsScreen(
             items(entries, key = { entry -> "entry:${entry.id}" }) { entry ->
                 SettingsListItem(entry)
             }
+            if (
+                performanceDiagnosticsEnabled != null &&
+                onPerformanceDiagnosticsChanged != null
+            ) {
+                item(key = "performance-diagnostics") {
+                    PerformanceDiagnosticsRow(
+                        enabled = performanceDiagnosticsEnabled,
+                        onEnabledChanged = onPerformanceDiagnosticsChanged
+                    )
+                }
+            }
             if (donationAppName != null && onDonate != null) {
                 item {
                     DonationCard(
@@ -184,6 +206,35 @@ fun SettingsScreen(
                 SettingsFooter(legalLinks)
             }
         }
+    }
+}
+
+@Composable
+private fun PerformanceDiagnosticsRow(enabled: Boolean, onEnabledChanged: (Boolean) -> Unit) {
+    AppListRow(
+        onClick = { onEnabledChanged(!enabled) },
+        minHeight = 48.dp,
+        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.settings_performance_diagnostics),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(Res.string.settings_performance_diagnostics_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onEnabledChanged
+        )
     }
 }
 

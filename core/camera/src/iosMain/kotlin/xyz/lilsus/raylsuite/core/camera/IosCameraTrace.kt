@@ -27,11 +27,14 @@ internal object IosCameraTrace {
     )
 
     fun beginInterval(event: CameraTraceEvent): IosCameraTraceInterval? {
-        if (!os_signpost_enabled(log)) return null
-        val identifier = os_signpost_id_generate(log)
-        if (identifier == OS_SIGNPOST_ID_NULL || identifier == OS_SIGNPOST_ID_INVALID) return null
-        emit(OS_SIGNPOST_INTERVAL_BEGIN, identifier, event)
-        return IosCameraTraceInterval(event, identifier)
+        val reportedTrace = beginReportedCameraTrace(event)
+        val identifier = if (os_signpost_enabled(log)) os_signpost_id_generate(log) else null
+        val validIdentifier = identifier?.takeUnless {
+            it == OS_SIGNPOST_ID_NULL || it == OS_SIGNPOST_ID_INVALID
+        }
+        validIdentifier?.let { emit(OS_SIGNPOST_INTERVAL_BEGIN, it, event) }
+        if (validIdentifier == null && reportedTrace == null) return null
+        return IosCameraTraceInterval(event, validIdentifier, reportedTrace)
     }
 
     fun event(event: CameraTraceEvent) {
@@ -67,13 +70,15 @@ internal object IosCameraTrace {
 
 internal class IosCameraTraceInterval(
     private val event: CameraTraceEvent,
-    private val identifier: ULong
+    private val identifier: ULong?,
+    private val reportedTrace: CameraPerformanceTraceHandle?
 ) {
     private var ended = false
 
     fun end() {
         if (ended) return
         ended = true
-        IosCameraTrace.endInterval(event, identifier)
+        identifier?.let { IosCameraTrace.endInterval(event, it) }
+        reportedTrace?.end()
     }
 }

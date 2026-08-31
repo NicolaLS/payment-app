@@ -28,6 +28,7 @@ import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks
@@ -46,6 +47,7 @@ internal fun NavGraphBuilder.flintHome(
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     walletViewModel: WalletViewModel,
+    performanceDiagnostics: PerformanceDiagnostics?,
     networkLabel: String
 ) {
     composable<FlintDestination.Home> {
@@ -72,7 +74,8 @@ internal fun NavGraphBuilder.flintHome(
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
-            paymentCoordinator = paymentCoordinator
+            paymentCoordinator = paymentCoordinator,
+            performanceDiagnostics = performanceDiagnostics
         )
     }
     composable<FlintDestination.Contacts> {
@@ -85,7 +88,8 @@ internal fun NavGraphBuilder.flintHome(
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
-            paymentCoordinator = paymentCoordinator
+            paymentCoordinator = paymentCoordinator,
+            performanceDiagnostics = performanceDiagnostics
         )
     }
     composable<FlintDestination.ShortcutCreate> {
@@ -98,7 +102,8 @@ internal fun NavGraphBuilder.flintHome(
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
-            paymentCoordinator = paymentCoordinator
+            paymentCoordinator = paymentCoordinator,
+            performanceDiagnostics = performanceDiagnostics
         )
     }
     composable<FlintDestination.WalletManagement> {
@@ -145,7 +150,8 @@ private fun FlintSettings(
     languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
-    paymentCoordinator: PaymentCoordinator
+    paymentCoordinator: PaymentCoordinator,
+    performanceDiagnostics: PerformanceDiagnostics?
 ) {
     SettingsFlow(
         themePreferences = themePreferences,
@@ -158,6 +164,7 @@ private fun FlintSettings(
         currencyPreferences = currencyPreferences,
         paymentPreferences = paymentPreferences,
         contactsRepository = contactsRepository,
+        performanceDiagnostics = performanceDiagnostics,
         leadingEntries =
             listOf(
                 SettingsEntry(
@@ -184,4 +191,8 @@ private val FLINT_DONATION_ADDRESS =
     checkNotNull(LightningAddress.parse("lilsus@blink.sv"))
 
 private val FLINT_LEGAL_LINKS =
-    SettingsLegalLinks(sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite")
+    SettingsLegalLinks(
+        privacyPolicyUrl =
+            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/flint/privacy.md",
+        sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite"
+    )

@@ -28,6 +28,7 @@ import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks
@@ -49,6 +50,7 @@ internal fun NavGraphBuilder.lasrHome(
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator,
     nwcWallet: NwcWallet,
+    performanceDiagnostics: PerformanceDiagnostics?,
     onRemoveWallet: () -> Unit
 ) {
     composable<LasrDestination.Home> {
@@ -80,7 +82,8 @@ internal fun NavGraphBuilder.lasrHome(
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator,
-            nwcWallet = nwcWallet
+            nwcWallet = nwcWallet,
+            performanceDiagnostics = performanceDiagnostics
         )
     }
     composable<LasrDestination.Contacts> {
@@ -94,7 +97,8 @@ internal fun NavGraphBuilder.lasrHome(
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator,
-            nwcWallet = nwcWallet
+            nwcWallet = nwcWallet,
+            performanceDiagnostics = performanceDiagnostics
         )
     }
     composable<LasrDestination.ShortcutCreate> {
@@ -108,7 +112,8 @@ internal fun NavGraphBuilder.lasrHome(
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator,
-            nwcWallet = nwcWallet
+            nwcWallet = nwcWallet,
+            performanceDiagnostics = performanceDiagnostics
         )
     }
     composable<LasrDestination.WalletManagement> {
@@ -171,7 +176,8 @@ private fun LasrSettings(
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator,
-    nwcWallet: NwcWallet
+    nwcWallet: NwcWallet,
+    performanceDiagnostics: PerformanceDiagnostics?
 ) {
     val connection by nwcWallet.connection.collectAsState()
     SettingsFlow(
@@ -185,6 +191,7 @@ private fun LasrSettings(
         currencyPreferences = currencyPreferences,
         paymentPreferences = paymentPreferences,
         contactsRepository = contactsRepository,
+        performanceDiagnostics = performanceDiagnostics,
         leadingEntries =
             listOf(
                 SettingsEntry(

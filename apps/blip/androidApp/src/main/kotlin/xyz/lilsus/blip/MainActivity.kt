@@ -6,9 +6,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import xyz.lilsus.raylsuite.core.ui.orientation.CompactWindowOrientationPolicy
+import xyz.lilsus.raylsuite.integration.performancemonitoring.createFirebasePerformanceDiagnostics
 
 open class MainActivity : AppCompatActivity() {
     private val orientationPolicy = CompactWindowOrientationPolicy(this)
+    private val performanceDiagnostics by lazy {
+        createFirebasePerformanceDiagnostics(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -17,7 +21,7 @@ open class MainActivity : AppCompatActivity() {
         orientationPolicy.apply()
 
         setContent {
-            App()
+            App(performanceDiagnostics = performanceDiagnostics)
         }
         deliverPaymentLink(intent)
 

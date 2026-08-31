@@ -32,6 +32,7 @@ import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks
 import xyz.lilsus.raylsuite.feature.settings.SettingsStartDestination
@@ -47,6 +48,7 @@ internal fun NavGraphBuilder.blipHome(
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator,
     blinkWallet: BlinkWallet,
+    performanceDiagnostics: PerformanceDiagnostics?,
     onRemoveWallet: () -> Unit
 ) {
     composable<BlipDestination.Home> {
@@ -80,6 +82,7 @@ internal fun NavGraphBuilder.blipHome(
             contactsRepository = contactsRepository,
             blinkWallet = blinkWallet,
             paymentCoordinator = paymentCoordinator,
+            performanceDiagnostics = performanceDiagnostics,
             onRemoveWallet = onRemoveWallet
         )
     }
@@ -95,6 +98,7 @@ internal fun NavGraphBuilder.blipHome(
             contactsRepository = contactsRepository,
             blinkWallet = blinkWallet,
             paymentCoordinator = paymentCoordinator,
+            performanceDiagnostics = performanceDiagnostics,
             onRemoveWallet = onRemoveWallet
         )
     }
@@ -110,6 +114,7 @@ internal fun NavGraphBuilder.blipHome(
             contactsRepository = contactsRepository,
             blinkWallet = blinkWallet,
             paymentCoordinator = paymentCoordinator,
+            performanceDiagnostics = performanceDiagnostics,
             onRemoveWallet = onRemoveWallet
         )
     }
@@ -152,6 +157,7 @@ private fun BlipSettings(
     contactsRepository: ContactsRepository,
     blinkWallet: BlinkWallet,
     paymentCoordinator: PaymentCoordinator,
+    performanceDiagnostics: PerformanceDiagnostics?,
     onRemoveWallet: () -> Unit
 ) {
     val walletSettingsViewModel =
@@ -173,6 +179,7 @@ private fun BlipSettings(
         currencyPreferences = currencyPreferences,
         paymentPreferences = paymentPreferences,
         contactsRepository = contactsRepository,
+        performanceDiagnostics = performanceDiagnostics,
         overviewBottomContent = {
             BlinkWalletSettingsActions(
                 state = walletSettingsState,

@@ -1,6 +1,6 @@
 # Blip Privacy Policy
 
-Last updated: July 27, 2026
+Last updated: August 31, 2026
 
 Blip is an open-source client for connecting to a Blink wallet. The Blip
 maintainer does not operate an account service, payment processor, analytics
@@ -36,11 +36,25 @@ CoinGecko or LNURL servers.
 Camera access is optional and is used to scan QR codes. Frames are processed
 on the device and Blip does not store or upload camera images.
 
-## Collection by the maintainer
+## Optional performance diagnostics
 
-Blip contains no maintainer-operated analytics, advertising, or telemetry SDK.
-The maintainer does not receive your wallet credentials, contacts, transaction
-history, or scanned QR codes through the app.
+On Android, Blip offers an optional **Performance diagnostics** setting. It is
+off by default. If you enable it, Blip uses Google Firebase Performance
+Monitoring to send technical performance measurements such as app startup,
+screen rendering, and fixed-duration camera startup and shutdown timings.
+
+Firebase receives technical metadata needed for those measurements, including
+a Firebase installation identifier, a random session identifier, app version,
+device model and operating system, device resources and CPU usage, network type,
+locale, and country derived from the IP address. Google's Firebase privacy and
+security information, including retention, is available at
+<https://firebase.google.com/support/privacy/>.
+
+Blip does not send payment amounts, destinations, addresses, invoices, wallet
+credentials, contacts, transaction history, QR contents, camera images, URLs,
+or free-form trace attributes through performance diagnostics. It does not use
+Firebase Analytics or advertising features. You can disable future collection
+at any time in Settings. Blip does not add this third-party telemetry on iOS.
 
 ## Questions
 
