@@ -44,6 +44,7 @@ fun App() {
             initial = ThemePreference.System
         )
     val currencyPreferences = runtime.currencyPreferences
+    val languageRepository = runtime.languageRepository
     val paymentPreferences = runtime.paymentPreferences
     val contactsRepository = runtime.contactsRepository
     val blinkWallet = runtime.blinkWallet
@@ -105,6 +106,7 @@ fun App() {
                 themePreferences = themePreferences,
                 bitcoinPriceProvider = runtime.bitcoinPriceProvider,
                 currencyPreferences = currencyPreferences,
+                languageRepository = languageRepository,
                 paymentPreferences = paymentPreferences,
                 contactsRepository = contactsRepository,
                 paymentCoordinator = paymentCoordinator,

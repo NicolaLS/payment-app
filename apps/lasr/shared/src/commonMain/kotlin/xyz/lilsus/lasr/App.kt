@@ -43,6 +43,7 @@ fun App() {
             initial = ThemePreference.System
         )
     val currencyPreferences = runtime.currencyPreferences
+    val languageRepository = runtime.languageRepository
     val paymentPreferences = runtime.paymentPreferences
     val contactsRepository = runtime.contactsRepository
     val nwcWallet = runtime.nwcWallet
@@ -119,6 +120,7 @@ fun App() {
                 themePreferences = themePreferences,
                 bitcoinPriceProvider = runtime.bitcoinPriceProvider,
                 currencyPreferences = currencyPreferences,
+                languageRepository = languageRepository,
                 paymentPreferences = paymentPreferences,
                 contactsRepository = contactsRepository,
                 paymentCoordinator = paymentCoordinator,

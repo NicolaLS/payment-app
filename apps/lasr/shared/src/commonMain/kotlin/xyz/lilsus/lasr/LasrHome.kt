@@ -25,6 +25,7 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
+import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
@@ -43,6 +44,7 @@ internal fun NavGraphBuilder.lasrHome(
     themePreferences: ThemePreferences,
     bitcoinPriceProvider: BitcoinPriceProvider,
     currencyPreferences: CurrencyPreferences,
+    languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator,
@@ -74,6 +76,7 @@ internal fun NavGraphBuilder.lasrHome(
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
+            languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator,
@@ -87,6 +90,7 @@ internal fun NavGraphBuilder.lasrHome(
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
+            languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator,
@@ -100,6 +104,7 @@ internal fun NavGraphBuilder.lasrHome(
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
+            languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator,
@@ -162,6 +167,7 @@ private fun LasrSettings(
     themePreferences: ThemePreferences,
     bitcoinPriceProvider: BitcoinPriceProvider,
     currencyPreferences: CurrencyPreferences,
+    languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator,
@@ -170,6 +176,7 @@ private fun LasrSettings(
     val connection by nwcWallet.connection.collectAsState()
     SettingsFlow(
         themePreferences = themePreferences,
+        languageRepository = languageRepository,
         bitcoinPriceProvider = bitcoinPriceProvider,
         legalLinks = LASR_LEGAL_LINKS,
         onBack = navController::navigateUp,

@@ -48,4 +48,6 @@ private class FakeLanguageRepository : LanguageRepository {
     }
 
     override suspend fun refresh() = Unit
+
+    override fun close() = Unit
 }

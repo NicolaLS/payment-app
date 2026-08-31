@@ -14,7 +14,6 @@ private class IosLanguageRepository : LanguageRepository {
     private val userDefaults = NSUserDefaults.standardUserDefaults
     private val mutablePreference = MutableStateFlow(currentPreference())
 
-    @Suppress("unused")
     private val localeObserver =
         NSNotificationCenter.defaultCenter.addObserverForName(
             name = NSCurrentLocaleDidChangeNotification,
@@ -45,6 +44,10 @@ private class IosLanguageRepository : LanguageRepository {
 
     override suspend fun refresh() {
         mutablePreference.value = currentPreference()
+    }
+
+    override fun close() {
+        NSNotificationCenter.defaultCenter.removeObserver(localeObserver)
     }
 
     private fun notifyLocaleChanged() {

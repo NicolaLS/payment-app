@@ -8,6 +8,7 @@ import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.DefaultContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
+import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
@@ -20,6 +21,7 @@ internal class BlipRuntime(
 ) {
     val themePreferences = DefaultThemePreferences(appSettings)
     val currencyPreferences = DefaultCurrencyPreferences(appSettings)
+    val languageRepository = createLanguageRepository()
     val paymentPreferences = DefaultPaymentPreferencesRepository(appSettings)
     val blipPaymentPreferences = BlipPaymentPreferences(appSettings)
     val contactsRepository = DefaultContactsRepository(appSettings)
@@ -52,5 +54,6 @@ internal class BlipRuntime(
 
     fun clear() {
         paymentCoordinator.clear()
+        languageRepository.close()
     }
 }

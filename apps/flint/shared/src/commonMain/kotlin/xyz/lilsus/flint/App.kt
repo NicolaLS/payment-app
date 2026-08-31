@@ -31,6 +31,7 @@ import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.contacts.DefaultContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
+import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
@@ -41,6 +42,7 @@ fun App(host: FlintAppHost) {
     val appSettings = rememberAppSettings(FLINT_PREFERENCES)
     val themePreferences = remember(appSettings) { DefaultThemePreferences(appSettings) }
     val currencyPreferences = remember(appSettings) { DefaultCurrencyPreferences(appSettings) }
+    val languageRepository = remember { createLanguageRepository() }
     val paymentPreferences =
         remember(appSettings) { DefaultPaymentPreferencesRepository(appSettings) }
     val contactsRepository = remember(appSettings) { DefaultContactsRepository(appSettings) }
@@ -88,6 +90,9 @@ fun App(host: FlintAppHost) {
     DisposableEffect(onboardingViewModel) {
         onDispose(onboardingViewModel::clear)
     }
+    DisposableEffect(languageRepository) {
+        onDispose(languageRepository::close)
+    }
     DisposableEffect(paymentCoordinator) {
         onDispose(paymentCoordinator::clear)
     }
@@ -134,6 +139,7 @@ fun App(host: FlintAppHost) {
                     themePreferences = themePreferences,
                     bitcoinPriceProvider = bitcoinPriceProvider,
                     currencyPreferences = currencyPreferences,
+                    languageRepository = languageRepository,
                     paymentPreferences = paymentPreferences,
                     contactsRepository = contactsRepository,
                     walletViewModel = walletViewModel,

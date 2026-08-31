@@ -25,6 +25,7 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
+import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
@@ -41,6 +42,7 @@ internal fun NavGraphBuilder.flintHome(
     themePreferences: ThemePreferences,
     bitcoinPriceProvider: BitcoinPriceProvider,
     currencyPreferences: CurrencyPreferences,
+    languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     walletViewModel: WalletViewModel,
@@ -67,6 +69,7 @@ internal fun NavGraphBuilder.flintHome(
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
+            languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator
@@ -79,6 +82,7 @@ internal fun NavGraphBuilder.flintHome(
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
+            languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator
@@ -91,6 +95,7 @@ internal fun NavGraphBuilder.flintHome(
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
+            languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             paymentCoordinator = paymentCoordinator
@@ -137,12 +142,14 @@ private fun FlintSettings(
     themePreferences: ThemePreferences,
     bitcoinPriceProvider: BitcoinPriceProvider,
     currencyPreferences: CurrencyPreferences,
+    languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
     contactsRepository: ContactsRepository,
     paymentCoordinator: PaymentCoordinator
 ) {
     SettingsFlow(
         themePreferences = themePreferences,
+        languageRepository = languageRepository,
         bitcoinPriceProvider = bitcoinPriceProvider,
         legalLinks = FLINT_LEGAL_LINKS,
         onBack = navController::navigateUp,

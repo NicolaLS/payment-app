@@ -15,6 +15,7 @@ import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.platform.createAppLifecycleObserver
 import xyz.lilsus.raylsuite.feature.contacts.DefaultContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
+import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
@@ -31,6 +32,7 @@ internal class LasrRuntime(
 
     val themePreferences = DefaultThemePreferences(appSettings)
     val currencyPreferences = DefaultCurrencyPreferences(appSettings)
+    val languageRepository = createLanguageRepository()
     val paymentPreferences = DefaultPaymentPreferencesRepository(appSettings)
     val contactsRepository = DefaultContactsRepository(appSettings)
     val bitcoinPriceProvider = CoinGeckoBitcoinPriceProvider()
@@ -66,6 +68,7 @@ internal class LasrRuntime(
 
     fun clear() {
         paymentCoordinator.clear()
+        languageRepository.close()
         appLifecycle.close()
         scope.launch {
             nwcWallet.close()

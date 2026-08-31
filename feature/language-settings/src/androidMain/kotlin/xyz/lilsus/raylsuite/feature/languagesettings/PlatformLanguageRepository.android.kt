@@ -42,6 +42,8 @@ private class AndroidLanguageRepository : LanguageRepository {
             readPreference(AppCompatDelegate.getApplicationLocales())
     }
 
+    override fun close() = Unit
+
     private fun readPreference(locales: LocaleListCompat): LanguagePreference {
         val deviceTag = deviceLanguageTag()
         if (locales.isEmpty) {

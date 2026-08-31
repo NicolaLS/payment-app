@@ -33,7 +33,6 @@ import xyz.lilsus.raylsuite.feature.currencysettings.CurrencySettingsViewModel
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsScreen
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsViewModel
-import xyz.lilsus.raylsuite.feature.languagesettings.rememberLanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsScreen
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsViewModel
@@ -57,6 +56,7 @@ import xyz.lilsus.raylsuite.feature.themesettings.ThemeSettingsViewModel
 @Composable
 fun SettingsFlow(
     themePreferences: ThemePreferences,
+    languageRepository: LanguageRepository,
     bitcoinPriceProvider: BitcoinPriceProvider,
     currencyPreferences: CurrencyPreferences,
     contactsRepository: ContactsRepository,
@@ -80,7 +80,6 @@ fun SettingsFlow(
     }
     var shortcutCurrencySearch by remember { mutableStateOf("") }
 
-    val languageRepository = rememberLanguageRepository()
     val currencyState =
         currencyPreferences.code.collectAsState(CurrencyCatalog.DEFAULT_CODE)
 

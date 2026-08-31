@@ -18,7 +18,7 @@ kotlin {
             implementation(project(":core:ui"))
             api(project(":feature:contacts"))
             api(project(":feature:currency-settings"))
-            implementation(project(":feature:language-settings"))
+            api(project(":feature:language-settings"))
             api(project(":feature:payment-settings"))
             implementation(project(":feature:payment-shortcuts"))
             api(project(":feature:theme-settings"))

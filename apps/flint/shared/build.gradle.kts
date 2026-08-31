@@ -33,6 +33,7 @@ kotlin {
             implementation(project(":feature:contacts"))
             implementation(project(":feature:currency-settings"))
             implementation(project(":feature:onboarding"))
+            implementation(project(":feature:language-settings"))
             implementation(project(":feature:payment-settings"))
             implementation(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
