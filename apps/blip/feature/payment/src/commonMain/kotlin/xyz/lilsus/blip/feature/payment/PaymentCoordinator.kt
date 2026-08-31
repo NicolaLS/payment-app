@@ -1,10 +1,8 @@
 package xyz.lilsus.blip.feature.payment
 
-import fr.acinq.bitcoin.Crypto
 import fr.acinq.lightning.payment.Bolt11Invoice
 import fr.acinq.lightning.utils.currentTimestampSeconds
 import fr.acinq.lightning.utils.msat
-import fr.acinq.lightning.utils.toByteVector32
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -13,7 +11,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -32,11 +29,14 @@ import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.payment.LightningInputParser
 import xyz.lilsus.raylsuite.core.payment.LnurlError
+import xyz.lilsus.raylsuite.core.payment.LnurlInvoiceResolution
+import xyz.lilsus.raylsuite.core.payment.LnurlInvoiceResolutionError
 import xyz.lilsus.raylsuite.core.payment.LnurlPayClient
 import xyz.lilsus.raylsuite.core.payment.LnurlPayParams
 import xyz.lilsus.raylsuite.core.payment.LnurlResult
 import xyz.lilsus.raylsuite.core.payment.lightningAddressDynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.payment.lnurlDynamicPaymentSourceKey
+import xyz.lilsus.raylsuite.core.payment.roundToFullSatoshis
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
@@ -49,7 +49,6 @@ import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
-import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactContext
 import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactSelection
@@ -69,14 +68,10 @@ class PaymentCoordinator(
     private val scope = CoroutineScope(SupervisorJob() + coroutineContext)
     private val currencyManager = PaymentCurrencyManager(bitcoinPriceProvider, scope)
     private val confirmationPolicy = PaymentConfirmationPolicy(paymentPreferences)
-    private val inputParser = LightningInputParser()
-    private val manualAmount =
-        ManualAmountController(
-            ManualAmountConfig(
-                info = CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE),
-                exchangeRate = null
-            )
-        )
+    private val preparation = PaymentPreparation(lnurlPayClient)
+    private val sessionState = PaymentSessionState(preparation)
+    private val inputParser = preparation.inputParser
+    private val manualAmount = preparation.manualAmount
     private val pendingTracker =
         PendingPaymentTracker(
             currencyManager = currencyManager,
@@ -91,7 +86,7 @@ class PaymentCoordinator(
             clock = ::currentTimeMillis
         )
 
-    private val mutableUiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Active)
+    private val mutableUiState = sessionState.uiState
     val uiState: StateFlow<PaymentUiState> = mutableUiState.asStateFlow()
 
     private val mutableEvents = MutableSharedFlow<PaymentEvent>(extraBufferCapacity = 8)
@@ -100,26 +95,51 @@ class PaymentCoordinator(
     val sessionTransactions: StateFlow<List<SessionTransactionItem>> = pendingTracker.displayItems
     val contactsState = contactsController.state
 
-    private val mutableTransactionDetailNavigationTarget = MutableStateFlow<String?>(null)
+    private val mutableTransactionDetailNavigationTarget =
+        sessionState.transactionDetailNavigationTarget
     val transactionDetailNavigationTarget: StateFlow<String?> =
         mutableTransactionDetailNavigationTarget.asStateFlow()
 
-    private val mutableNewSessionTransactionCount = MutableStateFlow(0)
+    private val mutableNewSessionTransactionCount = sessionState.newSessionTransactionCount
     val newSessionTransactionCount: StateFlow<Int> =
         mutableNewSessionTransactionCount.asStateFlow()
 
-    private var manualEntryContext: ManualEntryContext? = null
-    private var pendingPayment: PendingPayment? = null
-    private var pendingLnurlReview: PendingLnurlReview? = null
-    private var pendingRetry: PendingRetryChoice? = null
-    private var lastPaymentResult: CompletedPayment? = null
-    private val knownSessionTransactionIds = mutableSetOf<String>()
-    private val newSessionTransactionIds = mutableSetOf<String>()
+    private var manualEntryContext: ManualEntryContext?
+        get() = preparation.manualEntryContext
+        set(value) {
+            preparation.manualEntryContext = value
+        }
+    private var pendingPayment: PendingPayment?
+        get() = preparation.pendingPayment
+        set(value) {
+            preparation.pendingPayment = value
+        }
+    private var pendingLnurlReview: PendingLnurlReview?
+        get() = preparation.pendingLnurlReview
+        set(value) {
+            preparation.pendingLnurlReview = value
+        }
+    private var pendingRetry: PendingRetryChoice?
+        get() = sessionState.pendingRetry
+        set(value) {
+            sessionState.pendingRetry = value
+        }
+    private var lastPaymentResult: CompletedPayment?
+        get() = sessionState.lastPaymentResult
+        set(value) {
+            sessionState.lastPaymentResult = value
+        }
+    private val knownSessionTransactionIds = sessionState.knownTransactionIds
+    private val newSessionTransactionIds = sessionState.newTransactionIds
     private var vibrateOnScan = true
     private var vibrateOnPayment = true
     private var showLnurlPayDetails = false
-    private val paymentJobs = mutableMapOf<String, Job>()
-    private var paymentAdmissionInProgress = false
+    private val paymentJobs = sessionState.paymentJobs
+    private var paymentAdmissionInProgress: Boolean
+        get() = sessionState.paymentAdmissionInProgress
+        set(value) {
+            sessionState.paymentAdmissionInProgress = value
+        }
 
     init {
         scope.launch {
@@ -166,23 +186,9 @@ class PaymentCoordinator(
     }
 
     fun resetSession() {
-        paymentAdmissionInProgress = false
-        val jobs = paymentJobs.values.toList()
-        paymentJobs.clear()
-        jobs.forEach(Job::cancel)
+        sessionState.reset(currencyManager.state.value)
         pendingTracker.resetSession()
         contactsController.resetSession()
-        manualEntryContext = null
-        pendingPayment = null
-        pendingLnurlReview = null
-        pendingRetry = null
-        lastPaymentResult = null
-        knownSessionTransactionIds.clear()
-        newSessionTransactionIds.clear()
-        mutableNewSessionTransactionCount.value = 0
-        mutableTransactionDetailNavigationTarget.value = null
-        clearPaymentSessionState()
-        mutableUiState.value = PaymentUiState.Active
     }
 
     private suspend fun handleIntent(intent: PaymentIntent) {
@@ -630,38 +636,16 @@ class PaymentCoordinator(
     private fun payLnurlInvoice(session: LnurlSession, amountMsats: Long, isManualEntry: Boolean) {
         mutableUiState.value = PaymentUiState.Loading()
         scope.launch {
-            val roundedAmount = roundToFullSatoshis(amountMsats)
-            // Shortcut comments currently double as local notes and receiver-facing LNURL
-            // messages. TODO: Clarify whether those should remain one concept or be separated.
-            val comment = session.comment?.takeIf(String::isNotBlank)
-            val commentAllowed = session.params.commentAllowed
-            if (
-                comment != null &&
-                (
-                    commentAllowed == null ||
-                        comment.length > commentAllowed
+            when (val result = preparation.resolveLnurlInvoice(session, amountMsats)) {
+                is LnurlInvoiceResolution.Success ->
+                    handleLnurlInvoice(
+                        session = session,
+                        amountMsats = result.amountMsats,
+                        invoice = result.invoice,
+                        isManualEntry = isManualEntry
                     )
-            ) {
-                manualEntryContext = null
-                emitError(
-                    PaymentUiError.InvalidInvoice(
-                        "Description is too long for this address"
-                    )
-                )
-                return@launch
-            }
-            when (
-                val result =
-                    lnurlPayClient.requestInvoice(
-                        callback = session.params.callback,
-                        amountMsats = roundedAmount,
-                        comment = comment
-                    )
-            ) {
-                is LnurlResult.Success ->
-                    handleLnurlInvoice(session, roundedAmount, result.data, isManualEntry)
 
-                is LnurlResult.Error -> {
+                is LnurlInvoiceResolution.Failure -> {
                     manualEntryContext = null
                     emitError(result.error.toPaymentUiError())
                 }
@@ -669,35 +653,12 @@ class PaymentCoordinator(
         }
     }
 
-    private suspend fun handleLnurlInvoice(
+    private fun handleLnurlInvoice(
         session: LnurlSession,
         amountMsats: Long,
-        encodedInvoice: String,
+        invoice: Bolt11Invoice,
         isManualEntry: Boolean
     ) {
-        val invoice =
-            when (val result = inputParser.parse(encodedInvoice)) {
-                is LightningInputParser.ParseResult.Success ->
-                    (result.target as? LightningInputParser.Target.Bolt11)?.invoice
-
-                is LightningInputParser.ParseResult.Failure -> null
-            }
-        if (invoice == null) {
-            manualEntryContext = null
-            emitError(PaymentUiError.InvalidInvoice("Failed to parse BOLT11 invoice"))
-            return
-        }
-        if (rejectExpiredInvoice(invoice)) return
-        if (invoice.amount?.msat != amountMsats) {
-            manualEntryContext = null
-            emitError(PaymentUiError.InvalidInvoice("LNURL invoice amount does not match"))
-            return
-        }
-        if (!validateLnurlDescription(invoice, session.params)) {
-            manualEntryContext = null
-            emitError(PaymentUiError.InvalidInvoice("LNURL invoice metadata mismatch"))
-            return
-        }
         pendingTracker.findUnresolvedByPaymentHash(invoice.paymentHash.toHex())?.let { existing ->
             manualEntryContext = null
             mutableUiState.value = PaymentUiState.Active
@@ -727,16 +688,6 @@ class PaymentCoordinator(
         manualEntryContext = null
         emitError(PaymentUiError.InvalidInvoice("Invoice has expired"))
         return true
-    }
-
-    private fun validateLnurlDescription(invoice: Bolt11Invoice, params: LnurlPayParams): Boolean {
-        invoice.description?.let { description ->
-            return params.metadata.plainText?.let { it == description } ?: true
-        }
-        invoice.descriptionHash?.let { hash ->
-            return Crypto.sha256(params.metadataRaw.encodeToByteArray()).toByteVector32() == hash
-        }
-        return false
     }
 
     private fun updateManualAmount(key: ManualAmountKey) {
@@ -1346,17 +1297,7 @@ class PaymentCoordinator(
     }
 
     private fun clearPaymentSessionState() {
-        val currencyState = currencyManager.state.value
-        manualEntryContext = null
-        pendingPayment = null
-        pendingLnurlReview = null
-        manualAmount.reset(
-            ManualAmountConfig(
-                info = currencyState.info,
-                exchangeRate = currencyState.exchangeRate
-            ),
-            clearInput = true
-        )
+        preparation.reset(currencyManager.state.value)
     }
 
     private fun notifyScanSuccess() {
@@ -1373,58 +1314,7 @@ class PaymentCoordinator(
         )
 }
 
-private data class PendingPayment(
-    val invoice: Bolt11Invoice,
-    val amountOverrideMsats: Long?,
-    val origin: PendingOrigin,
-    val dynamicSourceKey: DynamicPaymentSourceKey?,
-    val contactContext: PaymentContactContext?,
-    val replacesDynamicGuardId: String?
-)
-
-private data class PendingLnurlReview(
-    val session: LnurlSession,
-    val amountMsats: Long,
-    val isManualEntry: Boolean
-)
-
-private data class PendingRetryChoice(
-    val recordId: String,
-    val continuation: PendingRetryContinuation
-)
-
-private data class CompletedPayment(
-    val amountMsats: Long,
-    val feeMsats: Long,
-    val showEstimatedFeeHint: Boolean,
-    val wasAlreadyPaid: Boolean,
-    val preimage: String?
-)
-
-private data class LnurlSession(
-    val params: LnurlPayParams,
-    val display: LnurlPayDisplay?,
-    val sourceKey: DynamicPaymentSourceKey?,
-    val paymentSource: PaymentRequestSource,
-    val contactContext: PaymentContactContext?,
-    val comment: String?,
-    val replacesDynamicGuardId: String?
-)
-
-private enum class PaymentRequestSource {
-    Camera,
-    DeepLink
-}
-
-private sealed interface ManualEntryContext {
-    data class Bolt(val invoice: Bolt11Invoice, val source: PaymentRequestSource) :
-        ManualEntryContext
-
-    data class Lnurl(val session: LnurlSession, val inputInfo: CurrencyInfo) :
-        ManualEntryContext
-}
-
-private sealed interface PendingRetryContinuation {
+internal sealed interface PendingRetryContinuation {
     data class Lnurl(
         val endpoint: String,
         val sourceKey: DynamicPaymentSourceKey,
@@ -1457,7 +1347,23 @@ private fun LnurlError.toPaymentUiError(): PaymentUiError = when (this) {
     is LnurlError.Unexpected -> PaymentUiError.Lnurl(detail)
 }
 
-internal fun roundToFullSatoshis(msats: Long): Long =
-    ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
+private fun LnurlInvoiceResolutionError.toPaymentUiError(): PaymentUiError = when (this) {
+    is LnurlInvoiceResolutionError.Client -> error.toPaymentUiError()
+
+    LnurlInvoiceResolutionError.CommentRejected ->
+        PaymentUiError.InvalidInvoice("Description is too long for this address")
+
+    LnurlInvoiceResolutionError.MalformedInvoice ->
+        PaymentUiError.InvalidInvoice("Failed to parse BOLT11 invoice")
+
+    LnurlInvoiceResolutionError.ExpiredInvoice ->
+        PaymentUiError.InvalidInvoice("Invoice has expired")
+
+    is LnurlInvoiceResolutionError.AmountMismatch ->
+        PaymentUiError.InvalidInvoice("LNURL invoice amount does not match")
+
+    LnurlInvoiceResolutionError.MetadataMismatch ->
+        PaymentUiError.InvalidInvoice("LNURL invoice metadata mismatch")
+}
 
 private const val MSATS_PER_SAT = 1_000L
