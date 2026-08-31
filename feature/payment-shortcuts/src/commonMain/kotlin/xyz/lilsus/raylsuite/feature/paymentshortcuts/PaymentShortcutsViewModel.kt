@@ -3,8 +3,10 @@ package xyz.lilsus.raylsuite.feature.paymentshortcuts
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -29,6 +31,8 @@ class PaymentShortcutsViewModel(
     private var shortcuts: List<PaymentShortcut> = emptyList()
     private var pendingContactId: String? = null
     private var pendingShortcutId: String? = null
+    private var autoSaveJob: Job? = null
+    private var lastPersistedRequest: ShortcutSaveRequest? = null
 
     private val mutableUiState = MutableStateFlow(PaymentShortcutsUiState())
     val uiState: StateFlow<PaymentShortcutsUiState> = mutableUiState.asStateFlow()
@@ -127,20 +131,16 @@ class PaymentShortcutsViewModel(
     fun saveEditor(defaultTitle: String) {
         val editor = mutableUiState.value.editor ?: return
         val request = editor.toSaveRequest(defaultTitle) ?: return
+        cancelAutoSave()
         scope.launch {
-            repository.saveShortcut(
-                id = request.id,
-                title = request.title,
-                contactId = request.contactId,
-                amount = request.amount,
-                comment = request.comment
-            )
+            persist(request)
             closeEditor()
         }
     }
 
     fun deleteEditedShortcut() {
         val shortcutId = mutableUiState.value.editor?.shortcutId ?: return
+        cancelAutoSave()
         scope.launch {
             repository.deleteShortcut(shortcutId)
             closeEditor()
@@ -148,7 +148,22 @@ class PaymentShortcutsViewModel(
     }
 
     fun dismissEditor() {
-        closeEditor()
+        val editor = mutableUiState.value.editor ?: return
+        val shortcutId = editor.shortcutId
+        if (shortcutId == null) {
+            closeEditor()
+            return
+        }
+        val request = editor.toSaveRequest(defaultTitle = editor.title)
+        cancelAutoSave()
+        if (request == null || request == lastPersistedRequest) {
+            closeEditor()
+            return
+        }
+        scope.launch {
+            persist(request)
+            closeEditor()
+        }
     }
 
     fun clear() {
@@ -158,6 +173,8 @@ class PaymentShortcutsViewModel(
     private fun openNewEditor(contactId: String?): Boolean {
         val contact = contactId?.let { id -> contacts.firstOrNull { it.id == id } }
         if (contactId != null && contact == null) return false
+        cancelAutoSave()
+        lastPersistedRequest = null
         mutableUiState.value =
             mutableUiState.value.copy(
                 editor =
@@ -176,6 +193,8 @@ class PaymentShortcutsViewModel(
     private fun openExistingEditor(shortcutId: String): Boolean {
         val shortcut = shortcuts.firstOrNull { it.id == shortcutId } ?: return false
         val contact = contacts.firstOrNull { it.id == shortcut.contactId } ?: return false
+        cancelAutoSave()
+        lastPersistedRequest = shortcut.toSaveRequest()
         mutableUiState.value =
             mutableUiState.value.copy(
                 editor =
@@ -206,15 +225,28 @@ class PaymentShortcutsViewModel(
     private fun PaymentShortcutEditorState.autoSave() {
         val shortcutId = shortcutId ?: return
         val request = toSaveRequest(defaultTitle = title) ?: return
-        scope.launch {
-            repository.saveShortcut(
-                id = shortcutId,
-                title = request.title,
-                contactId = request.contactId,
-                amount = request.amount,
-                comment = request.comment
-            )
+        if (request == lastPersistedRequest) return
+        autoSaveJob?.cancel()
+        autoSaveJob = scope.launch {
+            delay(AUTO_SAVE_DELAY_MS)
+            persist(request.copy(id = shortcutId))
         }
+    }
+
+    private suspend fun persist(request: ShortcutSaveRequest) {
+        repository.saveShortcut(
+            id = request.id,
+            title = request.title,
+            contactId = request.contactId,
+            amount = request.amount,
+            comment = request.comment
+        )
+        lastPersistedRequest = request
+    }
+
+    private fun cancelAutoSave() {
+        autoSaveJob?.cancel()
+        autoSaveJob = null
     }
 
     private fun PaymentShortcutEditorState.toSaveRequest(
@@ -262,6 +294,8 @@ class PaymentShortcutsViewModel(
     }
 
     private fun closeEditor() {
+        cancelAutoSave()
+        lastPersistedRequest = null
         mutableUiState.value = mutableUiState.value.copy(editor = null)
         mutableEvents.tryEmit(PaymentShortcutsEvent.CloseEditor)
     }
@@ -323,6 +357,16 @@ class PaymentShortcutsViewModel(
         ?: preferredCurrencyCode().supportedCurrencyCodeOrNull()
         ?: CurrencyCatalog.DEFAULT_CODE
 }
+
+private fun PaymentShortcut.toSaveRequest(): ShortcutSaveRequest = ShortcutSaveRequest(
+    id = id,
+    title = title,
+    contactId = contactId,
+    amount = amount,
+    comment = comment
+)
+
+private const val AUTO_SAVE_DELAY_MS = 300L
 
 data class PaymentShortcutsUiState(
     val shortcuts: List<PaymentShortcutItem> = emptyList(),
