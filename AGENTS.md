@@ -227,6 +227,18 @@ the code they changed.
   Release build would be useful and ask the user for permission before running
   it.
 
+## Performance diagnostics
+
+- Camera performance stages are recorded as Android system-trace events and iOS
+  signposts. Use and interpret them as described in
+  `docs/performance-monitoring.md`.
+- Keep performance marker names static and provider-neutral. Never attach QR
+  contents, wallet credentials, invoices, NWC URIs, payment preimages, or other
+  dynamic user data to a marker.
+- Camera startup and first-frame measurements do not require a QR fixture. Treat
+  QR-detection timing as diagnostic rather than a repeatable benchmark unless
+  the capture setup is controlled.
+
 ## Release invariants
 
 Release procedure details live in `docs/release.md`; the safeguards below are

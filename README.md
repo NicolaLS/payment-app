@@ -53,5 +53,6 @@ frameworks directly:
 ./gradlew :lasr:shared:linkReleaseFrameworkIosArm64
 ```
 
-See [release](docs/release.md), [E2E](docs/e2e.md), and the
-[extraction completion record](docs/MIGRATION_LEDGER.md).
+See [release](docs/release.md), [E2E](docs/e2e.md),
+[performance monitoring](docs/performance-monitoring.md), and the [extraction
+completion record](docs/MIGRATION_LEDGER.md).
