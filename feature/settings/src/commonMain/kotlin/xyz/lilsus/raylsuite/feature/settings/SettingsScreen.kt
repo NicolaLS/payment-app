@@ -59,7 +59,11 @@ data class SettingsEntry(
     val subtitle: String? = null,
     val testTag: String? = null,
     val onClick: () -> Unit
-)
+) {
+    init {
+        require(id.isNotBlank()) { "Settings entry ID must not be blank" }
+    }
+}
 
 @Immutable
 data class SettingsLegalLinks(
@@ -134,6 +138,9 @@ fun SettingsScreen(
             )
         )
     val entries = leadingEntries + sharedEntries + trailingEntries
+    require(entries.distinctBy(SettingsEntry::id).size == entries.size) {
+        "Settings entry IDs must be unique"
+    }
 
     Scaffold(
         modifier = modifier.testTag(SettingsTestTags.SCREEN),
@@ -155,7 +162,7 @@ fun SettingsScreen(
             contentPadding = AppListDefaults.ScreenPadding,
             verticalArrangement = Arrangement.spacedBy(AppListDefaults.SectionSpacing)
         ) {
-            items(entries, key = SettingsEntry::id) { entry ->
+            items(entries, key = { entry -> "entry:${entry.id}" }) { entry ->
                 SettingsListItem(entry)
             }
             if (donationAppName != null && onDonate != null) {
@@ -169,7 +176,7 @@ fun SettingsScreen(
                 }
             }
             overviewBottomContent?.let { content ->
-                item(key = "overview-bottom-content") {
+                item(key = "slot:overview-bottom-content") {
                     content()
                 }
             }
