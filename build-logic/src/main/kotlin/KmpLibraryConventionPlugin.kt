@@ -25,10 +25,6 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
                         jvmTarget.set(JvmTarget.JVM_11)
                     }
 
-                    androidResources {
-                        enable = true
-                    }
-
                     withHostTest {}
                 }
 
