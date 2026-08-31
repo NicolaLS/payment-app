@@ -1,13 +1,10 @@
 package xyz.lilsus.raylsuite.feature.currencysettings
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
-import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 
 interface CurrencyPreferences {
     val code: Flow<String>
@@ -48,13 +45,5 @@ class DefaultCurrencyPreferences(private val settings: Settings) : CurrencyPrefe
 
     private companion object {
         const val KEY_CURRENCY = "currency.code"
-    }
-}
-
-@Composable
-fun rememberCurrencyPreferences(storageName: String): CurrencyPreferences {
-    val settings = rememberAppSettings(storageName)
-    return remember(settings) {
-        DefaultCurrencyPreferences(settings)
     }
 }

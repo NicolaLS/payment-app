@@ -157,7 +157,6 @@ private fun BlipSettings(
         onDispose(walletSettingsViewModel::clear)
     }
     SettingsFlow(
-        storageName = BLIP_PREFERENCES,
         themePreferences = themePreferences,
         bitcoinPriceProvider = bitcoinPriceProvider,
         legalLinks = BLIP_LEGAL_LINKS,

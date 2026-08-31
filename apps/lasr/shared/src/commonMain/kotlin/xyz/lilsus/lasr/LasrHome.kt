@@ -169,7 +169,6 @@ private fun LasrSettings(
 ) {
     val connection by nwcWallet.connection.collectAsState()
     SettingsFlow(
-        storageName = LASR_PREFERENCES,
         themePreferences = themePreferences,
         bitcoinPriceProvider = bitcoinPriceProvider,
         legalLinks = LASR_LEGAL_LINKS,

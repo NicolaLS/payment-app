@@ -1,7 +1,5 @@
 package xyz.lilsus.raylsuite.feature.contacts
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import com.russhwolf.settings.Settings
 import kotlin.random.Random
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +19,6 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.PaymentShortcut
 import xyz.lilsus.raylsuite.core.model.ShortcutAmount
 import xyz.lilsus.raylsuite.core.model.ShortcutStats
-import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 
 class DefaultContactsRepository(
     private val settings: Settings,
@@ -264,14 +261,6 @@ class DefaultContactsRepository(
         const val CONTACTS_DOCUMENT_KEY = "contacts.document"
         const val ASK_TO_SAVE_NEW_CONTACTS_KEY = "contacts.askToSaveNewContacts"
         const val DEFAULT_ASK_TO_SAVE_NEW_CONTACTS = true
-    }
-}
-
-@Composable
-fun rememberContactsRepository(storageName: String): ContactsRepository {
-    val settings = rememberAppSettings(storageName)
-    return remember(settings) {
-        DefaultContactsRepository(settings)
     }
 }
 

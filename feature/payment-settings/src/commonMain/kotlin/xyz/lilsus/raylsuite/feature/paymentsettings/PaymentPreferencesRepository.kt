@@ -1,14 +1,11 @@
 package xyz.lilsus.raylsuite.feature.paymentsettings
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
-import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 
 interface PaymentPreferencesRepository {
     val preferences: Flow<PaymentPreferences>
@@ -128,13 +125,5 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
         const val KEY_VIBRATE_PAYMENT = "payments.vibrateOnPayment"
         const val MODE_ALWAYS = "always"
         const val MODE_ABOVE = "above"
-    }
-}
-
-@Composable
-fun rememberPaymentPreferencesRepository(storageName: String): PaymentPreferencesRepository {
-    val settings = rememberAppSettings(storageName)
-    return remember(settings) {
-        DefaultPaymentPreferencesRepository(settings)
     }
 }

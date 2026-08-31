@@ -142,7 +142,6 @@ private fun FlintSettings(
     paymentCoordinator: PaymentCoordinator
 ) {
     SettingsFlow(
-        storageName = FLINT_PREFERENCES,
         themePreferences = themePreferences,
         bitcoinPriceProvider = bitcoinPriceProvider,
         legalLinks = FLINT_LEGAL_LINKS,

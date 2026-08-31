@@ -27,11 +27,9 @@ import xyz.lilsus.raylsuite.feature.contacts.ContactsEvent
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.contacts.ContactsScreen
 import xyz.lilsus.raylsuite.feature.contacts.ContactsViewModel
-import xyz.lilsus.raylsuite.feature.contacts.rememberContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencySettingsScreen
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencySettingsViewModel
-import xyz.lilsus.raylsuite.feature.currencysettings.rememberCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsScreen
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsViewModel
@@ -39,7 +37,6 @@ import xyz.lilsus.raylsuite.feature.languagesettings.rememberLanguageRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsScreen
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsViewModel
-import xyz.lilsus.raylsuite.feature.paymentsettings.rememberPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutContactPickerScreen
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutCurrencyPickerScreen
 import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutEditorScreen
@@ -59,16 +56,15 @@ import xyz.lilsus.raylsuite.feature.themesettings.ThemeSettingsViewModel
 
 @Composable
 fun SettingsFlow(
-    storageName: String,
     themePreferences: ThemePreferences,
     bitcoinPriceProvider: BitcoinPriceProvider,
+    currencyPreferences: CurrencyPreferences,
+    contactsRepository: ContactsRepository,
+    paymentPreferences: PaymentPreferencesRepository,
     legalLinks: SettingsLegalLinks,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     startDestination: SettingsStartDestination = SettingsStartDestination.Overview,
-    currencyPreferences: CurrencyPreferences? = null,
-    contactsRepository: ContactsRepository? = null,
-    paymentPreferences: PaymentPreferencesRepository? = null,
     overviewBottomContent: (@Composable () -> Unit)? = null,
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList(),
@@ -85,37 +81,31 @@ fun SettingsFlow(
     var shortcutCurrencySearch by remember { mutableStateOf("") }
 
     val languageRepository = rememberLanguageRepository()
-    val resolvedCurrencyPreferences =
-        currencyPreferences ?: rememberCurrencyPreferences(storageName)
-    val resolvedContactsRepository =
-        contactsRepository ?: rememberContactsRepository(storageName)
-    val resolvedPaymentPreferences =
-        paymentPreferences ?: rememberPaymentPreferencesRepository(storageName)
     val currencyState =
-        resolvedCurrencyPreferences.code.collectAsState(CurrencyCatalog.DEFAULT_CODE)
+        currencyPreferences.code.collectAsState(CurrencyCatalog.DEFAULT_CODE)
 
     val contactsViewModel =
-        remember(resolvedContactsRepository) {
-            ContactsViewModel(resolvedContactsRepository)
+        remember(contactsRepository) {
+            ContactsViewModel(contactsRepository)
         }
     val shortcutsViewModel =
-        remember(resolvedContactsRepository) {
+        remember(contactsRepository) {
             PaymentShortcutsViewModel(
-                repository = resolvedContactsRepository,
+                repository = contactsRepository,
                 preferredCurrencyCode = { currencyState.value }
             )
         }
     val paymentSettingsViewModel =
         remember(
-            resolvedPaymentPreferences,
-            resolvedCurrencyPreferences,
-            resolvedContactsRepository,
+            paymentPreferences,
+            currencyPreferences,
+            contactsRepository,
             bitcoinPriceProvider
         ) {
             PaymentSettingsViewModel(
-                paymentPreferences = resolvedPaymentPreferences,
-                currencyPreferences = resolvedCurrencyPreferences,
-                contactsRepository = resolvedContactsRepository,
+                paymentPreferences = paymentPreferences,
+                currencyPreferences = currencyPreferences,
+                contactsRepository = contactsRepository,
                 bitcoinPriceProvider = bitcoinPriceProvider
             )
         }
@@ -209,7 +199,7 @@ fun SettingsFlow(
     when (destination) {
         SettingsDestination.Overview -> {
             SettingsOverview(
-                currencyPreferences = resolvedCurrencyPreferences,
+                currencyPreferences = currencyPreferences,
                 languageRepository = languageRepository,
                 themePreferences = themePreferences,
                 legalLinks = legalLinks,
@@ -230,8 +220,8 @@ fun SettingsFlow(
 
         SettingsDestination.Currency -> {
             val viewModel =
-                remember(resolvedCurrencyPreferences) {
-                    CurrencySettingsViewModel(resolvedCurrencyPreferences)
+                remember(currencyPreferences) {
+                    CurrencySettingsViewModel(currencyPreferences)
                 }
             val state by viewModel.uiState.collectAsState()
             ClearOnDispose(viewModel, viewModel::clear)
