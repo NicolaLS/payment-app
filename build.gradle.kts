@@ -48,7 +48,7 @@ val verifyModuleDependencies = tasks.register("verifyModuleDependencies") {
 
     doLast {
         val violations =
-            allprojects.flatMap { source ->
+            subprojects.flatMap { source ->
                 val sourceOwner = source.path.appOwner()
                 source.configurations.flatMap { configuration ->
                     configuration.dependencies
