@@ -26,6 +26,7 @@ lightning-kmp = "1.13.0"
 secp256k1-kmp = "0.23.0"
 ktor = "3.5.1"
 androidx-window = "1.5.1"
+androidx-tracing = "2.0.1"
 apollo = "5.0.1"
 qrose = "1.1.2"
 mokkery = "3.4.2"
@@ -67,6 +68,7 @@ ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "kto
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 androidx-window = { module = "androidx.window:window", version.ref = "androidx-window" }
 androidx-window-core = { module = "androidx.window:window-core", version.ref = "androidx-window" }
+androidx-tracing = { module = "androidx.tracing:tracing", version.ref = "androidx-tracing" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 apollo-runtime = { module = "com.apollographql.apollo:apollo-runtime", version.ref = "apollo" }
 qrose = { module = "io.github.alexzhirkevich:qrose", version.ref = "qrose" }

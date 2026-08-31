@@ -26,6 +26,7 @@ kotlin {
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.androidx.tracing)
             implementation(libs.mlkit.barcode.scanning)
         }
         commonTest.dependencies {

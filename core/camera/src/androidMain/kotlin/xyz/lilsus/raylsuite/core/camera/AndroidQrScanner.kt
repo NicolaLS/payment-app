@@ -103,7 +103,11 @@ actual fun CameraPreviewHost(
 
     DisposableEffect(previewView, lifecycleOwner, visible) {
         val observer = Observer<PreviewView.StreamState> { state ->
-            streamingChangedState.value(state == PreviewView.StreamState.STREAMING)
+            val streaming = state == PreviewView.StreamState.STREAMING
+            if (streaming) {
+                AndroidCameraTrace.event(CameraTraceEvent.PREVIEW_STREAMING)
+            }
+            streamingChangedState.value(streaming)
         }
         previewView.previewStreamState.observe(lifecycleOwner, observer)
         onDispose {
@@ -141,6 +145,9 @@ private class AndroidQrScannerController(
     private var desiredScanMode = QrScannerMode.Near
     private var desiredZoomFraction = 0f
     private var lastAppliedZoomRatio: Float? = null
+    private var hasStartedOnce = false
+    private var startToReadyTrace: AndroidCameraTraceInterval? = null
+    private var startToFirstFrameTrace: AndroidCameraTraceInterval? = null
 
     override fun start(
         onQrCodeScanned: (String) -> Unit,
@@ -155,8 +162,20 @@ private class AndroidQrScannerController(
             return false
         }
         if (isBound.compareAndSet(false, true)) {
+            if (hasStartedOnce) {
+                AndroidCameraTrace.event(CameraTraceEvent.RESTART)
+            }
+            hasStartedOnce = true
             bindGeneration += 1
-            bindCamera(bindGeneration)
+            startToReadyTrace = AndroidCameraTrace.beginInterval(CameraTraceEvent.START_TO_READY)
+            startToFirstFrameTrace = AndroidCameraTrace.beginInterval(
+                CameraTraceEvent.START_TO_FIRST_FRAME
+            )
+            bindCamera(
+                generation = bindGeneration,
+                startToReadyTrace = startToReadyTrace,
+                startToFirstFrameTrace = startToFirstFrameTrace
+            )
         } else {
             resume()
         }
@@ -176,24 +195,33 @@ private class AndroidQrScannerController(
     }
 
     override fun stop() {
-        bindGeneration += 1
-        pause()
-        cameraProvider?.unbindAll()
-        imageAnalysis?.clearAnalyzer()
-        imageAnalysis = null
-        analyzer?.close()
-        analyzer = null
-        previewUseCase = null
-        previewSurface = null
-        camera = null
-        lastAppliedZoomRatio = null
-        analysisExecutor?.shutdownAfterDelay()
-        analysisExecutor = null
-        cameraProvider = null
-        onQrCodeScanned = null
-        onCameraPermissionMissing = null
-        onScannerUnavailable = null
-        isBound.set(false)
+        val stopTrace = AndroidCameraTrace.beginInterval(CameraTraceEvent.STOP)
+        try {
+            bindGeneration += 1
+            startToReadyTrace?.end()
+            startToReadyTrace = null
+            startToFirstFrameTrace?.end()
+            startToFirstFrameTrace = null
+            pause()
+            cameraProvider?.unbindAll()
+            imageAnalysis?.clearAnalyzer()
+            imageAnalysis = null
+            analyzer?.close()
+            analyzer = null
+            previewUseCase = null
+            previewSurface = null
+            camera = null
+            lastAppliedZoomRatio = null
+            analysisExecutor?.shutdownAfterDelay()
+            analysisExecutor = null
+            cameraProvider = null
+            onQrCodeScanned = null
+            onCameraPermissionMissing = null
+            onScannerUnavailable = null
+            isBound.set(false)
+        } finally {
+            stopTrace?.end()
+        }
     }
 
     override fun bindPreview(surface: CameraPreviewSurface) {
@@ -230,7 +258,11 @@ private class AndroidQrScannerController(
         applyZoomIfNeeded()
     }
 
-    private fun bindCamera(generation: Long) {
+    private fun bindCamera(
+        generation: Long,
+        startToReadyTrace: AndroidCameraTraceInterval?,
+        startToFirstFrameTrace: AndroidCameraTraceInterval?
+    ) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener(
             {
@@ -255,6 +287,11 @@ private class AndroidQrScannerController(
                         onQrCodeScanned = { value ->
                             if (isCurrentGeneration(generation)) {
                                 onQrCodeScanned?.invoke(value)
+                            }
+                        },
+                        onFirstFrame = {
+                            if (isCurrentGeneration(generation)) {
+                                startToFirstFrameTrace?.end()
                             }
                         }
                     ).also {
@@ -296,6 +333,7 @@ private class AndroidQrScannerController(
                     )
 
                     resume()
+                    startToReadyTrace?.end()
                     attachPreviewIfReady()
                 } catch (failure: Throwable) {
                     if (!isCurrentGeneration(generation)) return@addListener
@@ -327,6 +365,7 @@ private class AndroidQrScannerController(
 
         val preview = Preview.Builder().build()
         preview.surfaceProvider = surface.previewView.surfaceProvider
+        val previewTrace = AndroidCameraTrace.beginInterval(CameraTraceEvent.PREVIEW_ATTACH)
         try {
             // Add Preview around the already-configured analysis stream. If the device cannot
             // support the combination, the existing ImageAnalysis use case remains untouched.
@@ -354,6 +393,8 @@ private class AndroidQrScannerController(
                     failure
                 )
             }
+        } finally {
+            previewTrace?.end()
         }
     }
 
@@ -446,13 +487,15 @@ private class QrCodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
     private val active: AtomicBoolean,
     private val mainExecutor: Executor,
-    private val onQrCodeScanned: (String) -> Unit
+    private val onQrCodeScanned: (String) -> Unit,
+    private val onFirstFrame: () -> Unit
 ) : ImageAnalysis.Analyzer {
 
     // Debounce at scanner level: only emit when value changes.
     // This prevents flooding the main thread with duplicate events.
     @Volatile
     private var lastEmittedValue: String? = null
+    private val firstFrameReported = AtomicBoolean(false)
 
     fun pause() {
         active.set(false)
@@ -474,6 +517,7 @@ private class QrCodeAnalyzer(
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(image: ImageProxy) {
         val imageClosed = AtomicBoolean(false)
+        var analysisTrace: AndroidCameraTraceInterval? = null
         fun closeImage() {
             if (imageClosed.compareAndSet(false, true)) {
                 image.close()
@@ -491,6 +535,10 @@ private class QrCodeAnalyzer(
                 return
             }
 
+            if (firstFrameReported.compareAndSet(false, true)) {
+                onFirstFrame()
+            }
+            analysisTrace = AndroidCameraTrace.beginInterval(CameraTraceEvent.FRAME_ANALYSIS)
             val input = InputImage.fromMediaImage(mediaImage, image.imageInfo.rotationDegrees)
             barcodeScanner.process(input)
                 .addOnCompleteListener(DirectExecutor) { task ->
@@ -520,13 +568,16 @@ private class QrCodeAnalyzer(
                         )
                         if (value != null && value != lastEmittedValue) {
                             lastEmittedValue = value
+                            AndroidCameraTrace.event(CameraTraceEvent.QR_DETECTED)
                             mainExecutor.execute { onQrCodeScanned(value) }
                         }
                     } finally {
+                        analysisTrace?.end()
                         closeImage()
                     }
                 }
         } catch (failure: Throwable) {
+            analysisTrace?.end()
             closeImage()
             Log.e(TAG, "Unexpected failure while analyzing image", failure)
         }

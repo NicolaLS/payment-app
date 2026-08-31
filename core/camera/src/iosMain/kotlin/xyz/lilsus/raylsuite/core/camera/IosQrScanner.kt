@@ -100,6 +100,9 @@ private class CameraPreviewView(private val onPreviewStreamingChanged: (Boolean)
     private fun setStreaming(value: Boolean) {
         if (streaming == value) return
         streaming = value
+        if (value) {
+            IosCameraTrace.event(CameraTraceEvent.PREVIEW_STREAMING)
+        }
         onPreviewStreamingChanged(value)
     }
 }
@@ -175,6 +178,7 @@ private class IosQrScannerController : QrScannerController {
     private var lastEmittedValue: String? = null
     private var desiredZoomFraction = 0f
     private var lastAppliedZoomFactor: Double? = null
+    private var hasStartedOnce = false
 
     private val metadataDelegate = MetadataDelegate(
         isPaused = { paused },
@@ -196,12 +200,21 @@ private class IosQrScannerController : QrScannerController {
         this.onQrCodeScanned = onQrCodeScanned
         this.onScannerUnavailable = onScannerUnavailable
         ensureLifecycleObserver()
+        if (hasStartedOnce) {
+            IosCameraTrace.event(CameraTraceEvent.RESTART)
+        }
+        hasStartedOnce = true
+        val startTrace = IosCameraTrace.beginInterval(CameraTraceEvent.START_TO_READY)
         dispatch_async(sessionQueue) {
-            started = true
-            paused = false
-            resetLastEmittedValue()
-            ensureSessionRunning()
-            applyZoomIfNeeded()
+            try {
+                started = true
+                paused = false
+                resetLastEmittedValue()
+                ensureSessionRunning()
+                applyZoomIfNeeded()
+            } finally {
+                startTrace?.end()
+            }
         }
         return true
     }
@@ -225,20 +238,25 @@ private class IosQrScannerController : QrScannerController {
 
     override fun stop() {
         removeLifecycleObserver()
+        val stopTrace = IosCameraTrace.beginInterval(CameraTraceEvent.STOP)
         dispatch_async(sessionQueue) {
-            started = false
-            paused = true
-            if (session.running) {
-                session.stopRunning()
+            try {
+                started = false
+                paused = true
+                if (session.running) {
+                    session.stopRunning()
+                }
+                removeSubjectAreaObserver()
+                teardownSession()
+                configured = false
+                configuredScanMode = null
+                clearConfiguredDevice()
+                lastAppliedZoomFactor = null
+                desiredZoomFraction = 0f
+                resetLastEmittedValue()
+            } finally {
+                stopTrace?.end()
             }
-            removeSubjectAreaObserver()
-            teardownSession()
-            configured = false
-            configuredScanMode = null
-            clearConfiguredDevice()
-            lastAppliedZoomFactor = null
-            desiredZoomFraction = 0f
-            resetLastEmittedValue()
         }
         dispatch_async(dispatch_get_main_queue()) {
             previewSurface?.detachPreviewLayer()
@@ -252,16 +270,22 @@ private class IosQrScannerController : QrScannerController {
 
     override fun bindPreview(surface: CameraPreviewSurface) {
         previewBound = true
+        val previewTrace = IosCameraTrace.beginInterval(CameraTraceEvent.PREVIEW_ATTACH)
         dispatch_async(dispatch_get_main_queue()) {
-            if (!previewBound) return@dispatch_async
-            val layer = previewLayer ?: AVCaptureVideoPreviewLayer.layerWithSession(session).apply {
-                videoGravity = AVLayerVideoGravityResizeAspectFill
-                connection?.videoOrientation = AVCaptureVideoOrientationPortrait
-                previewLayer = this
+            try {
+                if (!previewBound) return@dispatch_async
+                val layer =
+                    previewLayer ?: AVCaptureVideoPreviewLayer.layerWithSession(session).apply {
+                        videoGravity = AVLayerVideoGravityResizeAspectFill
+                        connection?.videoOrientation = AVCaptureVideoOrientationPortrait
+                        previewLayer = this
+                    }
+                previewSurface?.detachPreviewLayer()
+                previewSurface = surface
+                surface.attachPreviewLayer(layer)
+            } finally {
+                previewTrace?.end()
             }
-            previewSurface?.detachPreviewLayer()
-            previewSurface = surface
-            surface.attachPreviewLayer(layer)
         }
     }
 
@@ -316,6 +340,7 @@ private class IosQrScannerController : QrScannerController {
     private fun emitIfNew(value: String) {
         if (value == lastEmittedValue) return
         lastEmittedValue = value
+        IosCameraTrace.event(CameraTraceEvent.QR_DETECTED)
         onQrCodeScanned?.let { callback ->
             dispatch_async(dispatch_get_main_queue()) {
                 callback(value)
@@ -496,18 +521,23 @@ private class IosQrScannerController : QrScannerController {
             session.stopRunning()
         }
 
-        session.beginConfiguration()
+        val configurationTrace = IosCameraTrace.beginInterval(CameraTraceEvent.CONFIGURE_SESSION)
         var success = false
         var selectedConfiguration: SelectedCameraConfiguration? = null
         try {
-            removeAllInputsAndOutputs()
-            removeSubjectAreaObserver()
-            clearConfiguredDevice()
+            session.beginConfiguration()
+            try {
+                removeAllInputsAndOutputs()
+                removeSubjectAreaObserver()
+                clearConfiguredDevice()
 
-            selectedConfiguration = configuration
-            success = configureSingleCameraSession(configuration)
+                selectedConfiguration = configuration
+                success = configureSingleCameraSession(configuration)
+            } finally {
+                session.commitConfiguration()
+            }
         } finally {
-            session.commitConfiguration()
+            configurationTrace?.end()
         }
 
         configured = success
