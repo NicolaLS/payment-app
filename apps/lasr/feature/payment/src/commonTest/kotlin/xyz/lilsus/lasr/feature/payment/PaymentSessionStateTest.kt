@@ -66,12 +66,10 @@ class PaymentSessionStateTest {
                 )
             )
         state.lastPaymentResult = CompletedPayment(5_000L, 1_000L, false, false, null)
-        state.knownTransactionIds += "known"
-        state.newTransactionIds += "new"
+        state.updateSessionTransactionIds(listOf("known", "new"))
+        state.requestTransactionDetailNavigation("known")
         state.paymentJobs["payment-id"] = paymentJob
         state.paymentAdmissionInProgress = true
-        state.newSessionTransactionCount.value = 1
-        state.transactionDetailNavigationTarget.value = "payment-id"
         state.uiState.value = PaymentUiState.Loading()
 
         state.reset(defaultCurrencyState())
@@ -85,14 +83,35 @@ class PaymentSessionStateTest {
         assertEquals("0", preparation.manualAmount.current().rawWhole)
         assertNull(state.pendingRetry)
         assertNull(state.lastPaymentResult)
-        assertTrue(state.knownTransactionIds.isEmpty())
-        assertTrue(state.newTransactionIds.isEmpty())
         assertEquals(0, state.newSessionTransactionCount.value)
         assertNull(state.transactionDetailNavigationTarget.value)
         assertEquals(PaymentUiState.Active, state.uiState.value)
         assertEquals("EUR", appLivedState["currency"])
         assertEquals("alice@example.com", appLivedState["contacts"])
         assertEquals("always", appLivedState["confirmation"])
+
+        state.updateSessionTransactionIds(listOf("known", "new"))
+        assertEquals(2, state.newSessionTransactionCount.value)
+    }
+
+    @Test
+    fun sessionTransactionNavigationAndAcknowledgementAreOwnedBySessionState() {
+        val state = PaymentSessionState(PaymentPreparation(UnusedLnurlPayClient))
+
+        state.updateSessionTransactionIds(listOf("first", "second"))
+        state.requestTransactionDetailNavigation("first")
+
+        assertEquals(2, state.newSessionTransactionCount.value)
+        assertEquals("first", state.transactionDetailNavigationTarget.value)
+
+        state.onTransactionDetailNavigationHandled("second")
+        assertEquals("first", state.transactionDetailNavigationTarget.value)
+
+        state.onTransactionDetailNavigationHandled("first")
+        assertNull(state.transactionDetailNavigationTarget.value)
+
+        state.onSessionTransactionsOpened(listOf("first", "second"))
+        assertEquals(0, state.newSessionTransactionCount.value)
     }
 
     private fun defaultCurrencyState() = CurrencyState(CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE), null)
