@@ -61,11 +61,23 @@ data class PaymentTransactionDetail(
     val pendingMessage: String? = null
 )
 
+data class PaymentSessionItem(
+    val reference: PaymentSessionReference,
+    val transaction: PaymentSessionTransaction,
+    val detail: PaymentTransactionDetail
+) {
+    val id: String = transaction.id
+
+    init {
+        require(reference.id == id && detail.id == id) {
+            "Payment session projections must share an ID"
+        }
+    }
+}
+
 data class PaymentFlowState(
     val payment: PaymentScreenState,
-    val sessionReferences: List<PaymentSessionReference>,
-    val sessionTransactions: List<PaymentSessionTransaction>,
-    val transactionDetails: List<PaymentTransactionDetail>,
+    val sessionItems: List<PaymentSessionItem>,
     val newSessionTransactionCount: Int = 0,
     val contacts: PaymentContactsUiState = PaymentContactsUiState(),
     val transactionDetailNavigationTarget: String? = null

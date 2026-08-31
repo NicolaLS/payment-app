@@ -114,7 +114,7 @@ fun PaymentFlow(
                 modifier = Modifier.fillMaxSize(),
                 title = stringResource(Res.string.session_transactions_title),
                 emptyMessage = stringResource(Res.string.session_transactions_empty),
-                transactions = currentState.value.sessionTransactions,
+                transactions = currentState.value.sessionItems.map(PaymentSessionItem::transaction),
                 onBack = navController::navigateUp,
                 onTransactionSelected = { id ->
                     selectedTransactionId = id
@@ -124,9 +124,9 @@ fun PaymentFlow(
         }
         composable(PAYMENT_DETAIL_ROUTE) {
             PaymentTransactionDetail(
-                detail = currentState.value.transactionDetails.firstOrNull {
+                detail = currentState.value.sessionItems.firstOrNull {
                     it.id == selectedTransactionId
-                },
+                }?.detail,
                 estimatedFeeHint = estimatedFeeHint,
                 onIntent = currentOnIntent.value,
                 onBack = navController::navigateUp
@@ -406,7 +406,7 @@ private fun PaymentHome(
             appTitle = appTitle,
             onNavigateSettings = onNavigateSettings,
             uiState = state.payment,
-            sessionTransactions = state.sessionReferences,
+            sessionTransactions = state.sessionItems.map(PaymentSessionItem::reference),
             newSessionTransactionCount = state.newSessionTransactionCount,
             contactsState = state.contacts,
             snackbarHostState = snackbarHostState,

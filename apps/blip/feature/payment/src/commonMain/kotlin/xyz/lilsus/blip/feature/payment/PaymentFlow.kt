@@ -14,6 +14,7 @@ import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentFlow as SharedPaymentFlow
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentFlowState
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentSessionItem
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTransactionDetail
 import xyz.lilsus.raylsuite.feature.paymentui.localizedMessage
 
@@ -51,14 +52,12 @@ fun PaymentFlow(
         state =
             PaymentFlowState(
                 payment = uiState.toPaymentScreenState(errorMessageFor),
-                sessionReferences = sessionTransactions.map {
-                    it.toPaymentSessionReference()
-                },
-                sessionTransactions = sessionTransactions.map {
-                    it.toPaymentSessionTransaction(formatter)
-                },
-                transactionDetails = sessionTransactions.map {
-                    it.toPaymentTransactionDetail(errorMessageFor)
+                sessionItems = sessionTransactions.map { transaction ->
+                    PaymentSessionItem(
+                        reference = transaction.toPaymentSessionReference(),
+                        transaction = transaction.toPaymentSessionTransaction(formatter),
+                        detail = transaction.toPaymentTransactionDetail(errorMessageFor)
+                    )
                 },
                 newSessionTransactionCount = newSessionTransactionCount,
                 contacts = contactsState,
