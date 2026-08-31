@@ -64,13 +64,18 @@ store install of the same app.
 
 1. Start from a clean `main` checkout.
 2. Confirm the app version and existing checks.
-3. Run `scripts/release-android <blip|flint|lasr> 1.0.0`.
-4. Collect both staged artifacts from `dist/<app>/`.
-5. Upload the `-play.aab` artifact to Play internal testing.
-6. Attach the verified `-universal.apk` artifact to a draft app-qualified
+3. For a performance-sensitive release, run `./gradlew perfCheck` on the usual
+   device or inspect the labeled pull request's Android performance summary.
+4. Confirm the owning app's Firebase configuration is present, performance
+   collection remains opt-in, and the linked privacy policy/store declaration
+   describes it. See [performance-monitoring.md](performance-monitoring.md).
+5. Run `scripts/release-android <blip|flint|lasr> 1.0.0`.
+6. Collect both staged artifacts from `dist/<app>/`.
+7. Upload the `-play.aab` artifact to Play internal testing.
+8. Attach the verified `-universal.apk` artifact to a draft app-qualified
    GitHub release.
-7. Record the app-signing certificate and both SHA-256 values.
-8. Run `zsp publish --check` with the owning app's reviewed Zapstore
+9. Record the app-signing certificate and both SHA-256 values.
+10. Run `zsp publish --check` with the owning app's reviewed Zapstore
    configuration.
 
 Before the first Zapstore publication, add the same suite publisher `pubkey` to
@@ -133,3 +138,9 @@ artifacts that passed internal testing; do not rebuild between channels.
 The NWC `0.3.3-SNAPSHOT` dependency is an intentional owner-approved exception.
 For every candidate, record the resolved artifact checksum so a republished
 snapshot cannot silently change the reviewed build.
+
+After rollout starts, compare the new app version with the previous version in
+Android vitals and Xcode Organizer. For Android, also inspect opted-in Firebase
+startup and camera traces after enough samples arrive. Treat emulator trends as
+directional and investigate regressions with the local workflow in
+[performance-monitoring.md](performance-monitoring.md).
