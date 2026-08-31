@@ -8,7 +8,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.network.NetworkConnectivity
@@ -56,6 +58,36 @@ class KtorLnurlPayClientTest {
         assertIs<LnurlResult.Success<*>>(result)
         assertEquals("example.com", requestedHost)
         assertEquals("/.well-known/lnurlp/Alice+Tips", requestedPath)
+    }
+
+    @Test
+    fun payParamsRequestPropagatesCancellation() = runTest {
+        val client = cancellingClient()
+
+        assertFailsWith<CancellationException> {
+            client.fetchPayParams("https://example.com/lnurl")
+        }
+    }
+
+    @Test
+    fun invoiceRequestPropagatesCancellation() = runTest {
+        val client = cancellingClient()
+
+        assertFailsWith<CancellationException> {
+            client.requestInvoice(
+                callback = "https://example.com/callback",
+                amountMsats = 1_000,
+                comment = null
+            )
+        }
+    }
+
+    private fun cancellingClient(): KtorLnurlPayClient {
+        val engine = MockEngine { throw CancellationException("cancelled") }
+        return KtorLnurlPayClient(
+            networkConnectivity = AlwaysOnline,
+            client = HttpClient(engine)
+        )
     }
 
     private data object AlwaysOnline : NetworkConnectivity {

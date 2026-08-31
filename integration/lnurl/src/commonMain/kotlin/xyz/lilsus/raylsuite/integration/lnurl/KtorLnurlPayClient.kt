@@ -5,6 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.http.Url
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -47,6 +48,8 @@ class KtorLnurlPayClient(
             try {
                 val response = client.get(url)
                 parsePayParams(response.body(), parsedUrl.host)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
             } catch (cause: Throwable) {
                 requestFailure(cause, "Failed to reach LNURL endpoint")
             }
@@ -79,6 +82,8 @@ class KtorLnurlPayClient(
                     }
                 }
             parseInvoice(response.body())
+        } catch (cancellation: CancellationException) {
+            throw cancellation
         } catch (cause: Throwable) {
             requestFailure(cause, "Failed to reach LNURL callback endpoint")
         }
