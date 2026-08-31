@@ -86,3 +86,11 @@ tasks.register("check") {
     description = "Runs the root architecture checks."
     dependsOn(verifyModuleDependencies)
 }
+
+tasks.register("perfCheck") {
+    group = "verification"
+    description =
+        "Runs Blip startup and camera macrobenchmarks on a connected Android 10+ device. " +
+            "Use a stable physical device for comparable numbers."
+    dependsOn(":blip:benchmark:connectedBenchmarkAndroidTest")
+}
