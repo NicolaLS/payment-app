@@ -11,10 +11,54 @@ internal class PaymentSessionState(val preparation: PaymentPreparation) {
 
     var pendingRetry: PendingRetryChoice? = null
     var lastPaymentResult: CompletedPayment? = null
-    val knownTransactionIds = mutableSetOf<String>()
-    val newTransactionIds = mutableSetOf<String>()
+    private val knownTransactionIds = mutableSetOf<String>()
+    private val newTransactionIds = mutableSetOf<String>()
     val paymentJobs = mutableMapOf<String, Job>()
     var paymentAdmissionInProgress = false
+
+    fun onSessionTransactionsOpened(currentTransactionIds: Iterable<String>) {
+        newTransactionIds.clear()
+        knownTransactionIds += currentTransactionIds
+        newSessionTransactionCount.value = 0
+    }
+
+    fun updateSessionTransactionIds(currentTransactionIds: Set<String>) {
+        knownTransactionIds.retainAll(currentTransactionIds)
+        newTransactionIds.retainAll(currentTransactionIds)
+        val unseenIds = currentTransactionIds.filterNot(knownTransactionIds::contains)
+        if (unseenIds.isNotEmpty()) {
+            knownTransactionIds += unseenIds
+            newTransactionIds += unseenIds
+        }
+        newSessionTransactionCount.value = newTransactionIds.size
+    }
+
+    fun markTransactionSeen(id: String) {
+        knownTransactionIds += id
+        newTransactionIds -= id
+        newSessionTransactionCount.value = newTransactionIds.size
+    }
+
+    fun requestTransactionDetailNavigation(id: String) {
+        markTransactionSeen(id)
+        uiState.value = PaymentUiState.Active
+        showTransactionDetail(id)
+    }
+
+    fun showTransactionDetail(id: String) {
+        transactionDetailNavigationTarget.value = id
+    }
+
+    fun onTransactionDetailNavigationHandled(id: String) {
+        if (transactionDetailNavigationTarget.value == id) {
+            transactionDetailNavigationTarget.value = null
+        }
+    }
+
+    fun dismissResult() {
+        transactionDetailNavigationTarget.value = null
+        uiState.value = PaymentUiState.Active
+    }
 
     fun reset(currencyState: CurrencyState) {
         paymentAdmissionInProgress = false

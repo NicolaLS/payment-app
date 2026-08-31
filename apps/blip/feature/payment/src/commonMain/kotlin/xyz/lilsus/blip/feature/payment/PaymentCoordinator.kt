@@ -129,8 +129,6 @@ class PaymentCoordinator(
         set(value) {
             sessionState.lastPaymentResult = value
         }
-    private val knownSessionTransactionIds = sessionState.knownTransactionIds
-    private val newSessionTransactionIds = sessionState.newTransactionIds
     private var vibrateOnScan = true
     private var vibrateOnPayment = true
     private var showLnurlPayDetails = false
@@ -168,7 +166,11 @@ class PaymentCoordinator(
             pendingTracker.events.collect(::handlePendingEvent)
         }
         scope.launch {
-            pendingTracker.displayItems.collect(::refreshNewSessionTransactionCount)
+            pendingTracker.displayItems.collect { items ->
+                sessionState.updateSessionTransactionIds(
+                    items.mapTo(mutableSetOf(), SessionTransactionItem::id)
+                )
+            }
         }
     }
 
@@ -973,7 +975,7 @@ class PaymentCoordinator(
     ) {
         val record = pendingTracker.get(pendingId)
         val showDirectResult = shouldShowDirectPaymentResult(record?.visible == true)
-        if (showDirectResult) markTransactionSeen(pendingId)
+        if (showDirectResult) sessionState.markTransactionSeen(pendingId)
         val paidMsats =
             if (wasAlreadyPaid) {
                 0L
@@ -1017,7 +1019,9 @@ class PaymentCoordinator(
         val record = pendingTracker.get(pendingId)
         val showDirectResult = shouldShowDirectPaymentResult(record?.visible == true)
         val clarificationOpen = pendingRetry?.recordId == pendingId
-        if (showDirectResult || clarificationOpen) markTransactionSeen(pendingId)
+        if (showDirectResult || clarificationOpen) {
+            sessionState.markTransactionSeen(pendingId)
+        }
         clearPaymentSessionState()
         pendingTracker.markFailure(pendingId, error)
         contactsController.paymentFinishedWithoutSuccess(pendingId)
@@ -1029,7 +1033,7 @@ class PaymentCoordinator(
     private fun handlePaymentPendingInBlink(pendingId: String) {
         val record = pendingTracker.get(pendingId) ?: return
         val showDirectResult = shouldShowDirectPaymentResult(record.visible)
-        if (showDirectResult) markTransactionSeen(pendingId)
+        if (showDirectResult) sessionState.markTransactionSeen(pendingId)
         clearPaymentSessionState()
         pendingTracker.markPendingInBlink(pendingId)
         contactsController.paymentFinishedWithoutSuccess(pendingId)
@@ -1037,14 +1041,14 @@ class PaymentCoordinator(
             mutableUiState.value = PaymentUiState.Active
         }
         if (showDirectResult) {
-            mutableTransactionDetailNavigationTarget.value = pendingId
+            sessionState.showTransactionDetail(pendingId)
         }
     }
 
     private fun handlePaymentStatusUnknown(pendingId: String, error: PaymentUiError) {
         val record = pendingTracker.get(pendingId) ?: return
         val showDirectResult = shouldShowDirectPaymentResult(record.visible)
-        if (showDirectResult) markTransactionSeen(pendingId)
+        if (showDirectResult) sessionState.markTransactionSeen(pendingId)
         clearPaymentSessionState()
         pendingTracker.markStatusUnknown(pendingId, error)
         contactsController.paymentFinishedWithoutSuccess(pendingId)
@@ -1052,7 +1056,7 @@ class PaymentCoordinator(
             mutableUiState.value = PaymentUiState.Active
         }
         if (showDirectResult) {
-            mutableTransactionDetailNavigationTarget.value = pendingId
+            sessionState.showTransactionDetail(pendingId)
         }
     }
 
@@ -1151,45 +1155,22 @@ class PaymentCoordinator(
     }
 
     private fun sessionTransactionsOpened() {
-        newSessionTransactionIds.clear()
-        knownSessionTransactionIds += pendingTracker.displayItems.value.map { it.id }
-        mutableNewSessionTransactionCount.value = 0
-    }
-
-    private fun markTransactionSeen(id: String) {
-        knownSessionTransactionIds += id
-        newSessionTransactionIds -= id
-        mutableNewSessionTransactionCount.value = newSessionTransactionIds.size
-    }
-
-    private fun refreshNewSessionTransactionCount(items: List<SessionTransactionItem>) {
-        val itemIds = items.mapTo(mutableSetOf(), SessionTransactionItem::id)
-        knownSessionTransactionIds.retainAll(itemIds)
-        newSessionTransactionIds.retainAll(itemIds)
-        val unseenIds = itemIds.filterNot(knownSessionTransactionIds::contains)
-        if (unseenIds.isNotEmpty()) {
-            knownSessionTransactionIds += unseenIds
-            newSessionTransactionIds += unseenIds
-        }
-        mutableNewSessionTransactionCount.value = newSessionTransactionIds.size
+        sessionState.onSessionTransactionsOpened(
+            pendingTracker.displayItems.value.map(SessionTransactionItem::id)
+        )
     }
 
     private fun requestTransactionDetailNavigation(id: String) {
         if (pendingTracker.get(id) == null) return
-        markTransactionSeen(id)
-        mutableUiState.value = PaymentUiState.Active
-        mutableTransactionDetailNavigationTarget.value = id
+        sessionState.requestTransactionDetailNavigation(id)
     }
 
     private fun transactionDetailNavigationHandled(id: String) {
-        if (mutableTransactionDetailNavigationTarget.value == id) {
-            mutableTransactionDetailNavigationTarget.value = null
-        }
+        sessionState.onTransactionDetailNavigationHandled(id)
     }
 
     private fun dismissResult() {
-        mutableTransactionDetailNavigationTarget.value = null
-        mutableUiState.value = PaymentUiState.Active
+        sessionState.dismissResult()
     }
 
     private fun emitError(error: PaymentUiError) {
