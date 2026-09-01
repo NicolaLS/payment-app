@@ -21,9 +21,13 @@ internal class PendingPaymentTracker(
     private val currencyManager: PaymentCurrencyManager,
     private val scope: CoroutineScope,
     private val showEstimatedFeeHint: Boolean,
+    private val store: PendingPaymentStore,
     private val clock: () -> Long = ::currentTimeMillis
 ) {
-    private val records = MutableStateFlow<Map<String, PendingRecord>>(emptyMap())
+    private val records =
+        MutableStateFlow(
+            store.load().associateBy(PendingRecord::id)
+        )
     private val visibilityJobs = mutableMapOf<String, Job>()
     private var nextRecordSequence = 0L
     private var focusedRecordId: String? = null
@@ -33,6 +37,12 @@ internal class PendingPaymentTracker(
 
     private val mutableEvents = MutableSharedFlow<PendingEvent>(extraBufferCapacity = 8)
     val events: SharedFlow<PendingEvent> = mutableEvents.asSharedFlow()
+
+    init {
+        nextRecordSequence = records.value.size.toLong()
+        persistRecords()
+        refreshDisplayItems()
+    }
 
     fun register(
         summary: Bolt11Invoice,
@@ -66,6 +76,7 @@ internal class PendingPaymentTracker(
             acknowledged + (id to record)
         }
         focusedRecordId = null
+        persistRecords()
         refreshDisplayItems()
         scheduleVisibility(id)
         return id
@@ -145,6 +156,7 @@ internal class PendingPaymentTracker(
                 if (record.visible) all else all + (id to record.copy(visible = true))
             } ?: all
         }
+        persistRecords()
         refreshDisplayItems()
     }
 
@@ -198,6 +210,7 @@ internal class PendingPaymentTracker(
         mutableDisplayItems.value = emptyList()
         nextRecordSequence = 0L
         focusedRecordId = null
+        store.clear()
     }
 
     private fun scheduleVisibility(id: String) {
@@ -246,7 +259,12 @@ internal class PendingPaymentTracker(
         if (status != PendingStatus.Sending) {
             visibilityJobs.remove(id)?.cancel()
         }
+        persistRecords()
         refreshDisplayItems()
+    }
+
+    private fun persistRecords() {
+        store.save(records.value.values)
     }
 
     private fun recordsForDisplay(): List<PendingRecord> {

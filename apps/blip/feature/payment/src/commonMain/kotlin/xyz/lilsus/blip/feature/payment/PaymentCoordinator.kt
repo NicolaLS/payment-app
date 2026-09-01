@@ -1,5 +1,6 @@
 package xyz.lilsus.blip.feature.payment
 
+import com.russhwolf.settings.Settings
 import fr.acinq.lightning.payment.Bolt11Invoice
 import fr.acinq.lightning.utils.currentTimestampSeconds
 import fr.acinq.lightning.utils.msat
@@ -63,6 +64,7 @@ class PaymentCoordinator(
     contactsRepository: ContactsRepository,
     private val haptics: HapticFeedbackManager,
     private val showEstimatedFeeHint: Boolean = false,
+    paymentAttemptSettings: Settings,
     coroutineContext: CoroutineContext = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + coroutineContext)
@@ -76,7 +78,8 @@ class PaymentCoordinator(
         PendingPaymentTracker(
             currencyManager = currencyManager,
             scope = scope,
-            showEstimatedFeeHint = showEstimatedFeeHint
+            showEstimatedFeeHint = showEstimatedFeeHint,
+            store = PendingPaymentStore(paymentAttemptSettings)
         )
     private val contactsController =
         PaymentContactsController(

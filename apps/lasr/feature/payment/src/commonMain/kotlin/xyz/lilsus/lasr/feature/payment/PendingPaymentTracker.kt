@@ -26,11 +26,15 @@ internal class PendingPaymentTracker(
     private val currencyManager: PaymentCurrencyManager,
     private val scope: CoroutineScope,
     private val showEstimatedFeeHint: Boolean,
+    private val store: PendingPaymentStore,
     private val clock: () -> Long = ::currentTimeMillis,
     private val visibilityDelayMs: Long = VISIBILITY_DELAY_MS,
     private val lookupRetryDelaysMs: List<Long> = LOOKUP_RETRY_DELAYS_MS
 ) {
-    private val records = MutableStateFlow<Map<String, PendingRecord>>(emptyMap())
+    private val records =
+        MutableStateFlow(
+            store.load().associateBy(PendingRecord::id)
+        )
     private val visibilityJobs = mutableMapOf<String, Job>()
     private val reconciliationJobs = mutableMapOf<String, Job>()
     private var nextSequence = 0L
@@ -41,6 +45,15 @@ internal class PendingPaymentTracker(
 
     private val mutableEvents = MutableSharedFlow<PendingEvent>(extraBufferCapacity = 16)
     val events: SharedFlow<PendingEvent> = mutableEvents.asSharedFlow()
+
+    init {
+        nextSequence = records.value.size.toLong()
+        persistRecords()
+        refreshDisplayItems()
+        records.value.values
+            .filter { it.status == PendingStatus.Resolving }
+            .forEach { startReconciliation(it.id) }
+    }
 
     fun register(
         summary: Bolt11Invoice,
@@ -72,6 +85,7 @@ internal class PendingPaymentTracker(
             acknowledged + (id to record)
         }
         focusedRecordId = null
+        persistRecords()
         scheduleVisibility(id)
         refreshDisplayItems()
         return id
@@ -185,17 +199,18 @@ internal class PendingPaymentTracker(
     }
 
     fun resetSession() {
-        (visibilityJobs.values + reconciliationJobs.values).forEach(Job::cancel)
-        visibilityJobs.clear()
-        reconciliationJobs.clear()
+        close()
         records.value = emptyMap()
         mutableDisplayItems.value = emptyList()
         nextSequence = 0L
         focusedRecordId = null
+        store.clear()
     }
 
     fun close() {
-        resetSession()
+        (visibilityJobs.values + reconciliationJobs.values).forEach(Job::cancel)
+        visibilityJobs.clear()
+        reconciliationJobs.clear()
     }
 
     private fun scheduleVisibility(id: String) {
@@ -343,8 +358,13 @@ internal class PendingPaymentTracker(
             visibilityJobs.remove(id)?.cancel()
             reconciliationJobs.remove(id)?.cancel()
         }
+        persistRecords()
         refreshDisplayItems()
         return true
+    }
+
+    private fun persistRecords() {
+        store.save(records.value.values)
     }
 
     private fun recordsForDisplay(): List<PendingRecord> {

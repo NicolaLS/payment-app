@@ -53,7 +53,8 @@ internal class LasrRuntime(
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
-            haptics = haptics
+            haptics = haptics,
+            paymentAttemptSettings = appSettings
         )
 
     init {

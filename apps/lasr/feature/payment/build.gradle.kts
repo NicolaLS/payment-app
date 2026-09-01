@@ -1,5 +1,6 @@
 plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
+    alias(libs.plugins.kotlinSerialization)
 }
 
 compose.resources {
@@ -28,6 +29,8 @@ kotlin {
             implementation(libs.compose.ui)
             api(libs.lightning.kmp.core)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            api(libs.multiplatform.settings)
         }
         androidMain.dependencies {
             implementation(libs.secp256k1.kmp.jni.android)
@@ -35,6 +38,7 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.multiplatform.settings.test)
         }
     }
 }

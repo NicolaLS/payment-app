@@ -1,5 +1,6 @@
 package xyz.lilsus.lasr.feature.payment
 
+import com.russhwolf.settings.MapSettings
 import fr.acinq.bitcoin.Chain
 import fr.acinq.bitcoin.Crypto
 import fr.acinq.bitcoin.PrivateKey
@@ -143,7 +144,8 @@ class PendingPaymentTrackerTest {
 
     @Test
     fun completedDynamicGuardIsReplacedExplicitlyAndDefinitiveFailureReleasesIt() = runTest {
-        val tracker = tracker()
+        val settings = MapSettings()
+        val tracker = tracker(settings = settings)
         val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example")
         val settledId =
             tracker.register(
@@ -178,13 +180,55 @@ class PendingPaymentTrackerTest {
             replacementId,
             NwcPayOutcome.WalletRejected("DENIED", "rejected")
         )
+        tracker.close()
 
-        assertNull(tracker.findGuardingByDynamicSourceKey(sourceKey))
+        val restored = tracker(settings = settings)
 
-        val retried = tracker.retry(replacementId)
+        assertNull(restored.findGuardingByDynamicSourceKey(sourceKey))
+
+        val retried = restored.retry(replacementId)
 
         assertEquals(replacementId, retried?.id)
-        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        assertEquals(replacementId, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
+    }
+
+    @Test
+    fun interruptedAttemptIsReconciledAndCompletedGuardSurvivesProcessRestart() = runTest {
+        val settings = MapSettings()
+        val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example/restart")
+        val original = tracker(settings = settings)
+        val id =
+            original.register(
+                invoice("restart"),
+                AMOUNT_MSATS,
+                null,
+                PendingOrigin.LnurlFixed,
+                dynamicSourceKey = sourceKey
+            )
+        val paymentHash = requireNotNull(original.get(id)).paymentHashHex
+        original.close()
+        var reconciledHash: String? = null
+
+        val restored =
+            tracker(
+                settings = settings,
+                lookup = { hash, _ ->
+                    reconciledHash = hash
+                    NwcLookupOutcome.Settled("must-not-be-persisted", 3)
+                }
+            )
+        runCurrent()
+
+        assertEquals(paymentHash, reconciledHash)
+        assertEquals(PendingStatus.Succeeded, restored.get(id)?.status)
+        assertEquals(id, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        restored.close()
+
+        val completed = tracker(settings = settings)
+
+        assertEquals(PendingStatus.Succeeded, completed.get(id)?.status)
+        assertNull(completed.get(id)?.preimage)
+        assertEquals(id, completed.findGuardingByDynamicSourceKey(sourceKey)?.id)
     }
 
     @Test
@@ -206,7 +250,8 @@ class PendingPaymentTrackerTest {
     @Test
     fun sessionRetainsAllUnresolvedAndOnlyTenResolvedAttempts() = runTest {
         var now = 0L
-        val tracker = tracker(clock = { ++now })
+        val settings = MapSettings()
+        val tracker = tracker(clock = { ++now }, settings = settings)
         val unresolvedId =
             tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
         tracker.makeVisible(unresolvedId)
@@ -231,11 +276,13 @@ class PendingPaymentTrackerTest {
 
         tracker.resetSession()
         assertTrue(tracker.displayItems.value.isEmpty())
+        assertTrue(tracker(settings = settings).displayItems.value.isEmpty())
     }
 
     private fun TestScope.tracker(
         foreground: MutableStateFlow<Boolean> = MutableStateFlow(true),
         clock: () -> Long = { 1L },
+        settings: MapSettings = MapSettings(),
         lookup: suspend (String, Long) -> NwcLookupOutcome = {
                 _,
                 _
@@ -254,6 +301,7 @@ class PendingPaymentTrackerTest {
             currencyManager = currencyManager,
             scope = this,
             showEstimatedFeeHint = false,
+            store = PendingPaymentStore(settings),
             clock = clock
         )
     }

@@ -1,5 +1,6 @@
 package xyz.lilsus.blip.feature.payment
 
+import com.russhwolf.settings.MapSettings
 import fr.acinq.bitcoin.Chain
 import fr.acinq.bitcoin.Crypto
 import fr.acinq.bitcoin.PrivateKey
@@ -75,7 +76,8 @@ class PendingPaymentTrackerTest {
 
     @Test
     fun completedInvoiceRemainsKnownAndDynamicGuardRequiresExplicitReplacement() = runTest {
-        val tracker = tracker()
+        val settings = MapSettings()
+        val tracker = tracker(settings = settings)
         val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example/request")
         val firstId =
             tracker.register(
@@ -104,17 +106,58 @@ class PendingPaymentTrackerTest {
         assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
 
         tracker.markFailure(replacementId, PaymentUiError.Unexpected("rejected"))
+        tracker.close()
 
-        assertNull(tracker.findGuardingByDynamicSourceKey(sourceKey))
+        val restored = tracker(settings = settings)
 
-        tracker.markSending(replacementId)
+        assertNull(restored.findGuardingByDynamicSourceKey(sourceKey))
 
-        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        restored.markSending(replacementId)
+
+        assertEquals(replacementId, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
+    }
+
+    @Test
+    fun interruptedAttemptAndCompletedGuardSurviveProcessRestart() = runTest {
+        val settings = MapSettings()
+        val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example/restart")
+        val original = tracker(settings = settings)
+        val id =
+            original.register(
+                invoice("restart"),
+                AMOUNT_MSATS,
+                null,
+                PendingOrigin.LnurlFixed,
+                dynamicSourceKey = sourceKey
+            )
+        val paymentHash = requireNotNull(original.get(id)).paymentHashHex
+        original.close()
+
+        val restored = tracker(settings = settings)
+
+        assertEquals(PendingStatus.StatusUnknown, restored.get(id)?.status)
+        assertEquals(id, restored.findLatestByPaymentHash(paymentHash)?.id)
+        assertEquals(id, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
+
+        restored.markSuccess(
+            id = id,
+            paidMsats = AMOUNT_MSATS,
+            feeMsats = 1,
+            preimage = "must-not-be-persisted"
+        )
+        restored.close()
+
+        val completed = tracker(settings = settings)
+
+        assertEquals(PendingStatus.Success, completed.get(id)?.status)
+        assertNull(completed.get(id)?.preimage)
+        assertEquals(id, completed.findGuardingByDynamicSourceKey(sourceKey)?.id)
     }
 
     @Test
     fun resetSessionDropsAllPayments() = runTest {
-        val tracker = tracker()
+        val settings = MapSettings()
+        val tracker = tracker(settings = settings)
         val id = tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
         tracker.markSuccess(id, AMOUNT_MSATS, feeMsats = 0)
 
@@ -122,9 +165,10 @@ class PendingPaymentTrackerTest {
 
         assertTrue(tracker.displayItems.value.isEmpty())
         assertEquals(null, tracker.get(id))
+        assertTrue(tracker(settings = settings).displayItems.value.isEmpty())
     }
 
-    private fun TestScope.tracker(clock: () -> Long = { 1L }): PendingPaymentTracker {
+    private fun TestScope.tracker(clock: () -> Long = { 1L }, settings: MapSettings = MapSettings()): PendingPaymentTracker {
         val currencyManager =
             PaymentCurrencyManager(
                 bitcoinPriceProvider = BitcoinPriceProvider { null },
@@ -134,6 +178,7 @@ class PendingPaymentTrackerTest {
             currencyManager = currencyManager,
             scope = this,
             showEstimatedFeeHint = false,
+            store = PendingPaymentStore(settings),
             clock = clock
         )
     }

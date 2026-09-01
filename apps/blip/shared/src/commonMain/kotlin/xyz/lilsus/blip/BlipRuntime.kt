@@ -45,7 +45,8 @@ internal class BlipRuntime(
             paymentPreferences = paymentPreferences,
             contactsRepository = contactsRepository,
             haptics = haptics,
-            showEstimatedFeeHint = true
+            showEstimatedFeeHint = true,
+            paymentAttemptSettings = appSettings
         )
 
     fun resetPaymentSession() {
