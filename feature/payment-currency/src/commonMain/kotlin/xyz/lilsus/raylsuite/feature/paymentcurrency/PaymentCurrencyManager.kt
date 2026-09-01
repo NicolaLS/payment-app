@@ -2,9 +2,6 @@ package xyz.lilsus.raylsuite.feature.paymentcurrency
 
 import kotlin.math.pow
 import kotlin.math.roundToLong
-import kotlin.time.ComparableTimeMark
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,8 +21,7 @@ import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 
 class PaymentCurrencyManager(
     private val bitcoinPriceProvider: BitcoinPriceProvider,
-    private val scope: CoroutineScope,
-    private val timeSource: TimeSource.WithComparableMarks = TimeSource.Monotonic
+    private val scope: CoroutineScope
 ) {
     private val mutableState =
         MutableStateFlow(
@@ -41,8 +37,6 @@ class PaymentCurrencyManager(
 
     private var exchangeRateJob: Job? = null
     private var exchangeRateRequestId: Int = 0
-    private var lastExchangeRateRefresh: ComparableTimeMark? = null
-    private val shortcutExchangeRates = mutableMapOf<String, CachedExchangeRate>()
 
     fun setPreferredCurrency(currency: DisplayCurrency) {
         ensureExchangeRateIfNeeded(CurrencyCatalog.infoFor(currency))
@@ -52,18 +46,6 @@ class PaymentCurrencyManager(
         if (info.currency !is DisplayCurrency.Fiat) {
             invalidateExchangeRateJob()
             mutableState.value = mutableState.value.copy(exchangeRate = null, info = info)
-            lastExchangeRateRefresh = null
-            return
-        }
-        val current = mutableState.value
-        if (
-            current.info.code.equals(info.code, ignoreCase = true) &&
-            current.exchangeRate != null &&
-            !isExchangeRateStale()
-        ) {
-            if (current.info != info) {
-                mutableState.value = current.copy(info = info)
-            }
             return
         }
         fetchExchangeRate(info)
@@ -79,32 +61,65 @@ class PaymentCurrencyManager(
             fiatPricePerBitcoin = currencyState.exchangeRate
         ) ?: DisplayAmount(msats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
 
-    suspend fun convertShortcutAmountToMsats(amount: ShortcutAmount): Long? {
+    suspend fun quoteShortcutAmount(amount: ShortcutAmount): PaymentAmountQuote? {
         val code = amount.normalizedCurrencyCode
         if (code !in CurrencyCatalog.supportedCodes || amount.minor <= 0L) return null
         val info = CurrencyCatalog.infoFor(code)
-        return when (info.currency) {
-            DisplayCurrency.Satoshi,
-            DisplayCurrency.Bitcoin -> amount.minor * MSATS_PER_SAT
-
-            is DisplayCurrency.Fiat -> {
-                val rate = exchangeRateForShortcut(info)?.takeIf { it > 0.0 } ?: return null
-                val fiatMajor = amount.minor.toDouble() / 10.0.pow(info.fractionDigits)
-                (fiatMajor / rate * MSATS_PER_BITCOIN).roundToLong().takeIf { it > 0L }
-            }
-        }
+        return quote(DisplayAmount(amount.minor, info.currency))
     }
 
-    fun needsExchangeRate(info: CurrencyInfo = mutableState.value.info): Boolean {
-        if (info.currency !is DisplayCurrency.Fiat) return false
-        val current = mutableState.value
-        if (!current.info.code.equals(info.code, ignoreCase = true)) return true
-        return current.exchangeRate == null || isExchangeRateStale()
+    suspend fun quote(amount: DisplayAmount): PaymentAmountQuote? {
+        if (amount.minor <= 0L) return null
+        val info = when (val currency = amount.currency) {
+            DisplayCurrency.Satoshi -> CurrencyCatalog.infoFor("SAT")
+
+            DisplayCurrency.Bitcoin -> CurrencyCatalog.infoFor("BTC")
+
+            is DisplayCurrency.Fiat -> {
+                val code = currency.iso4217.trim().uppercase()
+                if (code !in CurrencyCatalog.supportedCodes) return null
+                CurrencyCatalog.infoFor(code)
+            }
+        }
+        val rate = when (info.currency) {
+            DisplayCurrency.Satoshi,
+            DisplayCurrency.Bitcoin -> null
+
+            is DisplayCurrency.Fiat -> freshExchangeRate(info) ?: return null
+        }
+        val amountMsats = amount.toRoundedMsats(info, rate) ?: return null
+        return PaymentAmountQuote(
+            requestedAmount = amount,
+            amountMsats = amountMsats,
+            exchangeRate = rate
+        )
+    }
+
+    suspend fun convertMsatsToFreshDisplay(msats: Long): DisplayAmount {
+        val info = mutableState.value.info
+        if (info.currency !is DisplayCurrency.Fiat) {
+            return convertMsatsToDisplay(
+                msats,
+                CurrencyState(info = info, exchangeRate = null)
+            )
+        }
+        val rate = freshExchangeRate(info)
+            ?: return DisplayAmount(msats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
+        return convertMsatsToDisplay(
+            msats,
+            CurrencyState(info = info, exchangeRate = rate)
+        )
     }
 
     private fun fetchExchangeRate(info: CurrencyInfo) {
         invalidateExchangeRateJob()
-        mutableState.value = CurrencyState(info = info, exchangeRate = null)
+        val current = mutableState.value
+        mutableState.value =
+            if (current.info.code.equals(info.code, ignoreCase = true)) {
+                current.copy(info = info)
+            } else {
+                CurrencyState(info = info, exchangeRate = null)
+            }
         val requestId = exchangeRateRequestId
         exchangeRateJob =
             scope.launch {
@@ -114,7 +129,6 @@ class PaymentCurrencyManager(
                         ?.takeIf { it.isFinite() && it > 0.0 }
                 if (requestId != exchangeRateRequestId) return@launch
                 if (price == null) {
-                    lastExchangeRateRefresh = null
                     mutableErrors.tryEmit(CurrencyManagerError.ExchangeRateUnavailable(info.code))
                     return@launch
                 }
@@ -123,8 +137,19 @@ class PaymentCurrencyManager(
                         info = info,
                         exchangeRate = price
                     )
-                lastExchangeRateRefresh = timeSource.markNow()
             }
+    }
+
+    private suspend fun freshExchangeRate(info: CurrencyInfo): Double? {
+        val price =
+            bitcoinPriceProvider
+                .pricePerBitcoin(info.code)
+                ?.takeIf { it.isFinite() && it > 0.0 }
+                ?: return null
+        if (mutableState.value.info.code.equals(info.code, ignoreCase = true)) {
+            mutableState.value = CurrencyState(info = info, exchangeRate = price)
+        }
+        return price
     }
 
     private fun invalidateExchangeRateJob() {
@@ -133,56 +158,42 @@ class PaymentCurrencyManager(
         exchangeRateRequestId += 1
     }
 
-    private fun isExchangeRateStale(): Boolean =
-        lastExchangeRateRefresh?.elapsedNow()?.let { it >= EXCHANGE_RATE_MAX_AGE } ?: true
-
-    private suspend fun exchangeRateForShortcut(info: CurrencyInfo): Double? {
-        val code = info.code.uppercase()
-        val current = mutableState.value
-        if (
-            current.info.code.equals(code, ignoreCase = true) &&
-            current.exchangeRate != null &&
-            !isExchangeRateStale()
-        ) {
-            return current.exchangeRate
-        }
-        shortcutExchangeRates[code]?.let { cached ->
-            if (cached.storedAt.elapsedNow() < EXCHANGE_RATE_MAX_AGE) {
-                return cached.pricePerBitcoin
-            }
-        }
-
-        val price =
-            bitcoinPriceProvider
-                .pricePerBitcoin(code)
-                ?.takeIf { it.isFinite() && it > 0.0 }
-                ?: run {
-                    mutableErrors.tryEmit(CurrencyManagerError.ExchangeRateUnavailable(code))
-                    return null
-                }
-        shortcutExchangeRates[code] =
-            CachedExchangeRate(
-                pricePerBitcoin = price,
-                storedAt = timeSource.markNow()
-            )
-        if (mutableState.value.info.code.equals(code, ignoreCase = true)) {
-            mutableState.value = CurrencyState(info = info, exchangeRate = price)
-            lastExchangeRateRefresh = timeSource.markNow()
-        }
-        return price
-    }
-
     private companion object {
         const val MSATS_PER_SAT = 1_000L
-        const val MSATS_PER_BITCOIN = 100_000_000_000L
-        val EXCHANGE_RATE_MAX_AGE = 60.seconds
     }
 }
 
 data class CurrencyState(val info: CurrencyInfo, val exchangeRate: Double?)
 
+data class PaymentAmountQuote(
+    val requestedAmount: DisplayAmount,
+    val amountMsats: Long,
+    val exchangeRate: Double?
+)
+
 sealed interface CurrencyManagerError {
     data class ExchangeRateUnavailable(val currencyCode: String) : CurrencyManagerError
 }
 
-private data class CachedExchangeRate(val pricePerBitcoin: Double, val storedAt: ComparableTimeMark)
+private fun DisplayAmount.toRoundedMsats(info: CurrencyInfo, exchangeRate: Double?): Long? {
+    val unroundedMsats = when (info.currency) {
+        DisplayCurrency.Satoshi,
+        DisplayCurrency.Bitcoin -> {
+            if (minor > Long.MAX_VALUE / MSATS_PER_SAT) return null
+            minor * MSATS_PER_SAT
+        }
+
+        is DisplayCurrency.Fiat -> {
+            val rate = exchangeRate ?: return null
+            val fiatMajor = minor.toDouble() / 10.0.pow(info.fractionDigits)
+            (fiatMajor / rate * MSATS_PER_BITCOIN).roundToLong()
+        }
+    }
+    if (unroundedMsats <= 0L || unroundedMsats > Long.MAX_VALUE - (MSATS_PER_SAT - 1L)) {
+        return null
+    }
+    return ((unroundedMsats + MSATS_PER_SAT - 1L) / MSATS_PER_SAT) * MSATS_PER_SAT
+}
+
+private const val MSATS_PER_SAT = 1_000L
+private const val MSATS_PER_BITCOIN = 100_000_000_000L

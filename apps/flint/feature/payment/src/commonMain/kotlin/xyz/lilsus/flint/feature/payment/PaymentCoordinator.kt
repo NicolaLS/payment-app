@@ -47,9 +47,11 @@ import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
@@ -274,7 +276,8 @@ class PaymentCoordinator(
         contactContext: PaymentContactContext? = reusableLightningAddress(rawInput)?.let {
             contactsController.contextFor(it, allowSavePrompt = true)
         },
-        requestedAmountMsats: Long? = null
+        requestedAmountMsats: Long? = null,
+        paymentQuote: PaymentAmountQuote? = null
     ) {
         if (mutableUiState.value != PaymentUiState.Active) return
         clearTransientPaymentState()
@@ -284,14 +287,16 @@ class PaymentCoordinator(
         applyPrepareResult(
             result = engine.prepare(rawInput, origin),
             contactContext = contactContext,
-            requestedAmountMsats = requestedAmountMsats
+            requestedAmountMsats = requestedAmountMsats,
+            paymentQuote = paymentQuote
         )
     }
 
     private suspend fun applyPrepareResult(
         result: PreparePaymentResult,
         contactContext: PaymentContactContext?,
-        requestedAmountMsats: Long?
+        requestedAmountMsats: Long?,
+        paymentQuote: PaymentAmountQuote? = null
     ) {
         when (result) {
             is PreparePaymentResult.AmountRequired -> {
@@ -311,9 +316,14 @@ class PaymentCoordinator(
                 val request = ManualRequest(result.payment, contactContext, lnurlPayDisplay)
                 manualRequest = request
                 if (requestedAmountMsats != null && lnurlPayDisplay != null) {
-                    reviewLnurlAmount(request, requestedAmountMsats)
+                    reviewLnurlAmount(request, requestedAmountMsats, paymentQuote)
                 } else if (requestedAmountMsats != null) {
-                    prepareRequestedAmount(result.payment, requestedAmountMsats, contactContext)
+                    prepareRequestedAmount(
+                        result.payment,
+                        requestedAmountMsats,
+                        contactContext,
+                        paymentQuote
+                    )
                 } else if (
                     lnurlPayDisplay != null &&
                     result.payment.maximumAmountSats == result.payment.minimumAmountSats
@@ -325,7 +335,7 @@ class PaymentCoordinator(
             }
 
             is PreparePaymentResult.Ready ->
-                handlePreparedPayment(result.payment, contactContext)
+                handlePreparedPayment(result.payment, contactContext, paymentQuote)
 
             is PreparePaymentResult.Existing -> {
                 sessionAttemptIds += result.activity.attemptId
@@ -349,14 +359,29 @@ class PaymentCoordinator(
 
     private suspend fun handlePreparedPayment(
         payment: PreparedPayment,
-        contactContext: PaymentContactContext?
+        contactContext: PaymentContactContext?,
+        paymentQuote: PaymentAmountQuote?
     ) {
         manualRequest = null
-        val draft = ActiveDraft(payment, contactContext)
+        if (
+            paymentQuote != null &&
+            payment.amountSats.toMsats() != paymentQuote.amountMsats
+        ) {
+            engine.cancel(payment.handle)
+            showError(PaymentUiError.InvalidInvoice("Quoted amount does not match payment"))
+            return
+        }
+        val confirmationAmount =
+            if (payment.requiresConfirmation) {
+                confirmationAmount(payment.amountSats.toMsats(), paymentQuote)
+            } else {
+                null
+            }
+        val draft = ActiveDraft(payment, contactContext, paymentQuote, confirmationAmount)
         activeDraft = draft
         mutableUiState.value =
             if (payment.requiresConfirmation) {
-                PaymentUiState.Confirm(display(payment.amountSats))
+                PaymentUiState.Confirm(requireNotNull(confirmationAmount))
             } else {
                 PaymentUiState.Loading()
             }
@@ -372,7 +397,8 @@ class PaymentCoordinator(
             applyPrepareResult(
                 engine.prepareAmount(review.request.payment.handle, review.amountSats),
                 review.request.contactContext,
-                requestedAmountMsats = null
+                requestedAmountMsats = null,
+                paymentQuote = review.paymentQuote
             )
             return
         }
@@ -381,7 +407,7 @@ class PaymentCoordinator(
         applyConfirmResult(engine.confirm(draft.payment.handle), draft)
     }
 
-    private fun applyConfirmResult(result: ConfirmPaymentResult, draft: ActiveDraft) {
+    private suspend fun applyConfirmResult(result: ConfirmPaymentResult, draft: ActiveDraft) {
         when (result) {
             is ConfirmPaymentResult.Submitted -> {
                 activeDraft = null
@@ -396,9 +422,15 @@ class PaymentCoordinator(
             }
 
             ConfirmPaymentResult.ConfirmationRequired -> {
-                activeDraft = draft
+                val confirmationAmount =
+                    draft.confirmationAmount
+                        ?: confirmationAmount(
+                            draft.payment.amountSats.toMsats(),
+                            draft.paymentQuote
+                        )
+                activeDraft = draft.copy(confirmationAmount = confirmationAmount)
                 mutableUiState.value =
-                    PaymentUiState.Confirm(display(draft.payment.amountSats))
+                    PaymentUiState.Confirm(confirmationAmount)
             }
 
             ConfirmPaymentResult.DraftUnavailable ->
@@ -453,28 +485,36 @@ class PaymentCoordinator(
     }
 
     private suspend fun submitManualAmount() {
+        val entryState = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
         val request = manualRequest ?: return
-        val amountMsats = manualAmount.enteredAmountMsats()
-        val sats = amountMsats?.let(::msatsToSatoshi)
-        if (sats == null) {
-            currencyManager.ensureExchangeRateIfNeeded()
+        val enteredAmount = manualAmount.enteredAmount() ?: return
+        mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
+        val paymentQuote = currencyManager.quote(enteredAmount)
+        val sats = paymentQuote?.amountMsats?.let(::msatsToSatoshi)
+        if (paymentQuote == null || sats == null) {
+            mutableUiState.value = entryState
+            val error = when (val currency = enteredAmount.currency) {
+                is DisplayCurrency.Fiat ->
+                    PaymentUiError.ExchangeRateUnavailable(currency.iso4217)
+
+                else -> PaymentUiError.InvalidInvoice("Amount could not be converted")
+            }
+            mutableEvents.tryEmit(PaymentEvent.ShowError(error))
             return
         }
-        if (currencyManager.needsExchangeRate()) {
-            currencyManager.ensureExchangeRateIfNeeded()
-        }
-        mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
         applyPrepareResult(
             engine.prepareAmount(request.payment.handle, sats),
             request.contactContext,
-            requestedAmountMsats = null
+            requestedAmountMsats = null,
+            paymentQuote = paymentQuote
         )
     }
 
     private suspend fun prepareRequestedAmount(
         payment: AmountRequiredPayment,
         amountMsats: Long,
-        contactContext: PaymentContactContext?
+        contactContext: PaymentContactContext?,
+        paymentQuote: PaymentAmountQuote? = null
     ) {
         val sats = msatsToSatoshi(amountMsats)
         if (
@@ -488,7 +528,8 @@ class PaymentCoordinator(
         applyPrepareResult(
             engine.prepareAmount(payment.handle, sats),
             contactContext,
-            requestedAmountMsats = null
+            requestedAmountMsats = null,
+            paymentQuote = paymentQuote
         )
     }
 
@@ -521,7 +562,11 @@ class PaymentCoordinator(
             )
     }
 
-    private fun reviewLnurlAmount(request: ManualRequest, amountMsats: Long) {
+    private suspend fun reviewLnurlAmount(
+        request: ManualRequest,
+        amountMsats: Long,
+        paymentQuote: PaymentAmountQuote? = null
+    ) {
         val amountSats = msatsToSatoshi(amountMsats)
         if (
             amountSats == null ||
@@ -532,8 +577,10 @@ class PaymentCoordinator(
             return
         }
         val display = request.lnurlPayDisplay ?: return
-        pendingLnurlReview = PendingLnurlReview(request, amountSats)
-        mutableUiState.value = PaymentUiState.Confirm(display(amountSats), display)
+        val confirmationAmount = confirmationAmount(amountSats.toMsats(), paymentQuote)
+        pendingLnurlReview =
+            PendingLnurlReview(request, amountSats, paymentQuote)
+        mutableUiState.value = PaymentUiState.Confirm(confirmationAmount, display)
     }
 
     private fun handleActivityUpdate(activity: List<PaymentActivity>) {
@@ -703,7 +750,7 @@ class PaymentCoordinator(
     private fun resolveContactPayment(
         address: LightningAddress,
         context: PaymentContactContext,
-        amountMsats: Long?,
+        paymentQuote: PaymentAmountQuote?,
         comment: String?
     ) {
         scope.launch {
@@ -712,7 +759,8 @@ class PaymentCoordinator(
                     rawInput = address.full,
                     origin = PaymentOrigin.DETECTED_CONTENT,
                     contactContext = context.copy(comment = comment ?: context.comment),
-                    requestedAmountMsats = amountMsats
+                    requestedAmountMsats = paymentQuote?.amountMsats,
+                    paymentQuote = paymentQuote
                 )
             }
         }
@@ -726,15 +774,22 @@ class PaymentCoordinator(
             return
         }
         scope.launch {
-            val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcutAmount)
-            if (amountMsats == null || amountMsats <= 0L) {
-                showError(PaymentUiError.InvalidInvoice("Shortcut amount could not be converted"))
+            val paymentQuote = currencyManager.quoteShortcutAmount(shortcutAmount)
+            if (paymentQuote == null) {
+                val info = CurrencyCatalog.infoFor(shortcutAmount.normalizedCurrencyCode)
+                showError(
+                    if (info.currency is DisplayCurrency.Fiat) {
+                        PaymentUiError.ExchangeRateUnavailable(info.code)
+                    } else {
+                        PaymentUiError.InvalidInvoice("Shortcut amount could not be converted")
+                    }
+                )
                 return@launch
             }
             resolveContactPayment(
                 context.address,
                 context,
-                roundToFullSatoshis(amountMsats),
+                paymentQuote,
                 context.comment
             )
         }
@@ -808,15 +863,6 @@ class PaymentCoordinator(
                 showManualAmount(request, clearInput = false)
             }
         }
-        pendingLnurlReview?.let { review ->
-            if (mutableUiState.value is PaymentUiState.Confirm) {
-                mutableUiState.value =
-                    PaymentUiState.Confirm(
-                        display(review.amountSats),
-                        review.request.lnurlPayDisplay
-                    )
-            }
-        }
         visibleActivity?.let { visible ->
             when (mutableUiState.value) {
                 is PaymentUiState.Success,
@@ -834,9 +880,32 @@ class PaymentCoordinator(
     private fun display(amount: Satoshi): DisplayAmount =
         currencyManager.convertMsatsToDisplay(amount.toMsats())
 
+    private suspend fun confirmationAmount(
+        amountMsats: Long,
+        paymentQuote: PaymentAmountQuote?
+    ): PaymentConfirmationAmount {
+        val exactSats = DisplayAmount(amountMsats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
+        paymentQuote?.let { quote ->
+            return PaymentConfirmationAmount(
+                primary = quote.requestedAmount,
+                exactSats = exactSats.takeIf {
+                    quote.requestedAmount.currency is DisplayCurrency.Fiat
+                }
+            )
+        }
+        val preferredAmount = currencyManager.convertMsatsToFreshDisplay(amountMsats)
+        return PaymentConfirmationAmount(
+            primary = preferredAmount,
+            exactSats = exactSats.takeIf { preferredAmount.currency is DisplayCurrency.Fiat },
+            primaryIsEstimate = preferredAmount.currency is DisplayCurrency.Fiat
+        )
+    }
+
     private data class ActiveDraft(
         val payment: PreparedPayment,
-        val contactContext: PaymentContactContext?
+        val contactContext: PaymentContactContext?,
+        val paymentQuote: PaymentAmountQuote?,
+        val confirmationAmount: PaymentConfirmationAmount?
     )
 
     private data class ManualRequest(
@@ -845,7 +914,11 @@ class PaymentCoordinator(
         val lnurlPayDisplay: LnurlPayDisplay?
     )
 
-    private data class PendingLnurlReview(val request: ManualRequest, val amountSats: Satoshi)
+    private data class PendingLnurlReview(
+        val request: ManualRequest,
+        val amountSats: Satoshi,
+        val paymentQuote: PaymentAmountQuote?
+    )
 
     private data class VisibleActivity(val activity: PaymentActivity, val wasAlreadyPaid: Boolean)
 }

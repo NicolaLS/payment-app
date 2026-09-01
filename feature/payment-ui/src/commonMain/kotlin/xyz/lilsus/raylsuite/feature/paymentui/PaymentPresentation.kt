@@ -18,8 +18,10 @@ sealed interface PaymentScreenState {
         val lnurlPayDisplay: LnurlPayDisplay? = null
     ) : PaymentScreenState
 
-    data class Confirm(val amount: DisplayAmount, val lnurlPayDisplay: LnurlPayDisplay? = null) :
-        PaymentScreenState
+    data class Confirm(
+        val amount: PaymentConfirmationAmount,
+        val lnurlPayDisplay: LnurlPayDisplay? = null
+    ) : PaymentScreenState
 
     data class PendingRetry(val transactionId: String) : PaymentScreenState
 
@@ -38,6 +40,12 @@ enum class PaymentLoadingKind {
     Resolving,
     Paying
 }
+
+data class PaymentConfirmationAmount(
+    val primary: DisplayAmount,
+    val exactSats: DisplayAmount? = null,
+    val primaryIsEstimate: Boolean = false
+)
 
 data class PaymentSessionTransaction(
     val id: String,

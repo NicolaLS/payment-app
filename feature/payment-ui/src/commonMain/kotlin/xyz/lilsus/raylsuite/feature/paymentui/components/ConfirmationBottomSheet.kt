@@ -29,8 +29,11 @@ import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_approximate_amount
+import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_exact_amount
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_title
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.dismiss_button
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.pay_button
@@ -38,7 +41,7 @@ import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.pay_button
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun ConfirmationBottomSheet(
-    confirmAmount: DisplayAmount,
+    amount: PaymentConfirmationAmount,
     lnurlPayDisplay: LnurlPayDisplay? = null,
     onPay: () -> Unit,
     onDismiss: () -> Unit
@@ -74,10 +77,30 @@ fun ConfirmationBottomSheet(
             }
 
             Text(
-                text = formatter.format(confirmAmount),
+                text =
+                    if (amount.primaryIsEstimate) {
+                        stringResource(
+                            Res.string.confirm_payment_approximate_amount,
+                            formatter.format(amount.primary)
+                        )
+                    } else {
+                        formatter.format(amount.primary)
+                    },
                 style = MaterialTheme.typography.bodyLarge.copy(fontSize = 20.sp),
                 fontWeight = FontWeight.Bold
             )
+
+            amount.exactSats?.let { exactSats ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text =
+                        stringResource(
+                            Res.string.confirm_payment_exact_amount,
+                            formatter.format(exactSats)
+                        ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -110,10 +133,10 @@ fun ConfirmationBottomSheet(
 @Preview(showBackground = true)
 @Composable
 fun ConfirmationBottomSheetPreview() {
-    val confirmAmount = DisplayAmount(69, DisplayCurrency.Satoshi)
+    val confirmAmount = PaymentConfirmationAmount(DisplayAmount(69, DisplayCurrency.Satoshi))
     RaylSuiteTheme {
         ConfirmationBottomSheet(
-            confirmAmount = confirmAmount,
+            amount = confirmAmount,
             onPay = {},
             onDismiss = {}
         )

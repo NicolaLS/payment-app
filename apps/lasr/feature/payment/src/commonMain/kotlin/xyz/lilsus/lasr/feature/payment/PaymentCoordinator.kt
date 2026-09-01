@@ -23,6 +23,7 @@ import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.CurrencyInfo
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
+import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
@@ -41,10 +42,12 @@ import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentConfirmationPolicy
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
@@ -428,7 +431,7 @@ class PaymentCoordinator(
         paymentSource: PaymentRequestSource,
         sourceKey: DynamicPaymentSourceKey?,
         contactContext: PaymentContactContext? = null,
-        shortcutAmountMsats: Long? = null,
+        shortcutPaymentQuote: PaymentAmountQuote? = null,
         shortcutComment: String? = null,
         replacesDynamicGuardId: String? = null
     ) {
@@ -441,7 +444,7 @@ class PaymentCoordinator(
                         paymentSource = paymentSource,
                         sourceKey = sourceKey,
                         contactContext = contactContext,
-                        shortcutAmountMsats = shortcutAmountMsats,
+                        shortcutPaymentQuote = shortcutPaymentQuote,
                         shortcutComment = shortcutComment,
                         replacesDynamicGuardId = replacesDynamicGuardId
                     )
@@ -454,7 +457,7 @@ class PaymentCoordinator(
     private fun resolveContactPayment(
         address: LightningAddress,
         context: PaymentContactContext,
-        amountMsats: Long?,
+        paymentQuote: PaymentAmountQuote?,
         comment: String?
     ) {
         val sourceKey = lightningAddressDynamicPaymentSourceKey(address)
@@ -468,7 +471,7 @@ class PaymentCoordinator(
                         sourceKey = sourceKey,
                         paymentSource = PaymentRequestSource.Camera,
                         contactContext = context,
-                        shortcutAmountMsats = amountMsats,
+                        shortcutPaymentQuote = paymentQuote,
                         shortcutComment = comment
                     )
             )
@@ -480,7 +483,7 @@ class PaymentCoordinator(
             paymentSource = PaymentRequestSource.Camera,
             sourceKey = sourceKey,
             contactContext = context,
-            shortcutAmountMsats = amountMsats,
+            shortcutPaymentQuote = paymentQuote,
             shortcutComment = comment
         )
     }
@@ -493,21 +496,28 @@ class PaymentCoordinator(
             return
         }
         scope.launch {
-            val amountMsats = currencyManager.convertShortcutAmountToMsats(shortcutAmount)
-            if (amountMsats == null || amountMsats <= 0L) {
-                emitError(PaymentUiError.InvalidInvoice("Shortcut amount could not be converted"))
+            val paymentQuote = currencyManager.quoteShortcutAmount(shortcutAmount)
+            if (paymentQuote == null) {
+                val info = CurrencyCatalog.infoFor(shortcutAmount.normalizedCurrencyCode)
+                emitError(
+                    if (info.currency is DisplayCurrency.Fiat) {
+                        PaymentUiError.ExchangeRateUnavailable(info.code)
+                    } else {
+                        PaymentUiError.InvalidInvoice("Shortcut amount could not be converted")
+                    }
+                )
                 return@launch
             }
             resolveContactPayment(
                 context.address,
                 context,
-                roundToFullSatoshis(amountMsats),
+                paymentQuote,
                 context.comment
             )
         }
     }
 
-    private fun handleLnurlParams(
+    private suspend fun handleLnurlParams(
         params: LnurlPayParams,
         paymentSource: PaymentRequestSource,
         forceManualEntry: Boolean = false,
@@ -515,7 +525,7 @@ class PaymentCoordinator(
         inputCurrencyOverride: CurrencyInfo? = null,
         sourceKey: DynamicPaymentSourceKey? = null,
         contactContext: PaymentContactContext? = null,
-        shortcutAmountMsats: Long? = null,
+        shortcutPaymentQuote: PaymentAmountQuote? = null,
         shortcutComment: String? = null,
         replacesDynamicGuardId: String? = null
     ) {
@@ -559,14 +569,14 @@ class PaymentCoordinator(
             )
 
         if (
-            currencyManager.needsExchangeRate(inputInfo) &&
+            inputInfo.currency is DisplayCurrency.Fiat &&
             inputInfo.code.equals(currencyState.info.code, ignoreCase = true)
         ) {
             currencyManager.ensureExchangeRateIfNeeded(inputInfo)
         }
 
-        shortcutAmountMsats?.let { requestedAmount ->
-            val roundedAmount = roundToFullSatoshis(requestedAmount)
+        shortcutPaymentQuote?.let { paymentQuote ->
+            val roundedAmount = paymentQuote.amountMsats
             if (
                 roundedAmount < params.minSendable ||
                 roundedAmount > params.maxSendable
@@ -579,9 +589,19 @@ class PaymentCoordinator(
                 return
             }
             if (session.display != null) {
-                reviewLnurlPayment(session, roundedAmount, isManualEntry = false)
+                reviewLnurlPayment(
+                    session,
+                    roundedAmount,
+                    isManualEntry = false,
+                    paymentQuote = paymentQuote
+                )
             } else {
-                payLnurlInvoice(session, roundedAmount, isManualEntry = false)
+                payLnurlInvoice(
+                    session,
+                    roundedAmount,
+                    isManualEntry = false,
+                    paymentQuote = paymentQuote
+                )
             }
             return
         }
@@ -625,22 +645,35 @@ class PaymentCoordinator(
         mutableUiState.value = PaymentUiState.EnterAmount(entry, session.display)
     }
 
-    private fun reviewLnurlPayment(
+    private suspend fun reviewLnurlPayment(
         session: LnurlSession,
         amountMsats: Long,
-        isManualEntry: Boolean
+        isManualEntry: Boolean,
+        paymentQuote: PaymentAmountQuote? = null
     ) {
         val display = session.display ?: return
         val roundedAmount = roundToFullSatoshis(amountMsats)
-        pendingLnurlReview = PendingLnurlReview(session, roundedAmount, isManualEntry)
+        val confirmationAmount = confirmationAmount(roundedAmount, paymentQuote)
+        pendingLnurlReview =
+            PendingLnurlReview(
+                session = session,
+                amountMsats = roundedAmount,
+                isManualEntry = isManualEntry,
+                paymentQuote = paymentQuote
+            )
         mutableUiState.value =
             PaymentUiState.Confirm(
-                amount = currencyManager.convertMsatsToDisplay(roundedAmount),
+                amount = confirmationAmount,
                 lnurlPayDisplay = display
             )
     }
 
-    private fun payLnurlInvoice(session: LnurlSession, amountMsats: Long, isManualEntry: Boolean) {
+    private fun payLnurlInvoice(
+        session: LnurlSession,
+        amountMsats: Long,
+        isManualEntry: Boolean,
+        paymentQuote: PaymentAmountQuote? = null
+    ) {
         mutableUiState.value = PaymentUiState.Loading()
         scope.launch {
             when (val result = preparation.resolveLnurlInvoice(session, amountMsats)) {
@@ -649,7 +682,8 @@ class PaymentCoordinator(
                         session = session,
                         amountMsats = result.amountMsats,
                         invoice = result.invoice,
-                        isManualEntry = isManualEntry
+                        isManualEntry = isManualEntry,
+                        paymentQuote = paymentQuote
                     )
 
                 is LnurlInvoiceResolution.Failure -> {
@@ -664,7 +698,8 @@ class PaymentCoordinator(
         session: LnurlSession,
         amountMsats: Long,
         invoice: Bolt11Invoice,
-        isManualEntry: Boolean
+        isManualEntry: Boolean,
+        paymentQuote: PaymentAmountQuote?
     ) {
         pendingTracker.findLatestByPaymentHash(invoice.paymentHash.toHex())?.let { existing ->
             manualEntryContext = null
@@ -686,7 +721,8 @@ class PaymentCoordinator(
             dynamicSourceKey = session.sourceKey,
             contactContext = session.contactContext,
             replacesDynamicGuardId = session.replacesDynamicGuardId,
-            lnurlAuthorized = session.display != null
+            lnurlAuthorized = session.display != null,
+            paymentQuote = paymentQuote
         )
     }
 
@@ -717,33 +753,41 @@ class PaymentCoordinator(
             )
     }
 
-    private fun submitManualAmount() {
-        if (mutableUiState.value !is PaymentUiState.EnterAmount) return
+    private suspend fun submitManualAmount() {
+        val entryState = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
         val context = manualEntryContext ?: return
-        val amountMsats = manualAmount.enteredAmountMsats()
-        if (amountMsats == null || amountMsats <= 0) {
-            currencyManager.ensureExchangeRateIfNeeded()
+        val enteredAmount = manualAmount.enteredAmount() ?: return
+        mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
+        val paymentQuote = currencyManager.quote(enteredAmount)
+        if (paymentQuote == null) {
+            mutableUiState.value = entryState
+            val error = when (val currency = enteredAmount.currency) {
+                is DisplayCurrency.Fiat ->
+                    PaymentUiError.ExchangeRateUnavailable(currency.iso4217)
+
+                else -> PaymentUiError.InvalidInvoice("Amount could not be converted")
+            }
+            mutableEvents.tryEmit(PaymentEvent.ShowError(error))
             return
-        }
-        if (currencyManager.needsExchangeRate()) {
-            currencyManager.ensureExchangeRateIfNeeded()
         }
 
         when (context) {
             is ManualEntryContext.Bolt ->
                 requestPayment(
                     invoice = context.invoice,
-                    amountOverrideMsats = roundToFullSatoshis(amountMsats),
+                    amountOverrideMsats = paymentQuote.amountMsats,
                     origin = PendingOrigin.ManualEntry,
-                    source = context.source
+                    source = context.source,
+                    paymentQuote = paymentQuote
                 )
 
             is ManualEntryContext.Lnurl -> {
-                val roundedAmount = roundToFullSatoshis(amountMsats)
+                val roundedAmount = paymentQuote.amountMsats
                 if (
                     roundedAmount < context.session.params.minSendable ||
                     roundedAmount > context.session.params.maxSendable
                 ) {
+                    mutableUiState.value = entryState
                     mutableEvents.tryEmit(
                         PaymentEvent.ShowError(
                             PaymentUiError.InvalidInvoice("Amount is outside the allowed range")
@@ -751,7 +795,12 @@ class PaymentCoordinator(
                     )
                     return
                 }
-                payLnurlInvoice(context.session, roundedAmount, isManualEntry = true)
+                payLnurlInvoice(
+                    context.session,
+                    roundedAmount,
+                    isManualEntry = true,
+                    paymentQuote = paymentQuote
+                )
             }
         }
     }
@@ -789,7 +838,12 @@ class PaymentCoordinator(
     private fun submitConfirmation() {
         pendingLnurlReview?.let { review ->
             pendingLnurlReview = null
-            payLnurlInvoice(review.session, review.amountMsats, review.isManualEntry)
+            payLnurlInvoice(
+                review.session,
+                review.amountMsats,
+                review.isManualEntry,
+                review.paymentQuote
+            )
             return
         }
         val pending = pendingPayment ?: return
@@ -812,16 +866,18 @@ class PaymentCoordinator(
         dynamicSourceKey: DynamicPaymentSourceKey? = null,
         contactContext: PaymentContactContext? = null,
         replacesDynamicGuardId: String? = null,
-        lnurlAuthorized: Boolean = false
+        lnurlAuthorized: Boolean = false,
+        paymentQuote: PaymentAmountQuote? = null
     ) {
         if (paymentAdmissionInProgress) return
         paymentAdmissionInProgress = true
         scope.launch {
             try {
-                if (currencyManager.needsExchangeRate()) {
-                    currencyManager.ensureExchangeRateIfNeeded()
-                }
                 val amountMsats = amountOverrideMsats ?: invoice.amount?.msat
+                if (paymentQuote != null && paymentQuote.amountMsats != amountMsats) {
+                    emitError(PaymentUiError.InvalidInvoice("Quoted amount does not match invoice"))
+                    return@launch
+                }
                 val isManualEntry =
                     origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
                 val requiresConfirmation =
@@ -838,11 +894,7 @@ class PaymentCoordinator(
                                     )
                             )
                 if (requiresConfirmation) {
-                    val display =
-                        currencyManager.convertMsatsToDisplay(
-                            amountMsats ?: 0L,
-                            currencyManager.state.value
-                        )
+                    val display = confirmationAmount(amountMsats ?: 0L, paymentQuote)
                     pendingPayment =
                         PendingPayment(
                             invoice = invoice,
@@ -1009,7 +1061,7 @@ class PaymentCoordinator(
                     continuation.paymentSource,
                     continuation.sourceKey,
                     continuation.contactContext,
-                    continuation.shortcutAmountMsats,
+                    continuation.shortcutPaymentQuote,
                     continuation.shortcutComment,
                     replacesDynamicGuardId = choice.recordId
                 )
@@ -1165,32 +1217,35 @@ class PaymentCoordinator(
     }
 
     private fun refreshResultState() {
-        when (val state = mutableUiState.value) {
+        when (mutableUiState.value) {
             is PaymentUiState.Success -> {
                 val payment = lastPaymentResult ?: return
                 mutableUiState.value = payment.toUiState(currencyManager.state.value)
             }
 
-            is PaymentUiState.Confirm -> {
-                pendingLnurlReview?.let { review ->
-                    mutableUiState.value =
-                        PaymentUiState.Confirm(
-                            currencyManager.convertMsatsToDisplay(review.amountMsats),
-                            review.session.display
-                        )
-                    return
-                }
-                val pending = pendingPayment ?: return
-                val amount =
-                    pending.amountOverrideMsats ?: pending.invoice.amount?.msat ?: return
-                mutableUiState.value =
-                    PaymentUiState.Confirm(
-                        currencyManager.convertMsatsToDisplay(amount)
-                    )
-            }
-
             else -> Unit
         }
+    }
+
+    private suspend fun confirmationAmount(
+        amountMsats: Long,
+        paymentQuote: PaymentAmountQuote?
+    ): PaymentConfirmationAmount {
+        val exactSats = DisplayAmount(amountMsats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
+        paymentQuote?.let { quote ->
+            return PaymentConfirmationAmount(
+                primary = quote.requestedAmount,
+                exactSats = exactSats.takeIf {
+                    quote.requestedAmount.currency is DisplayCurrency.Fiat
+                }
+            )
+        }
+        val preferredAmount = currencyManager.convertMsatsToFreshDisplay(amountMsats)
+        return PaymentConfirmationAmount(
+            primary = preferredAmount,
+            exactSats = exactSats.takeIf { preferredAmount.currency is DisplayCurrency.Fiat },
+            primaryIsEstimate = preferredAmount.currency is DisplayCurrency.Fiat
+        )
     }
 
     private fun clearPaymentSessionState() {
@@ -1223,7 +1278,7 @@ internal sealed interface PendingRetryContinuation {
         val sourceKey: DynamicPaymentSourceKey,
         val paymentSource: PaymentRequestSource,
         val contactContext: PaymentContactContext? = null,
-        val shortcutAmountMsats: Long? = null,
+        val shortcutPaymentQuote: PaymentAmountQuote? = null,
         val shortcutComment: String? = null
     ) : PendingRetryContinuation
 }

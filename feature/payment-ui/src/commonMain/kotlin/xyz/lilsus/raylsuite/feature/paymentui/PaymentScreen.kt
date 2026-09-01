@@ -207,7 +207,7 @@ fun PaymentScreen(
 
     if (uiState is PaymentScreenState.Confirm) {
         ConfirmationBottomSheet(
-            confirmAmount = uiState.amount,
+            amount = uiState.amount,
             lnurlPayDisplay = uiState.lnurlPayDisplay,
             onPay = { onIntent(PaymentIntent.ConfirmPaymentSubmit) },
             onDismiss = { onIntent(PaymentIntent.ConfirmPaymentDismiss) }

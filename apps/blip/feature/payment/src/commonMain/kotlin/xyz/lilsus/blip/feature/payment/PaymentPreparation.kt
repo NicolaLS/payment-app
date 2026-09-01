@@ -11,6 +11,7 @@ import xyz.lilsus.raylsuite.core.payment.LnurlInvoiceResolver
 import xyz.lilsus.raylsuite.core.payment.LnurlPayClient
 import xyz.lilsus.raylsuite.core.payment.LnurlPayParams
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
+import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
@@ -68,7 +69,8 @@ internal data class PendingPayment(
 internal data class PendingLnurlReview(
     val session: LnurlSession,
     val amountMsats: Long,
-    val isManualEntry: Boolean
+    val isManualEntry: Boolean,
+    val paymentQuote: PaymentAmountQuote? = null
 )
 
 internal data class LnurlSession(

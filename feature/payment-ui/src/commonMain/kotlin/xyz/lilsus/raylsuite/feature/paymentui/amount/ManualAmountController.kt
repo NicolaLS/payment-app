@@ -89,12 +89,7 @@ class ManualAmountController(private val defaultConfig: ManualAmountConfig) {
         return state
     }
 
-    fun enteredAmountMsats(): Long? {
-        val info = config.info
-        val minor = parseMinor(whole, fraction, info.fractionDigits) ?: return null
-        if (minor == 0L) return null
-        return minorToMsats(minor)
-    }
+    fun enteredAmount(): DisplayAmount? = state.amount
 
     private fun appendDigit(digit: Int) {
         require(digit in 0..9)

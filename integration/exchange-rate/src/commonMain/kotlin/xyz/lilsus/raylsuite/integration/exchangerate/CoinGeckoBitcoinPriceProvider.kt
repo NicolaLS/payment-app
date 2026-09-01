@@ -30,22 +30,15 @@ class CoinGeckoBitcoinPriceProvider(
                 .uppercase()
                 .takeIf(String::isNotEmpty)
                 ?: return null
-        cachedPrice(currencyCode)?.let { return it }
-
-        val price = fetchPrice(currencyCode) ?: return null
-        cacheMutex.withLock {
-            cache[currencyCode] = CachedPrice(price = price, storedAtMs = clock())
-        }
-        return price
-    }
-
-    private suspend fun cachedPrice(currencyCode: String): Double? = cacheMutex.withLock {
-        val cached = cache[currencyCode] ?: return@withLock null
-        if (clock() - cached.storedAtMs < CACHE_TTL_MS) {
-            cached.price
-        } else {
+        return cacheMutex.withLock {
+            val cached = cache[currencyCode]
+            if (cached != null && clock() - cached.storedAtMs < CACHE_TTL_MS) {
+                return@withLock cached.price
+            }
             cache.remove(currencyCode)
-            null
+            val price = fetchPrice(currencyCode) ?: return@withLock null
+            cache[currencyCode] = CachedPrice(price = price, storedAtMs = clock())
+            price
         }
     }
 

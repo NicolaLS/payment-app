@@ -2,6 +2,8 @@
     <string name="settings_title">Ajustes</string>
     <string name="tap_continue">Toca para continuar…</string>
     <string name="confirm_payment_title">Confirmar pago</string>
+    <string name="confirm_payment_approximate_amount">≈ %1$s</string>
+    <string name="confirm_payment_exact_amount">Importe exacto: %1$s</string>
     <string name="pay_button">Pagar</string>
     <string name="lnurl_payment_recipient">Destinatario: %1$s</string>
     <string name="lnurl_payment_image_description">Imagen del destinatario</string>

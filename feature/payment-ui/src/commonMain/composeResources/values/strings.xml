@@ -2,6 +2,8 @@
     <string name="settings_title">Settings</string>
     <string name="tap_continue">Tap to continue…</string>
     <string name="confirm_payment_title">Confirm Payment</string>
+    <string name="confirm_payment_approximate_amount">≈ %1$s</string>
+    <string name="confirm_payment_exact_amount">Exact amount: %1$s</string>
     <string name="pay_button">Pay</string>
     <string name="lnurl_payment_recipient">Recipient: %1$s</string>
     <string name="lnurl_payment_image_description">Recipient image</string>
