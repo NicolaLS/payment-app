@@ -30,7 +30,6 @@ internal class RaylHeroAnimationState(
     private val arcs: List<ArcSpec>
 ) {
     private val colorAnim = ColorAnimatable(Transparent)
-    private val modeScaleAnim = Animatable(1f)
     private val clusterScaleAnim = Animatable(1f)
     private val clusterShakeAnim = Animatable(0f)
     private val rotationAnim = Animatable(0f)
@@ -44,8 +43,6 @@ internal class RaylHeroAnimationState(
 
     val color: Color
         get() = colorAnim.value
-    val modeScale: Float
-        get() = modeScaleAnim.value
     val clusterScale: Float
         get() = clusterScaleAnim.value
     val clusterShakeX: Float
@@ -82,13 +79,6 @@ internal class RaylHeroAnimationState(
         }
     }
 
-    suspend fun animateActiveMode(mode: RaylHeroScanMode) {
-        modeScaleAnim.animateTo(
-            targetValue = if (mode == RaylHeroScanMode.Far) FAR_MODE_SCALE else 1f,
-            animationSpec = tween(durationMillis = 220, easing = EaseInOutCubic)
-        )
-    }
-
     private suspend fun animateToActive() {
         coroutineScope {
             launch { reset() }
@@ -99,7 +89,6 @@ internal class RaylHeroAnimationState(
     }
 
     private suspend fun animateToCompressed() {
-        normalizeModeScale()
         coroutineScope {
             launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
             launch { clenchShrink() }
@@ -110,7 +99,6 @@ internal class RaylHeroAnimationState(
     }
 
     private suspend fun animateToLoading() {
-        normalizeModeScale()
         coroutineScope {
             launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
             launch { clenchShrink() }
@@ -121,7 +109,6 @@ internal class RaylHeroAnimationState(
     }
 
     private suspend fun animateToResult(isSuccess: Boolean) {
-        normalizeModeScale()
         coroutineScope {
             launch { rotationAnim.animateTo(0f, tween(300, easing = EaseInOutCubic)) }
             launch { stopDataBits() }
@@ -158,14 +145,6 @@ internal class RaylHeroAnimationState(
                 reset(pop = true, isError = true)
             }
         }
-    }
-
-    private suspend fun normalizeModeScale() {
-        if (modeScaleAnim.value == 1f) return
-        modeScaleAnim.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = 180, easing = EaseInOutCubic)
-        )
     }
 
     private suspend fun reset(pop: Boolean = false, isError: Boolean = false) = coroutineScope {
@@ -387,5 +366,3 @@ private fun stepTowardCenter(value: Float, size: Float, step: Float): Float {
     val delta = 0.5f - center
     return delta * step
 }
-
-private const val FAR_MODE_SCALE = 0.65f

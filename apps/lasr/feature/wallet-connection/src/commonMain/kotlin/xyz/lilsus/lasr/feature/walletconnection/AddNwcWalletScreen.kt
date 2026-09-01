@@ -37,8 +37,6 @@ import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_t
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_label
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_paste
 import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_placeholder
-import xyz.lilsus.raylsuite.core.camera.CameraPreviewHost
-import xyz.lilsus.raylsuite.core.camera.QrScannerController
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +47,8 @@ fun AddNwcWalletScreen(
     onUriChange: (String) -> Unit,
     onPaste: () -> Unit,
     onSubmit: () -> Unit,
-    controller: QrScannerController,
+    onQrCodeScanned: (String) -> Unit,
+    onCameraPermissionMissing: () -> Unit,
     isCameraPermissionGranted: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -122,15 +121,20 @@ fun AddNwcWalletScreen(
             }
 
             CameraCard(
-                controller = controller,
-                hasPermission = isCameraPermissionGranted
+                hasPermission = isCameraPermissionGranted,
+                onQrCodeScanned = onQrCodeScanned,
+                onCameraPermissionMissing = onCameraPermissionMissing
             )
         }
     }
 }
 
 @Composable
-private fun CameraCard(controller: QrScannerController, hasPermission: Boolean) {
+private fun CameraCard(
+    hasPermission: Boolean,
+    onQrCodeScanned: (String) -> Unit,
+    onCameraPermissionMissing: () -> Unit
+) {
     Surface(
         tonalElevation = 4.dp,
         shape = MaterialTheme.shapes.large,
@@ -148,15 +152,17 @@ private fun CameraCard(controller: QrScannerController, hasPermission: Boolean) 
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            CameraPreviewHost(
-                controller = controller,
-                visible = hasPermission,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1.3f)
-                        .testTag(NwcWalletConnectionTestTags.CAMERA_PREVIEW)
-            )
+            if (hasPermission) {
+                NwcConnectionQrScannerPreview(
+                    onQrCodeScanned = onQrCodeScanned,
+                    onCameraPermissionMissing = onCameraPermissionMissing,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1.3f)
+                            .testTag(NwcWalletConnectionTestTags.CAMERA_PREVIEW)
+                )
+            }
             if (!hasPermission) {
                 Text(
                     text = stringResource(Res.string.add_wallet_scan_permission),

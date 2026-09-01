@@ -37,7 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.raylsuite.core.camera.QrScannerMode
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
 import xyz.lilsus.raylsuite.feature.paymentui.components.BottomLayout
 import xyz.lilsus.raylsuite.feature.paymentui.components.ConfirmationBottomSheet
@@ -70,9 +69,6 @@ fun PaymentScreen(
     onOpenTransactions: () -> Unit = {},
     onCreateShortcut: () -> Unit = {},
     onCreateContact: () -> Unit = {},
-    scannerMode: QrScannerMode = QrScannerMode.Near,
-    showScannerModeSelector: Boolean = false,
-    onToggleScannerMode: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showResolvingContent by remember { mutableStateOf(false) }
@@ -171,10 +167,7 @@ fun PaymentScreen(
             PaymentHero(
                 modifier = Modifier.fillMaxWidth().fillMaxHeight(0.5f),
                 phase = uiState.toHeroPhase(),
-                receiptPreimage = receiptPreimage.takeIf { showReceipt },
-                scannerMode = scannerMode,
-                showScannerModeSelector = showScannerModeSelector,
-                onToggleScannerMode = onToggleScannerMode
+                receiptPreimage = receiptPreimage.takeIf { showReceipt }
             )
             Crossfade(targetState = contentState) { state ->
                 when {

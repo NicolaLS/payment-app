@@ -45,7 +45,6 @@ import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.ConnectNwcWalletViewModel
 import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
-import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.core.ui.platform.readPlainText
 import xyz.lilsus.raylsuite.feature.onboarding.AgreementScreen
@@ -218,21 +217,14 @@ private fun AddWalletDestination(
     val state by viewModel.uiState.collectAsState()
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    val scannerController = rememberQrScannerController()
     val cameraPermission = rememberCameraPermissionState()
-    var scannerStarted by remember { mutableStateOf(false) }
     var permissionRequested by remember { mutableStateOf(false) }
 
-    DisposableEffect(viewModel, scannerController) {
-        onDispose {
-            scannerController.stop()
-            viewModel.clear()
-        }
+    DisposableEffect(viewModel) {
+        onDispose(viewModel::clear)
     }
 
     fun requestCameraPermissionAfterScannerFailure() {
-        scannerStarted = false
-        scannerController.stop()
         permissionRequested = true
         cameraPermission.request()
     }
@@ -254,10 +246,6 @@ private fun AddWalletDestination(
     }
     LaunchedEffect(cameraPermission.hasPermission) {
         if (!cameraPermission.hasPermission) {
-            if (scannerStarted) {
-                scannerController.stop()
-                scannerStarted = false
-            }
             if (!permissionRequested) {
                 permissionRequested = true
                 cameraPermission.request()
@@ -266,15 +254,6 @@ private fun AddWalletDestination(
         }
 
         permissionRequested = false
-        if (!scannerStarted) {
-            scannerStarted =
-                scannerController.start(
-                    onQrCodeScanned = viewModel::handleScannedValue,
-                    onCameraPermissionMissing = ::requestCameraPermissionAfterScannerFailure
-                )
-        } else {
-            scannerController.resume()
-        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -289,7 +268,8 @@ private fun AddWalletDestination(
                 }
             },
             onSubmit = viewModel::submit,
-            controller = scannerController,
+            onQrCodeScanned = viewModel::handleScannedValue,
+            onCameraPermissionMissing = ::requestCameraPermissionAfterScannerFailure,
             isCameraPermissionGranted = cameraPermission.hasPermission
         )
     }

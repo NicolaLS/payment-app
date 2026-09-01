@@ -3,15 +3,21 @@
     kotlinx.cinterop.ExperimentalForeignApi::class
 )
 
-package xyz.lilsus.raylsuite.core.camera
+package xyz.lilsus.lasr.feature.walletconnection
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.UIKitInteropProperties
+import androidx.compose.ui.viewinterop.UIKitView
 import kotlin.math.abs
 import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.alloc
 import kotlinx.cinterop.memScoped
 import kotlinx.cinterop.ptr
+import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.cinterop.value
 import platform.AVFoundation.AVAuthorizationStatusAuthorized
@@ -35,7 +41,9 @@ import platform.AVFoundation.AVCaptureOutput
 import platform.AVFoundation.AVCaptureSession
 import platform.AVFoundation.AVCaptureSessionPresetHigh
 import platform.AVFoundation.AVCaptureSessionPresetInputPriority
+import platform.AVFoundation.AVCaptureVideoPreviewLayer
 import platform.AVFoundation.AVFrameRateRange
+import platform.AVFoundation.AVLayerVideoGravityResizeAspectFill
 import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.AVMetadataMachineReadableCodeObject
 import platform.AVFoundation.AVMetadataObjectTypeQRCode
@@ -48,13 +56,17 @@ import platform.AVFoundation.isFocusModeSupported
 import platform.AVFoundation.maxAvailableVideoZoomFactor
 import platform.AVFoundation.minAvailableVideoZoomFactor
 import platform.AVFoundation.videoZoomFactor
+import platform.CoreGraphics.CGRectZero
 import platform.CoreMedia.CMTimeMake
 import platform.CoreMedia.CMVideoFormatDescriptionGetDimensions
 import platform.Foundation.NSError
 import platform.Foundation.NSLog
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSOperationQueue
+import platform.QuartzCore.CATransaction
+import platform.QuartzCore.kCATransactionDisableActions
 import platform.UIKit.UIApplicationDidBecomeActiveNotification
+import platform.UIKit.UIView
 import platform.darwin.NSObject
 import platform.darwin.NSObjectProtocol
 import platform.darwin.dispatch_async
@@ -63,136 +75,145 @@ import platform.darwin.dispatch_queue_create
 import platform.darwin.dispatch_queue_t
 
 @Composable
-actual fun rememberQrScannerController(): QrScannerController = remember {
-    IosQrScannerController()
+internal actual fun NwcConnectionQrScannerPreview(
+    onQrCodeScanned: (String) -> Unit,
+    onCameraPermissionMissing: () -> Unit,
+    modifier: Modifier
+) {
+    val currentOnQrCodeScanned = rememberUpdatedState(onQrCodeScanned)
+    val currentOnCameraPermissionMissing = rememberUpdatedState(onCameraPermissionMissing)
+    val previewView = remember { NwcCameraPreviewView() }
+    val scanner = remember(previewView) { NwcIosPreviewScanner(previewView) }
+
+    DisposableEffect(scanner) {
+        scanner.start(
+            onQrCodeScanned = { currentOnQrCodeScanned.value(it) },
+            onCameraPermissionMissing = { currentOnCameraPermissionMissing.value() }
+        )
+        onDispose(scanner::stop)
+    }
+
+    UIKitView(
+        factory = { previewView },
+        modifier = modifier,
+        properties = UIKitInteropProperties()
+    )
 }
 
-private fun isCameraAuthorized(): Boolean =
-    AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
-        AVAuthorizationStatusAuthorized
+private class NwcCameraPreviewView : UIView(frame = CGRectZero.readValue()) {
+    private var previewLayer: AVCaptureVideoPreviewLayer? = null
 
-private class IosQrScannerController : QrScannerController {
+    fun attach(session: AVCaptureSession) {
+        val layer = AVCaptureVideoPreviewLayer.layerWithSession(session).apply {
+            videoGravity = AVLayerVideoGravityResizeAspectFill
+        }
+        previewLayer?.removeFromSuperlayer()
+        previewLayer = layer
+        this.layer.addSublayer(layer)
+        setNeedsLayout()
+        layoutIfNeeded()
+    }
+
+    fun detach() {
+        previewLayer?.removeFromSuperlayer()
+        previewLayer = null
+    }
+
+    override fun layoutSubviews() {
+        super.layoutSubviews()
+        val layer = previewLayer ?: return
+        CATransaction.begin()
+        CATransaction.setValue(true, kCATransactionDisableActions)
+        layer.frame = bounds
+        CATransaction.commit()
+    }
+}
+
+private class NwcIosPreviewScanner(private val previewView: NwcCameraPreviewView) {
     private val session = AVCaptureSession()
     private val sessionQueue: dispatch_queue_t = dispatch_queue_create(
-        "xyz.lilsus.raylsuite.qr.session",
+        "xyz.lilsus.lasr.nwc.qr.session",
         null
     )
-    private val metadataDelegate = MetadataDelegate(
-        isActive = { started },
-        onMetadataObjects = { metadataObjects ->
-            selectPreferredMetadataValue(metadataObjects)?.let(::emitIfNew)
-        }
-    )
-
+    private val metadataDelegate = NwcMetadataDelegate(::handleMetadataObjects)
     private var onQrCodeScanned: ((String) -> Unit)? = null
-    private var onScannerUnavailable: (() -> Unit)? = null
     private var lifecycleObserver: NSObjectProtocol? = null
-    private var started = false
     private var configured = false
-    private var lastEmittedValue: String? = null
-    private var hasStartedOnce = false
+    private var running = false
     private var generation = 0L
+    private var lastValue: String? = null
 
-    override fun start(
-        onQrCodeScanned: (String) -> Unit,
-        onCameraPermissionMissing: () -> Unit,
-        onScannerUnavailable: () -> Unit
-    ): Boolean {
+    fun start(onQrCodeScanned: (String) -> Unit, onCameraPermissionMissing: () -> Unit) {
         if (!isCameraAuthorized()) {
             onCameraPermissionMissing()
-            return false
-        }
-        this.onQrCodeScanned = onQrCodeScanned
-        this.onScannerUnavailable = onScannerUnavailable
-        ensureLifecycleObserver()
-        if (hasStartedOnce) {
-            IosCameraTrace.event(CameraTraceEvent.RESTART)
-        }
-        hasStartedOnce = true
-        generation += 1
-        val currentGeneration = generation
-        val startTrace = IosCameraTrace.beginInterval(CameraTraceEvent.START_TO_READY)
-        dispatch_async(sessionQueue) {
-            try {
-                if (generation != currentGeneration) return@dispatch_async
-                started = true
-                lastEmittedValue = null
-                ensureSessionRunning()
-            } finally {
-                startTrace?.end()
-            }
-        }
-        return true
-    }
-
-    override fun stop() {
-        generation += 1
-        removeLifecycleObserver()
-        onQrCodeScanned = null
-        onScannerUnavailable = null
-        val stopTrace = IosCameraTrace.beginInterval(CameraTraceEvent.STOP)
-        dispatch_async(sessionQueue) {
-            try {
-                started = false
-                if (session.running) session.stopRunning()
-                teardownSession()
-                configured = false
-                lastEmittedValue = null
-            } finally {
-                stopTrace?.end()
-            }
-        }
-    }
-
-    private fun ensureSessionRunning() {
-        if (!configured) configured = configureSession()
-        if (!configured) {
-            reportScannerUnavailable()
             return
         }
-        if (!session.running && started) session.startRunning()
+        if (running) return
+        this.onQrCodeScanned = onQrCodeScanned
+        running = true
+        generation += 1
+        val currentGeneration = generation
+        lastValue = null
+        previewView.attach(session)
+        ensureLifecycleObserver()
+        dispatch_async(sessionQueue) {
+            if (!isCurrent(currentGeneration)) return@dispatch_async
+            configured = configured || configureSession()
+            if (!configured || !isCurrent(currentGeneration)) {
+                reportUnavailable(currentGeneration)
+                return@dispatch_async
+            }
+            if (!session.running) session.startRunning()
+        }
+    }
+
+    fun stop() {
+        generation += 1
+        running = false
+        onQrCodeScanned = null
+        removeLifecycleObserver()
+        previewView.detach()
+        dispatch_async(sessionQueue) {
+            if (session.running) session.stopRunning()
+            teardownSession()
+            configured = false
+            lastValue = null
+        }
     }
 
     private fun configureSession(): Boolean {
-        val configurationTrace = IosCameraTrace.beginInterval(CameraTraceEvent.CONFIGURE_SESSION)
-        try {
-            val selection = selectScannerCamera() ?: return false
-            val device = selection.device
-            val input = createDeviceInput(device) ?: return false
-            val metadataOutput = AVCaptureMetadataOutput()
-
-            session.beginConfiguration()
-            return try {
-                removeAllInputsAndOutputs()
-                val preferredFormatApplied = applyPreferredCaptureFormat(
-                    device = device,
-                    target = selection.formatTarget
-                )
-                val sessionPreset = if (preferredFormatApplied) {
-                    AVCaptureSessionPresetInputPriority
-                } else {
-                    AVCaptureSessionPresetHigh
-                }
-                if (session.canSetSessionPreset(sessionPreset)) {
-                    session.sessionPreset = sessionPreset
-                }
-                if (!session.canAddInput(input)) return false
-                session.addInput(input)
-                if (!session.canAddOutput(metadataOutput)) return false
-                session.addOutput(metadataOutput)
-                metadataOutput.setMetadataObjectsDelegate(metadataDelegate, sessionQueue)
-                @Suppress("UNCHECKED_CAST")
-                val availableTypes =
-                    metadataOutput.availableMetadataObjectTypes as? List<Any> ?: emptyList()
-                if (availableTypes.none { it == AVMetadataObjectTypeQRCode }) return false
-                metadataOutput.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
-                applyFixedCameraControls(device)
-                true
-            } finally {
-                session.commitConfiguration()
+        val selection = selectScannerCamera() ?: return false
+        val device = selection.device
+        val input = createDeviceInput(device) ?: return false
+        val output = AVCaptureMetadataOutput()
+        session.beginConfiguration()
+        return try {
+            removeAllInputsAndOutputs()
+            val preferredFormatApplied = applyPreferredCaptureFormat(
+                device = device,
+                target = selection.formatTarget
+            )
+            val sessionPreset = if (preferredFormatApplied) {
+                AVCaptureSessionPresetInputPriority
+            } else {
+                AVCaptureSessionPresetHigh
             }
+            if (session.canSetSessionPreset(sessionPreset)) {
+                session.sessionPreset = sessionPreset
+            }
+            if (!session.canAddInput(input)) return false
+            session.addInput(input)
+            if (!session.canAddOutput(output)) return false
+            session.addOutput(output)
+            output.setMetadataObjectsDelegate(metadataDelegate, sessionQueue)
+            @Suppress("UNCHECKED_CAST")
+            val availableTypes = output.availableMetadataObjectTypes as? List<Any> ?: emptyList()
+            if (availableTypes.none { it == AVMetadataObjectTypeQRCode }) return false
+            output.metadataObjectTypes = listOf(AVMetadataObjectTypeQRCode)
+            applyFixedCameraControls(device)
+            true
         } finally {
-            configurationTrace?.end()
+            session.commitConfiguration()
         }
     }
 
@@ -204,6 +225,57 @@ private class IosQrScannerController : QrScannerController {
             return@memScoped null
         }
         input
+    }
+
+    private fun handleMetadataObjects(metadataObjects: List<*>) {
+        if (!running) return
+        val value = metadataObjects.firstNotNullOfOrNull { candidate ->
+            val code = candidate as? AVMetadataMachineReadableCodeObject
+                ?: return@firstNotNullOfOrNull null
+            code.stringValue?.trim()?.takeIf(String::isNotEmpty)
+        } ?: return
+        if (value == lastValue) return
+        lastValue = value
+        val currentGeneration = generation
+        dispatch_async(dispatch_get_main_queue()) {
+            if (isCurrent(currentGeneration)) onQrCodeScanned?.invoke(value)
+        }
+    }
+
+    private fun reportUnavailable(currentGeneration: Long) {
+        if (!isCurrent(currentGeneration)) return
+        running = false
+        if (session.running) session.stopRunning()
+        teardownSession()
+        configured = false
+        lastValue = null
+        dispatch_async(dispatch_get_main_queue()) {
+            if (generation == currentGeneration) {
+                removeLifecycleObserver()
+                previewView.detach()
+            }
+        }
+    }
+
+    private fun ensureLifecycleObserver() {
+        if (lifecycleObserver != null) return
+        lifecycleObserver = NSNotificationCenter.defaultCenter.addObserverForName(
+            name = UIApplicationDidBecomeActiveNotification,
+            `object` = null,
+            queue = NSOperationQueue.mainQueue
+        ) { _ ->
+            val currentGeneration = generation
+            dispatch_async(sessionQueue) {
+                if (isCurrent(currentGeneration) && configured && !session.running) {
+                    session.startRunning()
+                }
+            }
+        }
+    }
+
+    private fun removeLifecycleObserver() {
+        lifecycleObserver?.let(NSNotificationCenter.defaultCenter::removeObserver)
+        lifecycleObserver = null
     }
 
     private fun teardownSession() {
@@ -219,90 +291,29 @@ private class IosQrScannerController : QrScannerController {
         @Suppress("UNCHECKED_CAST")
         val inputs = session.inputs as? List<AVCaptureInput> ?: emptyList()
         inputs.forEach(session::removeInput)
-
         @Suppress("UNCHECKED_CAST")
         val outputs = session.outputs as? List<AVCaptureOutput> ?: emptyList()
         outputs.forEach(session::removeOutput)
     }
 
-    private fun emitIfNew(value: String) {
-        if (value == lastEmittedValue) return
-        lastEmittedValue = value
-        IosCameraTrace.event(CameraTraceEvent.QR_DETECTED)
-        val callback = onQrCodeScanned ?: return
-        val currentGeneration = generation
-        dispatch_async(dispatch_get_main_queue()) {
-            if (started && generation == currentGeneration) callback(value)
-        }
-    }
-
-    private fun reportScannerUnavailable() {
-        val callback = onScannerUnavailable
-        val currentGeneration = generation
-        started = false
-        if (session.running) session.stopRunning()
-        teardownSession()
-        configured = false
-        lastEmittedValue = null
-        dispatch_async(dispatch_get_main_queue()) {
-            removeLifecycleObserver()
-            if (generation == currentGeneration) callback?.invoke()
-        }
-    }
-
-    private fun ensureLifecycleObserver() {
-        if (lifecycleObserver != null) return
-        lifecycleObserver = NSNotificationCenter.defaultCenter.addObserverForName(
-            name = UIApplicationDidBecomeActiveNotification,
-            `object` = null,
-            queue = NSOperationQueue.mainQueue
-        ) { _ ->
-            dispatch_async(sessionQueue) {
-                if (started) ensureSessionRunning()
-            }
-        }
-    }
-
-    private fun removeLifecycleObserver() {
-        lifecycleObserver?.let(NSNotificationCenter.defaultCenter::removeObserver)
-        lifecycleObserver = null
-    }
+    private fun isCurrent(value: Long): Boolean = running && generation == value
 }
 
-private class MetadataDelegate(
-    private val isActive: () -> Boolean,
-    private val onMetadataObjects: (List<*>) -> Unit
-) : NSObject(),
+private class NwcMetadataDelegate(private val onMetadataObjects: (List<*>) -> Unit) :
+    NSObject(),
     AVCaptureMetadataOutputObjectsDelegateProtocol {
     override fun captureOutput(
         output: AVCaptureOutput,
         didOutputMetadataObjects: List<*>,
         fromConnection: AVCaptureConnection
     ) {
-        if (isActive()) onMetadataObjects(didOutputMetadataObjects)
+        onMetadataObjects(didOutputMetadataObjects)
     }
 }
 
-private fun selectPreferredMetadataValue(metadataObjects: List<*>): String? {
-    val candidates = metadataObjects.mapNotNull { objectCandidate ->
-        val code = objectCandidate as? AVMetadataMachineReadableCodeObject ?: return@mapNotNull null
-        val value = code.stringValue?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
-        code.bounds.useContents {
-            val left = origin.x.toFloat()
-            val top = origin.y.toFloat()
-            val width = size.width.toFloat()
-            val height = size.height.toFloat()
-            QrDetectionCandidate(
-                value = value,
-                left = left,
-                top = top,
-                right = left + width,
-                bottom = top + height
-            )
-        }
-    }
-    return pickPreferredQrValue(candidates, frameWidth = 1f, frameHeight = 1f)
-}
+private fun isCameraAuthorized(): Boolean =
+    AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
+        AVAuthorizationStatusAuthorized
 
 private data class ScannerCameraSelection(
     val device: AVCaptureDevice,

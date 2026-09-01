@@ -7,26 +7,18 @@ import android.os.Looper
 import android.util.Log
 import android.util.Size
 import androidx.annotation.OptIn
-import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Observer
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -38,15 +30,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.abs
-import kotlin.math.pow
 
 private const val TAG = "QrScanner"
-private const val FAR_MODE_BASE_ZOOM_RATIO = 2f
-private const val ZOOM_RATIO_EPSILON = 0.001f
 private const val ANALYSIS_EXECUTOR_SHUTDOWN_DELAY_MILLIS = 2_000L
-
-actual class CameraPreviewSurface internal constructor(val previewView: PreviewView)
 
 @Composable
 actual fun rememberQrScannerController(): QrScannerController {
@@ -61,90 +47,19 @@ actual fun rememberQrScannerController(): QrScannerController {
     }
 }
 
-@Composable
-actual fun CameraPreviewHost(
-    controller: QrScannerController,
-    visible: Boolean,
-    modifier: Modifier,
-    preferCompatibleMode: Boolean,
-    onPreviewStreamingChanged: (Boolean) -> Unit
-) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val streamingChangedState = rememberUpdatedState(onPreviewStreamingChanged)
-    val implementationMode = if (preferCompatibleMode) {
-        PreviewView.ImplementationMode.COMPATIBLE
-    } else {
-        PreviewView.ImplementationMode.PERFORMANCE
-    }
-    val previewView = remember(context, implementationMode) {
-        PreviewView(context).apply {
-            this.implementationMode = implementationMode
-            scaleType = PreviewView.ScaleType.FILL_CENTER
-            isClickable = false
-            isFocusable = false
-            isFocusableInTouchMode = false
-        }
-    }
-    val surface = remember { CameraPreviewSurface(previewView) }
-
-    DisposableEffect(controller, surface, visible) {
-        if (visible) {
-            controller.bindPreview(surface)
-        } else {
-            controller.unbindPreview()
-            streamingChangedState.value(false)
-        }
-        onDispose {
-            controller.unbindPreview()
-            streamingChangedState.value(false)
-        }
-    }
-
-    DisposableEffect(previewView, lifecycleOwner, visible) {
-        val observer = Observer<PreviewView.StreamState> { state ->
-            val streaming = state == PreviewView.StreamState.STREAMING
-            if (streaming) {
-                AndroidCameraTrace.event(CameraTraceEvent.PREVIEW_STREAMING)
-            }
-            streamingChangedState.value(streaming)
-        }
-        previewView.previewStreamState.observe(lifecycleOwner, observer)
-        onDispose {
-            previewView.previewStreamState.removeObserver(observer)
-            streamingChangedState.value(false)
-        }
-    }
-
-    if (visible) {
-        AndroidView(
-            modifier = modifier,
-            factory = { previewView }
-        )
-    }
-}
-
 private class AndroidQrScannerController(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner
 ) : QrScannerController {
-    override val supportsManualModeSelection: Boolean = true
-
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysis: ImageAnalysis? = null
     private var analyzer: QrCodeAnalyzer? = null
-    private var previewUseCase: Preview? = null
-    private var previewSurface: CameraPreviewSurface? = null
     private var analysisExecutor: DroppingExecutor? = null
     private var onQrCodeScanned: ((String) -> Unit)? = null
     private var onCameraPermissionMissing: (() -> Unit)? = null
     private var onScannerUnavailable: (() -> Unit)? = null
     private val isBound = AtomicBoolean(false)
     private var bindGeneration = 0L
-    private var camera: Camera? = null
-    private var desiredScanMode = QrScannerMode.Near
-    private var desiredZoomFraction = 0f
-    private var lastAppliedZoomRatio: Float? = null
     private var hasStartedOnce = false
     private var startToReadyTrace: AndroidCameraTraceInterval? = null
     private var startToFirstFrameTrace: AndroidCameraTraceInterval? = null
@@ -177,21 +92,15 @@ private class AndroidQrScannerController(
                 startToFirstFrameTrace = startToFirstFrameTrace
             )
         } else {
-            resume()
+            prepareAnalyzer()
         }
         return true
     }
 
-    override fun pause() {
-        analyzer?.pause()
-    }
-
-    override fun resume() {
+    private fun prepareAnalyzer() {
         if (!isBound.get()) return
-        // Reset debounce so the same QR code can be scanned again after resuming
+        // Reset debounce so the same QR code can be scanned again after restarting.
         analyzer?.resetLastValue()
-        analyzer?.resume()
-        applyZoomIfNeeded()
     }
 
     override fun stop() {
@@ -202,16 +111,11 @@ private class AndroidQrScannerController(
             startToReadyTrace = null
             startToFirstFrameTrace?.end()
             startToFirstFrameTrace = null
-            pause()
             cameraProvider?.unbindAll()
             imageAnalysis?.clearAnalyzer()
             imageAnalysis = null
             analyzer?.close()
             analyzer = null
-            previewUseCase = null
-            previewSurface = null
-            camera = null
-            lastAppliedZoomRatio = null
             analysisExecutor?.shutdownAfterDelay()
             analysisExecutor = null
             cameraProvider = null
@@ -222,40 +126,6 @@ private class AndroidQrScannerController(
         } finally {
             stopTrace?.end()
         }
-    }
-
-    override fun bindPreview(surface: CameraPreviewSurface) {
-        previewSurface = surface
-        attachPreviewIfReady()
-    }
-
-    override fun unbindPreview() {
-        previewSurface = null
-        val preview = previewUseCase ?: return
-        previewUseCase = null
-        val provider = cameraProvider
-        try {
-            if (provider != null && provider.isBound(preview)) {
-                provider.unbind(preview)
-            } else {
-                preview.surfaceProvider = null
-            }
-        } catch (failure: Throwable) {
-            preview.surfaceProvider = null
-            Log.w(TAG, "Failed to detach optional camera preview", failure)
-        }
-    }
-
-    override fun setMode(mode: QrScannerMode) {
-        if (desiredScanMode == mode) return
-        desiredScanMode = mode
-        analyzer?.resetLastValue()
-        applyZoomIfNeeded()
-    }
-
-    override fun setZoom(zoomFraction: Float) {
-        desiredZoomFraction = zoomFraction.coerceIn(0f, 1f)
-        applyZoomIfNeeded()
     }
 
     private fun bindCamera(
@@ -282,7 +152,6 @@ private class AndroidQrScannerController(
                     if (!isCurrentGeneration(generation)) return@addListener
                     val analyzer = analyzer ?: QrCodeAnalyzer(
                         barcodeScanner = newBarcodeScanner(),
-                        active = AtomicBoolean(false),
                         mainExecutor = mainExecutor,
                         onQrCodeScanned = { value ->
                             if (isCurrentGeneration(generation)) {
@@ -323,18 +192,18 @@ private class AndroidQrScannerController(
 
                     if (!isCurrentGeneration(generation)) return@addListener
 
-                    // QR detection is the cold-start critical path. Keep the optional Preview
-                    // use case out of this bind so it cannot constrain or fail analysis startup.
                     provider.unbindAll()
-                    camera = provider.bindToLifecycle(
+                    val camera = provider.bindToLifecycle(
                         lifecycleOwner,
                         CameraSelector.DEFAULT_BACK_CAMERA,
                         analysis
                     )
+                    camera.cameraInfo.zoomState.value?.minZoomRatio?.let {
+                        camera.cameraControl.setZoomRatio(it)
+                    }
 
-                    resume()
+                    prepareAnalyzer()
                     startToReadyTrace?.end()
-                    attachPreviewIfReady()
                 } catch (failure: Throwable) {
                     if (!isCurrentGeneration(generation)) return@addListener
                     if (
@@ -351,51 +220,6 @@ private class AndroidQrScannerController(
             },
             ContextCompat.getMainExecutor(context)
         )
-    }
-
-    private fun attachPreviewIfReady() {
-        val surface = previewSurface ?: return
-        if (!isBound.get() || camera == null || imageAnalysis == null) return
-        val provider = cameraProvider ?: return
-
-        previewUseCase?.let { preview ->
-            preview.surfaceProvider = surface.previewView.surfaceProvider
-            return
-        }
-
-        val preview = Preview.Builder().build()
-        preview.surfaceProvider = surface.previewView.surfaceProvider
-        val previewTrace = AndroidCameraTrace.beginInterval(CameraTraceEvent.PREVIEW_ATTACH)
-        try {
-            // Add Preview around the already-configured analysis stream. If the device cannot
-            // support the combination, the existing ImageAnalysis use case remains untouched.
-            provider.bindToLifecycle(
-                lifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                preview
-            )
-            previewUseCase = preview
-        } catch (failure: Throwable) {
-            preview.surfaceProvider = null
-            if (provider.isBound(preview)) {
-                provider.unbind(preview)
-            }
-            if (
-                !isCameraPermissionGranted(context) ||
-                failure.hasSecurityExceptionCause()
-            ) {
-                Log.w(TAG, "Camera permission missing while attaching preview", failure)
-                reportCameraPermissionMissing()
-            } else {
-                Log.w(
-                    TAG,
-                    "Optional camera preview is unavailable; analysis remains active",
-                    failure
-                )
-            }
-        } finally {
-            previewTrace?.end()
-        }
     }
 
     private fun isCurrentGeneration(generation: Long): Boolean =
@@ -418,38 +242,6 @@ private class AndroidQrScannerController(
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
             .build()
     )
-
-    private fun applyZoomIfNeeded() {
-        val target = camera ?: return
-        val zoomState = target.cameraInfo.zoomState.value ?: return
-        val minZoom = zoomState.minZoomRatio
-        val maxZoom = zoomState.maxZoomRatio
-        val baseZoomRatio = when (desiredScanMode) {
-            QrScannerMode.Near -> minZoom
-            QrScannerMode.Far -> FAR_MODE_BASE_ZOOM_RATIO.coerceIn(minZoom, maxZoom)
-        }
-        val zoomRatio = if (
-            desiredZoomFraction <= 0f ||
-            maxZoom <= baseZoomRatio + ZOOM_RATIO_EPSILON
-        ) {
-            baseZoomRatio
-        } else {
-            // Keep the existing logarithmic feel, but anchor the range to the mode's base zoom.
-            (
-                baseZoomRatio *
-                    (maxZoom / baseZoomRatio).toDouble().pow(desiredZoomFraction.toDouble())
-                )
-                .toFloat()
-                .coerceIn(baseZoomRatio, maxZoom)
-        }
-
-        lastAppliedZoomRatio?.let { lastZoomRatio ->
-            if (abs(lastZoomRatio - zoomRatio) < ZOOM_RATIO_EPSILON) return
-        }
-
-        lastAppliedZoomRatio = zoomRatio
-        target.cameraControl.setZoomRatio(zoomRatio)
-    }
 }
 
 private class DroppingExecutor : Executor {
@@ -485,7 +277,6 @@ private class DroppingExecutor : Executor {
 
 private class QrCodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
-    private val active: AtomicBoolean,
     private val mainExecutor: Executor,
     private val onQrCodeScanned: (String) -> Unit,
     private val onFirstFrame: () -> Unit
@@ -497,20 +288,11 @@ private class QrCodeAnalyzer(
     private var lastEmittedValue: String? = null
     private val firstFrameReported = AtomicBoolean(false)
 
-    fun pause() {
-        active.set(false)
-    }
-
-    fun resume() {
-        active.set(true)
-    }
-
     fun resetLastValue() {
         lastEmittedValue = null
     }
 
     fun close() {
-        pause()
         barcodeScanner.close()
     }
 
@@ -525,10 +307,6 @@ private class QrCodeAnalyzer(
         }
 
         try {
-            if (!active.get()) {
-                closeImage()
-                return
-            }
             val mediaImage = image.image
             if (mediaImage == null) {
                 closeImage()
@@ -544,12 +322,9 @@ private class QrCodeAnalyzer(
                 .addOnCompleteListener(DirectExecutor) { task ->
                     try {
                         if (!task.isSuccessful) {
-                            if (active.get()) {
-                                Log.e(TAG, "Barcode scanning failed", task.exception)
-                            }
+                            Log.e(TAG, "Barcode scanning failed", task.exception)
                             return@addOnCompleteListener
                         }
-                        if (!active.get()) return@addOnCompleteListener
                         val rotation = image.imageInfo.rotationDegrees
                         val frameWidth = if (rotation == 90 || rotation == 270) {
                             image.height.toFloat()

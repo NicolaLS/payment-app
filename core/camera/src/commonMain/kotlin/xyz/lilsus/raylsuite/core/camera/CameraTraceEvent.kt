@@ -14,11 +14,6 @@ internal enum class CameraTraceEvent(
     ),
     CONFIGURE_SESSION("camera.configure_session"),
     FRAME_ANALYSIS("camera.frame_analysis"),
-    PREVIEW_ATTACH(
-        "camera.preview_attach",
-        CameraPerformanceTrace.PreviewAttach
-    ),
-    PREVIEW_STREAMING("camera.preview_streaming"),
     QR_DETECTED("camera.qr_detected"),
     RESTART("camera.restart"),
     STOP("camera.stop", CameraPerformanceTrace.Stop)

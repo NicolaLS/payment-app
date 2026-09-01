@@ -80,24 +80,21 @@ documentation for the broader Instruments and Organizer workflow.
 | --- | --- | --- |
 | `camera.start_to_ready` | Android, iOS | Accepted start until CameraX analysis is bound, or the AVFoundation session is configured and running. |
 | `camera.start_to_first_frame` | Android | Accepted start until the first active image reaches the analyzer. |
-| `camera.configure_session` | iOS | AVFoundation input, output, format, and session configuration. |
+| `camera.configure_session` | iOS | AVFoundation input and metadata-output session configuration. |
 | `camera.frame_analysis` | Android | One ML Kit request and preferred-code selection. |
-| `camera.preview_attach` | Android, iOS | CameraX preview binding or AVFoundation preview-layer attachment. |
-| `camera.preview_streaming` | Android, iOS | Preview reports that it is visibly streaming. |
 | `camera.qr_detected` | Android, iOS | A new QR value was selected; the value is never recorded. |
 | `camera.restart` | Android, iOS | A controller starts again after an earlier start. |
 | `camera.stop` | Android, iOS | Camera shutdown and teardown. |
 
 The benchmark reads `camera.start_to_ready` and
 `camera.start_to_first_frame`. Firebase receives only durations for
-`camera_start_to_ready`, `camera_start_to_first_frame`,
-`camera_preview_attach`, and `camera_stop`. It never receives frame-analysis or
-QR-detection events.
+`camera_start_to_ready`, `camera_start_to_first_frame`, and `camera_stop`. It
+never receives frame-analysis or QR-detection events.
 
 Typical interpretations:
 
-- slower `camera.start_to_ready` points to discovery, configuration, binding,
-  focus, or zoom work before the camera is usable;
+- slower `camera.start_to_ready` points to discovery, configuration, or binding
+  work before the camera is usable;
 - a larger first-frame gap with stable ready time points to the camera pipeline,
   resolution negotiation, hardware, or scheduling;
 - slower `camera.frame_analysis` points to ML Kit work, input resolution, CPU
@@ -107,8 +104,7 @@ Typical interpretations:
 - slower `camera.stop` points to unbinding or teardown.
 
 QR detection is not a repeatable benchmark without controlled QR size,
-distance, light, and device position. The fixture-based comparison remains in
-[camera2-evaluation.md](camera2-evaluation.md).
+distance, light, and device position.
 
 ## Shipping-version monitoring
 
@@ -148,7 +144,7 @@ no Firebase configuration.
 When enabled, Firebase receives its standard performance metadata (including a
 Firebase installation ID, session ID, app/device/OS information, network type,
 and country derived from IP address), lifecycle and screen-rendering timings,
-and the four fixed camera durations listed above. Google's
+and the three fixed camera durations listed above. Google's
 [Firebase privacy documentation](https://firebase.google.com/support/privacy/)
 describes the exact fields and retention.
 

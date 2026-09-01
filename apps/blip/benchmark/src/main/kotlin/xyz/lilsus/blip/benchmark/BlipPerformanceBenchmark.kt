@@ -55,10 +55,6 @@ class BlipPerformanceBenchmark {
             TraceSectionMetric(
                 sectionName = "camera.start_to_first_frame",
                 mode = TraceSectionMetric.Mode.First
-            ),
-            TraceSectionMetric(
-                sectionName = "camera.preview_attach",
-                mode = TraceSectionMetric.Mode.First
             )
         ),
         compilationMode = CompilationMode.Partial(),
