@@ -26,6 +26,7 @@ internal class PendingPaymentTracker(
     private val records = MutableStateFlow<Map<String, PendingRecord>>(emptyMap())
     private val visibilityJobs = mutableMapOf<String, Job>()
     private var nextRecordSequence = 0L
+    private var focusedRecordId: String? = null
 
     private val mutableDisplayItems = MutableStateFlow<List<SessionTransactionItem>>(emptyList())
     val displayItems: StateFlow<List<SessionTransactionItem>> = mutableDisplayItems.asStateFlow()
@@ -64,6 +65,7 @@ internal class PendingPaymentTracker(
                 } ?: current
             acknowledged + (id to record)
         }
+        focusedRecordId = null
         refreshDisplayItems()
         scheduleVisibility(id)
         return id
@@ -71,22 +73,19 @@ internal class PendingPaymentTracker(
 
     fun get(id: String): PendingRecord? = records.value[id]
 
-    fun findUnresolvedByPaymentHash(paymentHashHex: String): PendingRecord? = records.value.values
+    fun findLatestByPaymentHash(paymentHashHex: String): PendingRecord? = records.value.values
         .filter {
-            it.isUnresolved() &&
-                it.paymentHashHex.equals(paymentHashHex, ignoreCase = true)
+            it.paymentHashHex.equals(paymentHashHex, ignoreCase = true)
         }
         .maxByOrNull(PendingRecord::createdAtMs)
 
-    fun findUnresolvedByDynamicSourceKey(
-        dynamicSourceKey: DynamicPaymentSourceKey
-    ): PendingRecord? = records.value.values
-        .filter {
-            it.isUnresolved() &&
+    fun findGuardingByDynamicSourceKey(dynamicSourceKey: DynamicPaymentSourceKey): PendingRecord? =
+        records.value.values
+            .filter {
                 it.guardsDynamicSource &&
-                it.dynamicSourceKey == dynamicSourceKey
-        }
-        .maxByOrNull(PendingRecord::createdAtMs)
+                    it.dynamicSourceKey == dynamicSourceKey
+            }
+            .maxByOrNull(PendingRecord::createdAtMs)
 
     fun markSuccess(
         id: String,
@@ -111,6 +110,7 @@ internal class PendingPaymentTracker(
             id = id,
             status = PendingStatus.Failure,
             error = error,
+            guardsDynamicSource = false,
             visible = true
         )
     }
@@ -129,7 +129,14 @@ internal class PendingPaymentTracker(
     }
 
     fun markSending(id: String) {
-        updateStatus(id = id, status = PendingStatus.Sending, error = null, visible = true)
+        val record = records.value[id] ?: return
+        updateStatus(
+            id = id,
+            status = PendingStatus.Sending,
+            error = null,
+            visible = true,
+            guardsDynamicSource = record.dynamicSourceKey != null
+        )
     }
 
     fun makeVisible(id: String) {
@@ -141,12 +148,16 @@ internal class PendingPaymentTracker(
         refreshDisplayItems()
     }
 
+    fun focus(id: String) {
+        if (records.value[id] == null) return
+        focusedRecordId = id
+        refreshDisplayItems()
+    }
+
     fun refreshDisplayItems() {
         val currencyState = currencyManager.state.value
         mutableDisplayItems.value =
-            records.value.values
-                .filter(PendingRecord::visible)
-                .sortedByDescending(PendingRecord::createdAtMs)
+            recordsForDisplay()
                 .map { record ->
                     val resultAmountMsats = record.paidMsats ?: record.amountMsats
                     SessionTransactionItem(
@@ -186,6 +197,7 @@ internal class PendingPaymentTracker(
         records.value = emptyMap()
         mutableDisplayItems.value = emptyList()
         nextRecordSequence = 0L
+        focusedRecordId = null
     }
 
     private fun scheduleVisibility(id: String) {
@@ -209,7 +221,8 @@ internal class PendingPaymentTracker(
         feeMsats: Long? = null,
         visible: Boolean? = null,
         wasAlreadyPaid: Boolean? = null,
-        preimage: String? = null
+        preimage: String? = null,
+        guardsDynamicSource: Boolean? = null
     ) {
         records.update { all ->
             all[id]?.let { record ->
@@ -223,7 +236,9 @@ internal class PendingPaymentTracker(
                                 feeMsats = feeMsats ?: record.feeMsats,
                                 visible = visible ?: record.visible,
                                 wasAlreadyPaid = wasAlreadyPaid ?: record.wasAlreadyPaid,
-                                preimage = preimage ?: record.preimage
+                                preimage = preimage ?: record.preimage,
+                                guardsDynamicSource =
+                                    guardsDynamicSource ?: record.guardsDynamicSource
                             )
                         )
             } ?: all
@@ -231,24 +246,25 @@ internal class PendingPaymentTracker(
         if (status != PendingStatus.Sending) {
             visibilityJobs.remove(id)?.cancel()
         }
-        if (!status.isUnresolved()) {
-            pruneResolvedRecords()
-        }
         refreshDisplayItems()
     }
 
-    private fun pruneResolvedRecords() {
-        val retainedResolvedIds =
-            records.value.values
-                .filterNot(PendingRecord::isUnresolved)
-                .sortedByDescending(PendingRecord::createdAtMs)
-                .take(MAX_RESOLVED_SESSION_PAYMENTS)
-                .mapTo(mutableSetOf(), PendingRecord::id)
-        records.update { all ->
-            all.filterValues { record ->
-                record.isUnresolved() || record.id in retainedResolvedIds
+    private fun recordsForDisplay(): List<PendingRecord> {
+        val visibleRecords = records.value.values.filter(PendingRecord::visible)
+        val unresolved = visibleRecords.filter(PendingRecord::isUnresolved)
+        val resolved = visibleRecords.filterNot(PendingRecord::isUnresolved)
+        val focused = resolved.firstOrNull { it.id == focusedRecordId }
+        val recentResolved =
+            buildList {
+                focused?.let(::add)
+                resolved
+                    .asSequence()
+                    .filterNot { it.id == focusedRecordId }
+                    .sortedByDescending(PendingRecord::createdAtMs)
+                    .take(MAX_RESOLVED_SESSION_PAYMENTS - size)
+                    .forEach(::add)
             }
-        }
+        return (unresolved + recentResolved).sortedByDescending(PendingRecord::createdAtMs)
     }
 
     private fun PaymentUiError.shortMessage(): String? = when (this) {

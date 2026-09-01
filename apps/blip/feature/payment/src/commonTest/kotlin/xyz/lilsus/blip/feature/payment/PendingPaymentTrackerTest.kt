@@ -13,10 +13,12 @@ import fr.acinq.lightning.utils.toByteVector32
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
+import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 
 class PendingPaymentTrackerTest {
@@ -48,16 +50,66 @@ class PendingPaymentTrackerTest {
         val tracker = tracker(clock = { ++now })
         val unresolvedId =
             tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+        val oldestResolvedId =
+            tracker.register(invoice("oldest"), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+        tracker.markSuccess(oldestResolvedId, AMOUNT_MSATS, feeMsats = 0)
 
         repeat(12) {
-            val id = tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+            val id = tracker.register(invoice("payment-$it"), AMOUNT_MSATS, null, PendingOrigin.Invoice)
             tracker.markSuccess(id, AMOUNT_MSATS, feeMsats = 0)
         }
 
-        val items = tracker.displayItems.value
         assertNotNull(tracker.get(unresolvedId))
-        assertEquals(10, items.size)
-        assertEquals(10, items.count { it.status == PendingStatus.Success })
+        assertNotNull(tracker.get(oldestResolvedId))
+        assertEquals(10, tracker.displayItems.value.size)
+        assertEquals(
+            10,
+            tracker.displayItems.value.count { it.status == PendingStatus.Success }
+        )
+
+        tracker.focus(oldestResolvedId)
+
+        assertTrue(tracker.displayItems.value.any { it.id == oldestResolvedId })
+        assertEquals(10, tracker.displayItems.value.size)
+    }
+
+    @Test
+    fun completedInvoiceRemainsKnownAndDynamicGuardRequiresExplicitReplacement() = runTest {
+        val tracker = tracker()
+        val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example/request")
+        val firstId =
+            tracker.register(
+                invoice("first"),
+                AMOUNT_MSATS,
+                null,
+                PendingOrigin.LnurlFixed,
+                dynamicSourceKey = sourceKey
+            )
+        tracker.markSuccess(firstId, AMOUNT_MSATS, feeMsats = 0)
+
+        assertEquals(firstId, tracker.findLatestByPaymentHash(requireNotNull(tracker.get(firstId)).paymentHashHex)?.id)
+        assertEquals(firstId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+
+        val replacementId =
+            tracker.register(
+                invoice("replacement"),
+                AMOUNT_MSATS,
+                null,
+                PendingOrigin.LnurlFixed,
+                dynamicSourceKey = sourceKey,
+                replacesDynamicGuardId = firstId
+            )
+
+        assertEquals(false, tracker.get(firstId)?.guardsDynamicSource)
+        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+
+        tracker.markFailure(replacementId, PaymentUiError.Unexpected("rejected"))
+
+        assertNull(tracker.findGuardingByDynamicSourceKey(sourceKey))
+
+        tracker.markSending(replacementId)
+
+        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
     }
 
     @Test
@@ -86,10 +138,10 @@ class PendingPaymentTrackerTest {
         )
     }
 
-    private fun invoice(): Bolt11Invoice = Bolt11Invoice.create(
+    private fun invoice(seed: String = "payment"): Bolt11Invoice = Bolt11Invoice.create(
         chain = Chain.Mainnet,
         amount = AMOUNT_MSATS.msat,
-        paymentHash = Crypto.sha256("payment".encodeToByteArray()).toByteVector32(),
+        paymentHash = Crypto.sha256(seed.encodeToByteArray()).toByteVector32(),
         privateKey = PrivateKey(ByteArray(32) { 1 }),
         description = Either.Left("test"),
         minFinalCltvExpiryDelta = Bolt11Invoice.DEFAULT_MIN_FINAL_EXPIRY_DELTA,

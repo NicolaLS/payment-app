@@ -142,22 +142,54 @@ class PendingPaymentTrackerTest {
     }
 
     @Test
-    fun unknownRetryReusesRecordAndDefinitiveFailureReleasesDynamicGuard() = runTest {
+    fun completedDynamicGuardIsReplacedExplicitlyAndDefinitiveFailureReleasesIt() = runTest {
         val tracker = tracker()
         val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example")
-        val id =
+        val settledId =
             tracker.register(
-                invoice(),
+                invoice("settled"),
                 AMOUNT_MSATS,
                 null,
                 PendingOrigin.LnurlFixed,
                 dynamicSourceKey = sourceKey
             )
-        tracker.makeVisible(id)
-        tracker.applyPayOutcome(id, NwcPayOutcome.Uncertain("uncertain"))
-        tracker.applyPayOutcome(id, NwcPayOutcome.WalletRejected("DENIED", "rejected"))
+        tracker.applyPayOutcome(settledId, NwcPayOutcome.Settled("preimage", 0))
 
-        assertNull(tracker.findUnresolvedByDynamicSourceKey(sourceKey))
+        assertEquals(settledId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        assertEquals(
+            settledId,
+            tracker.findLatestByPaymentHash(requireNotNull(tracker.get(settledId)).paymentHashHex)?.id
+        )
+
+        val replacementId =
+            tracker.register(
+                invoice("replacement"),
+                AMOUNT_MSATS,
+                null,
+                PendingOrigin.LnurlFixed,
+                dynamicSourceKey = sourceKey,
+                replacesDynamicGuardId = settledId
+            )
+
+        assertEquals(false, tracker.get(settledId)?.guardsDynamicSource)
+        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+
+        tracker.applyPayOutcome(
+            replacementId,
+            NwcPayOutcome.WalletRejected("DENIED", "rejected")
+        )
+
+        assertNull(tracker.findGuardingByDynamicSourceKey(sourceKey))
+
+        val retried = tracker.retry(replacementId)
+
+        assertEquals(replacementId, retried?.id)
+        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+    }
+
+    @Test
+    fun unknownRetryReusesRecord() = runTest {
+        val tracker = tracker()
 
         val unknownId =
             tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
@@ -166,7 +198,7 @@ class PendingPaymentTrackerTest {
         runCurrent()
         assertEquals(PendingStatus.OutcomeUnknown, tracker.get(unknownId)?.status)
 
-        val retried = tracker.retryUnknown(unknownId)
+        val retried = tracker.retry(unknownId)
         assertEquals(unknownId, retried?.id)
         assertEquals(PendingStatus.Sending, tracker.get(unknownId)?.status)
     }
@@ -178,15 +210,24 @@ class PendingPaymentTrackerTest {
         val unresolvedId =
             tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
         tracker.makeVisible(unresolvedId)
+        val oldestResolvedId =
+            tracker.register(invoice("oldest"), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+        tracker.applyPayOutcome(oldestResolvedId, NwcPayOutcome.Settled(null, 0))
 
         repeat(12) {
-            val id = tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+            val id = tracker.register(invoice("payment-$it"), AMOUNT_MSATS, null, PendingOrigin.Invoice)
             tracker.applyPayOutcome(id, NwcPayOutcome.Settled(null, 0))
         }
 
         assertNotNull(tracker.get(unresolvedId))
+        assertNotNull(tracker.get(oldestResolvedId))
         assertEquals(11, tracker.displayItems.value.size)
         assertEquals(10, tracker.displayItems.value.count { it.status == PendingStatus.Succeeded })
+
+        tracker.focus(oldestResolvedId)
+
+        assertTrue(tracker.displayItems.value.any { it.id == oldestResolvedId })
+        assertEquals(11, tracker.displayItems.value.size)
 
         tracker.resetSession()
         assertTrue(tracker.displayItems.value.isEmpty())
@@ -217,10 +258,10 @@ class PendingPaymentTrackerTest {
         )
     }
 
-    private fun invoice(): Bolt11Invoice = Bolt11Invoice.create(
+    private fun invoice(seed: String = "payment"): Bolt11Invoice = Bolt11Invoice.create(
         chain = Chain.Mainnet,
         amount = AMOUNT_MSATS.msat,
-        paymentHash = Crypto.sha256("payment".encodeToByteArray()).toByteVector32(),
+        paymentHash = Crypto.sha256(seed.encodeToByteArray()).toByteVector32(),
         privateKey = PrivateKey(ByteArray(32) { 1 }),
         description = Either.Left("test"),
         minFinalCltvExpiryDelta = Bolt11Invoice.DEFAULT_MIN_FINAL_EXPIRY_DELTA,

@@ -63,6 +63,7 @@ private class AndroidQrScannerController(
     private var hasStartedOnce = false
     private var startToReadyTrace: AndroidCameraTraceInterval? = null
     private var startToFirstFrameTrace: AndroidCameraTraceInterval? = null
+    private val qrPresenceGate = QrPresenceGate()
 
     override fun start(
         onQrCodeScanned: (String) -> Unit,
@@ -91,16 +92,8 @@ private class AndroidQrScannerController(
                 startToReadyTrace = startToReadyTrace,
                 startToFirstFrameTrace = startToFirstFrameTrace
             )
-        } else {
-            prepareAnalyzer()
         }
         return true
-    }
-
-    private fun prepareAnalyzer() {
-        if (!isBound.get()) return
-        // Reset debounce so the same QR code can be scanned again after restarting.
-        analyzer?.resetLastValue()
     }
 
     override fun stop() {
@@ -152,10 +145,14 @@ private class AndroidQrScannerController(
                     if (!isCurrentGeneration(generation)) return@addListener
                     val analyzer = analyzer ?: QrCodeAnalyzer(
                         barcodeScanner = newBarcodeScanner(),
-                        mainExecutor = mainExecutor,
-                        onQrCodeScanned = { value ->
-                            if (isCurrentGeneration(generation)) {
-                                onQrCodeScanned?.invoke(value)
+                        onQrCodeObserved = { value ->
+                            qrPresenceGate.observe(value)?.let { emittedValue ->
+                                AndroidCameraTrace.event(CameraTraceEvent.QR_DETECTED)
+                                mainExecutor.execute {
+                                    if (isCurrentGeneration(generation)) {
+                                        onQrCodeScanned?.invoke(emittedValue)
+                                    }
+                                }
                             }
                         },
                         onFirstFrame = {
@@ -201,8 +198,6 @@ private class AndroidQrScannerController(
                     camera.cameraInfo.zoomState.value?.minZoomRatio?.let {
                         camera.cameraControl.setZoomRatio(it)
                     }
-
-                    prepareAnalyzer()
                     startToReadyTrace?.end()
                 } catch (failure: Throwable) {
                     if (!isCurrentGeneration(generation)) return@addListener
@@ -277,20 +272,10 @@ private class DroppingExecutor : Executor {
 
 private class QrCodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
-    private val mainExecutor: Executor,
-    private val onQrCodeScanned: (String) -> Unit,
+    private val onQrCodeObserved: (String?) -> Unit,
     private val onFirstFrame: () -> Unit
 ) : ImageAnalysis.Analyzer {
-
-    // Debounce at scanner level: only emit when value changes.
-    // This prevents flooding the main thread with duplicate events.
-    @Volatile
-    private var lastEmittedValue: String? = null
     private val firstFrameReported = AtomicBoolean(false)
-
-    fun resetLastValue() {
-        lastEmittedValue = null
-    }
 
     fun close() {
         barcodeScanner.close()
@@ -341,11 +326,7 @@ private class QrCodeAnalyzer(
                             frameWidth = frameWidth,
                             frameHeight = frameHeight
                         )
-                        if (value != null && value != lastEmittedValue) {
-                            lastEmittedValue = value
-                            AndroidCameraTrace.event(CameraTraceEvent.QR_DETECTED)
-                            mainExecutor.execute { onQrCodeScanned(value) }
-                        }
+                        onQrCodeObserved(value)
                     } finally {
                         analysisTrace?.end()
                         closeImage()

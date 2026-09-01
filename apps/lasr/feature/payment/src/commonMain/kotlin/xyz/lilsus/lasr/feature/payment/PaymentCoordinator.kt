@@ -275,12 +275,14 @@ class PaymentCoordinator(
             is LightningInputParser.ParseResult.Success ->
                 when (val target = result.target) {
                     is LightningInputParser.Target.Bolt11 -> {
-                        if (rejectExpiredInvoice(target.invoice)) return
-                        pendingTracker.findUnresolvedByPaymentRequest(target.invoice.write())
+                        pendingTracker.findLatestByPaymentHash(
+                            target.invoice.paymentHash.toHex()
+                        )
                             ?.let { existing ->
                                 requestTransactionDetailNavigation(existing.id)
                                 return
                             }
+                        if (rejectExpiredInvoice(target.invoice)) return
                         notifyScanSuccess()
                         processBoltInvoice(target.invoice, source)
                     }
@@ -288,7 +290,7 @@ class PaymentCoordinator(
                     is LightningInputParser.Target.Lnurl -> {
                         val sourceKey = lnurlDynamicPaymentSourceKey(target.endpoint)
                         val existing =
-                            pendingTracker.findUnresolvedByDynamicSourceKey(sourceKey)
+                            pendingTracker.findGuardingByDynamicSourceKey(sourceKey)
                         if (existing != null) {
                             showPendingRetryPrompt(
                                 record = existing,
@@ -313,7 +315,7 @@ class PaymentCoordinator(
                                 allowSavePrompt = true
                             )
                         val existing =
-                            pendingTracker.findUnresolvedByDynamicSourceKey(sourceKey)
+                            pendingTracker.findGuardingByDynamicSourceKey(sourceKey)
                         if (existing != null) {
                             showPendingRetryPrompt(
                                 record = existing,
@@ -453,7 +455,7 @@ class PaymentCoordinator(
         comment: String?
     ) {
         val sourceKey = lightningAddressDynamicPaymentSourceKey(address)
-        val existing = pendingTracker.findUnresolvedByDynamicSourceKey(sourceKey)
+        val existing = pendingTracker.findGuardingByDynamicSourceKey(sourceKey)
         if (existing != null) {
             showPendingRetryPrompt(
                 record = existing,
@@ -661,6 +663,13 @@ class PaymentCoordinator(
         invoice: Bolt11Invoice,
         isManualEntry: Boolean
     ) {
+        pendingTracker.findLatestByPaymentHash(invoice.paymentHash.toHex())?.let { existing ->
+            manualEntryContext = null
+            mutableUiState.value = PaymentUiState.Active
+            requestTransactionDetailNavigation(existing.id)
+            return
+        }
+
         requestPayment(
             invoice = invoice,
             amountOverrideMsats = null,
@@ -1011,7 +1020,9 @@ class PaymentCoordinator(
     }
 
     private fun retryPayment(id: String) {
-        val record = pendingTracker.retryUnknown(id) ?: return
+        val current = pendingTracker.get(id) ?: return
+        if (rejectExpiredInvoice(current.summary)) return
+        val record = pendingTracker.retry(id) ?: return
         mutableUiState.value = PaymentUiState.Loading()
         paymentJobs.remove(id)?.cancel()
         paymentJobs[id] =
@@ -1050,6 +1061,7 @@ class PaymentCoordinator(
         record: PendingRecord,
         continuation: PendingRetryContinuation
     ) {
+        pendingTracker.focus(record.id)
         pendingRetry = PendingRetryChoice(record.id, continuation)
         mutableUiState.value = PaymentUiState.PendingRetry(record.id)
     }
@@ -1062,6 +1074,7 @@ class PaymentCoordinator(
 
     private fun requestTransactionDetailNavigation(id: String) {
         if (pendingTracker.get(id) == null) return
+        pendingTracker.focus(id)
         sessionState.requestTransactionDetailNavigation(id)
     }
 

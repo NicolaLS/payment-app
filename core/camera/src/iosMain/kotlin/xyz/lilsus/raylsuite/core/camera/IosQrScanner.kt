@@ -80,7 +80,7 @@ private class IosQrScannerController : QrScannerController {
     private val metadataDelegate = MetadataDelegate(
         isActive = { started },
         onMetadataObjects = { metadataObjects ->
-            selectPreferredMetadataValue(metadataObjects)?.let(::emitIfNew)
+            observeQrCode(selectPreferredMetadataValue(metadataObjects))
         }
     )
 
@@ -89,7 +89,7 @@ private class IosQrScannerController : QrScannerController {
     private var lifecycleObserver: NSObjectProtocol? = null
     private var started = false
     private var configured = false
-    private var lastEmittedValue: String? = null
+    private val qrPresenceGate = QrPresenceGate()
     private var hasStartedOnce = false
     private var generation = 0L
 
@@ -116,7 +116,6 @@ private class IosQrScannerController : QrScannerController {
             try {
                 if (generation != currentGeneration) return@dispatch_async
                 started = true
-                lastEmittedValue = null
                 ensureSessionRunning()
             } finally {
                 startTrace?.end()
@@ -137,7 +136,6 @@ private class IosQrScannerController : QrScannerController {
                 if (session.running) session.stopRunning()
                 teardownSession()
                 configured = false
-                lastEmittedValue = null
             } finally {
                 stopTrace?.end()
             }
@@ -225,14 +223,13 @@ private class IosQrScannerController : QrScannerController {
         outputs.forEach(session::removeOutput)
     }
 
-    private fun emitIfNew(value: String) {
-        if (value == lastEmittedValue) return
-        lastEmittedValue = value
+    private fun observeQrCode(value: String?) {
+        val emittedValue = qrPresenceGate.observe(value) ?: return
         IosCameraTrace.event(CameraTraceEvent.QR_DETECTED)
         val callback = onQrCodeScanned ?: return
         val currentGeneration = generation
         dispatch_async(dispatch_get_main_queue()) {
-            if (started && generation == currentGeneration) callback(value)
+            if (started && generation == currentGeneration) callback(emittedValue)
         }
     }
 
@@ -243,7 +240,6 @@ private class IosQrScannerController : QrScannerController {
         if (session.running) session.stopRunning()
         teardownSession()
         configured = false
-        lastEmittedValue = null
         dispatch_async(dispatch_get_main_queue()) {
             removeLifecycleObserver()
             if (generation == currentGeneration) callback?.invoke()

@@ -77,7 +77,7 @@ private fun SessionTransactionItem.toPaymentTransactionDetail(
 ) = PaymentTransactionDetail(
     id = id,
     state = toDetailUiState().toPaymentScreenState(errorMessageFor),
-    canRetry = status == PendingStatus.OutcomeUnknown
+    canRetry = status == PendingStatus.OutcomeUnknown || status == PendingStatus.Failed
 )
 
 private fun SessionTransactionItem.toDetailUiState(): PaymentUiState = when (status) {

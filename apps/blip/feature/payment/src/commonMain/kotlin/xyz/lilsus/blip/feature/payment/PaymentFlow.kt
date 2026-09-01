@@ -80,7 +80,7 @@ private fun SessionTransactionItem.toPaymentTransactionDetail(
 ) = PaymentTransactionDetail(
     id = id,
     state = toDetailUiState().toPaymentScreenState(errorMessageFor),
-    canRetry = status == PendingStatus.StatusUnknown,
+    canRetry = status == PendingStatus.StatusUnknown || status == PendingStatus.Failure,
     pendingMessage =
         if (status == PendingStatus.PendingInBlink) {
             stringResource(Res.string.tap_dismiss_pending_blink)
