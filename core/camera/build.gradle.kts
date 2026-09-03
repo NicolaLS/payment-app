@@ -16,10 +16,11 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            // The Compose compiler plugin runs for this module's Android renderers.
             implementation(libs.compose.runtime)
-            implementation(libs.compose.ui)
         }
         androidMain.dependencies {
+            implementation(libs.compose.ui)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.camera.core)
             implementation(libs.androidx.camera.camera2)

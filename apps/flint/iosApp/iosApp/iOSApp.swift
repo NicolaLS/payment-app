@@ -18,11 +18,14 @@ private let flintAppHost = IOSWalletPlatformKt.createIOSAppHost(
 #error("A Flint environment compilation condition is required")
 #endif
 
+/// The single shared Kotlin shell instance, driven by the native tab bar in `ContentView`.
+let flintIosApp = FlintIosApp(host: flintAppHost)
+
 @main
 struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView(appHost: flintAppHost)
+            ContentView()
             .onOpenURL { url in
                 flintAppHost.offerPaymentLink(rawUrl: url.absoluteString)
             }

@@ -5,4 +5,7 @@
     <string name="settings_manage_wallet_placeholder">Noch keine Wallet verbunden. Jetzt hinzufügen, um Zahlungen zu senden.</string>
     <string name="settings_manage_wallet_add">Wallet hinzufügen</string>
     <string name="settings_manage_wallet_remove">Wallet entfernen</string>
+    <string name="settings_manage_wallet_remove_confirmation_title">Wallet entfernen?</string>
+    <string name="settings_manage_wallet_remove_confirmation_body">Du musst erneut eine Wallet verbinden, bevor du Zahlungen senden kannst.</string>
+    <string name="settings_manage_wallet_cancel">Abbrechen</string>
 </resources>

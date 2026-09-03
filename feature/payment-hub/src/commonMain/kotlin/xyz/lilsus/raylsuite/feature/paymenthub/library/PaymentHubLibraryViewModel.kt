@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
-import xyz.lilsus.raylsuite.feature.paymenthub.lens.HubItemDetail
-import xyz.lilsus.raylsuite.feature.paymenthub.lens.HubItemRenderModel
-import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubRenderState
-import xyz.lilsus.raylsuite.feature.paymenthub.lens.toRenderState
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemDetail
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
+import xyz.lilsus.raylsuite.feature.paymenthub.render.PaymentHubRenderState
+import xyz.lilsus.raylsuite.feature.paymenthub.render.toRenderState
 
 /** Full hub library: browse, search, pin, and reorder. Editing happens in the editors. */
 class PaymentHubLibraryViewModel(

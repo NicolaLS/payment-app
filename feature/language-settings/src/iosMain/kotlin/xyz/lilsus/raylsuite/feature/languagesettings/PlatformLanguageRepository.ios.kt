@@ -3,43 +3,40 @@ package xyz.lilsus.raylsuite.feature.languagesettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import platform.Foundation.NSCurrentLocaleDidChangeNotification
-import platform.Foundation.NSMutableArray
+import platform.Foundation.NSBundle
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSUserDefaults
-import platform.Foundation.arrayWithObject
+import platform.UIKit.UIApplicationDidBecomeActiveNotification
 import xyz.lilsus.raylsuite.core.model.LanguagePreference
 
-private class IosLanguageRepository : LanguageRepository {
+/** Observes the language selected by iOS; application code never writes Apple's preferences. */
+private class IosSystemLanguageRepository : LanguageRepository {
     private val userDefaults = NSUserDefaults.standardUserDefaults
-    private val mutablePreference = MutableStateFlow(currentPreference())
+    private val mutablePreference: MutableStateFlow<LanguagePreference>
 
-    private val localeObserver =
+    private val activeObserver =
         NSNotificationCenter.defaultCenter.addObserverForName(
-            name = NSCurrentLocaleDidChangeNotification,
+            name = UIApplicationDidBecomeActiveNotification,
             `object` = null,
             queue = null
         ) {
             mutablePreference.value = currentPreference()
         }
 
+    init {
+        removeLegacyApplicationOverride()
+        mutablePreference = MutableStateFlow(currentPreference())
+    }
+
     override val preference: StateFlow<LanguagePreference> = mutablePreference.asStateFlow()
+    override val management: LanguageManagement = LanguageManagement.SystemSettings
 
     override suspend fun setLanguage(tag: String) {
-        userDefaults.setObject(
-            NSMutableArray.arrayWithObject(tag),
-            forKey = APPLE_LANGUAGES_KEY
-        )
-        userDefaults.setObject(tag, forKey = OVERRIDE_KEY)
-        userDefaults.synchronize()
-        notifyLocaleChanged()
+        error("The iOS app language is managed by system Settings")
     }
 
     override suspend fun clearOverride() {
-        userDefaults.removeObjectForKey(OVERRIDE_KEY)
-        userDefaults.removeObjectForKey(APPLE_LANGUAGES_KEY)
-        userDefaults.synchronize()
-        notifyLocaleChanged()
+        error("The iOS app language is managed by system Settings")
     }
 
     override suspend fun refresh() {
@@ -47,47 +44,31 @@ private class IosLanguageRepository : LanguageRepository {
     }
 
     override fun close() {
-        NSNotificationCenter.defaultCenter.removeObserver(localeObserver)
-    }
-
-    private fun notifyLocaleChanged() {
-        NSNotificationCenter.defaultCenter.postNotificationName(
-            NSCurrentLocaleDidChangeNotification,
-            null
-        )
-        mutablePreference.value = currentPreference()
+        NSNotificationCenter.defaultCenter.removeObserver(activeObserver)
     }
 
     private fun currentPreference(): LanguagePreference {
-        val resolvedTag = currentPreferredLanguages().firstOrNull()?.ifBlank { "en" } ?: "en"
-        val overrideTag = userDefaults.stringForKey(OVERRIDE_KEY)
-        val deviceTag = deviceLanguageTag()
-        return if (overrideTag.isNullOrBlank()) {
-            LanguagePreference.System(resolvedTag = deviceTag)
-        } else {
-            LanguagePreference.Override(
-                overrideTag = overrideTag,
-                resolvedTag = resolvedTag.replace('_', '-'),
-                deviceTag = deviceTag
-            )
-        }
+        val resolvedTag =
+            NSBundle.mainBundle.preferredLocalizations
+                .firstOrNull()
+                ?.toString()
+                ?.replace('_', '-')
+                ?.takeIf(String::isNotBlank)
+                ?: "en"
+        return LanguagePreference.System(resolvedTag = resolvedTag)
     }
 
-    private fun deviceLanguageTag(): String = currentPreferredLanguages()
-        .firstOrNull()
-        ?.replace('_', '-')
-        ?.takeIf(String::isNotBlank)
-        ?: "en"
-
-    private fun currentPreferredLanguages(): List<String> = userDefaults
-        .arrayForKey(APPLE_LANGUAGES_KEY)
-        ?.filterIsInstance<String>()
-        .orEmpty()
+    private fun removeLegacyApplicationOverride() {
+        if (userDefaults.stringForKey(LEGACY_OVERRIDE_KEY) == null) return
+        userDefaults.removeObjectForKey(LEGACY_OVERRIDE_KEY)
+        userDefaults.removeObjectForKey(LEGACY_APPLE_LANGUAGES_KEY)
+    }
 
     private companion object {
-        const val OVERRIDE_KEY = "localization.selectedLanguage"
-        const val APPLE_LANGUAGES_KEY = "AppleLanguages"
+        const val LEGACY_OVERRIDE_KEY = "localization.selectedLanguage"
+        const val LEGACY_APPLE_LANGUAGES_KEY = "AppleLanguages"
     }
 }
 
-internal actual fun createPlatformLanguageRepository(): LanguageRepository = IosLanguageRepository()
+internal actual fun createPlatformLanguageRepository(): LanguageRepository =
+    IosSystemLanguageRepository()

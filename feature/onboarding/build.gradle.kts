@@ -19,6 +19,8 @@ kotlin {
             implementation(project(":feature:currency-settings"))
             implementation(project(":feature:payment-settings"))
             implementation(libs.compose.components.resources)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)

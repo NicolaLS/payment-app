@@ -5,8 +5,6 @@
 
 package xyz.lilsus.raylsuite.core.camera
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import kotlin.math.abs
 import kotlinx.cinterop.ObjCObjectVar
 import kotlinx.cinterop.alloc
@@ -62,14 +60,8 @@ import platform.darwin.dispatch_get_main_queue
 import platform.darwin.dispatch_queue_create
 import platform.darwin.dispatch_queue_t
 
-@Composable
-actual fun rememberQrScannerController(): QrScannerController = remember {
-    IosQrScannerController()
-}
-
-private fun isCameraAuthorized(): Boolean =
-    AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
-        AVAuthorizationStatusAuthorized
+/** Creates the iOS scanner for a native SwiftUI-owned screen lifecycle. */
+fun createNativeQrScannerController(): QrScannerController = IosQrScannerController()
 
 private class IosQrScannerController : QrScannerController {
     private val session = AVCaptureSession()
@@ -98,7 +90,7 @@ private class IosQrScannerController : QrScannerController {
         onCameraPermissionMissing: () -> Unit,
         onScannerUnavailable: () -> Unit
     ): Boolean {
-        if (!isCameraAuthorized()) {
+        if (!isNativeCameraAuthorized()) {
             onCameraPermissionMissing()
             return false
         }

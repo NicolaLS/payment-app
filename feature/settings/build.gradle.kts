@@ -18,11 +18,12 @@ kotlin {
             implementation(project(":core:ui"))
             api(project(":feature:currency-settings"))
             api(project(":feature:language-settings"))
-            api(project(":feature:payment-hub"))
             api(project(":feature:payment-settings"))
             api(project(":feature:theme-settings"))
             api(libs.kotlinx.coroutines.core)
             implementation(libs.compose.components.resources)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.material3)

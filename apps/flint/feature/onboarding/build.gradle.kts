@@ -20,10 +20,12 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":feature:onboarding"))
             implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.serialization.json)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.foundation)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
         }
     }

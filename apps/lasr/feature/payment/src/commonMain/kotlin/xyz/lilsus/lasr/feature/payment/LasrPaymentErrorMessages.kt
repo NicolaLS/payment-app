@@ -1,6 +1,5 @@
 package xyz.lilsus.lasr.feature.payment
 
-import androidx.compose.runtime.Composable
 import xyz.lilsus.lasr.feature.payment.generated.resources.Res
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_missing_wallet_connection
 import xyz.lilsus.lasr.feature.payment.generated.resources.error_network_unavailable
@@ -16,13 +15,10 @@ import xyz.lilsus.raylsuite.feature.paymentui.invalidInvoicePaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.lnurlPaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.unexpectedPaymentErrorText
 
-@Composable
-fun lasrPaymentErrorMessageFor(error: PaymentUiError): String = error.toLocalizedText().resolve()
-
 suspend fun getLasrPaymentErrorMessageFor(error: PaymentUiError): String =
     error.toLocalizedText().resolveInCoroutine()
 
-private fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
+internal fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
     is PaymentUiError.Nwc -> when (val nwcError = error) {
         NwcPaymentError.MissingWalletConnection ->
             LocalizedText(Res.string.error_missing_wallet_connection)

@@ -1,6 +1,5 @@
 package xyz.lilsus.blip.feature.payment
 
-import androidx.compose.runtime.Composable
 import xyz.lilsus.blip.feature.payment.generated.resources.Res
 import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_amount_too_small
 import xyz.lilsus.blip.feature.payment.generated.resources.error_blink_insufficient_balance
@@ -27,13 +26,10 @@ import xyz.lilsus.raylsuite.feature.paymentui.invalidInvoicePaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.lnurlPaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.unexpectedPaymentErrorText
 
-@Composable
-fun blipPaymentErrorMessageFor(error: PaymentUiError): String = error.toLocalizedText().resolve()
-
 suspend fun getBlipPaymentErrorMessageFor(error: PaymentUiError): String =
     error.toLocalizedText().resolveInCoroutine()
 
-private fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
+internal fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
     is PaymentUiError.Blink -> error.toLocalizedText()
 
     is PaymentUiError.InvalidInvoice -> invalidInvoicePaymentErrorText(reason)

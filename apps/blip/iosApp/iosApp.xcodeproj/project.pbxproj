@@ -7,12 +7,45 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A21E00000000000000000002 /* NativeAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A21E00000000000000000001 /* NativeAppShell.swift */; };
+		A21E00000000000000000003 /* NativeAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A21E00000000000000000001 /* NativeAppShell.swift */; };
+		A31E00000000000000000002 /* NativeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A31E00000000000000000001 /* NativeSettingsView.swift */; };
+		A31E00000000000000000003 /* NativeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A31E00000000000000000001 /* NativeSettingsView.swift */; };
+		A41E00000000000000000002 /* NativePaymentScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41E00000000000000000001 /* NativePaymentScanView.swift */; };
+		A41E00000000000000000003 /* NativePaymentScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41E00000000000000000001 /* NativePaymentScanView.swift */; };
+		A51E00000000000000000002 /* NativePaymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51E00000000000000000001 /* NativePaymentHubView.swift */; };
+		A51E00000000000000000003 /* NativePaymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51E00000000000000000001 /* NativePaymentHubView.swift */; };
+		A61E00000000000000000011 /* blink_dashboard_email.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000001 /* blink_dashboard_email.png */; };
+		A61E00000000000000000012 /* blink_dashboard_api_keys.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000002 /* blink_dashboard_api_keys.png */; };
+		A61E00000000000000000013 /* blink_dashboard_key_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000003 /* blink_dashboard_key_settings.png */; };
+		A61E00000000000000000014 /* blink_dashboard_copy_key.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000004 /* blink_dashboard_copy_key.png */; };
+		A61E00000000000000000021 /* blink_dashboard_email.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000001 /* blink_dashboard_email.png */; };
+		A61E00000000000000000022 /* blink_dashboard_api_keys.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000002 /* blink_dashboard_api_keys.png */; };
+		A61E00000000000000000023 /* blink_dashboard_key_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000003 /* blink_dashboard_key_settings.png */; };
+		A61E00000000000000000024 /* blink_dashboard_copy_key.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000004 /* blink_dashboard_copy_key.png */; };
+		A71E00000000000000000002 /* RaylHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71E00000000000000000001 /* RaylHeroView.swift */; };
+		A71E00000000000000000003 /* RaylHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71E00000000000000000001 /* RaylHeroView.swift */; };
+		A81E00000000000000000002 /* NativeOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E00000000000000000001 /* NativeOnboardingView.swift */; };
+		A81E00000000000000000003 /* NativeOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E00000000000000000001 /* NativeOnboardingView.swift */; };
+		A91E00000000000000000002 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91E00000000000000000001 /* NativeWalletManagementView.swift */; };
+		A91E00000000000000000003 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91E00000000000000000001 /* NativeWalletManagementView.swift */; };
 		D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
 		E2E000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		3E2F28A87C1CC1A08DDA1A6F /* Blip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Blip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A21E00000000000000000001 /* NativeAppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeAppShell.swift; path = "../../../feature/app-shell/src/iosMain/swift/NativeAppShell.swift"; sourceTree = "<group>"; };
+		A31E00000000000000000001 /* NativeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeSettingsView.swift; path = ../../../feature/settings/src/iosMain/swift/NativeSettingsView.swift; sourceTree = "<group>"; };
+		A41E00000000000000000001 /* NativePaymentScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentScanView.swift; path = "../../../feature/payment-ui/src/iosMain/swift/NativePaymentScanView.swift"; sourceTree = "<group>"; };
+		A51E00000000000000000001 /* NativePaymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentHubView.swift; path = "../../../feature/payment-hub/src/iosMain/swift/NativePaymentHubView.swift"; sourceTree = "<group>"; };
+		A61E00000000000000000001 /* blink_dashboard_email.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_email.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_email.png; sourceTree = "<group>"; };
+		A61E00000000000000000002 /* blink_dashboard_api_keys.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_api_keys.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_api_keys.png; sourceTree = "<group>"; };
+		A61E00000000000000000003 /* blink_dashboard_key_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_key_settings.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_key_settings.png; sourceTree = "<group>"; };
+		A61E00000000000000000004 /* blink_dashboard_copy_key.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_copy_key.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_copy_key.png; sourceTree = "<group>"; };
+		A71E00000000000000000001 /* RaylHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RaylHeroView.swift; path = "../../../feature/payment-ui/src/iosMain/swift/RaylHeroView.swift"; sourceTree = "<group>"; };
+		A81E00000000000000000001 /* NativeOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeOnboardingView.swift; path = ../../../feature/onboarding/src/iosMain/swift/NativeOnboardingView.swift; sourceTree = "<group>"; };
+		A91E00000000000000000001 /* NativeWalletManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeWalletManagementView.swift; path = "../../../feature/wallet-management/src/iosMain/swift/NativeWalletManagementView.swift"; sourceTree = "<group>"; };
 		D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E2E000000000000000000001 /* Blip E2E.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Blip E2E.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -78,6 +111,17 @@
 		97A229AE63675C10A9DAA454 = {
 			isa = PBXGroup;
 			children = (
+				A21E00000000000000000001 /* NativeAppShell.swift */,
+				A31E00000000000000000001 /* NativeSettingsView.swift */,
+				A41E00000000000000000001 /* NativePaymentScanView.swift */,
+				A71E00000000000000000001 /* RaylHeroView.swift */,
+				A81E00000000000000000001 /* NativeOnboardingView.swift */,
+				A91E00000000000000000001 /* NativeWalletManagementView.swift */,
+				A51E00000000000000000001 /* NativePaymentHubView.swift */,
+				A61E00000000000000000001 /* blink_dashboard_email.png */,
+				A61E00000000000000000002 /* blink_dashboard_api_keys.png */,
+				A61E00000000000000000003 /* blink_dashboard_key_settings.png */,
+				A61E00000000000000000004 /* blink_dashboard_copy_key.png */,
 				D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */,
 				6672ACEE09FDB18D319237F0 /* Configuration */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
@@ -168,6 +212,8 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				de,
+				es,
 				Base,
 			);
 			mainGroup = 97A229AE63675C10A9DAA454;
@@ -188,6 +234,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A61E00000000000000000011 /* blink_dashboard_email.png in Resources */,
+				A61E00000000000000000012 /* blink_dashboard_api_keys.png in Resources */,
+				A61E00000000000000000013 /* blink_dashboard_key_settings.png in Resources */,
+				A61E00000000000000000014 /* blink_dashboard_copy_key.png in Resources */,
 				D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -196,6 +246,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A61E00000000000000000021 /* blink_dashboard_email.png in Resources */,
+				A61E00000000000000000022 /* blink_dashboard_api_keys.png in Resources */,
+				A61E00000000000000000023 /* blink_dashboard_key_settings.png in Resources */,
+				A61E00000000000000000024 /* blink_dashboard_copy_key.png in Resources */,
 				E2E000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -248,6 +302,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A21E00000000000000000002 /* NativeAppShell.swift in Sources */,
+				A31E00000000000000000002 /* NativeSettingsView.swift in Sources */,
+				A41E00000000000000000002 /* NativePaymentScanView.swift in Sources */,
+				A71E00000000000000000002 /* RaylHeroView.swift in Sources */,
+				A51E00000000000000000002 /* NativePaymentHubView.swift in Sources */,
+				A81E00000000000000000002 /* NativeOnboardingView.swift in Sources */,
+				A91E00000000000000000002 /* NativeWalletManagementView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,6 +316,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A21E00000000000000000003 /* NativeAppShell.swift in Sources */,
+				A31E00000000000000000003 /* NativeSettingsView.swift in Sources */,
+				A41E00000000000000000003 /* NativePaymentScanView.swift in Sources */,
+				A71E00000000000000000003 /* RaylHeroView.swift in Sources */,
+				A51E00000000000000000003 /* NativePaymentHubView.swift in Sources */,
+				A81E00000000000000000003 /* NativeOnboardingView.swift in Sources */,
+				A91E00000000000000000003 /* NativeWalletManagementView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -276,7 +344,6 @@
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Blip;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -314,7 +381,6 @@
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Blip;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -480,7 +546,6 @@
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Blip;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -517,7 +582,6 @@
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Blip E2E";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -556,7 +620,6 @@
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Blip E2E";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -596,7 +659,6 @@
 				INFOPLIST_FILE = iosApp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Blip E2E";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
-				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is required to scan Bitcoin Lightning invoices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

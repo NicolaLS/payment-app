@@ -2,60 +2,39 @@
 
 package xyz.lilsus.raylsuite.core.camera
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
-import platform.AVFoundation.*
-import platform.Foundation.*
-import platform.UIKit.*
-import platform.darwin.*
+import platform.AVFoundation.AVAuthorizationStatusAuthorized
+import platform.AVFoundation.AVAuthorizationStatusDenied
+import platform.AVFoundation.AVAuthorizationStatusNotDetermined
+import platform.AVFoundation.AVAuthorizationStatusRestricted
+import platform.AVFoundation.AVCaptureDevice
+import platform.AVFoundation.AVMediaTypeVideo
+import platform.AVFoundation.authorizationStatusForMediaType
+import platform.AVFoundation.requestAccessForMediaType
+import platform.darwin.dispatch_async
+import platform.darwin.dispatch_get_main_queue
 
-@Composable
-actual fun rememberCameraPermissionState(): CameraPermissionState {
-    var cameraPermissionGranted by remember { mutableStateOf(isCameraAuthorized()) }
-
-    LaunchedEffect(Unit) {
-        cameraPermissionGranted = isCameraAuthorized()
+fun nativeCameraAuthorizationState(): CameraAuthorizationState =
+    when (AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo)) {
+        AVAuthorizationStatusNotDetermined -> CameraAuthorizationState.NOT_DETERMINED
+        AVAuthorizationStatusAuthorized -> CameraAuthorizationState.AUTHORIZED
+        AVAuthorizationStatusDenied -> CameraAuthorizationState.DENIED
+        AVAuthorizationStatusRestricted -> CameraAuthorizationState.RESTRICTED
+        else -> CameraAuthorizationState.UNAVAILABLE
     }
 
-    DisposableEffect(Unit) {
-        val center = NSNotificationCenter.defaultCenter
-        val observer: NSObjectProtocol =
-            center.addObserverForName(
-                name = UIApplicationDidBecomeActiveNotification,
-                `object` = null,
-                queue = NSOperationQueue.mainQueue
-            ) { _ ->
-                cameraPermissionGranted = isCameraAuthorized()
-            }
-        onDispose {
-            center.removeObserver(observer)
-        }
+fun isNativeCameraAuthorized(): Boolean = nativeCameraAuthorizationState().isAuthorized
+
+fun requestNativeCameraPermission(onResult: (CameraAuthorizationState) -> Unit) {
+    val current = nativeCameraAuthorizationState()
+    if (current != CameraAuthorizationState.NOT_DETERMINED) {
+        onResult(current)
+        return
     }
-
-    return remember {
-        object : CameraPermissionState {
-            override val hasPermission: Boolean
-                get() = cameraPermissionGranted
-
-            override fun request() {
-                if (cameraPermissionGranted) return
-                AVCaptureDevice.requestAccessForMediaType(AVMediaTypeVideo) { granted ->
-                    dispatch_async(dispatch_get_main_queue()) {
-                        cameraPermissionGranted = granted
-                    }
-                }
-            }
+    AVCaptureDevice.requestAccessForMediaType(AVMediaTypeVideo) {
+        dispatch_async(dispatch_get_main_queue()) {
+            onResult(nativeCameraAuthorizationState())
         }
     }
 }
-
-private fun isCameraAuthorized(): Boolean =
-    AVCaptureDevice.authorizationStatusForMediaType(AVMediaTypeVideo) ==
-        platform.AVFoundation.AVAuthorizationStatusAuthorized

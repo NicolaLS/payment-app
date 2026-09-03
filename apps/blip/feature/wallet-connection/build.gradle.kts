@@ -15,14 +15,16 @@ kotlin {
         commonMain.dependencies {
             api(project(":blip:integration:blink"))
             api(project(":blip:ui"))
-            implementation(project(":core:ui"))
             implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+        }
+        androidMain.dependencies {
+            implementation(project(":core:ui"))
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.coroutines.core)
         }
     }
 }

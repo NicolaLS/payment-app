@@ -25,14 +25,14 @@ kotlin {
             api(project(":feature:payment-ui"))
             implementation(libs.bitcoin.kmp)
             implementation(libs.compose.components.resources)
-            implementation(libs.compose.runtime)
-            implementation(libs.compose.ui)
             api(libs.lightning.kmp.core)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             api(libs.multiplatform.settings)
         }
         androidMain.dependencies {
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.ui)
             implementation(libs.secp256k1.kmp.jni.android)
         }
         commonTest.dependencies {

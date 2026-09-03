@@ -1,7 +1,7 @@
 package xyz.lilsus.blip.ui
 
-import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
 import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkConnectionError
 import xyz.lilsus.blip.integration.blink.BlinkErrorType
@@ -32,93 +32,102 @@ import xyz.lilsus.blip.ui.generated.resources.error_wallet_already_connected
  *
  * Payment owns a separate mapping because timeout and uncertain outcomes need
  * payment-specific wording that must not be reused for ordinary wallet operations.
+ * This suspending entry point resolves the app-owned presentation for native renderers.
  */
-@Composable
-fun blinkErrorMessageFor(error: BlinkUiError): String = when (error) {
-    is BlinkUiError.Api -> errorMessageFor(error.error)
-    is BlinkUiError.Connection -> errorMessageFor(error.error)
-    is BlinkUiError.Unexpected -> unexpectedErrorMessage(error.detail)
+suspend fun nativeBlinkErrorMessageFor(error: BlinkUiError): String = error.text().resolveNative()
+
+internal fun BlinkUiError.text(): BlinkErrorText = when (this) {
+    is BlinkUiError.Api -> error.text()
+    is BlinkUiError.Connection -> error.text()
+    is BlinkUiError.Unexpected -> unexpectedErrorText(detail)
 }
 
-@Composable
-private fun errorMessageFor(error: BlinkConnectionError): String = when (error) {
+private fun BlinkConnectionError.text(): BlinkErrorText = when (this) {
     BlinkConnectionError.AlreadyConnected ->
-        stringResource(Res.string.error_wallet_already_connected)
+        BlinkErrorText.Plain(Res.string.error_wallet_already_connected)
 
     BlinkConnectionError.MissingConnection ->
-        stringResource(Res.string.error_missing_wallet_connection)
+        BlinkErrorText.Plain(Res.string.error_missing_wallet_connection)
 
     BlinkConnectionError.ApiKeyRequired ->
-        stringResource(Res.string.error_authentication_failure)
+        BlinkErrorText.Plain(Res.string.error_authentication_failure)
 
     BlinkConnectionError.RequiredPermissionsMissing ->
-        stringResource(Res.string.error_blink_required_permissions)
+        BlinkErrorText.Plain(Res.string.error_blink_required_permissions)
 }
 
-@Composable
-private fun errorMessageFor(error: BlinkApiError): String = when (error) {
-    is BlinkApiError.BlinkError -> errorMessageFor(error.type)
+private fun BlinkApiError.text(): BlinkErrorText = when (this) {
+    is BlinkApiError.BlinkError -> type.text()
 
     BlinkApiError.MissingWalletConnection ->
-        stringResource(Res.string.error_missing_wallet_connection)
+        BlinkErrorText.Plain(Res.string.error_missing_wallet_connection)
 
-    BlinkApiError.NetworkUnavailable -> stringResource(Res.string.error_network_unavailable)
+    BlinkApiError.NetworkUnavailable -> BlinkErrorText.Plain(Res.string.error_network_unavailable)
 
     is BlinkApiError.PaymentRejected -> {
-        val message = error.message?.takeUnless(String::isBlank)
+        val message = this.message?.takeUnless(String::isBlank)
         if (message == null) {
-            stringResource(Res.string.error_payment_rejected_generic)
+            BlinkErrorText.Plain(Res.string.error_payment_rejected_generic)
         } else {
-            stringResource(Res.string.error_payment_rejected_message, message)
+            BlinkErrorText.Formatted(Res.string.error_payment_rejected_message, message)
         }
     }
 
-    BlinkApiError.Timeout -> stringResource(Res.string.error_timeout)
+    BlinkApiError.Timeout -> BlinkErrorText.Plain(Res.string.error_timeout)
 
-    is BlinkApiError.Unexpected -> unexpectedErrorMessage(error.message)
+    is BlinkApiError.Unexpected -> unexpectedErrorText(this.message)
 }
 
-@Composable
-private fun errorMessageFor(error: BlinkErrorType): String = when (error) {
+private fun BlinkErrorType.text(): BlinkErrorText = when (this) {
     BlinkErrorType.PermissionDenied ->
-        stringResource(Res.string.error_blink_permission_denied)
+        BlinkErrorText.Plain(Res.string.error_blink_permission_denied)
 
     BlinkErrorType.InsufficientBalance ->
-        stringResource(Res.string.error_blink_insufficient_balance)
+        BlinkErrorText.Plain(Res.string.error_blink_insufficient_balance)
 
     BlinkErrorType.RouteNotFound ->
-        stringResource(Res.string.error_blink_route_not_found)
+        BlinkErrorText.Plain(Res.string.error_blink_route_not_found)
 
     BlinkErrorType.InvoiceExpired ->
-        stringResource(Res.string.error_blink_invoice_expired)
+        BlinkErrorText.Plain(Res.string.error_blink_invoice_expired)
 
     BlinkErrorType.SelfPayment ->
-        stringResource(Res.string.error_blink_self_payment)
+        BlinkErrorText.Plain(Res.string.error_blink_self_payment)
 
     BlinkErrorType.InvalidInvoice ->
-        stringResource(Res.string.error_blink_invalid_invoice)
+        BlinkErrorText.Plain(Res.string.error_blink_invalid_invoice)
 
     BlinkErrorType.AmountTooSmall ->
-        stringResource(Res.string.error_blink_amount_too_small)
+        BlinkErrorText.Plain(Res.string.error_blink_amount_too_small)
 
     BlinkErrorType.LimitExceeded ->
-        stringResource(Res.string.error_blink_limit_exceeded)
+        BlinkErrorText.Plain(Res.string.error_blink_limit_exceeded)
 
     BlinkErrorType.RateLimited ->
-        stringResource(Res.string.error_blink_rate_limited)
+        BlinkErrorText.Plain(Res.string.error_blink_rate_limited)
 
     BlinkErrorType.InvalidApiKey ->
-        stringResource(Res.string.error_blink_invalid_api_key)
+        BlinkErrorText.Plain(Res.string.error_blink_invalid_api_key)
 }
 
-@Composable
-private fun unexpectedErrorMessage(detail: String?): String {
+private fun unexpectedErrorText(detail: String?): BlinkErrorText {
     val message = detail?.takeUnless(String::isBlank)
     return if (message == null) {
-        stringResource(Res.string.error_unexpected_generic)
+        BlinkErrorText.Plain(Res.string.error_unexpected_generic)
     } else {
-        stringResource(Res.string.error_unexpected_with_details, message)
+        BlinkErrorText.Formatted(Res.string.error_unexpected_with_details, message)
     }
+}
+
+private suspend fun BlinkErrorText.resolveNative(): String = when (this) {
+    is BlinkErrorText.Plain -> getString(resource)
+    is BlinkErrorText.Formatted -> getString(resource, argument)
+}
+
+internal sealed interface BlinkErrorText {
+    data class Plain(val resource: StringResource) : BlinkErrorText
+
+    data class Formatted(val resource: StringResource, val argument: String) : BlinkErrorText
 }
 
 /** Provider failures projected for Blip's reusable non-payment UI. */

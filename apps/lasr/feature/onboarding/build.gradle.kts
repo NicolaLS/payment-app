@@ -20,11 +20,13 @@ kotlin {
             implementation(project(":lasr:feature:wallet-connection"))
             implementation(project(":lasr:integration:nwc"))
             implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.foundation)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
         }
     }

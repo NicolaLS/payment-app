@@ -14,6 +14,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(libs.compose.components.resources)
+        }
+        androidMain.dependencies {
             implementation(project(":blip:feature:blink-contacts"))
             implementation(project(":blip:feature:wallet-connection"))
             implementation(project(":blip:integration:blink"))
@@ -21,7 +24,6 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":feature:payment-hub"))
             implementation(project(":feature:onboarding"))
-            implementation(libs.compose.components.resources)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)

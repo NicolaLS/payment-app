@@ -16,6 +16,8 @@ kotlin {
         commonMain.dependencies {
             api(project(":blip:integration:blink"))
             implementation(libs.compose.components.resources)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.runtime)
         }
     }

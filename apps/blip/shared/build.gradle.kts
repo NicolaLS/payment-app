@@ -18,6 +18,10 @@ kotlin {
     targets.withType<KotlinNativeTarget>().configureEach {
         binaries.withType<Framework>().configureEach {
             binaryOption("bundleId", "xyz.lilsus.blip.shared")
+            export(project(":feature:payment-hub"))
+            export(project(":feature:payment-ui"))
+            export(project(":feature:settings"))
+            export(project(":blip:feature:blink-contacts"))
         }
     }
 
@@ -25,7 +29,8 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":blip:feature:onboarding"))
             implementation(project(":blip:feature:payment"))
-            implementation(project(":blip:feature:blink-contacts"))
+            implementation(project(":blip:feature:wallet-connection"))
+            api(project(":blip:feature:blink-contacts"))
             implementation(project(":blip:feature:wallet-settings"))
             implementation(project(":blip:integration:blink"))
             implementation(project(":blip:ui"))
@@ -36,19 +41,23 @@ kotlin {
             implementation(project(":feature:language-settings"))
             implementation(project(":feature:onboarding"))
             implementation(project(":feature:payment-settings"))
-            implementation(project(":feature:payment-hub"))
-            implementation(project(":feature:payment-hub-lenses"))
+            api(project(":feature:payment-ui"))
+            implementation(project(":feature:app-shell"))
+            api(project(":feature:payment-hub"))
             api(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
             implementation(project(":integration:exchange-rate"))
             implementation(project(":integration:lnurl"))
-            implementation(libs.navigation.compose)
             implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.multiplatform.settings)
+        }
+        androidMain.dependencies {
+            implementation(project(":blip:feature:onboarding"))
+            implementation(libs.navigation.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
-            implementation(libs.multiplatform.settings)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

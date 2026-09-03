@@ -1,8 +1,0 @@
-<resources>
-    <string name="dock_lens_name">Dock</string>
-    <string name="dock_lens_description">Escáner primero, con tus destinos fijados en una fila abajo.</string>
-    <string name="dock_lens_library">Centro de pagos</string>
-    <string name="dock_lens_add">Añadir</string>
-    <string name="dock_lens_pay">Pagar a %1$s</string>
-    <string name="dock_lens_open_group">Abrir grupo %1$s</string>
-</resources>

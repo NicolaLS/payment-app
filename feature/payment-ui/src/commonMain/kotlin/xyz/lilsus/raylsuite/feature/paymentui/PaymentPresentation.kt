@@ -3,7 +3,6 @@ package xyz.lilsus.raylsuite.feature.paymentui
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.hero.RaylHeroPhase
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
-import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentResultPresentation
 
 sealed interface PaymentScreenState {
     data object Active : PaymentScreenState
@@ -113,19 +112,4 @@ fun PaymentScreenState.toHeroPhase(): RaylHeroPhase = when (this) {
     is PaymentScreenState.Success -> RaylHeroPhase.Succeeded
 
     is PaymentScreenState.Error -> RaylHeroPhase.Failed
-}
-
-fun PaymentScreenState.toResultPresentation(): PaymentResultPresentation = when (this) {
-    is PaymentScreenState.Success ->
-        PaymentResultPresentation.Success(
-            amountPaid = amountPaid,
-            feePaid = feePaid,
-            showEstimatedFeeHint = showEstimatedFeeHint,
-            wasAlreadyPaid = wasAlreadyPaid,
-            hasReceipt = !preimage.isNullOrBlank()
-        )
-
-    is PaymentScreenState.Error -> PaymentResultPresentation.Error(message)
-
-    else -> error("Only terminal payment states have result presentation")
 }

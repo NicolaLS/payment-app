@@ -18,6 +18,9 @@ kotlin {
     targets.withType<KotlinNativeTarget>().configureEach {
         binaries.withType<Framework>().configureEach {
             binaryOption("bundleId", "xyz.lilsus.flint.shared")
+            export(project(":feature:payment-hub"))
+            export(project(":feature:payment-ui"))
+            export(project(":feature:settings"))
         }
     }
 
@@ -28,29 +31,36 @@ kotlin {
             implementation(project(":flint:feature:payment"))
             implementation(project(":flint:feature:wallet-connection"))
             implementation(project(":flint:integration:wallet"))
+            implementation(project(":core:model"))
             implementation(project(":core:settings"))
             implementation(project(":core:ui"))
             implementation(project(":feature:currency-settings"))
             implementation(project(":feature:onboarding"))
             implementation(project(":feature:language-settings"))
             implementation(project(":feature:payment-settings"))
-            implementation(project(":feature:payment-hub"))
-            implementation(project(":feature:payment-hub-lenses"))
+            api(project(":feature:payment-ui"))
+            implementation(project(":feature:app-shell"))
+            api(project(":feature:payment-hub"))
             api(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
-            implementation(project(":feature:wallet-management"))
             implementation(project(":integration:exchange-rate"))
+            implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.multiplatform.settings)
+        }
+        androidMain.dependencies {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.navigation.compose)
-            implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.multiplatform.settings)
+            implementation(project(":feature:wallet-management"))
+        }
+        iosMain.dependencies {
+            implementation(project(":feature:wallet-management"))
         }
     }
 }

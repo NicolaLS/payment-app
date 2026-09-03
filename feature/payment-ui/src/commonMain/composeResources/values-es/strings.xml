@@ -43,6 +43,12 @@
     <string name="open_payment_hub">Abrir centro de pagos</string>
     <string name="scanner_close">Cerrar escáner</string>
     <string name="point_camera_message_subtitle">Apunta la cámara a una factura.</string>
+    <string name="camera_permission_denied_title">El acceso a la cámara está desactivado</string>
+    <string name="camera_permission_denied_body">Permite el acceso a la cámara en Ajustes para escanear facturas.</string>
+    <string name="camera_permission_open_settings">Abrir Ajustes</string>
+    <string name="camera_permission_retry">Intentar de nuevo</string>
+    <string name="camera_permission_restricted_title">El acceso a la cámara está restringido</string>
+    <string name="camera_permission_restricted_body">El acceso a la cámara no está disponible debido a las restricciones de este dispositivo.</string>
     <string name="resolving_payment_title">Preparando el pago</string>
     <string name="resolving_payment_subtitle">Todavía no se ha enviado ningún pago.</string>
     <string name="in_progress_title">El pago aún podría completarse</string>

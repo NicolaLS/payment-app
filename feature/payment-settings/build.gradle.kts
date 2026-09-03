@@ -18,12 +18,14 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":feature:currency-settings"))
             implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.multiplatform.settings)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.multiplatform.settings)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -9,6 +9,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            // The Compose compiler plugin runs for this module's Android renderers.
             implementation(libs.compose.runtime)
             implementation(libs.multiplatform.settings)
         }

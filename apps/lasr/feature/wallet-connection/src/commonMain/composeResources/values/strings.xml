@@ -6,6 +6,10 @@
     <string name="add_wallet_uri_paste">Paste from clipboard</string>
     <string name="add_wallet_scan_instruction">Align the QR code within the frame.</string>
     <string name="add_wallet_scan_permission">Camera access is required to scan QR codes.</string>
+    <string name="add_wallet_scan_allow_camera">Allow Camera Access</string>
+    <string name="add_wallet_scan_open_settings">Open Settings</string>
+    <string name="add_wallet_scan_retry">Try Again</string>
+    <string name="add_wallet_scan_restricted">Camera access is unavailable because of this device’s restrictions.</string>
     <string name="connect_wallet_title">Add Wallet</string>
     <string name="connect_wallet_description">Review the wallet details before connecting.</string>
     <string name="connect_wallet_cancel">Cancel</string>

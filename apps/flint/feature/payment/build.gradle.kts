@@ -23,9 +23,11 @@ kotlin {
             implementation(project(":feature:payment-settings"))
             api(project(":feature:payment-ui"))
             implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.coroutines.core)
         }
     }
 }

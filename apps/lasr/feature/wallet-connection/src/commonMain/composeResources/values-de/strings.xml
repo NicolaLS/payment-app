@@ -6,6 +6,10 @@
     <string name="add_wallet_uri_paste">Aus Zwischenablage einfügen</string>
     <string name="add_wallet_scan_instruction">Richte den QR-Code im Rahmen aus.</string>
     <string name="add_wallet_scan_permission">Für das Scannen von QR-Codes ist Kamerazugriff erforderlich.</string>
+    <string name="add_wallet_scan_allow_camera">Kamerazugriff erlauben</string>
+    <string name="add_wallet_scan_open_settings">Einstellungen öffnen</string>
+    <string name="add_wallet_scan_retry">Erneut versuchen</string>
+    <string name="add_wallet_scan_restricted">Der Kamerazugriff ist aufgrund der Einschränkungen dieses Geräts nicht verfügbar.</string>
     <string name="connect_wallet_title">Wallet hinzufügen</string>
     <string name="connect_wallet_description">Überprüfe die Wallet-Details, bevor du die Verbindung herstellst.</string>
     <string name="connect_wallet_cancel">Abbrechen</string>

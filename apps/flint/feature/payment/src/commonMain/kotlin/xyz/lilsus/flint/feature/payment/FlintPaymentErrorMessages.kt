@@ -1,6 +1,5 @@
 package xyz.lilsus.flint.feature.payment
 
-import androidx.compose.runtime.Composable
 import xyz.lilsus.flint.feature.payment.generated.resources.Res
 import xyz.lilsus.flint.feature.payment.generated.resources.error_missing_wallet_connection
 import xyz.lilsus.flint.feature.payment.generated.resources.error_payment_rejected_generic
@@ -15,13 +14,10 @@ import xyz.lilsus.raylsuite.feature.paymentui.invalidInvoicePaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.lnurlPaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.unexpectedPaymentErrorText
 
-@Composable
-fun flintPaymentErrorMessageFor(error: PaymentUiError): String = error.toLocalizedText().resolve()
-
 suspend fun getFlintPaymentErrorMessageFor(error: PaymentUiError): String =
     error.toLocalizedText().resolveInCoroutine()
 
-private fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
+internal fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
     is PaymentUiError.Spark -> when (val sparkError = error) {
         SparkPaymentError.WalletUnavailable ->
             LocalizedText(Res.string.error_missing_wallet_connection)

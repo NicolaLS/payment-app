@@ -50,7 +50,7 @@ private class AndroidHapticFeedbackManager(private val context: Context) :
 }
 
 @Composable
-actual fun rememberHapticFeedbackManager(): HapticFeedbackManager {
+fun rememberHapticFeedbackManager(): HapticFeedbackManager {
     val context = LocalContext.current.applicationContext
     return remember(context) {
         AndroidHapticFeedbackManager(context)

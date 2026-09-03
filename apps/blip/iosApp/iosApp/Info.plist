@@ -24,5 +24,7 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Blip uses the camera to scan Bitcoin Lightning payment request QR codes.</string>
 </dict>
 </plist>

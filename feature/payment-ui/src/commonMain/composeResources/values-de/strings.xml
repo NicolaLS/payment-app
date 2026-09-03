@@ -43,6 +43,12 @@
     <string name="open_payment_hub">Zahlungs-Hub öffnen</string>
     <string name="scanner_close">Scanner schließen</string>
     <string name="point_camera_message_subtitle">Richte die Kamera auf eine Rechnung.</string>
+    <string name="camera_permission_denied_title">Kamerazugriff ist deaktiviert</string>
+    <string name="camera_permission_denied_body">Erlaube den Kamerazugriff in den Einstellungen, um Rechnungen zu scannen.</string>
+    <string name="camera_permission_open_settings">Einstellungen öffnen</string>
+    <string name="camera_permission_retry">Erneut versuchen</string>
+    <string name="camera_permission_restricted_title">Kamerazugriff ist eingeschränkt</string>
+    <string name="camera_permission_restricted_body">Der Kamerazugriff ist aufgrund der Einschränkungen dieses Geräts nicht verfügbar.</string>
     <string name="resolving_payment_title">Zahlung wird vorbereitet</string>
     <string name="resolving_payment_subtitle">Es wurde noch keine Zahlung gesendet.</string>
     <string name="in_progress_title">Zahlung möglicherweise noch in Bearbeitung</string>

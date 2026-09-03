@@ -1,9 +1,6 @@
 package xyz.lilsus.raylsuite.core.camera
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Stable
-
-@Stable
+/** The shared start/stop contract implemented by CameraX on Android and AVFoundation on iOS. */
 interface QrScannerController {
     fun start(
         onQrCodeScanned: (String) -> Unit,
@@ -13,6 +10,3 @@ interface QrScannerController {
 
     fun stop()
 }
-
-@Composable
-expect fun rememberQrScannerController(): QrScannerController

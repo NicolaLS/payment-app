@@ -16,10 +16,10 @@ import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetDraft
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHub
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
-import xyz.lilsus.raylsuite.feature.paymenthub.lens.HubItemRenderModel
-import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubRenderState
-import xyz.lilsus.raylsuite.feature.paymenthub.lens.toRenderState
 import xyz.lilsus.raylsuite.feature.paymenthub.platformCurrentTimeMillis
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
+import xyz.lilsus.raylsuite.feature.paymenthub.render.PaymentHubRenderState
+import xyz.lilsus.raylsuite.feature.paymenthub.render.toRenderState
 
 /**
  * Shared hub host logic: projects the hub into render state, owns group expansion and the

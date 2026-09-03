@@ -35,7 +35,7 @@ private const val TAG = "QrScanner"
 private const val ANALYSIS_EXECUTOR_SHUTDOWN_DELAY_MILLIS = 2_000L
 
 @Composable
-actual fun rememberQrScannerController(): QrScannerController {
+fun rememberQrScannerController(): QrScannerController {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 

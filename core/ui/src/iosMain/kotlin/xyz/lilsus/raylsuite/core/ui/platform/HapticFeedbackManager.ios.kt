@@ -1,7 +1,5 @@
 package xyz.lilsus.raylsuite.core.ui.platform
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import platform.UIKit.UIImpactFeedbackGenerator
 import platform.UIKit.UIImpactFeedbackStyle
 import platform.darwin.DISPATCH_TIME_NOW
@@ -37,6 +35,4 @@ private class IosHapticFeedbackManager : HapticFeedbackManager {
     }
 }
 
-@Composable
-actual fun rememberHapticFeedbackManager(): HapticFeedbackManager =
-    remember { IosHapticFeedbackManager() }
+fun createHapticFeedbackManager(): HapticFeedbackManager = IosHapticFeedbackManager()

@@ -43,6 +43,12 @@
     <string name="open_payment_hub">Open payment hub</string>
     <string name="scanner_close">Close scanner</string>
     <string name="point_camera_message_subtitle">Point the camera at an invoice.</string>
+    <string name="camera_permission_denied_title">Camera access is off</string>
+    <string name="camera_permission_denied_body">Allow camera access in Settings to scan invoices.</string>
+    <string name="camera_permission_open_settings">Open Settings</string>
+    <string name="camera_permission_retry">Try Again</string>
+    <string name="camera_permission_restricted_title">Camera access is restricted</string>
+    <string name="camera_permission_restricted_body">Camera access is unavailable because of this device’s restrictions.</string>
     <string name="resolving_payment_title">Preparing payment</string>
     <string name="resolving_payment_subtitle">No payment has been sent yet.</string>
     <string name="in_progress_title">Payment may still complete</string>

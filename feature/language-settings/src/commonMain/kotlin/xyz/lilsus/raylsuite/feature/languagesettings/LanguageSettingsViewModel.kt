@@ -16,7 +16,8 @@ import xyz.lilsus.raylsuite.core.model.LanguagePreference
 data class LanguageSettingsUiState(
     val searchQuery: String = "",
     val selectedCode: String = "",
-    val deviceCode: String = ""
+    val deviceCode: String = "",
+    val canSelectInApp: Boolean = true
 )
 
 class LanguageSettingsViewModel(
@@ -24,7 +25,12 @@ class LanguageSettingsViewModel(
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private val mutableUiState = MutableStateFlow(LanguageSettingsUiState())
+    private val mutableUiState =
+        MutableStateFlow(
+            LanguageSettingsUiState(
+                canSelectInApp = repository.management == LanguageManagement.InApp
+            )
+        )
 
     val uiState: StateFlow<LanguageSettingsUiState> = mutableUiState.asStateFlow()
 
@@ -41,7 +47,8 @@ class LanguageSettingsViewModel(
                 mutableUiState.value =
                     mutableUiState.value.copy(
                         selectedCode = selectedCode,
-                        deviceCode = deviceCode
+                        deviceCode = deviceCode,
+                        canSelectInApp = repository.management == LanguageManagement.InApp
                     )
             }
         }
@@ -52,6 +59,8 @@ class LanguageSettingsViewModel(
     }
 
     fun selectOption(optionId: String) {
+        if (repository.management != LanguageManagement.InApp) return
+
         scope.launch {
             if (optionId.equals(mutableUiState.value.deviceCode, ignoreCase = true)) {
                 repository.clearOverride()

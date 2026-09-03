@@ -89,6 +89,9 @@ class LnurlPayImage private constructor(
 
     internal fun copyEncodedBytes(): ByteArray = encodedBytes.copyOf()
 
+    @OptIn(ExperimentalEncodingApi::class)
+    internal fun encodedBase64(): String = Base64.Default.encode(encodedBytes)
+
     companion object {
         @OptIn(ExperimentalEncodingApi::class)
         internal fun fromBase64(format: LnurlPayImageFormat, encoded: String?): LnurlPayImage? {

@@ -17,13 +17,13 @@ kotlin {
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             implementation(libs.compose.components.resources)
+            implementation(libs.kotlinx.coroutines.core)
+        }
+        androidMain.dependencies {
             implementation(libs.compose.foundation)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
-            implementation(libs.kotlinx.coroutines.core)
-        }
-        androidMain.dependencies {
             implementation(libs.androidx.camera.core)
             implementation(libs.androidx.camera.camera2)
             implementation(libs.androidx.camera.lifecycle)

@@ -13,7 +13,7 @@ actual fun currentAppLocale(): AppLocale {
 }
 
 @Composable
-actual fun rememberAppLocale(): AppLocale {
+fun rememberAppLocale(): AppLocale {
     val configuration = LocalConfiguration.current
     return remember(configuration) {
         currentAppLocale()
