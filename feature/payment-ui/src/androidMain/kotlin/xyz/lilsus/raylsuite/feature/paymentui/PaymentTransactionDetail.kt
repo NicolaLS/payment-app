@@ -19,14 +19,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.raylsuite.feature.paymentui.R
 import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentHero
 import xyz.lilsus.raylsuite.feature.paymentui.components.ResultLayout
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.retry_payment
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.tap_dismiss_pending
 
 @Composable
 fun PaymentTransactionDetail(
@@ -93,7 +91,7 @@ private fun PaymentTransactionDetailScreen(
                         onContinue = onDismiss,
                         actionLabel =
                             if (detail.canRetry) {
-                                stringResource(Res.string.retry_payment)
+                                stringResource(R.string.retry_payment)
                             } else {
                                 null
                             },
@@ -112,7 +110,7 @@ private fun PaymentTransactionDetailScreen(
                             Text(
                                 text =
                                     detail.pendingMessage
-                                        ?: stringResource(Res.string.tap_dismiss_pending),
+                                        ?: stringResource(R.string.tap_dismiss_pending),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center

@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.raylsuite.feature.languagesettings.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.raylsuite.feature.languagesettings"
@@ -15,8 +11,8 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":core:model"))
             implementation(project(":core:ui"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.compose.foundation)

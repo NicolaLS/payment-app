@@ -1,14 +1,10 @@
 package xyz.lilsus.flint.feature.payment
 
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.flint.feature.payment.generated.resources.Res
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_fee
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_failure
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_pending
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_success
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.paymentui.NativePaymentRecentItem
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
@@ -63,15 +59,24 @@ suspend fun SessionTransactionItem.toNativeRecentItem(
     id = id,
     amount = formatter.format(amount),
     statusLabel =
-        getString(
+        nativeString(
             when (status) {
                 PendingStatus.Sending,
-                PendingStatus.Resolving -> Res.string.transaction_status_pending
+                PendingStatus.Resolving -> NativeStringResource(
+                    table = "FlintPayment",
+                    key = "transaction_status_pending"
+                )
 
-                PendingStatus.Succeeded -> Res.string.transaction_status_success
+                PendingStatus.Succeeded -> NativeStringResource(
+                    table = "FlintPayment",
+                    key = "transaction_status_success"
+                )
 
                 PendingStatus.OutcomeUnknown,
-                PendingStatus.Failed -> Res.string.transaction_status_failure
+                PendingStatus.Failed -> NativeStringResource(
+                    table = "FlintPayment",
+                    key = "transaction_status_failure"
+                )
             }
         ),
     statusTone = status.nativeStatusTone(),
@@ -79,7 +84,10 @@ suspend fun SessionTransactionItem.toNativeRecentItem(
     supportingText =
         when (status) {
             PendingStatus.Succeeded -> fee?.let {
-                getString(Res.string.transaction_fee, formatter.format(it))
+                nativeString(
+                    NativeStringResource(table = "FlintPayment", key = "transaction_fee"),
+                    formatter.format(it)
+                )
             }
 
             PendingStatus.OutcomeUnknown,

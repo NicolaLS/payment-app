@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -37,7 +38,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
@@ -45,14 +45,10 @@ import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
+import xyz.lilsus.raylsuite.feature.paymentui.R
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 import xyz.lilsus.raylsuite.feature.paymentui.amount.RangeStatus
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.enter_amount_range_max
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.enter_amount_range_min
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.enter_amount_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.pay_button
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +75,7 @@ fun ManualAmountBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(Res.string.enter_amount_title),
+                text = stringResource(R.string.enter_amount_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
@@ -117,7 +113,7 @@ fun ManualAmountBottomSheet(
                     .fillMaxWidth()
                     .testTag(PaymentTestTags.MANUAL_AMOUNT_PAY_BUTTON)
             ) {
-                Text(text = stringResource(Res.string.pay_button))
+                Text(text = stringResource(R.string.pay_button))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -207,12 +203,12 @@ private fun RangeFeedback(rangeStatus: RangeStatus) {
         RangeStatus.InRange, RangeStatus.Unknown -> null
 
         is RangeStatus.BelowMin -> stringResource(
-            Res.string.enter_amount_range_min,
+            R.string.enter_amount_range_min,
             formatter.format(rangeStatus.min)
         )
 
         is RangeStatus.AboveMax -> stringResource(
-            Res.string.enter_amount_range_max,
+            R.string.enter_amount_range_max,
             formatter.format(rangeStatus.max)
         )
     } ?: return
@@ -256,7 +252,7 @@ private fun RangeHint(
         if (min != null) {
             RangePill(
                 label = stringResource(
-                    Res.string.enter_amount_range_min,
+                    R.string.enter_amount_range_min,
                     formatter.format(min)
                 ),
                 onClick = { onRangeClick(min) }
@@ -268,7 +264,7 @@ private fun RangeHint(
         if (max != null) {
             RangePill(
                 label = stringResource(
-                    Res.string.enter_amount_range_max,
+                    R.string.enter_amount_range_max,
                     formatter.format(max)
                 ),
                 onClick = { onRangeClick(max) }

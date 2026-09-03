@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.flint.feature.walletconnection.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.flint.feature.walletconnection"
@@ -15,8 +11,9 @@ kotlin {
         commonMain.dependencies {
             api(project(":flint:application"))
             implementation(project(":core:ui"))
-            implementation(libs.compose.components.resources)
+            implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.androidx.lifecycle.viewmodelCompose)

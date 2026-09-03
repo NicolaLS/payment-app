@@ -1,9 +1,16 @@
 package xyz.lilsus.raylsuite.core.ui.resources
 
+import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.platform.LocalContext
 
-/** Resolves [LocalizedText] inside composition. iOS resolves it with `resolveInCoroutine`. */
+/** Resolves a semantic text key through its owning Android resource mapping. */
 @Composable
-fun LocalizedText.resolve(): String =
-    argument?.let { stringResource(resource, it) } ?: stringResource(resource)
+fun LocalizedText.resolve(resourceId: (LocalizedTextKey) -> Int): String =
+    resolve(LocalContext.current, resourceId)
+
+fun LocalizedText.resolve(context: Context, resourceId: (LocalizedTextKey) -> Int): String {
+    @StringRes val id = resourceId(resource)
+    return argument?.let { context.getString(id, it) } ?: context.getString(id)
+}

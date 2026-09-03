@@ -28,27 +28,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.Res as BlinkContactsRes
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.import_contacts_no_matches
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.import_contacts_search
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_already_added
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_empty
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_import
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_loading
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_select_all
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_selected
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_skip
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_success
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_transactions
+import xyz.lilsus.blip.feature.blinkcontacts.R as BlinkContactsR
+import xyz.lilsus.blip.ui.R as BlipUiR
 import xyz.lilsus.blip.ui.blinkErrorMessageFor
-import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
-import xyz.lilsus.blip.ui.generated.resources.blink_contacts_import
-import xyz.lilsus.blip.ui.generated.resources.blink_contacts_import_hint
-import xyz.lilsus.blip.ui.generated.resources.blink_contacts_title
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListScaffold
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
@@ -60,7 +46,7 @@ fun BlinkContactsImportButton(onClick: () -> Unit, modifier: Modifier = Modifier
         onClick = onClick,
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(stringResource(BlipUiRes.string.blink_contacts_import))
+        Text(stringResource(BlipUiR.string.blink_contacts_import))
     }
 }
 
@@ -86,7 +72,7 @@ fun BlinkContactsImportScreen(
                 title = {
                     Text(
                         stringResource(
-                            BlipUiRes.string.blink_contacts_title
+                            BlipUiR.string.blink_contacts_title
                         )
                     )
                 },
@@ -114,7 +100,7 @@ fun BlinkContactsImportScreen(
         ) {
             Text(
                 text = stringResource(
-                    BlipUiRes.string.blink_contacts_import_hint
+                    BlipUiR.string.blink_contacts_import_hint
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -128,7 +114,7 @@ fun BlinkContactsImportScreen(
                     CircularProgressIndicator()
                     Text(
                         text = stringResource(
-                            BlinkContactsRes.string.settings_wallet_details_import_contacts_loading
+                            BlinkContactsR.string.settings_wallet_details_import_contacts_loading
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -144,7 +130,7 @@ fun BlinkContactsImportScreen(
             ) {
                 Text(
                     text = stringResource(
-                        BlinkContactsRes.string.settings_wallet_details_import_contacts_empty
+                        BlinkContactsR.string.settings_wallet_details_import_contacts_empty
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -156,7 +142,7 @@ fun BlinkContactsImportScreen(
                     isEmpty = state.filteredItems.isEmpty(),
                     emptyMessage =
                         stringResource(
-                            BlinkContactsRes.string.import_contacts_no_matches
+                            BlinkContactsR.string.import_contacts_no_matches
                         ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -166,7 +152,7 @@ fun BlinkContactsImportScreen(
                     onSearchQueryChange = onSearchQueryChange,
                     searchLabel =
                         stringResource(
-                            BlinkContactsRes.string.import_contacts_search
+                            BlinkContactsR.string.import_contacts_search
                         )
                 ) {
                     item {
@@ -216,7 +202,7 @@ private fun BlinkContactsImportBottomBar(
             state.importedCount?.let { count ->
                 Text(
                     text = stringResource(
-                        BlinkContactsRes.string.settings_wallet_details_import_contacts_success,
+                        BlinkContactsR.string.settings_wallet_details_import_contacts_success,
                         count
                     ),
                     style = MaterialTheme.typography.bodySmall,
@@ -225,7 +211,7 @@ private fun BlinkContactsImportBottomBar(
             }
             Text(
                 text = stringResource(
-                    BlinkContactsRes.string.settings_wallet_details_import_contacts_selected,
+                    BlinkContactsR.string.settings_wallet_details_import_contacts_selected,
                     state.selectedCount
                 ),
                 style = MaterialTheme.typography.bodySmall,
@@ -244,7 +230,7 @@ private fun BlinkContactsImportBottomBar(
                 }
                 Text(
                     text = stringResource(
-                        BlinkContactsRes.string.settings_wallet_details_import_contacts_import
+                        BlinkContactsR.string.settings_wallet_details_import_contacts_import
                     )
                 )
             }
@@ -256,7 +242,7 @@ private fun BlinkContactsImportBottomBar(
                 ) {
                     Text(
                         text = stringResource(
-                            BlinkContactsRes.string.settings_wallet_details_import_contacts_skip
+                            BlinkContactsR.string.settings_wallet_details_import_contacts_skip
                         )
                     )
                 }
@@ -294,7 +280,7 @@ private fun SelectAllContactsRow(
         Checkbox(checked = checked, onCheckedChange = null, enabled = enabled)
         Text(
             text = stringResource(
-                BlinkContactsRes.string.settings_wallet_details_import_contacts_select_all
+                BlinkContactsR.string.settings_wallet_details_import_contacts_select_all
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = labelColor,
@@ -302,7 +288,7 @@ private fun SelectAllContactsRow(
         )
         Text(
             text = stringResource(
-                BlinkContactsRes.string.settings_wallet_details_import_contacts_selected,
+                BlinkContactsR.string.settings_wallet_details_import_contacts_selected,
                 selectedCount
             ),
             style = MaterialTheme.typography.bodySmall,
@@ -325,11 +311,11 @@ private fun BlinkContactImportRow(
     }
     val statusText = if (item.alreadyAdded) {
         stringResource(
-            BlinkContactsRes.string.settings_wallet_details_import_contacts_already_added
+            BlinkContactsR.string.settings_wallet_details_import_contacts_already_added
         )
     } else {
         stringResource(
-            BlinkContactsRes.string.settings_wallet_details_import_contacts_transactions,
+            BlinkContactsR.string.settings_wallet_details_import_contacts_transactions,
             item.transactionsCount
         )
     }

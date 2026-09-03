@@ -1,0 +1,673 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "onboarding_add_wallet_dashboard_button" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blink-API-Schlüssel öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Blink API Keys"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Claves API de Blink"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_enter_key_button" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-Schlüssel eingeben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter API key"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingresar clave API"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_intro" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folge diesen vier Schritten im Blink-Dashboard. Blip benötigt Lese- und Schreibzugriff, um deine Wallet zu prüfen und Zahlungen zu senden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow these four steps in the Blink dashboard. Blip needs Read and Write access to check your wallet and send payments."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sigue estos cuatro pasos en el panel de Blink. Blip necesita acceso de Lectura y Escritura para consultar tu billetera y enviar pagos."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_next_step" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weiter"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siguiente"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_previous_step" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorheriger"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anterior"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step_progress" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schritt %1$lld von %2$lld"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Step %1$lld of %2$lld"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paso %1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step1_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melde dich bei deinem Blink-Konto an. E-Mail wird empfohlen, aber nutze die Anmeldemethode, die für dich funktioniert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with your Blink account. Email is recommended, but use whichever login method works for you."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión con tu cuenta Blink. Recomendamos usar el correo, pero puedes usar el método que te funcione."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step1_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bei Blink anmelden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to Blink"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicia sesión en Blink"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step2_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach der Anmeldung öffnet das Dashboard die API-Schlüssel. Tippe auf +, um einen neuen Schlüssel zu erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After signing in, the dashboard opens API Keys. Tap + to create a new key."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Después de iniciar sesión, el panel abre Claves API. Toca + para crear una clave nueva."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step2_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API-Schlüssel hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add an API key"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade una clave API"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step3_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle einen Namen und eine Ablaufzeit und aktiviere Lesen und Schreiben. Tippe dann auf Erstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a name and expiry, and enable Read and Write access. Then tap Create."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un nombre y una fecha de caducidad, y activa Lectura y Escritura. Luego toca Crear."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step3_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüssel konfigurieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure the key"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configura la clave"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step4_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiere den mit blink_ beginnenden Wert vor dem Schließen. Kehre zu Blip zurück und füge ihn auf dem nächsten Bildschirm ein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the value beginning with blink_ before closing. Return to Blip and paste it on the next screen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia el valor que comienza con blink_ antes de cerrar. Regresa a Blip y pégalo en la siguiente pantalla."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step4_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geheimen Schlüssel sofort kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy the secret once"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia el secreto de inmediato"
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde deine Blink-Wallet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect your Blink wallet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecta tu billetera Blink"
+          }
+        }
+      }
+    },
+    "onboarding_agreement_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Nutzung von Blip erfolgt auf eigenes Risiko. Diese App verbindet sich mit deiner eigenen Lightning-Wallet — du bist vollständig verantwortlich für die Gelder in deiner Wallet und alle getätigten Zahlungen.\n\nWir empfehlen dringend, Wallets mit kleinem Guthaben zu verbinden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Using Blip is at your own risk. This app connects to your own Lightning wallet — you are fully responsible for the funds in your wallet and any payments made.\n\nWe strongly recommend connecting wallets with small spending balances."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar Blip es bajo tu propio riesgo. Esta app se conecta a tu propia billetera Lightning — eres totalmente responsable de los fondos en tu billetera y de cualquier pago realizado.\n\nRecomendamos encarecidamente conectar billeteras con saldos pequeños."
+          }
+        }
+      }
+    },
+    "onboarding_autopay_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle aus, wann Blip vor einer Zahlung um Bestätigung bitten soll."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose when Blip should ask for confirmation before paying."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige cuándo Blip debe pedir confirmación antes de pagar."
+          }
+        }
+      }
+    },
+    "onboarding_features_page1_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blip scannt im Hintergrund für einen reibungslosen Checkout. Richte auf den Code, warte kurz, fertig."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blip scans in the background so checkout stays smooth. Aim at the code, wait a beat, and you’re good."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blip escanea en segundo plano para un pago fluido. Apunta al código, espera un momento y listo."
+          }
+        }
+      }
+    },
+    "onboarding_features_page1_subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es funktioniert — auch wenn du die Kamera nicht siehst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It’s working — even if you can’t see the camera."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Está funcionando — aunque no veas la cámara."
+          }
+        }
+      }
+    },
+    "onboarding_features_page1_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leiser Scanner, schnelle Ergebnisse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quiet scanner, quick results"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Escáner silencioso, resultados rápidos"
+          }
+        }
+      }
+    },
+    "onboarding_features_page2_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege ein Limit fest, mit dem du dich wohlfühlst. Für alles darüber fragt Blip vor der Zahlung nach."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set a limit you’re comfortable with. For anything above it, Blip will ask before paying."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Establece un límite con el que te sientas cómodo. Para cualquier monto superior, Blip preguntará antes de pagar."
+          }
+        }
+      }
+    },
+    "onboarding_features_page2_subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kleine Beträge sofort bezahlen — ohne zusätzliche Taps."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay small amounts instantly — no extra taps."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paga montos pequeños al instante — sin toques adicionales."
+          }
+        }
+      }
+    },
+    "onboarding_features_page2_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Pay, deine Regeln"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Pay, your rules"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto Pay, tus reglas"
+          }
+        }
+      }
+    },
+    "onboarding_features_page3_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinde deine vorhandene Blink-Wallet. Blip konzentriert sich auf schnelle Zahlungen vor Ort — alles andere bleibt in deiner Wallet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect the Blink wallet you already use. Blip focuses on fast in-person payments — everything else stays in your wallet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conecta la billetera Blink que ya usas. Blip se enfoca en pagos rápidos en persona — todo lo demás permanece en tu billetera."
+          }
+        }
+      }
+    },
+    "onboarding_features_page3_subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blip ist nur die Checkout-Abkürzung."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blip is the checkout shortcut."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blip es solo el atajo para pagar."
+          }
+        }
+      }
+    },
+    "onboarding_features_page3_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Wallet bleibt deine Wallet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your wallet stays your wallet"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu billetera sigue siendo tu billetera"
+          }
+        }
+      }
+    },
+    "onboarding_welcome_subtitle_line1" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "von Bitcoin Coast"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "by Bitcoin Coast"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "por Bitcoin Coast"
+          }
+        }
+      }
+    },
+    "onboarding_welcome_subtitle_line2" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der schnellste Weg, mit deiner vorhandenen Blink-Wallet zu bezahlen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The quickest way to pay with the Blink wallet you already use."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La forma más rápida de pagar con la billetera Blink que ya usas."
+          }
+        }
+      }
+    },
+    "onboarding_welcome_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Willkommen bei Blip"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Welcome to Blip"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bienvenido a Blip"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -2,11 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.blip.ui.generated.resources"
-    publicResClass = true
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.blip.ui"
@@ -15,7 +10,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":blip:integration:blink"))
-            implementation(libs.compose.components.resources)
+            implementation(project(":core:ui"))
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.compose.runtime)

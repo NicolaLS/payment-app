@@ -24,33 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.Res
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_alias_label
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_cancel
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_confirm
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_description
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_encryption
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_encryption_active
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_lud16
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_methods
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_pubkey
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_details_relay
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_loading
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_required_methods
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_retry
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_title
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_heading
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_legacy_nip04
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_legacy_nip04_default
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_missing_lookup_invoice
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_missing_nip44
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.connect_wallet_warning_missing_pay_invoice
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.keyboard_done
+import xyz.lilsus.lasr.feature.walletconnection.R
 import xyz.lilsus.lasr.integration.nwc.NwcWalletDiscovery
 import xyz.lilsus.raylsuite.core.ui.keyboard.doneKeyboardPlatformImeOptions
 
@@ -65,7 +44,7 @@ fun ConnectNwcWalletDialog(
     AlertDialog(
         modifier = Modifier.testTag(NwcWalletConnectionTestTags.CONFIRM_DIALOG),
         onDismissRequest = onCancel,
-        title = { Text(stringResource(Res.string.connect_wallet_title)) },
+        title = { Text(stringResource(R.string.connect_wallet_title)) },
         text = {
             ConnectDialogContent(
                 state = state,
@@ -94,7 +73,7 @@ fun ConnectNwcWalletDialog(
                         strokeWidth = 2.dp
                     )
                 }
-                Text(stringResource(Res.string.connect_wallet_confirm))
+                Text(stringResource(R.string.connect_wallet_confirm))
             }
         },
         dismissButton = {
@@ -105,7 +84,7 @@ fun ConnectNwcWalletDialog(
                         NwcWalletConnectionTestTags.DIALOG_CANCEL_BUTTON
                     )
             ) {
-                Text(stringResource(Res.string.connect_wallet_cancel))
+                Text(stringResource(R.string.connect_wallet_cancel))
             }
         }
     )
@@ -125,7 +104,7 @@ private fun ConnectDialogContent(
                 .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(stringResource(Res.string.connect_wallet_description))
+        Text(stringResource(R.string.connect_wallet_description))
         state.discovery?.let { discovery ->
             WarningSection(discovery)
         }
@@ -154,7 +133,7 @@ private fun ConnectDialogContent(
                                 NwcWalletConnectionTestTags.DIALOG_RETRY_BUTTON
                             )
                     ) {
-                        Text(stringResource(Res.string.connect_wallet_retry))
+                        Text(stringResource(R.string.connect_wallet_retry))
                     }
                 }
             }
@@ -176,7 +155,7 @@ private fun DiscoveryLoading() {
             modifier = Modifier.size(20.dp),
             strokeWidth = 2.dp
         )
-        Text(stringResource(Res.string.connect_wallet_loading))
+        Text(stringResource(R.string.connect_wallet_loading))
     }
 }
 
@@ -185,7 +164,7 @@ private fun DiscoveryDetails(state: ConnectNwcWalletUiState, onAliasChange: (Str
     val discovery = state.discovery ?: return
     val focusManager = LocalFocusManager.current
     val finishAliasEditing = { focusManager.clearFocus(force = true) }
-    val doneLabel = stringResource(Res.string.keyboard_done)
+    val doneLabel = stringResource(R.string.keyboard_done)
 
     Column(
         modifier = Modifier.testTag(NwcWalletConnectionTestTags.DIALOG_DETAILS),
@@ -194,7 +173,7 @@ private fun DiscoveryDetails(state: ConnectNwcWalletUiState, onAliasChange: (Str
         OutlinedTextField(
             value = state.alias,
             onValueChange = onAliasChange,
-            label = { Text(stringResource(Res.string.connect_wallet_alias_label)) },
+            label = { Text(stringResource(R.string.connect_wallet_alias_label)) },
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -218,18 +197,18 @@ private fun DiscoveryDetails(state: ConnectNwcWalletUiState, onAliasChange: (Str
 
         WalletSummary(discovery)
         CapabilitySection(
-            title = stringResource(Res.string.connect_wallet_details_methods),
+            title = stringResource(R.string.connect_wallet_details_methods),
             values = discovery.metadata.methods
         )
         CapabilitySection(
-            title = stringResource(Res.string.connect_wallet_details_encryption),
+            title = stringResource(R.string.connect_wallet_details_encryption),
             values = discovery.metadata.encryptionSchemes
         )
         discovery.metadata.negotiatedEncryption?.let { scheme ->
             Text(
                 text =
                     stringResource(
-                        Res.string.connect_wallet_details_encryption_active,
+                        R.string.connect_wallet_details_encryption_active,
                         formatEncryptionScheme(scheme)
                     ),
                 style = MaterialTheme.typography.bodySmall,
@@ -243,7 +222,7 @@ private fun DiscoveryDetails(state: ConnectNwcWalletUiState, onAliasChange: (Str
 private fun WalletSummary(discovery: NwcWalletDiscovery) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = stringResource(Res.string.connect_wallet_details_pubkey),
+            text = stringResource(R.string.connect_wallet_details_pubkey),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -256,7 +235,7 @@ private fun WalletSummary(discovery: NwcWalletDiscovery) {
         discovery.relayUrl?.let { relay ->
             Spacer(Modifier.size(4.dp))
             Text(
-                text = stringResource(Res.string.connect_wallet_details_relay),
+                text = stringResource(R.string.connect_wallet_details_relay),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -270,7 +249,7 @@ private fun WalletSummary(discovery: NwcWalletDiscovery) {
         discovery.lightningAddress?.let { address ->
             Spacer(Modifier.size(4.dp))
             Text(
-                text = stringResource(Res.string.connect_wallet_details_lud16),
+                text = stringResource(R.string.connect_wallet_details_lud16),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -308,19 +287,19 @@ private fun WarningSection(discovery: NwcWalletDiscovery) {
     val warnings =
         buildList {
             if (!discovery.supportsRequiredMethods) {
-                add(stringResource(Res.string.connect_wallet_required_methods))
+                add(stringResource(R.string.connect_wallet_required_methods))
             }
             if (!discovery.supportsPayInvoice) {
                 add(
                     stringResource(
-                        Res.string.connect_wallet_warning_missing_pay_invoice
+                        R.string.connect_wallet_warning_missing_pay_invoice
                     )
                 )
             }
             if (!discovery.supportsLookupInvoice) {
                 add(
                     stringResource(
-                        Res.string.connect_wallet_warning_missing_lookup_invoice
+                        R.string.connect_wallet_warning_missing_lookup_invoice
                     )
                 )
             }
@@ -329,21 +308,21 @@ private fun WarningSection(discovery: NwcWalletDiscovery) {
                     discovery.metadata.encryptionDefaultedToNip04 ->
                     add(
                         stringResource(
-                            Res.string.connect_wallet_warning_legacy_nip04_default
+                            R.string.connect_wallet_warning_legacy_nip04_default
                         )
                     )
 
                 discovery.usesLegacyEncryption ->
                     add(
                         stringResource(
-                            Res.string.connect_wallet_warning_legacy_nip04
+                            R.string.connect_wallet_warning_legacy_nip04
                         )
                     )
 
                 !discovery.supportsNip44 ->
                     add(
                         stringResource(
-                            Res.string.connect_wallet_warning_missing_nip44
+                            R.string.connect_wallet_warning_missing_nip44
                         )
                     )
             }
@@ -363,7 +342,7 @@ private fun WarningSection(discovery: NwcWalletDiscovery) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = stringResource(Res.string.connect_wallet_warning_heading),
+                text = stringResource(R.string.connect_wallet_warning_heading),
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 style = MaterialTheme.typography.labelMedium
             )

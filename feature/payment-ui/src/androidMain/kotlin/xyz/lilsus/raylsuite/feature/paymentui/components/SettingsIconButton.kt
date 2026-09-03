@@ -12,11 +12,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.settings_title
+import xyz.lilsus.raylsuite.feature.paymentui.R
 
 @Composable
 fun SettingsIconButton(onNavigateSettings: () -> Unit, modifier: Modifier = Modifier) {
@@ -35,7 +34,7 @@ fun SettingsIconButton(onNavigateSettings: () -> Unit, modifier: Modifier = Modi
         ) {
             Icon(
                 imageVector = Icons.Filled.Settings,
-                contentDescription = stringResource(Res.string.settings_title)
+                contentDescription = stringResource(R.string.settings_title)
             )
         }
     }

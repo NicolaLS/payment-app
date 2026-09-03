@@ -25,33 +25,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.ui.components.AppFadingLazyColumn
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.platform.appVersionName
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency_subtitle
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_privacy
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_repo
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_terms
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_version
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_subtitle
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments_subtitle
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_performance_diagnostics
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_performance_diagnostics_subtitle
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme_subtitle
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_title
+import xyz.lilsus.raylsuite.feature.settings.R
 
 @Immutable
 data class SettingsEntry(
@@ -89,37 +74,37 @@ fun SettingsScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val resolvedCurrencySubtitle =
-        currencySubtitle ?: stringResource(Res.string.settings_currency_subtitle)
+        currencySubtitle ?: stringResource(R.string.settings_currency_subtitle)
     val resolvedLanguageSubtitle =
-        languageSubtitle ?: stringResource(Res.string.settings_language_subtitle)
+        languageSubtitle ?: stringResource(R.string.settings_language_subtitle)
     val resolvedThemeSubtitle =
-        themeSubtitle ?: stringResource(Res.string.settings_theme_subtitle)
+        themeSubtitle ?: stringResource(R.string.settings_theme_subtitle)
     val sharedEntries =
         listOf(
             SettingsEntry(
                 id = "payments",
-                title = stringResource(Res.string.settings_payments),
-                subtitle = stringResource(Res.string.settings_payments_subtitle),
+                title = stringResource(R.string.settings_payments),
+                subtitle = stringResource(R.string.settings_payments_subtitle),
                 testTag = SettingsTestTags.PAYMENTS_ROW,
                 onClick = onPayments
             ),
             SettingsEntry(
                 id = "currency",
-                title = stringResource(Res.string.settings_currency),
+                title = stringResource(R.string.settings_currency),
                 subtitle = resolvedCurrencySubtitle,
                 testTag = SettingsTestTags.CURRENCY_ROW,
                 onClick = onCurrency
             ),
             SettingsEntry(
                 id = "language",
-                title = stringResource(Res.string.settings_language),
+                title = stringResource(R.string.settings_language),
                 subtitle = resolvedLanguageSubtitle,
                 testTag = SettingsTestTags.LANGUAGE_ROW,
                 onClick = onLanguage
             ),
             SettingsEntry(
                 id = "theme",
-                title = stringResource(Res.string.settings_theme),
+                title = stringResource(R.string.settings_theme),
                 subtitle = resolvedThemeSubtitle,
                 testTag = SettingsTestTags.THEME_ROW,
                 onClick = onTheme
@@ -140,7 +125,7 @@ fun SettingsScreen(
         modifier = modifier.testTag(SettingsTestTags.SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.settings_title)) },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     onBack?.let { back -> BackIconButton(onClick = back) }
                 },
@@ -203,12 +188,12 @@ private fun PerformanceDiagnosticsRow(enabled: Boolean, onEnabledChanged: (Boole
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(Res.string.settings_performance_diagnostics),
+                text = stringResource(R.string.settings_performance_diagnostics),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = stringResource(Res.string.settings_performance_diagnostics_subtitle),
+                text = stringResource(R.string.settings_performance_diagnostics_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp)
@@ -267,7 +252,7 @@ private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
         Text(
             text =
                 stringResource(
-                    Res.string.settings_footer_version,
+                    R.string.settings_footer_version,
                     appVersionName()
                 ),
             style = MaterialTheme.typography.labelSmall,
@@ -277,7 +262,7 @@ private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             legalLinks.privacyPolicyUrl?.let { privacyPolicyUrl ->
                 Text(
-                    text = stringResource(Res.string.settings_footer_privacy),
+                    text = stringResource(R.string.settings_footer_privacy),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { uriHandler.openUri(privacyPolicyUrl) }
@@ -285,14 +270,14 @@ private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
             }
             legalLinks.termsUrl?.let { termsUrl ->
                 Text(
-                    text = stringResource(Res.string.settings_footer_terms),
+                    text = stringResource(R.string.settings_footer_terms),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { uriHandler.openUri(termsUrl) }
                 )
             }
             Text(
-                text = stringResource(Res.string.settings_footer_repo),
+                text = stringResource(R.string.settings_footer_repo),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 modifier =

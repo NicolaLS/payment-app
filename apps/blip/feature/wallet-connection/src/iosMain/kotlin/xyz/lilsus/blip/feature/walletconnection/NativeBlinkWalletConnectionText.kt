@@ -1,15 +1,7 @@
 package xyz.lilsus.blip.feature.walletconnection
 
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.Res
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_api_key_label
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_api_key_placeholder
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_connect
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_description
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_hide_api_key
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_paste
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_show_api_key
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_title
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 
 data class NativeBlinkWalletConnectionText(
     val title: String,
@@ -24,12 +16,43 @@ data class NativeBlinkWalletConnectionText(
 
 suspend fun nativeBlinkWalletConnectionText(): NativeBlinkWalletConnectionText =
     NativeBlinkWalletConnectionText(
-        title = getString(Res.string.add_blink_wallet_title),
-        description = getString(Res.string.add_blink_wallet_description),
-        apiKeyLabel = getString(Res.string.add_blink_wallet_api_key_label),
-        apiKeyPlaceholder = getString(Res.string.add_blink_wallet_api_key_placeholder),
-        showApiKey = getString(Res.string.add_blink_wallet_show_api_key),
-        hideApiKey = getString(Res.string.add_blink_wallet_hide_api_key),
-        paste = getString(Res.string.add_blink_wallet_paste),
-        connect = getString(Res.string.add_blink_wallet_connect)
+        title = nativeString(
+            NativeStringResource(table = "BlipWalletConnection", key = "add_blink_wallet_title")
+        ),
+        description = nativeString(
+            NativeStringResource(
+                table = "BlipWalletConnection",
+                key = "add_blink_wallet_description"
+            )
+        ),
+        apiKeyLabel = nativeString(
+            NativeStringResource(
+                table = "BlipWalletConnection",
+                key = "add_blink_wallet_api_key_label"
+            )
+        ),
+        apiKeyPlaceholder = nativeString(
+            NativeStringResource(
+                table = "BlipWalletConnection",
+                key = "add_blink_wallet_api_key_placeholder"
+            )
+        ),
+        showApiKey = nativeString(
+            NativeStringResource(
+                table = "BlipWalletConnection",
+                key = "add_blink_wallet_show_api_key"
+            )
+        ),
+        hideApiKey = nativeString(
+            NativeStringResource(
+                table = "BlipWalletConnection",
+                key = "add_blink_wallet_hide_api_key"
+            )
+        ),
+        paste = nativeString(
+            NativeStringResource(table = "BlipWalletConnection", key = "add_blink_wallet_paste")
+        ),
+        connect = nativeString(
+            NativeStringResource(table = "BlipWalletConnection", key = "add_blink_wallet_connect")
+        )
     )

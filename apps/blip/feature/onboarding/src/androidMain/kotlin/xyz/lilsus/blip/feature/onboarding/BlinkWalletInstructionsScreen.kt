@@ -1,5 +1,6 @@
 package xyz.lilsus.blip.feature.onboarding
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -31,33 +32,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.onboarding.generated.resources.Res
-import xyz.lilsus.blip.feature.onboarding.generated.resources.blink_dashboard_api_keys
-import xyz.lilsus.blip.feature.onboarding.generated.resources.blink_dashboard_copy_key
-import xyz.lilsus.blip.feature.onboarding.generated.resources.blink_dashboard_email
-import xyz.lilsus.blip.feature.onboarding.generated.resources.blink_dashboard_key_settings
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_dashboard_button
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_enter_key_button
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_intro
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_next_step
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_previous_step
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step1_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step1_title
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step2_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step2_title
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step3_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step3_title
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step4_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step4_title
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_step_progress
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_add_wallet_title
+import xyz.lilsus.blip.feature.onboarding.R
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingScaffold
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingTestTags
 
@@ -87,13 +68,13 @@ fun BlinkWalletInstructionsScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(Res.string.onboarding_add_wallet_title),
+                text = stringResource(R.string.onboarding_add_wallet_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = stringResource(Res.string.onboarding_add_wallet_intro),
+                text = stringResource(R.string.onboarding_add_wallet_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -127,12 +108,12 @@ fun BlinkWalletInstructionsScreen(
                     },
                     enabled = pagerState.currentPage > 0
                 ) {
-                    Text(stringResource(Res.string.onboarding_add_wallet_previous_step))
+                    Text(stringResource(R.string.onboarding_add_wallet_previous_step))
                 }
                 Text(
                     text =
                         stringResource(
-                            Res.string.onboarding_add_wallet_step_progress,
+                            R.string.onboarding_add_wallet_step_progress,
                             pagerState.currentPage + 1,
                             pages.size
                         ),
@@ -147,7 +128,7 @@ fun BlinkWalletInstructionsScreen(
                     },
                     enabled = pagerState.currentPage < pages.lastIndex
                 ) {
-                    Text(stringResource(Res.string.onboarding_add_wallet_next_step))
+                    Text(stringResource(R.string.onboarding_add_wallet_next_step))
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -156,7 +137,7 @@ fun BlinkWalletInstructionsScreen(
                 onClick = { uriHandler.openUri(BLINK_DASHBOARD_URL) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(stringResource(Res.string.onboarding_add_wallet_dashboard_button))
+                Text(stringResource(R.string.onboarding_add_wallet_dashboard_button))
             }
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
@@ -166,7 +147,7 @@ fun BlinkWalletInstructionsScreen(
                         .fillMaxWidth()
                         .testTag(OnboardingTestTags.WALLET_INSTRUCTIONS_CONTINUE)
             ) {
-                Text(stringResource(Res.string.onboarding_add_wallet_enter_key_button))
+                Text(stringResource(R.string.onboarding_add_wallet_enter_key_button))
             }
         }
     }
@@ -249,29 +230,30 @@ private fun BlinkDashboardInstructionCard(
 @Composable
 private fun blinkDashboardInstructionPages(): List<BlinkDashboardInstructionPage> = listOf(
     BlinkDashboardInstructionPage(
-        image = Res.drawable.blink_dashboard_email,
-        title = stringResource(Res.string.onboarding_add_wallet_step1_title),
-        body = stringResource(Res.string.onboarding_add_wallet_step1_body)
+        image = R.drawable.blink_dashboard_email,
+        title = stringResource(R.string.onboarding_add_wallet_step1_title),
+        body = stringResource(R.string.onboarding_add_wallet_step1_body)
     ),
     BlinkDashboardInstructionPage(
-        image = Res.drawable.blink_dashboard_api_keys,
-        title = stringResource(Res.string.onboarding_add_wallet_step2_title),
-        body = stringResource(Res.string.onboarding_add_wallet_step2_body)
+        image = R.drawable.blink_dashboard_api_keys,
+        title = stringResource(R.string.onboarding_add_wallet_step2_title),
+        body = stringResource(R.string.onboarding_add_wallet_step2_body)
     ),
     BlinkDashboardInstructionPage(
-        image = Res.drawable.blink_dashboard_key_settings,
-        title = stringResource(Res.string.onboarding_add_wallet_step3_title),
-        body = stringResource(Res.string.onboarding_add_wallet_step3_body)
+        image = R.drawable.blink_dashboard_key_settings,
+        title = stringResource(R.string.onboarding_add_wallet_step3_title),
+        body = stringResource(R.string.onboarding_add_wallet_step3_body)
     ),
     BlinkDashboardInstructionPage(
-        image = Res.drawable.blink_dashboard_copy_key,
-        title = stringResource(Res.string.onboarding_add_wallet_step4_title),
-        body = stringResource(Res.string.onboarding_add_wallet_step4_body)
+        image = R.drawable.blink_dashboard_copy_key,
+        title = stringResource(R.string.onboarding_add_wallet_step4_title),
+        body = stringResource(R.string.onboarding_add_wallet_step4_body)
     )
 )
 
 private data class BlinkDashboardInstructionPage(
-    val image: DrawableResource,
+    @DrawableRes
+    val image: Int,
     val title: String,
     val body: String
 )

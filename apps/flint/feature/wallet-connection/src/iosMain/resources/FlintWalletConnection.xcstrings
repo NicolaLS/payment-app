@@ -1,0 +1,666 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "wallet_brand": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FLINT / 01"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FLINT / 01"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FLINT / 01"
+          }
+        }
+      }
+    },
+    "wallet_cancel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CANCEL"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ABBRECHEN"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CANCELAR"
+          }
+        }
+      }
+    },
+    "wallet_credential_corrupt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The protected recovery phrase or its device key is inconsistent."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die geschützte Wiederherstellungsphrase oder ihr Geräteschlüssel ist inkonsistent."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La frase de recuperación protegida o su clave del dispositivo son inconsistentes."
+          }
+        }
+      }
+    },
+    "wallet_credential_invalidated": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device security changed and the protected recovery phrase can no longer be decrypted."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Gerätesicherheit wurde geändert und die geschützte Wiederherstellungsphrase kann nicht mehr entschlüsselt werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La seguridad del dispositivo cambió y la frase de recuperación protegida ya no se puede descifrar."
+          }
+        }
+      }
+    },
+    "wallet_credential_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet credential unavailable."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet-Anmeldedaten nicht verfügbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credencial de la billetera no disponible."
+          }
+        }
+      }
+    },
+    "wallet_credential_unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The protected recovery phrase is temporarily unavailable. Unlock the device and retry."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die geschützte Wiederherstellungsphrase ist vorübergehend nicht verfügbar. Entsperre das Gerät und versuche es erneut."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La frase de recuperación protegida no está disponible temporalmente. Desbloquea el dispositivo y vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "wallet_error_already_configured": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A wallet is already configured. Remove it before importing another."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Wallet ist bereits eingerichtet. Entferne sie, bevor du eine andere importierst."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya hay una billetera configurada. Quítala antes de importar otra."
+          }
+        }
+      }
+    },
+    "wallet_error_connection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not open this wallet. Check the recovery phrase and internet connection, then try again."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Wallet konnte nicht geöffnet werden. Prüfe die Wiederherstellungsphrase und Internetverbindung und versuche es erneut."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir esta billetera. Revisa la frase de recuperación y la conexión a internet, e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "wallet_error_invalid_mnemonic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a valid 12, 15, 18, 21, or 24 word recovery phrase."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib eine gültige Wiederherstellungsphrase mit 12, 15, 18, 21 oder 24 Wörtern ein."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingresa una frase de recuperación válida de 12, 15, 18, 21 o 24 palabras."
+          }
+        }
+      }
+    },
+    "wallet_error_reset": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cleanup is incomplete. Retry reset before importing another wallet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Bereinigung ist unvollständig. Wiederhole das Zurücksetzen, bevor du eine andere Wallet importierst."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La limpieza está incompleta. Reintenta el restablecimiento antes de importar otra billetera."
+          }
+        }
+      }
+    },
+    "wallet_error_storage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The wallet opened, but its recovery phrase could not be protected on this device."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Wallet wurde geöffnet, aber ihre Wiederherstellungsphrase konnte auf diesem Gerät nicht geschützt werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La billetera se abrió, pero su frase de recuperación no se pudo proteger en este dispositivo."
+          }
+        }
+      }
+    },
+    "wallet_import_action": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IMPORT WALLET"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WALLET IMPORTIEREN"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IMPORTAR BILLETERA"
+          }
+        }
+      }
+    },
+    "wallet_import_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importing a recovery phrase gives Flint spending authority. Keep your primary wallet installed for recovery and full wallet management."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durch den Import einer Wiederherstellungsphrase erhält Flint Ausgabeberechtigung. Behalte deine primäre Wallet für Wiederherstellung und vollständige Verwaltung installiert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar una frase de recuperación otorga a Flint autorización para gastar. Conserva tu billetera principal instalada para recuperar y administrar la billetera por completo."
+          }
+        }
+      }
+    },
+    "wallet_import_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect your\npayment wallet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zahlungs-Wallet\nverbinden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecta tu billetera\nde pagos."
+          }
+        }
+      }
+    },
+    "wallet_phrase_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "twelve or twenty-four words…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zwölf oder vierundzwanzig Wörter…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "doce o veinticuatro palabras…"
+          }
+        }
+      }
+    },
+    "wallet_phrase_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BIP39 recovery phrase"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BIP39-Wiederherstellungsphrase"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frase de recuperación BIP39"
+          }
+        }
+      }
+    },
+    "wallet_progress_connecting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting wallet…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet wird verbunden…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conectando billetera…"
+          }
+        }
+      }
+    },
+    "wallet_progress_loading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking wallet access…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet-Zugriff wird geprüft…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprobando acceso a la billetera…"
+          }
+        }
+      }
+    },
+    "wallet_progress_removing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removing local wallet access…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lokaler Wallet-Zugriff wird entfernt…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitando acceso local a la billetera…"
+          }
+        }
+      }
+    },
+    "wallet_progress_working": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird verarbeitet…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procesando…"
+          }
+        }
+      }
+    },
+    "wallet_reconnect_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint still has the recovery phrase securely stored. Check your internet connection and retry, or remove the wallet from Flint."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint hat die Wiederherstellungsphrase weiterhin sicher gespeichert. Prüfe deine Internetverbindung und versuche es erneut oder entferne die Wallet aus Flint."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint todavía tiene guardada la frase de recuperación de forma segura. Revisa tu conexión a internet y vuelve a intentarlo, o quita la billetera de Flint."
+          }
+        }
+      }
+    },
+    "wallet_reconnect_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not open this wallet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Wallet konnte nicht geöffnet werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir esta billetera."
+          }
+        }
+      }
+    },
+    "wallet_remove_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This deletes its protected phrase, payment activity, and local SDK data."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dadurch werden die geschützte Phrase, Zahlungsaktivitäten und lokale SDK-Daten gelöscht."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto elimina la frase protegida, la actividad de pagos y los datos locales del SDK."
+          }
+        }
+      }
+    },
+    "wallet_remove_confirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CONFIRM REMOVAL"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ENTFERNEN BESTÄTIGEN"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CONFIRMAR ELIMINACIÓN"
+          }
+        }
+      }
+    },
+    "wallet_remove_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove this wallet from Flint?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Wallet aus Flint entfernen?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quitar esta billetera de Flint?"
+          }
+        }
+      }
+    },
+    "wallet_reset_action": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REMOVE WALLET FROM FLINT"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WALLET AUS FLINT ENTFERNEN"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QUITAR BILLETERA DE FLINT"
+          }
+        }
+      }
+    },
+    "wallet_reset_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry cleanup before importing another wallet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederhole die Bereinigung, bevor du eine andere Wallet importierst."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintenta la limpieza antes de importar otra billetera."
+          }
+        }
+      }
+    },
+    "wallet_reset_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet cleanup is incomplete."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Wallet-Bereinigung ist unvollständig."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La limpieza de la billetera está incompleta."
+          }
+        }
+      }
+    },
+    "wallet_retry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RETRY"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ERNEUT VERSUCHEN"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REINTENTAR"
+          }
+        }
+      }
+    },
+    "wallet_storage_note": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protected using this device's secure credential storage."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit dem sicheren Anmeldedatenspeicher dieses Geräts geschützt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protegida con el almacenamiento seguro de credenciales de este dispositivo."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

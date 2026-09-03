@@ -13,11 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_welcome_get_started
+import xyz.lilsus.raylsuite.feature.onboarding.R
 
 @Composable
 fun WelcomeScreen(
@@ -77,7 +76,7 @@ fun WelcomeScreen(
                         .fillMaxWidth()
                         .testTag(OnboardingTestTags.WELCOME_CONTINUE)
             ) {
-                Text(stringResource(Res.string.onboarding_welcome_get_started))
+                Text(stringResource(R.string.onboarding_welcome_get_started))
             }
         }
     }

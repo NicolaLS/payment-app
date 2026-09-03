@@ -15,15 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.decodeToImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.lnurl_payment_image_description
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.lnurl_payment_recipient
+import xyz.lilsus.raylsuite.feature.paymentui.R
 
 @Composable
 internal fun LnurlPayReviewSection(display: LnurlPayDisplay, modifier: Modifier = Modifier) {
@@ -40,7 +38,7 @@ internal fun LnurlPayReviewSection(display: LnurlPayDisplay, modifier: Modifier 
                 Image(
                     bitmap = it,
                     contentDescription =
-                        stringResource(Res.string.lnurl_payment_image_description),
+                        stringResource(R.string.lnurl_payment_image_description),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(56.dp),
                     alignment = Alignment.Center
@@ -52,7 +50,7 @@ internal fun LnurlPayReviewSection(display: LnurlPayDisplay, modifier: Modifier 
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = stringResource(Res.string.lnurl_payment_recipient, display.domain),
+                text = stringResource(R.string.lnurl_payment_recipient, display.domain),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,

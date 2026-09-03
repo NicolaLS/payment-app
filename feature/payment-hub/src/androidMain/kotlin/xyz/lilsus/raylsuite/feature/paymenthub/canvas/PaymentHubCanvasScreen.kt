@@ -50,34 +50,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_add
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_add_all_placed
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_add_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_arrange
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_compact
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_done
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_empty_body
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_move_earlier
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_move_later
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_open_group
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_pay
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_remove
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_reset
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_wide
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_add_target
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_empty_body
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_empty_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_title
+import xyz.lilsus.raylsuite.feature.paymenthub.R
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubTestTags
 import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
 import xyz.lilsus.raylsuite.feature.paymenthub.render.PaymentHubRenderState
@@ -121,7 +103,7 @@ fun PaymentHubCanvasScreen(
         modifier = modifier.testTag(PaymentHubTestTags.CANVAS),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.hub_library_title)) },
+                title = { Text(stringResource(R.string.hub_library_title)) },
                 actions = {
                     if (arranging) {
                         IconButton(onClick = {
@@ -129,17 +111,17 @@ fun PaymentHubCanvasScreen(
                         }, enabled = placeable.isNotEmpty()) {
                             Icon(
                                 imageVector = Icons.Filled.Add,
-                                contentDescription = stringResource(Res.string.hub_canvas_add)
+                                contentDescription = stringResource(R.string.hub_canvas_add)
                             )
                         }
                         IconButton(onClick = onResetLayout, enabled = layout.tiles.isNotEmpty()) {
                             Icon(
                                 imageVector = Icons.Filled.RestartAlt,
-                                contentDescription = stringResource(Res.string.hub_canvas_reset)
+                                contentDescription = stringResource(R.string.hub_canvas_reset)
                             )
                         }
                         TextButton(onClick = { arranging = false }) {
-                            Text(stringResource(Res.string.hub_canvas_done))
+                            Text(stringResource(R.string.hub_canvas_done))
                         }
                     } else {
                         IconButton(
@@ -149,7 +131,7 @@ fun PaymentHubCanvasScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Tune,
-                                contentDescription = stringResource(Res.string.hub_canvas_arrange)
+                                contentDescription = stringResource(R.string.hub_canvas_arrange)
                             )
                         }
                         IconButton(
@@ -158,7 +140,7 @@ fun PaymentHubCanvasScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Edit,
-                                contentDescription = stringResource(Res.string.hub_library_title)
+                                contentDescription = stringResource(R.string.hub_library_title)
                             )
                         }
                     }
@@ -271,7 +253,7 @@ private fun CanvasItemTile(
     val item = tile.item
     val description =
         stringResource(
-            if (item.isGroup) Res.string.hub_canvas_open_group else Res.string.hub_canvas_pay,
+            if (item.isGroup) R.string.hub_canvas_open_group else R.string.hub_canvas_pay,
             item.title
         )
     Surface(
@@ -344,9 +326,9 @@ private fun CanvasItemTile(
                             contentDescription =
                                 stringResource(
                                     if (tile.size == CanvasTileSize.Wide) {
-                                        Res.string.hub_canvas_compact
+                                        R.string.hub_canvas_compact
                                     } else {
-                                        Res.string.hub_canvas_wide
+                                        R.string.hub_canvas_wide
                                     }
                                 )
                         )
@@ -354,7 +336,7 @@ private fun CanvasItemTile(
                     IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(Res.string.hub_canvas_remove)
+                            contentDescription = stringResource(R.string.hub_canvas_remove)
                         )
                     }
                     IconButton(
@@ -364,7 +346,7 @@ private fun CanvasItemTile(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = stringResource(Res.string.hub_canvas_move_earlier)
+                            contentDescription = stringResource(R.string.hub_canvas_move_earlier)
                         )
                     }
                     IconButton(
@@ -374,7 +356,7 @@ private fun CanvasItemTile(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.ArrowForward,
-                            contentDescription = stringResource(Res.string.hub_canvas_move_later)
+                            contentDescription = stringResource(R.string.hub_canvas_move_later)
                         )
                     }
                 }
@@ -406,12 +388,12 @@ private fun AddToCanvasSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = stringResource(Res.string.hub_canvas_add_title),
+                text = stringResource(R.string.hub_canvas_add_title),
                 style = MaterialTheme.typography.titleLarge
             )
             if (candidates.isEmpty()) {
                 Text(
-                    text = stringResource(Res.string.hub_canvas_add_all_placed),
+                    text = stringResource(R.string.hub_canvas_add_all_placed),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -430,9 +412,9 @@ private fun AddToCanvasSheet(
 @Composable
 private fun EmptyHub(onAddTarget: () -> Unit, modifier: Modifier = Modifier) {
     EmptyMessage(
-        title = stringResource(Res.string.hub_library_empty_title),
-        body = stringResource(Res.string.hub_library_empty_body),
-        actionLabel = stringResource(Res.string.hub_library_add_target),
+        title = stringResource(R.string.hub_library_empty_title),
+        body = stringResource(R.string.hub_library_empty_body),
+        actionLabel = stringResource(R.string.hub_library_add_target),
         onAction = onAddTarget,
         modifier = modifier
     )
@@ -442,8 +424,8 @@ private fun EmptyHub(onAddTarget: () -> Unit, modifier: Modifier = Modifier) {
 private fun EmptyCanvas(onArrange: () -> Unit, modifier: Modifier = Modifier) {
     EmptyMessage(
         title = null,
-        body = stringResource(Res.string.hub_canvas_empty_body),
-        actionLabel = stringResource(Res.string.hub_canvas_add),
+        body = stringResource(R.string.hub_canvas_empty_body),
+        actionLabel = stringResource(R.string.hub_canvas_add),
         onAction = onArrange,
         modifier = modifier
     )

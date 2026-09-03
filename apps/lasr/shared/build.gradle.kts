@@ -6,10 +6,6 @@ plugins {
     id("xyz.lilsus.raylsuite.app.shared")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.lasr.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.lasr.shared"
@@ -44,10 +40,10 @@ kotlin {
             implementation(project(":feature:theme-settings"))
             implementation(project(":integration:exchange-rate"))
             implementation(project(":integration:lnurl"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.multiplatform.settings)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(project(":lasr:feature:wallet-details"))

@@ -29,32 +29,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_label
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_manual_entry
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_presets
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_threshold
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_payment
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_scan
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_title
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_hub_title
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_lnurl_review
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_lnurl_review_description
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_offer_save_targets
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_option_above
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_option_always
+import xyz.lilsus.raylsuite.feature.paymentsettings.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,19 +66,19 @@ fun PaymentSettingsScreen(
         when (state.confirmationMode) {
             PaymentConfirmationMode.Above ->
                 stringResource(
-                    Res.string.settings_payments_confirm_threshold,
+                    R.string.settings_payments_confirm_threshold,
                     formatter.format(threshold) + currencyText
                 )
 
             PaymentConfirmationMode.Always ->
-                stringResource(Res.string.settings_payments_option_always)
+                stringResource(R.string.settings_payments_option_always)
         }
 
     Scaffold(
         modifier = modifier.testTag(PaymentSettingsTestTags.SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.settings_payments)) },
+                title = { Text(stringResource(R.string.settings_payments)) },
                 navigationIcon = { BackIconButton(onClick = onBack) },
                 scrollBehavior = scrollBehavior
             )
@@ -116,40 +102,40 @@ fun PaymentSettingsScreen(
                 onThresholdChanged = onThresholdChanged,
                 onConfirmManualEntryChanged = onConfirmManualEntryChanged
             )
-            SettingsSection(title = stringResource(Res.string.settings_payments_lnurl_review)) {
+            SettingsSection(title = stringResource(R.string.settings_payments_lnurl_review)) {
                 SettingsToggle(
                     label = stringResource(
-                        Res.string.settings_payments_lnurl_review_description
+                        R.string.settings_payments_lnurl_review_description
                     ),
                     checked = state.showLnurlPayDetails,
                     onCheckedChange = onShowLnurlPayDetailsChanged,
                     modifier = Modifier.testTag(PaymentSettingsTestTags.LNURL_PAY_DETAILS)
                 )
             }
-            SettingsSection(title = stringResource(Res.string.settings_payments_hub_title)) {
+            SettingsSection(title = stringResource(R.string.settings_payments_hub_title)) {
                 SettingsToggle(
-                    label = stringResource(Res.string.settings_payments_confirm_presets),
+                    label = stringResource(R.string.settings_payments_confirm_presets),
                     checked = state.confirmPresetPayments,
                     onCheckedChange = onConfirmPresetPaymentsChanged,
                     modifier = Modifier.testTag(PaymentSettingsTestTags.CONFIRM_PRESETS)
                 )
                 SettingsToggle(
-                    label = stringResource(Res.string.settings_payments_offer_save_targets),
+                    label = stringResource(R.string.settings_payments_offer_save_targets),
                     checked = state.offerToSaveNewTargets,
                     onCheckedChange = onOfferToSaveNewTargetsChanged,
                     modifier = Modifier.testTag(PaymentSettingsTestTags.OFFER_TO_SAVE_TARGETS)
                 )
             }
             SettingsSection(
-                title = stringResource(Res.string.settings_payments_haptics_title)
+                title = stringResource(R.string.settings_payments_haptics_title)
             ) {
                 SettingsToggle(
-                    label = stringResource(Res.string.settings_payments_haptics_scan),
+                    label = stringResource(R.string.settings_payments_haptics_scan),
                     checked = state.vibrateOnScan,
                     onCheckedChange = onVibrateOnScanChanged
                 )
                 SettingsToggle(
-                    label = stringResource(Res.string.settings_payments_haptics_payment),
+                    label = stringResource(R.string.settings_payments_haptics_payment),
                     checked = state.vibrateOnPayment,
                     onCheckedChange = onVibrateOnPaymentChanged
                 )
@@ -167,7 +153,7 @@ private fun ConfirmationSection(
     onConfirmManualEntryChanged: (Boolean) -> Unit
 ) {
     SettingsSection(
-        title = stringResource(Res.string.settings_payments_confirm_label)
+        title = stringResource(R.string.settings_payments_confirm_label)
     ) {
         Text(
             text = thresholdText,
@@ -187,7 +173,7 @@ private fun ConfirmationSection(
             Spacer(modifier = Modifier.height(8.dp))
         }
         SettingsToggle(
-            label = stringResource(Res.string.settings_payments_confirm_manual_entry),
+            label = stringResource(R.string.settings_payments_confirm_manual_entry),
             checked = state.confirmManualEntry,
             onCheckedChange = onConfirmManualEntryChanged,
             modifier = Modifier.testTag(PaymentSettingsTestTags.CONFIRM_MANUAL_ENTRY)
@@ -297,8 +283,8 @@ private fun ThresholdSlider(
 
 private val confirmationModeOptions =
     listOf(
-        PaymentConfirmationMode.Always to Res.string.settings_payments_option_always,
-        PaymentConfirmationMode.Above to Res.string.settings_payments_option_above
+        PaymentConfirmationMode.Always to R.string.settings_payments_option_always,
+        PaymentConfirmationMode.Above to R.string.settings_payments_option_above
     )
 
 private val PaymentConfirmationMode.testTag: String

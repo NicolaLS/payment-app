@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.raylsuite.feature.paymentui.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.raylsuite.feature.paymentui"
@@ -17,7 +13,6 @@ kotlin {
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             api(project(":feature:payment-hub"))
-            implementation(libs.compose.components.resources)
             implementation(libs.compose.runtime)
             api(libs.kotlinx.coroutines.core)
         }

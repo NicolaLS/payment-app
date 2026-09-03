@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -41,29 +42,18 @@ import androidx.lifecycle.compose.currentStateAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.camera.CameraAuthorizationState
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
 import xyz.lilsus.raylsuite.feature.paymenthub.host.HubSavePrompt
 import xyz.lilsus.raylsuite.feature.paymenthub.host.HubSavePromptBottomSheet
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubIntent
+import xyz.lilsus.raylsuite.feature.paymentui.R
 import xyz.lilsus.raylsuite.feature.paymentui.components.BottomLayout
 import xyz.lilsus.raylsuite.feature.paymentui.components.ConfirmationBottomSheet
 import xyz.lilsus.raylsuite.feature.paymentui.components.ManualAmountBottomSheet
 import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentHero
 import xyz.lilsus.raylsuite.feature.paymentui.components.ResultLayout
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_denied_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_denied_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_open_settings
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_restricted_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_restricted_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_retry
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.point_camera_message_subtitle
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.resolving_payment_subtitle
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.resolving_payment_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.view_session_transactions
 
 /**
  * The Scan tab: the scanner and every payment presentation. It owns the app's single camera
@@ -298,7 +288,7 @@ fun PaymentScanScreen(
                     else ->
                         BottomLayout(
                             title = appTitle,
-                            subtitle = stringResource(Res.string.point_camera_message_subtitle)
+                            subtitle = stringResource(R.string.point_camera_message_subtitle)
                         )
                 }
             }
@@ -387,9 +377,9 @@ private fun CameraPermissionLayout(
             text =
                 stringResource(
                     if (restricted) {
-                        Res.string.camera_permission_restricted_title
+                        R.string.camera_permission_restricted_title
                     } else {
-                        Res.string.camera_permission_denied_title
+                        R.string.camera_permission_denied_title
                     }
                 ),
             style = MaterialTheme.typography.titleMedium,
@@ -400,9 +390,9 @@ private fun CameraPermissionLayout(
             text =
                 stringResource(
                     if (restricted) {
-                        Res.string.camera_permission_restricted_body
+                        R.string.camera_permission_restricted_body
                     } else {
-                        Res.string.camera_permission_denied_body
+                        R.string.camera_permission_denied_body
                     }
                 ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -417,9 +407,9 @@ private fun CameraPermissionLayout(
                 Text(
                     stringResource(
                         if (canRequestPermission) {
-                            Res.string.camera_permission_retry
+                            R.string.camera_permission_retry
                         } else {
-                            Res.string.camera_permission_open_settings
+                            R.string.camera_permission_open_settings
                         }
                     )
                 )
@@ -446,14 +436,14 @@ private fun ResolvingPaymentLayout(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = stringResource(Res.string.resolving_payment_title),
+            text = stringResource(R.string.resolving_payment_title),
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
         Text(
             modifier = Modifier.padding(top = 8.dp),
-            text = stringResource(Res.string.resolving_payment_subtitle),
+            text = stringResource(R.string.resolving_payment_subtitle),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center
@@ -480,7 +470,7 @@ private fun RecentPaymentsFab(newTransactionCount: Int, onClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Filled.History,
-                contentDescription = stringResource(Res.string.view_session_transactions)
+                contentDescription = stringResource(R.string.view_session_transactions)
             )
         }
     }

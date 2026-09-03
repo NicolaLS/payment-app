@@ -1,5 +1,6 @@
 package xyz.lilsus.raylsuite.feature.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -10,11 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LanguageCatalog
 import xyz.lilsus.raylsuite.core.model.LanguagePreference
@@ -29,14 +29,7 @@ import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsViewModel
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsScreen
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsViewModel
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_english
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_german
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_spanish
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_system_default
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme_dark
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme_light
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_theme_system_default
+import xyz.lilsus.raylsuite.feature.settings.R
 import xyz.lilsus.raylsuite.feature.themesettings.ThemePreferences
 import xyz.lilsus.raylsuite.feature.themesettings.ThemeSettingsScreen
 import xyz.lilsus.raylsuite.feature.themesettings.ThemeSettingsViewModel
@@ -250,7 +243,7 @@ private fun languageSubtitle(preference: LanguagePreference): String {
     return when (preference) {
         is LanguagePreference.System ->
             stringResource(
-                Res.string.settings_language_system_default,
+                R.string.settings_language_system_default,
                 resolvedName
             )
 
@@ -267,29 +260,30 @@ private fun languageName(tag: String): String {
     return stringResource(languageNameResource(code))
 }
 
-private fun languageNameResource(code: String): StringResource = when (code) {
-    "de" -> Res.string.settings_language_german
-    "es" -> Res.string.settings_language_spanish
-    else -> Res.string.settings_language_english
+@StringRes
+private fun languageNameResource(code: String): Int = when (code) {
+    "de" -> R.string.settings_language_german
+    "es" -> R.string.settings_language_spanish
+    else -> R.string.settings_language_english
 }
 
 @Composable
 private fun themeSubtitle(preference: ThemePreference): String = when (preference) {
     ThemePreference.System ->
         stringResource(
-            Res.string.settings_theme_system_default,
+            R.string.settings_theme_system_default,
             stringResource(
                 if (isSystemInDarkTheme()) {
-                    Res.string.settings_theme_dark
+                    R.string.settings_theme_dark
                 } else {
-                    Res.string.settings_theme_light
+                    R.string.settings_theme_light
                 }
             )
         )
 
-    ThemePreference.Light -> stringResource(Res.string.settings_theme_light)
+    ThemePreference.Light -> stringResource(R.string.settings_theme_light)
 
-    ThemePreference.Dark -> stringResource(Res.string.settings_theme_dark)
+    ThemePreference.Dark -> stringResource(R.string.settings_theme_dark)
 }
 
 private enum class SettingsDestination {

@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.raylsuite.feature.settings.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.raylsuite.feature.settings"
@@ -21,7 +17,7 @@ kotlin {
             api(project(":feature:payment-settings"))
             api(project(":feature:theme-settings"))
             api(libs.kotlinx.coroutines.core)
-            implementation(libs.compose.components.resources)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.compose.foundation)

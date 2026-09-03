@@ -1,5 +1,6 @@
 package xyz.lilsus.raylsuite.feature.appshell
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.res.stringResource
+import xyz.lilsus.raylsuite.feature.appshell.R
 
 /**
  * The Android tab shell: a Material 3 navigation bar over the selected tab's content. iOS uses a
@@ -34,7 +36,7 @@ fun AppTabScaffold(
         bottomBar = {
             NavigationBar {
                 tabs.forEach { tab ->
-                    val label = stringResource(tab.label)
+                    val label = stringResource(tab.labelResource())
                     NavigationBarItem(
                         selected = tab == selectedTab,
                         onClick = { onTabSelected(tab) },
@@ -69,6 +71,14 @@ fun AppTabScaffold(
 }
 
 private fun Int.badgeLabel(): String = if (this > MAX_BADGE_COUNT) "$MAX_BADGE_COUNT+" else "$this"
+
+@StringRes
+private fun AppTab.labelResource(): Int = when (this) {
+    AppTab.Scan -> R.string.app_tab_scan
+    AppTab.Recent -> R.string.app_tab_recent
+    AppTab.Hub -> R.string.app_tab_hub
+    AppTab.Settings -> R.string.app_tab_settings
+}
 
 private const val MAX_BADGE_COUNT = 9
 

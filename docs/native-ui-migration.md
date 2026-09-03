@@ -21,6 +21,7 @@ This is the current architecture, not a transitional fallback. No iOS screen use
 | Provider-neutral state and presentation snapshots | `commonMain` in the owning feature |
 | Android UI, navigation, permissions, and drawing | `androidMain` Compose/platform code |
 | iOS UI, navigation, permissions, and drawing | SwiftUI/UIKit plus `iosMain` Kotlin controllers |
+| Localization catalogs and platform lookup | `androidMain/res` on Android; feature-owned Apple String Catalogs on iOS |
 | Cross-app design values and hero state/geometry | Plain values in `core:ui/commonMain` |
 
 An iOS Kotlin controller exposes an immutable localized snapshot, explicit intent methods, and an
@@ -54,15 +55,30 @@ Camera authorization is represented explicitly as not determined, authorized, de
 or unavailable. CameraX and AVFoundation mechanics stay native. A denied user receives an
 explanation and a retry or app-settings route where the operating system permits one.
 
-## Compose artifacts in the iOS framework
+## Native localization and Apple baseline
 
-Native rendering does not currently mean a Compose-free Apple binary. Generated localization
-accessors and the KMP Compose convention keep Compose Resources/runtime dependencies reachable from
-some iOS compilations, which can also make Skiko transitively reachable. The plain hero geometry
-does not depend on Compose and is unrelated to that packaging cost.
+Localization follows the native renderer boundary. Android renderers read the owning module's
+ordinary `src/androidMain/res/values*` resources through its generated `R` class. An iOS feature
+that renders localized copy owns a String Catalog under `src/iosMain/resources`; every consuming
+Xcode target references that same catalog, and `iosMain` controllers resolve it through Foundation
+before publishing a snapshot to SwiftUI. Do not create an unused mirror catalog for a feature that
+has no platform-localized copy. Theme settings are currently Android-only as a resource surface;
+the integrated iOS settings presentation owns its theme copy in `Settings.xcstrings`.
 
-Treat removal of Compose Resources/Skiko as a measured follow-up project. Compare framework/app
-size, link time, launch time, and memory before replacing localization or build infrastructure.
+The `verifyNativeLocalizations` Gradle task validates English, German, and Spanish completeness
+within every catalog, compares deliberately paired Android and Apple catalogs, and rejects Apple
+catalogs that are not included in any Xcode Resources phase. Platform-only modules are declared
+explicitly by the task so an accidentally omitted counterpart still fails validation.
+
+Shared Kotlin may carry a semantic localization key and formatting argument when state needs to
+describe a message before a platform renderer exists. It must not carry Android resource IDs,
+Apple resource handles, generated Compose resource types, or perform platform resource lookup.
+
+Compose Resources is no longer a dependency of the native applications. The Compose convention's
+small `compose.runtime` requirement remains in `commonMain`, but does not bring the Compose iOS
+renderer or Skiko into the linked applications. The app deployment baseline is iOS/iPadOS 18.5 for
+normal and E2E targets. A catalog generator or richer synchronization workflow is deliberately
+deferred; the native-localization check prevents silent drift in the meantime.
 
 ## Deferred platform improvements
 
@@ -76,6 +92,5 @@ The native renderer migration is complete independently of these follow-ups:
 - automated validation of shared Swift Xcode target membership; and
 - screenshot/app-switcher privacy policy per product.
 
-The implementation audit and the scoped completion record remain in
-`issues/native-ui-migration-review.md` and `issues/native-ui-migration-completion.md` in working
+The prioritized post-migration backlog remains in `issues/native-platform-follow-ups.md` in working
 copies where the local issue directory is enabled.

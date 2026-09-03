@@ -25,16 +25,12 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_add
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_placeholder
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_remove
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_title
+import xyz.lilsus.raylsuite.feature.walletmanagement.R
 
 @Immutable
 data class ManagedWallet(val id: String, val title: String, val details: List<String> = emptyList())
@@ -54,7 +50,7 @@ fun WalletManagementScreen(
         modifier = modifier.testTag(WalletManagementTestTags.SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.settings_manage_wallet_title)) },
+                title = { Text(stringResource(R.string.settings_manage_wallet_title)) },
                 navigationIcon = { BackIconButton(onClick = onBack) },
                 scrollBehavior = scrollBehavior
             )
@@ -127,7 +123,7 @@ private fun WalletCard(
                         .testTag(WalletManagementTestTags.removeButton(wallet.id)),
                 onClick = onRemoveWallet
             ) {
-                Text(stringResource(Res.string.settings_manage_wallet_remove))
+                Text(stringResource(R.string.settings_manage_wallet_remove))
             }
         }
     }
@@ -144,7 +140,7 @@ private fun EmptyWalletState(onAddWallet: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = stringResource(Res.string.settings_manage_wallet_placeholder),
+            text = stringResource(R.string.settings_manage_wallet_placeholder),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -154,7 +150,7 @@ private fun EmptyWalletState(onAddWallet: () -> Unit) {
             modifier = Modifier.testTag(WalletManagementTestTags.ADD_BUTTON),
             onClick = onAddWallet
         ) {
-            Text(stringResource(Res.string.settings_manage_wallet_add))
+            Text(stringResource(R.string.settings_manage_wallet_add))
         }
     }
 }

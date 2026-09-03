@@ -1,0 +1,424 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "onboarding_add_wallet_intro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Have the recovery phrase for the wallet you want Flint to use ready."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halte die Wiederherstellungsphrase der Wallet bereit, die Flint verwenden soll."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten lista la frase de recuperación de la billetera que quieres usar con Flint."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the wallet or backup where your recovery phrase is stored."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne die Wallet oder Sicherung, in der deine Wiederherstellungsphrase gespeichert ist."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre la billetera o copia de seguridad donde guardas tu frase de recuperación."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the complete 12, 15, 18, 21, or 24-word phrase in Flint."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib die vollständige Phrase mit 12, 15, 18, 21 oder 24 Wörtern in Flint ein."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingresa en Flint la frase completa de 12, 15, 18, 21 o 24 palabras."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_step3": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint opens that Spark wallet and protects the phrase with this device’s secure storage."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint öffnet diese Spark-Wallet und schützt die Phrase im sicheren Speicher dieses Geräts."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint abre esa billetera Spark y protege la frase con el almacenamiento seguro de este dispositivo."
+          }
+        }
+      }
+    },
+    "onboarding_add_wallet_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import your Spark wallet"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spark-Wallet importieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa tu billetera Spark"
+          }
+        }
+      }
+    },
+    "onboarding_agreement_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Using Flint is at your own risk. This app can spend from the Spark wallet derived from your recovery phrase. You are fully responsible for the phrase, funds, and payments made.\n\nWe strongly recommend using a wallet with a small spending balance."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Nutzung von Flint erfolgt auf eigenes Risiko. Diese App kann Guthaben aus der Spark-Wallet ausgeben, die aus deiner Wiederherstellungsphrase abgeleitet wird. Du bist vollständig für die Phrase, das Guthaben und alle Zahlungen verantwortlich.\n\nWir empfehlen dringend eine Wallet mit einem kleinen Ausgabeguthaben."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usas Flint bajo tu propio riesgo. Esta aplicación puede gastar desde la billetera Spark derivada de tu frase de recuperación. Eres totalmente responsable de la frase, los fondos y los pagos realizados.\n\nRecomendamos usar una billetera con un saldo pequeño para gastos."
+          }
+        }
+      }
+    },
+    "onboarding_autopay_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose when Flint should ask for confirmation before paying."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle, wann Flint vor einer Zahlung um Bestätigung bitten soll."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige cuándo Flint debe pedir confirmación antes de pagar."
+          }
+        }
+      }
+    },
+    "onboarding_features_page1_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint scans in the background so checkout stays smooth. Aim at the code, wait a beat, and you’re ready."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint scannt im Hintergrund, damit das Bezahlen reibungslos bleibt. Richte es auf den Code, warte kurz und schon kann es losgehen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint escanea en segundo plano para que el pago sea fluido. Apunta al código, espera un instante y listo."
+          }
+        }
+      }
+    },
+    "onboarding_features_page1_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It’s working—even when the camera stays out of sight."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er funktioniert, auch wenn die Kamera im Hintergrund bleibt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funciona aunque la cámara permanezca fuera de vista."
+          }
+        }
+      }
+    },
+    "onboarding_features_page1_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quiet scanner, quick results"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leiser Scanner, schnelle Ergebnisse"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escáner discreto, resultados rápidos"
+          }
+        }
+      }
+    },
+    "onboarding_features_page2_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set a limit you’re comfortable with. For anything above it, Flint asks before paying."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lege ein Limit fest, mit dem du dich wohlfühlst. Bei höheren Beträgen fragt Flint vor der Zahlung nach."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Define un límite con el que te sientas cómodo. Para cualquier monto superior, Flint pedirá confirmación."
+          }
+        }
+      }
+    },
+    "onboarding_features_page2_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pay small amounts instantly with no extra taps."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bezahle kleine Beträge sofort und ohne zusätzliche Schritte."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paga montos pequeños al instante y sin pasos adicionales."
+          }
+        }
+      }
+    },
+    "onboarding_features_page2_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto Pay, your rules"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto Pay nach deinen Regeln"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto Pay, bajo tus reglas"
+          }
+        }
+      }
+    },
+    "onboarding_features_page3_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recovery phrase stays protected on this device while Flint focuses on fast in-person payments."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Wiederherstellungsphrase bleibt auf diesem Gerät geschützt, während Flint sich auf schnelle Zahlungen vor Ort konzentriert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La frase de recuperación permanece protegida en este dispositivo mientras Flint se concentra en pagos presenciales rápidos."
+          }
+        }
+      }
+    },
+    "onboarding_features_page3_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint opens the wallet derived from your phrase."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint öffnet die aus deiner Phrase abgeleitete Wallet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flint abre la billetera derivada de tu frase."
+          }
+        }
+      }
+    },
+    "onboarding_features_page3_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your seed, your Spark wallet"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Phrase, deine Spark-Wallet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu frase, tu billetera Spark"
+          }
+        }
+      }
+    },
+    "onboarding_welcome_subtitle_line1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "by Bitcoin Coast"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "von Bitcoin Coast"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "por Bitcoin Coast"
+          }
+        }
+      }
+    },
+    "onboarding_welcome_subtitle_line2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The quickest way to make payments from your Spark wallet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der schnellste Weg, mit deiner Spark-Wallet zu bezahlen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La forma más rápida de pagar con tu billetera Spark."
+          }
+        }
+      }
+    },
+    "onboarding_welcome_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welcome to Flint"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Willkommen bei Flint"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te damos la bienvenida a Flint"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

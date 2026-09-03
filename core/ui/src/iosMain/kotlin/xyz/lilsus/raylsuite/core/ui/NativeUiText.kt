@@ -1,7 +1,7 @@
 package xyz.lilsus.raylsuite.core.ui
 
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.raylsuite.core.ui.generated.resources.Res
-import xyz.lilsus.raylsuite.core.ui.generated.resources.action_back
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 
-suspend fun nativeBackActionText(): String = getString(Res.string.action_back)
+suspend fun nativeBackActionText(): String =
+    nativeString(NativeStringResource(table = "CoreUI", key = "action_back"))

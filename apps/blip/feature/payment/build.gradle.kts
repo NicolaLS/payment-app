@@ -3,10 +3,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.blip.feature.payment.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.blip.feature.payment"
@@ -24,11 +20,11 @@ kotlin {
             implementation(project(":feature:payment-settings"))
             api(project(":feature:payment-ui"))
             implementation(libs.bitcoin.kmp)
-            implementation(libs.compose.components.resources)
             api(libs.lightning.kmp.core)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             api(libs.multiplatform.settings)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.compose.runtime)

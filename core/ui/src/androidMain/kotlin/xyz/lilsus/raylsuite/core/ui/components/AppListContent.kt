@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -41,9 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.raylsuite.core.ui.generated.resources.Res
-import xyz.lilsus.raylsuite.core.ui.generated.resources.action_clear_search
+import xyz.lilsus.raylsuite.core.ui.R
 
 @Composable
 fun AppListScaffold(
@@ -272,7 +271,7 @@ fun AppListSearchField(
     val placeholderContent: (@Composable () -> Unit)? = placeholder?.let { placeholderText ->
         { Text(placeholderText) }
     }
-    val clearSearchLabel = stringResource(Res.string.action_clear_search)
+    val clearSearchLabel = stringResource(R.string.action_clear_search)
     val trailingIconContent: (@Composable () -> Unit)? = if (query.isNotEmpty()) {
         {
             IconButton(onClick = { onQueryChange("") }) {

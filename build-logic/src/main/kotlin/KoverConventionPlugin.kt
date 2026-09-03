@@ -14,7 +14,6 @@ class KoverConventionPlugin : Plugin<Project> {
                     filters {
                         excludes {
                             androidGeneratedClasses()
-                            classes("*.generated.resources.*")
                         }
                     }
                 }

@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 import xyz.lilsus.blip.feature.blinkcontacts.BlipNativeContactsController
 import xyz.lilsus.blip.feature.payment.PaymentDeepLinkEvents
 import xyz.lilsus.blip.feature.payment.PaymentEvent
@@ -13,13 +12,11 @@ import xyz.lilsus.blip.feature.payment.PaymentUiState
 import xyz.lilsus.blip.feature.payment.previousPaymentSituation
 import xyz.lilsus.blip.feature.payment.toNativePaymentScreenState
 import xyz.lilsus.blip.feature.payment.toNativeRecentItem
-import xyz.lilsus.blip.generated.resources.Res
-import xyz.lilsus.blip.generated.resources.app_name
-import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
-import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
 import xyz.lilsus.raylsuite.core.settings.createAppSettings
 import xyz.lilsus.raylsuite.core.settings.createSecureSettings
 import xyz.lilsus.raylsuite.core.ui.platform.createHapticFeedbackManager
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
 import xyz.lilsus.raylsuite.feature.appshell.appTabTitles
 import xyz.lilsus.raylsuite.feature.appshell.nativeColorSchemeValue
@@ -205,9 +202,16 @@ object BlipIosApp {
                     }
                 controller.update(
                     payment = payment.toNativePaymentScreenState(),
-                    appTitle = getString(Res.string.app_name),
+                    appTitle = nativeString(
+                        NativeStringResource(table = "BlipApp", key = "app_name")
+                    ),
                     estimatedFeeHint =
-                        getString(BlipUiRes.string.result_paid_fee_blink_hint),
+                        nativeString(
+                            NativeStringResource(
+                                table = "BlipUI",
+                                key = "result_paid_fee_blink_hint"
+                            )
+                        ),
                     previousPaymentSituation = previousSituation,
                     savePrompt = hubState.savePrompt,
                     recentCount = transactions.size,
@@ -248,7 +252,12 @@ object BlipIosApp {
                     items = transactions.map { it.toNativeRecentItem() },
                     selectedTransactionId = selectedId,
                     estimatedFeeHint =
-                        getString(BlipUiRes.string.result_paid_fee_blink_hint)
+                        nativeString(
+                            NativeStringResource(
+                                table = "BlipUI",
+                                key = "result_paid_fee_blink_hint"
+                            )
+                        )
                 )
             }.collect {}
         }

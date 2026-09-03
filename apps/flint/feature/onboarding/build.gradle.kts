@@ -3,10 +3,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.flint.feature.onboarding.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.flint.feature.onboarding"
@@ -19,8 +15,8 @@ kotlin {
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
             implementation(project(":feature:onboarding"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.compose.foundation)

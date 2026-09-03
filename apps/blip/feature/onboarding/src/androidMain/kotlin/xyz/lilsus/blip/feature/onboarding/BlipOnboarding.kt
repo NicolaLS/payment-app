@@ -6,30 +6,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportEvent
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
-import xyz.lilsus.blip.feature.onboarding.generated.resources.Res
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_agreement_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_autopay_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page1_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page1_subtitle
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page1_title
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page2_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page2_subtitle
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page2_title
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page3_body
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page3_subtitle
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_features_page3_title
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line1
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line2
-import xyz.lilsus.blip.feature.onboarding.generated.resources.onboarding_welcome_title
+import xyz.lilsus.blip.feature.onboarding.R
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletEvent
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletScreen
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletViewModel
@@ -77,9 +63,9 @@ fun NavGraphBuilder.blipOnboarding(
 ) {
     composable<BlipOnboardingDestination.Welcome> {
         WelcomeScreen(
-            title = stringResource(Res.string.onboarding_welcome_title),
-            subtitle = stringResource(Res.string.onboarding_welcome_subtitle_line1),
-            description = stringResource(Res.string.onboarding_welcome_subtitle_line2),
+            title = stringResource(R.string.onboarding_welcome_title),
+            subtitle = stringResource(R.string.onboarding_welcome_subtitle_line1),
+            description = stringResource(R.string.onboarding_welcome_subtitle_line2),
             stepIndex = OnboardingStep.Welcome.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onGetStarted = {
@@ -107,7 +93,7 @@ fun NavGraphBuilder.blipOnboarding(
         val state by onboardingViewModel.uiState.collectAsState()
         val formatter = rememberAmountFormatter()
         AutoPaySettingsScreen(
-            body = stringResource(Res.string.onboarding_autopay_body),
+            body = stringResource(R.string.onboarding_autopay_body),
             confirmationMode = state.confirmationMode,
             thresholdSats = state.thresholdSats,
             currencyEquivalent = state.thresholdCurrencyEquivalent?.let(formatter::format),
@@ -125,7 +111,7 @@ fun NavGraphBuilder.blipOnboarding(
     composable<BlipOnboardingDestination.Agreement> {
         val state by onboardingViewModel.uiState.collectAsState()
         AgreementScreen(
-            body = stringResource(Res.string.onboarding_agreement_body),
+            body = stringResource(R.string.onboarding_agreement_body),
             hasAgreed = state.hasAgreed,
             stepIndex = OnboardingStep.Agreement.index,
             totalSteps = ONBOARDING_STEP_COUNT,
@@ -234,19 +220,19 @@ private fun OnboardingBlinkContactsImportDestination(
 @Composable
 private fun onboardingFeaturePages(): List<OnboardingFeaturePage> = listOf(
     OnboardingFeaturePage(
-        title = stringResource(Res.string.onboarding_features_page1_title),
-        subtitle = stringResource(Res.string.onboarding_features_page1_subtitle),
-        body = stringResource(Res.string.onboarding_features_page1_body)
+        title = stringResource(R.string.onboarding_features_page1_title),
+        subtitle = stringResource(R.string.onboarding_features_page1_subtitle),
+        body = stringResource(R.string.onboarding_features_page1_body)
     ),
     OnboardingFeaturePage(
-        title = stringResource(Res.string.onboarding_features_page2_title),
-        subtitle = stringResource(Res.string.onboarding_features_page2_subtitle),
-        body = stringResource(Res.string.onboarding_features_page2_body)
+        title = stringResource(R.string.onboarding_features_page2_title),
+        subtitle = stringResource(R.string.onboarding_features_page2_subtitle),
+        body = stringResource(R.string.onboarding_features_page2_body)
     ),
     OnboardingFeaturePage(
-        title = stringResource(Res.string.onboarding_features_page3_title),
-        subtitle = stringResource(Res.string.onboarding_features_page3_subtitle),
-        body = stringResource(Res.string.onboarding_features_page3_body)
+        title = stringResource(R.string.onboarding_features_page3_title),
+        subtitle = stringResource(R.string.onboarding_features_page3_subtitle),
+        body = stringResource(R.string.onboarding_features_page3_body)
     )
 )
 

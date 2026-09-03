@@ -29,7 +29,41 @@
 		A81E00000000000000000003 /* NativeOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E00000000000000000001 /* NativeOnboardingView.swift */; };
 		A91E00000000000000000002 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91E00000000000000000001 /* NativeWalletManagementView.swift */; };
 		A91E00000000000000000003 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91E00000000000000000001 /* NativeWalletManagementView.swift */; };
+		D10000000000000000000001 /* CoreUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* CoreUI.xcstrings */; };
+		D10000000000000000000002 /* AppShell.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* AppShell.xcstrings */; };
+		D10000000000000000000003 /* CurrencySettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000003 /* CurrencySettings.xcstrings */; };
+		D10000000000000000000004 /* LanguageSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000004 /* LanguageSettings.xcstrings */; };
+		D10000000000000000000005 /* Onboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000005 /* Onboarding.xcstrings */; };
+		D10000000000000000000006 /* PaymentHub.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000006 /* PaymentHub.xcstrings */; };
+		D10000000000000000000007 /* PaymentSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000007 /* PaymentSettings.xcstrings */; };
+		D10000000000000000000008 /* PaymentUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000008 /* PaymentUI.xcstrings */; };
+		D10000000000000000000009 /* Settings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000009 /* Settings.xcstrings */; };
+		D1000000000000000000000A /* WalletManagement.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000A /* WalletManagement.xcstrings */; };
+		D1000000000000000000000B /* BlipContacts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000B /* BlipContacts.xcstrings */; };
+		D1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000C /* BlipOnboarding.xcstrings */; };
+		D1000000000000000000000D /* BlipPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000D /* BlipPayment.xcstrings */; };
+		D1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000E /* BlipWalletConnection.xcstrings */; };
+		D1000000000000000000000F /* BlipWalletSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000F /* BlipWalletSettings.xcstrings */; };
+		D10000000000000000000010 /* BlipApp.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000010 /* BlipApp.xcstrings */; };
+		D10000000000000000000011 /* BlipUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000011 /* BlipUI.xcstrings */; };
 		D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
+		E10000000000000000000001 /* CoreUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* CoreUI.xcstrings */; };
+		E10000000000000000000002 /* AppShell.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* AppShell.xcstrings */; };
+		E10000000000000000000003 /* CurrencySettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000003 /* CurrencySettings.xcstrings */; };
+		E10000000000000000000004 /* LanguageSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000004 /* LanguageSettings.xcstrings */; };
+		E10000000000000000000005 /* Onboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000005 /* Onboarding.xcstrings */; };
+		E10000000000000000000006 /* PaymentHub.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000006 /* PaymentHub.xcstrings */; };
+		E10000000000000000000007 /* PaymentSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000007 /* PaymentSettings.xcstrings */; };
+		E10000000000000000000008 /* PaymentUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000008 /* PaymentUI.xcstrings */; };
+		E10000000000000000000009 /* Settings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000009 /* Settings.xcstrings */; };
+		E1000000000000000000000A /* WalletManagement.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000A /* WalletManagement.xcstrings */; };
+		E1000000000000000000000B /* BlipContacts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000B /* BlipContacts.xcstrings */; };
+		E1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000C /* BlipOnboarding.xcstrings */; };
+		E1000000000000000000000D /* BlipPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000D /* BlipPayment.xcstrings */; };
+		E1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000E /* BlipWalletConnection.xcstrings */; };
+		E1000000000000000000000F /* BlipWalletSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000F /* BlipWalletSettings.xcstrings */; };
+		E10000000000000000000010 /* BlipApp.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000010 /* BlipApp.xcstrings */; };
+		E10000000000000000000011 /* BlipUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000011 /* BlipUI.xcstrings */; };
 		E2E000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
@@ -39,13 +73,30 @@
 		A31E00000000000000000001 /* NativeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeSettingsView.swift; path = ../../../feature/settings/src/iosMain/swift/NativeSettingsView.swift; sourceTree = "<group>"; };
 		A41E00000000000000000001 /* NativePaymentScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentScanView.swift; path = "../../../feature/payment-ui/src/iosMain/swift/NativePaymentScanView.swift"; sourceTree = "<group>"; };
 		A51E00000000000000000001 /* NativePaymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentHubView.swift; path = "../../../feature/payment-hub/src/iosMain/swift/NativePaymentHubView.swift"; sourceTree = "<group>"; };
-		A61E00000000000000000001 /* blink_dashboard_email.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_email.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_email.png; sourceTree = "<group>"; };
-		A61E00000000000000000002 /* blink_dashboard_api_keys.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_api_keys.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_api_keys.png; sourceTree = "<group>"; };
-		A61E00000000000000000003 /* blink_dashboard_key_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_key_settings.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_key_settings.png; sourceTree = "<group>"; };
-		A61E00000000000000000004 /* blink_dashboard_copy_key.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_copy_key.png; path = ../feature/onboarding/src/commonMain/composeResources/drawable/blink_dashboard_copy_key.png; sourceTree = "<group>"; };
+		A61E00000000000000000001 /* blink_dashboard_email.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_email.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_email.png; sourceTree = "<group>"; };
+		A61E00000000000000000002 /* blink_dashboard_api_keys.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_api_keys.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_api_keys.png; sourceTree = "<group>"; };
+		A61E00000000000000000003 /* blink_dashboard_key_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_key_settings.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_key_settings.png; sourceTree = "<group>"; };
+		A61E00000000000000000004 /* blink_dashboard_copy_key.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_copy_key.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_copy_key.png; sourceTree = "<group>"; };
 		A71E00000000000000000001 /* RaylHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RaylHeroView.swift; path = "../../../feature/payment-ui/src/iosMain/swift/RaylHeroView.swift"; sourceTree = "<group>"; };
 		A81E00000000000000000001 /* NativeOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeOnboardingView.swift; path = ../../../feature/onboarding/src/iosMain/swift/NativeOnboardingView.swift; sourceTree = "<group>"; };
 		A91E00000000000000000001 /* NativeWalletManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeWalletManagementView.swift; path = "../../../feature/wallet-management/src/iosMain/swift/NativeWalletManagementView.swift"; sourceTree = "<group>"; };
+		C10000000000000000000001 /* CoreUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CoreUI.xcstrings; path = ../../../core/ui/src/iosMain/resources/CoreUI.xcstrings; sourceTree = "<group>"; };
+		C10000000000000000000002 /* AppShell.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = AppShell.xcstrings; path = "../../../feature/app-shell/src/iosMain/resources/AppShell.xcstrings"; sourceTree = "<group>"; };
+		C10000000000000000000003 /* CurrencySettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CurrencySettings.xcstrings; path = "../../../feature/currency-settings/src/iosMain/resources/CurrencySettings.xcstrings"; sourceTree = "<group>"; };
+		C10000000000000000000004 /* LanguageSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LanguageSettings.xcstrings; path = "../../../feature/language-settings/src/iosMain/resources/LanguageSettings.xcstrings"; sourceTree = "<group>"; };
+		C10000000000000000000005 /* Onboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Onboarding.xcstrings; path = ../../../feature/onboarding/src/iosMain/resources/Onboarding.xcstrings; sourceTree = "<group>"; };
+		C10000000000000000000006 /* PaymentHub.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentHub.xcstrings; path = "../../../feature/payment-hub/src/iosMain/resources/PaymentHub.xcstrings"; sourceTree = "<group>"; };
+		C10000000000000000000007 /* PaymentSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentSettings.xcstrings; path = "../../../feature/payment-settings/src/iosMain/resources/PaymentSettings.xcstrings"; sourceTree = "<group>"; };
+		C10000000000000000000008 /* PaymentUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentUI.xcstrings; path = "../../../feature/payment-ui/src/iosMain/resources/PaymentUI.xcstrings"; sourceTree = "<group>"; };
+		C10000000000000000000009 /* Settings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Settings.xcstrings; path = ../../../feature/settings/src/iosMain/resources/Settings.xcstrings; sourceTree = "<group>"; };
+		C1000000000000000000000A /* WalletManagement.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = WalletManagement.xcstrings; path = "../../../feature/wallet-management/src/iosMain/resources/WalletManagement.xcstrings"; sourceTree = "<group>"; };
+		C1000000000000000000000B /* BlipContacts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipContacts.xcstrings; path = "../feature/blink-contacts/src/iosMain/resources/BlipContacts.xcstrings"; sourceTree = "<group>"; };
+		C1000000000000000000000C /* BlipOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipOnboarding.xcstrings; path = ../feature/onboarding/src/iosMain/resources/BlipOnboarding.xcstrings; sourceTree = "<group>"; };
+		C1000000000000000000000D /* BlipPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipPayment.xcstrings; path = ../feature/payment/src/iosMain/resources/BlipPayment.xcstrings; sourceTree = "<group>"; };
+		C1000000000000000000000E /* BlipWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletConnection.xcstrings; path = "../feature/wallet-connection/src/iosMain/resources/BlipWalletConnection.xcstrings"; sourceTree = "<group>"; };
+		C1000000000000000000000F /* BlipWalletSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletSettings.xcstrings; path = "../feature/wallet-settings/src/iosMain/resources/BlipWalletSettings.xcstrings"; sourceTree = "<group>"; };
+		C10000000000000000000010 /* BlipApp.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipApp.xcstrings; path = ../shared/src/iosMain/resources/BlipApp.xcstrings; sourceTree = "<group>"; };
+		C10000000000000000000011 /* BlipUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipUI.xcstrings; path = ../ui/src/iosMain/resources/BlipUI.xcstrings; sourceTree = "<group>"; };
 		D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E2E000000000000000000001 /* Blip E2E.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Blip E2E.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -111,6 +162,23 @@
 		97A229AE63675C10A9DAA454 = {
 			isa = PBXGroup;
 			children = (
+				C10000000000000000000001 /* CoreUI.xcstrings */,
+				C10000000000000000000002 /* AppShell.xcstrings */,
+				C10000000000000000000003 /* CurrencySettings.xcstrings */,
+				C10000000000000000000004 /* LanguageSettings.xcstrings */,
+				C10000000000000000000005 /* Onboarding.xcstrings */,
+				C10000000000000000000006 /* PaymentHub.xcstrings */,
+				C10000000000000000000007 /* PaymentSettings.xcstrings */,
+				C10000000000000000000008 /* PaymentUI.xcstrings */,
+				C10000000000000000000009 /* Settings.xcstrings */,
+				C1000000000000000000000A /* WalletManagement.xcstrings */,
+				C1000000000000000000000B /* BlipContacts.xcstrings */,
+				C1000000000000000000000C /* BlipOnboarding.xcstrings */,
+				C1000000000000000000000D /* BlipPayment.xcstrings */,
+				C1000000000000000000000E /* BlipWalletConnection.xcstrings */,
+				C1000000000000000000000F /* BlipWalletSettings.xcstrings */,
+				C10000000000000000000010 /* BlipApp.xcstrings */,
+				C10000000000000000000011 /* BlipUI.xcstrings */,
 				A21E00000000000000000001 /* NativeAppShell.swift */,
 				A31E00000000000000000001 /* NativeSettingsView.swift */,
 				A41E00000000000000000001 /* NativePaymentScanView.swift */,
@@ -197,7 +265,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					E1875B14D964B50BA6C5EEC6 = {
 						CreatedOnToolsVersion = 16.2;
@@ -234,6 +302,23 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D10000000000000000000001 /* CoreUI.xcstrings in Resources */,
+				D10000000000000000000002 /* AppShell.xcstrings in Resources */,
+				D10000000000000000000003 /* CurrencySettings.xcstrings in Resources */,
+				D10000000000000000000004 /* LanguageSettings.xcstrings in Resources */,
+				D10000000000000000000005 /* Onboarding.xcstrings in Resources */,
+				D10000000000000000000006 /* PaymentHub.xcstrings in Resources */,
+				D10000000000000000000007 /* PaymentSettings.xcstrings in Resources */,
+				D10000000000000000000008 /* PaymentUI.xcstrings in Resources */,
+				D10000000000000000000009 /* Settings.xcstrings in Resources */,
+				D1000000000000000000000A /* WalletManagement.xcstrings in Resources */,
+				D1000000000000000000000B /* BlipContacts.xcstrings in Resources */,
+				D1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */,
+				D1000000000000000000000D /* BlipPayment.xcstrings in Resources */,
+				D1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */,
+				D1000000000000000000000F /* BlipWalletSettings.xcstrings in Resources */,
+				D10000000000000000000010 /* BlipApp.xcstrings in Resources */,
+				D10000000000000000000011 /* BlipUI.xcstrings in Resources */,
 				A61E00000000000000000011 /* blink_dashboard_email.png in Resources */,
 				A61E00000000000000000012 /* blink_dashboard_api_keys.png in Resources */,
 				A61E00000000000000000013 /* blink_dashboard_key_settings.png in Resources */,
@@ -246,6 +331,23 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E10000000000000000000001 /* CoreUI.xcstrings in Resources */,
+				E10000000000000000000002 /* AppShell.xcstrings in Resources */,
+				E10000000000000000000003 /* CurrencySettings.xcstrings in Resources */,
+				E10000000000000000000004 /* LanguageSettings.xcstrings in Resources */,
+				E10000000000000000000005 /* Onboarding.xcstrings in Resources */,
+				E10000000000000000000006 /* PaymentHub.xcstrings in Resources */,
+				E10000000000000000000007 /* PaymentSettings.xcstrings in Resources */,
+				E10000000000000000000008 /* PaymentUI.xcstrings in Resources */,
+				E10000000000000000000009 /* Settings.xcstrings in Resources */,
+				E1000000000000000000000A /* WalletManagement.xcstrings in Resources */,
+				E1000000000000000000000B /* BlipContacts.xcstrings in Resources */,
+				E1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */,
+				E1000000000000000000000D /* BlipPayment.xcstrings in Resources */,
+				E1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */,
+				E1000000000000000000000F /* BlipWalletSettings.xcstrings in Resources */,
+				E10000000000000000000010 /* BlipApp.xcstrings in Resources */,
+				E10000000000000000000011 /* BlipUI.xcstrings in Resources */,
 				A61E00000000000000000021 /* blink_dashboard_email.png in Resources */,
 				A61E00000000000000000022 /* blink_dashboard_api_keys.png in Resources */,
 				A61E00000000000000000023 /* blink_dashboard_key_settings.png in Resources */,
@@ -407,6 +509,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -437,6 +540,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = TA77463BFV;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -448,7 +552,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -466,6 +570,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -496,6 +601,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = TA77463BFV;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -513,7 +619,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -682,6 +788,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -712,6 +819,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = TA77463BFV;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -729,7 +837,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

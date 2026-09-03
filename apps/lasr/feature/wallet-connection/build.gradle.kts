@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.lasr.feature.walletconnection.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.lasr.feature.walletconnection"
@@ -16,8 +12,8 @@ kotlin {
             api(project(":lasr:integration:nwc"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.compose.foundation)

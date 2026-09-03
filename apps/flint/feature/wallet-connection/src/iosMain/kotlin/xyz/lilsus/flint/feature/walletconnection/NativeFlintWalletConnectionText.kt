@@ -1,36 +1,7 @@
 package xyz.lilsus.flint.feature.walletconnection
 
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.Res
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_cancel
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_corrupt
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_invalidated
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_unavailable
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_already_configured
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_connection
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_invalid_mnemonic
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_reset
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_storage
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_import_action
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_import_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_import_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_phrase_hint
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_phrase_label
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_connecting
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_loading
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_removing
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_working
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reconnect_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reconnect_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_remove_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_remove_confirm
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_remove_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reset_action
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reset_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reset_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_retry
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_storage_note
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 
 data class NativeFlintWalletConnectionText(
     val importTitle: String,
@@ -66,33 +37,106 @@ data class NativeFlintWalletConnectionText(
 
 suspend fun nativeFlintWalletConnectionText(): NativeFlintWalletConnectionText =
     NativeFlintWalletConnectionText(
-        importTitle = getString(Res.string.wallet_import_title),
-        importBody = getString(Res.string.wallet_import_body),
-        phraseLabel = getString(Res.string.wallet_phrase_label),
-        phraseHint = getString(Res.string.wallet_phrase_hint),
-        storageNote = getString(Res.string.wallet_storage_note),
-        importAction = getString(Res.string.wallet_import_action),
-        removeTitle = getString(Res.string.wallet_remove_title),
-        removeBody = getString(Res.string.wallet_remove_body),
-        removeConfirm = getString(Res.string.wallet_remove_confirm),
-        cancel = getString(Res.string.wallet_cancel),
-        retry = getString(Res.string.wallet_retry),
-        resetAction = getString(Res.string.wallet_reset_action),
-        loading = getString(Res.string.wallet_progress_loading),
-        connecting = getString(Res.string.wallet_progress_connecting),
-        removing = getString(Res.string.wallet_progress_removing),
-        working = getString(Res.string.wallet_progress_working),
-        reconnectTitle = getString(Res.string.wallet_reconnect_title),
-        reconnectBody = getString(Res.string.wallet_reconnect_body),
-        resetTitle = getString(Res.string.wallet_reset_title),
-        resetBody = getString(Res.string.wallet_reset_body),
-        credentialTitle = getString(Res.string.wallet_credential_title),
-        credentialUnavailable = getString(Res.string.wallet_credential_unavailable),
-        credentialInvalidated = getString(Res.string.wallet_credential_invalidated),
-        credentialCorrupt = getString(Res.string.wallet_credential_corrupt),
-        errorAlreadyConfigured = getString(Res.string.wallet_error_already_configured),
-        errorInvalidMnemonic = getString(Res.string.wallet_error_invalid_mnemonic),
-        errorConnection = getString(Res.string.wallet_error_connection),
-        errorStorage = getString(Res.string.wallet_error_storage),
-        errorReset = getString(Res.string.wallet_error_reset)
+        importTitle = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_import_title")
+        ),
+        importBody = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_import_body")
+        ),
+        phraseLabel = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_phrase_label")
+        ),
+        phraseHint = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_phrase_hint")
+        ),
+        storageNote = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_storage_note")
+        ),
+        importAction = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_import_action")
+        ),
+        removeTitle = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_remove_title")
+        ),
+        removeBody = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_remove_body")
+        ),
+        removeConfirm = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_remove_confirm")
+        ),
+        cancel = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_cancel")
+        ),
+        retry = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_retry")
+        ),
+        resetAction = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_reset_action")
+        ),
+        loading = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_progress_loading")
+        ),
+        connecting = nativeString(
+            NativeStringResource(
+                table = "FlintWalletConnection",
+                key = "wallet_progress_connecting"
+            )
+        ),
+        removing = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_progress_removing")
+        ),
+        working = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_progress_working")
+        ),
+        reconnectTitle = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_reconnect_title")
+        ),
+        reconnectBody = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_reconnect_body")
+        ),
+        resetTitle = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_reset_title")
+        ),
+        resetBody = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_reset_body")
+        ),
+        credentialTitle = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_credential_title")
+        ),
+        credentialUnavailable = nativeString(
+            NativeStringResource(
+                table = "FlintWalletConnection",
+                key = "wallet_credential_unavailable"
+            )
+        ),
+        credentialInvalidated = nativeString(
+            NativeStringResource(
+                table = "FlintWalletConnection",
+                key = "wallet_credential_invalidated"
+            )
+        ),
+        credentialCorrupt = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_credential_corrupt")
+        ),
+        errorAlreadyConfigured = nativeString(
+            NativeStringResource(
+                table = "FlintWalletConnection",
+                key = "wallet_error_already_configured"
+            )
+        ),
+        errorInvalidMnemonic = nativeString(
+            NativeStringResource(
+                table = "FlintWalletConnection",
+                key = "wallet_error_invalid_mnemonic"
+            )
+        ),
+        errorConnection = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_error_connection")
+        ),
+        errorStorage = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_error_storage")
+        ),
+        errorReset = nativeString(
+            NativeStringResource(table = "FlintWalletConnection", key = "wallet_error_reset")
+        )
     )

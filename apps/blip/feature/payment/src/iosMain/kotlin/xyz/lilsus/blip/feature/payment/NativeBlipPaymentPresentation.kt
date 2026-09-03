@@ -1,18 +1,10 @@
 package xyz.lilsus.blip.feature.payment
 
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.blip.feature.payment.generated.resources.Res
-import xyz.lilsus.blip.feature.payment.generated.resources.tap_dismiss_pending_blink
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_fee
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_already_paid
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_failure
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_pending_blink
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_sending
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_success
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_unknown
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.paymentui.NativePaymentRecentItem
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
@@ -73,7 +65,10 @@ suspend fun SessionTransactionItem.toNativeRecentItem(
     supportingText =
         when (status) {
             PendingStatus.Success -> fee?.let {
-                getString(Res.string.transaction_fee, formatter.format(it))
+                nativeString(
+                    NativeStringResource(table = "BlipPayment", key = "transaction_fee"),
+                    formatter.format(it)
+                )
             }
 
             PendingStatus.StatusUnknown,
@@ -89,7 +84,7 @@ suspend fun SessionTransactionItem.toNativeRecentItem(
     detailState = toNativeDetailState(),
     canRetry = status == PendingStatus.StatusUnknown || status == PendingStatus.Failure,
     pendingMessage =
-        getString(Res.string.tap_dismiss_pending_blink)
+        nativeString(NativeStringResource(table = "BlipPayment", key = "tap_dismiss_pending_blink"))
             .takeIf { status == PendingStatus.PendingInBlink }
 )
 
@@ -115,14 +110,37 @@ private suspend fun SessionTransactionItem.toNativeDetailState(): PaymentScreenS
             PaymentUiState.Error(error ?: PaymentUiError.Unexpected(errorMessage))
     }.toNativePaymentScreenState()
 
-private suspend fun PendingStatus.nativeStatusLabel(): String = getString(
+private suspend fun PendingStatus.nativeStatusLabel(): String = nativeString(
     when (this) {
-        PendingStatus.Sending -> Res.string.transaction_status_sending
-        PendingStatus.PendingInBlink -> Res.string.transaction_status_pending_blink
-        PendingStatus.StatusUnknown -> Res.string.transaction_status_unknown
-        PendingStatus.Success -> Res.string.transaction_status_success
-        PendingStatus.AlreadyPaid -> Res.string.transaction_status_already_paid
-        PendingStatus.Failure -> Res.string.transaction_status_failure
+        PendingStatus.Sending -> NativeStringResource(
+            table = "BlipPayment",
+            key = "transaction_status_sending"
+        )
+
+        PendingStatus.PendingInBlink -> NativeStringResource(
+            table = "BlipPayment",
+            key = "transaction_status_pending_blink"
+        )
+
+        PendingStatus.StatusUnknown -> NativeStringResource(
+            table = "BlipPayment",
+            key = "transaction_status_unknown"
+        )
+
+        PendingStatus.Success -> NativeStringResource(
+            table = "BlipPayment",
+            key = "transaction_status_success"
+        )
+
+        PendingStatus.AlreadyPaid -> NativeStringResource(
+            table = "BlipPayment",
+            key = "transaction_status_already_paid"
+        )
+
+        PendingStatus.Failure -> NativeStringResource(
+            table = "BlipPayment",
+            key = "transaction_status_failure"
+        )
     }
 )
 

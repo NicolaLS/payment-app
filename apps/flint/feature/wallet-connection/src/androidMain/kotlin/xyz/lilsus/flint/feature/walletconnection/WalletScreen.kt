@@ -1,5 +1,6 @@
 package xyz.lilsus.flint.feature.walletconnection
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,45 +23,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.flint.application.wallet.CredentialProblemKind
 import xyz.lilsus.flint.application.wallet.WalletAccessState
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.Res
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_cancel
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_corrupt
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_invalidated
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_credential_unavailable
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_already_configured
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_connection
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_invalid_mnemonic
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_reset
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_error_storage
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_import_action
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_import_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_import_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_phrase_hint
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_phrase_label
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_connecting
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_loading
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_removing
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_progress_working
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reconnect_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reconnect_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_remove_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_remove_confirm
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_remove_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reset_action
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reset_body
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_reset_title
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_retry
-import xyz.lilsus.flint.feature.walletconnection.generated.resources.wallet_storage_note
+import xyz.lilsus.flint.feature.walletconnection.R
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,7 +46,7 @@ fun WalletConnectionScreen(
         modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.wallet_import_title)) },
+                title = { Text(stringResource(R.string.wallet_import_title)) },
                 navigationIcon = {
                     onBack?.let { BackIconButton(onClick = it) }
                 }
@@ -109,14 +80,14 @@ fun WalletConnectionContent(
             WalletAccessState.NoWallet -> ImportContent(state, dispatch)
 
             WalletAccessState.ReconnectRequired -> RecoveryContent(
-                title = Res.string.wallet_reconnect_title,
-                body = Res.string.wallet_reconnect_body,
+                title = R.string.wallet_reconnect_title,
+                body = R.string.wallet_reconnect_body,
                 dispatch = dispatch
             )
 
             WalletAccessState.ResetRequired -> RecoveryContent(
-                title = Res.string.wallet_reset_title,
-                body = Res.string.wallet_reset_body,
+                title = R.string.wallet_reset_title,
+                body = R.string.wallet_reset_body,
                 dispatch = dispatch
             )
 
@@ -140,19 +111,19 @@ private fun ImportContent(state: WalletUiState, dispatch: (WalletAction) -> Unit
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = stringResource(Res.string.wallet_import_title),
+            text = stringResource(R.string.wallet_import_title),
             style = MaterialTheme.typography.headlineSmall
         )
         Text(
-            text = stringResource(Res.string.wallet_import_body),
+            text = stringResource(R.string.wallet_import_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         OutlinedTextField(
             value = state.recoveryPhrase,
             onValueChange = { dispatch(WalletAction.RecoveryPhraseChanged(it)) },
-            label = { Text(stringResource(Res.string.wallet_phrase_label)) },
-            placeholder = { Text(stringResource(Res.string.wallet_phrase_hint)) },
+            label = { Text(stringResource(R.string.wallet_phrase_label)) },
+            placeholder = { Text(stringResource(R.string.wallet_phrase_hint)) },
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions =
                 KeyboardOptions(
@@ -164,7 +135,7 @@ private fun ImportContent(state: WalletUiState, dispatch: (WalletAction) -> Unit
             modifier = Modifier.fillMaxWidth()
         )
         Text(
-            text = stringResource(Res.string.wallet_storage_note),
+            text = stringResource(R.string.wallet_storage_note),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -180,7 +151,7 @@ private fun ImportContent(state: WalletUiState, dispatch: (WalletAction) -> Unit
             onClick = { dispatch(WalletAction.Import) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(stringResource(Res.string.wallet_import_action))
+            Text(stringResource(R.string.wallet_import_action))
         }
     }
 }
@@ -189,10 +160,10 @@ private fun ImportContent(state: WalletUiState, dispatch: (WalletAction) -> Unit
 private fun ProgressContent(state: WalletAccessState) {
     val resource =
         when (state) {
-            WalletAccessState.Loading -> Res.string.wallet_progress_loading
-            WalletAccessState.Connecting -> Res.string.wallet_progress_connecting
-            WalletAccessState.Removing -> Res.string.wallet_progress_removing
-            else -> Res.string.wallet_progress_working
+            WalletAccessState.Loading -> R.string.wallet_progress_loading
+            WalletAccessState.Connecting -> R.string.wallet_progress_connecting
+            WalletAccessState.Removing -> R.string.wallet_progress_removing
+            else -> R.string.wallet_progress_working
         }
     CircularProgressIndicator()
     Text(
@@ -210,17 +181,19 @@ private fun CredentialProblemContent(
 ) {
     val body =
         when (kind) {
-            CredentialProblemKind.UNAVAILABLE -> Res.string.wallet_credential_unavailable
-            CredentialProblemKind.INVALIDATED -> Res.string.wallet_credential_invalidated
-            CredentialProblemKind.CORRUPT -> Res.string.wallet_credential_corrupt
+            CredentialProblemKind.UNAVAILABLE -> R.string.wallet_credential_unavailable
+            CredentialProblemKind.INVALIDATED -> R.string.wallet_credential_invalidated
+            CredentialProblemKind.CORRUPT -> R.string.wallet_credential_corrupt
         }
-    RecoveryContent(Res.string.wallet_credential_title, body, dispatch)
+    RecoveryContent(R.string.wallet_credential_title, body, dispatch)
 }
 
 @Composable
 private fun RecoveryContent(
-    title: StringResource,
-    body: StringResource,
+    @StringRes
+    title: Int,
+    @StringRes
+    body: Int,
     dispatch: (WalletAction) -> Unit
 ) {
     Column(
@@ -243,13 +216,13 @@ private fun RecoveryContent(
             onClick = { dispatch(WalletAction.Retry) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(stringResource(Res.string.wallet_retry))
+            Text(stringResource(R.string.wallet_retry))
         }
         OutlinedButton(
             onClick = { dispatch(WalletAction.RequestRemoval) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(stringResource(Res.string.wallet_reset_action))
+            Text(stringResource(R.string.wallet_reset_action))
         }
     }
 }
@@ -258,25 +231,26 @@ private fun RecoveryContent(
 private fun RemovalConfirmation(dispatch: (WalletAction) -> Unit) {
     AlertDialog(
         onDismissRequest = { dispatch(WalletAction.CancelRemoval) },
-        title = { Text(stringResource(Res.string.wallet_remove_title)) },
-        text = { Text(stringResource(Res.string.wallet_remove_body)) },
+        title = { Text(stringResource(R.string.wallet_remove_title)) },
+        text = { Text(stringResource(R.string.wallet_remove_body)) },
         confirmButton = {
             TextButton(onClick = { dispatch(WalletAction.ConfirmRemoval) }) {
-                Text(stringResource(Res.string.wallet_remove_confirm))
+                Text(stringResource(R.string.wallet_remove_confirm))
             }
         },
         dismissButton = {
             TextButton(onClick = { dispatch(WalletAction.CancelRemoval) }) {
-                Text(stringResource(Res.string.wallet_cancel))
+                Text(stringResource(R.string.wallet_cancel))
             }
         }
     )
 }
 
-private fun WalletMessage.resource(): StringResource = when (this) {
-    WalletMessage.ALREADY_CONFIGURED -> Res.string.wallet_error_already_configured
-    WalletMessage.INVALID_MNEMONIC -> Res.string.wallet_error_invalid_mnemonic
-    WalletMessage.CONNECTION_FAILED -> Res.string.wallet_error_connection
-    WalletMessage.CREDENTIAL_STORE_FAILED -> Res.string.wallet_error_storage
-    WalletMessage.RESET_REQUIRED -> Res.string.wallet_error_reset
+@StringRes
+private fun WalletMessage.resource(): Int = when (this) {
+    WalletMessage.ALREADY_CONFIGURED -> R.string.wallet_error_already_configured
+    WalletMessage.INVALID_MNEMONIC -> R.string.wallet_error_invalid_mnemonic
+    WalletMessage.CONNECTION_FAILED -> R.string.wallet_error_connection
+    WalletMessage.CREDENTIAL_STORE_FAILED -> R.string.wallet_error_storage
+    WalletMessage.RESET_REQUIRED -> R.string.wallet_error_reset
 }

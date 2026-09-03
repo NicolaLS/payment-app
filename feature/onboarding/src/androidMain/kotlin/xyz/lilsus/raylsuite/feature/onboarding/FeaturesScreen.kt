@@ -34,13 +34,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_features_continue
+import xyz.lilsus.raylsuite.feature.onboarding.R
 
 data class OnboardingFeaturePage(val title: String, val subtitle: String, val body: String)
 
@@ -136,7 +135,7 @@ fun FeaturesScreen(
                         .fillMaxWidth()
                         .testTag(OnboardingTestTags.FEATURES_CONTINUE)
             ) {
-                Text(stringResource(Res.string.onboarding_features_continue))
+                Text(stringResource(R.string.onboarding_features_continue))
             }
         }
     }

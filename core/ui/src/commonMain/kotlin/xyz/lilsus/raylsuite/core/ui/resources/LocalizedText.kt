@@ -1,18 +1,18 @@
 package xyz.lilsus.raylsuite.core.ui.resources
 
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.getString
-
-/** Resource-backed text selected by its owning presentation layer. */
-class LocalizedText(internal val resource: StringResource, internal val argument: String? = null) {
-    suspend fun resolveInCoroutine(): String =
-        argument?.let { getString(resource, it) } ?: getString(resource)
+/** A semantic localization key implemented by the owning platform catalogs. */
+interface LocalizedTextKey {
+    val table: String
+    val key: String
 }
+
+/** Platform-neutral text selected by an app-owned presentation projection. */
+class LocalizedText(val resource: LocalizedTextKey, val argument: String? = null)
 
 fun localizedTextWithOptionalDetail(
     detail: String?,
-    generic: StringResource,
-    withDetails: StringResource
+    generic: LocalizedTextKey,
+    withDetails: LocalizedTextKey
 ): LocalizedText = detail?.takeUnless(String::isBlank)
     ?.let { LocalizedText(withDetails, it) }
     ?: LocalizedText(generic)

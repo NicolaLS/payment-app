@@ -1,46 +1,48 @@
 package xyz.lilsus.lasr.feature.payment
 
-import xyz.lilsus.lasr.feature.payment.generated.resources.Res
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_missing_wallet_connection
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_network_unavailable
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_rejected_generic
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_rejected_message
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_unconfirmed
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_payment_unconfirmed_message
-import xyz.lilsus.lasr.feature.payment.generated.resources.error_relay_connection_failed
 import xyz.lilsus.raylsuite.core.ui.resources.LocalizedText
+import xyz.lilsus.raylsuite.core.ui.resources.LocalizedTextKey
 import xyz.lilsus.raylsuite.core.ui.resources.localizedTextWithOptionalDetail
 import xyz.lilsus.raylsuite.feature.paymentui.exchangeRateUnavailablePaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.invalidInvoicePaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.lnurlPaymentErrorText
 import xyz.lilsus.raylsuite.feature.paymentui.unexpectedPaymentErrorText
 
-suspend fun getLasrPaymentErrorMessageFor(error: PaymentUiError): String =
-    error.toLocalizedText().resolveInCoroutine()
+internal enum class LasrPaymentTextKey(override val key: String) : LocalizedTextKey {
+    ErrorMissingWalletConnection("error_missing_wallet_connection"),
+    ErrorNetworkUnavailable("error_network_unavailable"),
+    ErrorPaymentRejectedGeneric("error_payment_rejected_generic"),
+    ErrorPaymentRejectedMessage("error_payment_rejected_message"),
+    ErrorPaymentUnconfirmed("error_payment_unconfirmed"),
+    ErrorPaymentUnconfirmedMessage("error_payment_unconfirmed_message"),
+    ErrorRelayConnectionFailed("error_relay_connection_failed");
+
+    override val table: String = "LasrPayment"
+}
 
 internal fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
     is PaymentUiError.Nwc -> when (val nwcError = error) {
         NwcPaymentError.MissingWalletConnection ->
-            LocalizedText(Res.string.error_missing_wallet_connection)
+            LocalizedText(LasrPaymentTextKey.ErrorMissingWalletConnection)
 
         NwcPaymentError.NetworkUnavailable ->
-            LocalizedText(Res.string.error_network_unavailable)
+            LocalizedText(LasrPaymentTextKey.ErrorNetworkUnavailable)
 
         is NwcPaymentError.Connection ->
-            LocalizedText(Res.string.error_relay_connection_failed)
+            LocalizedText(LasrPaymentTextKey.ErrorRelayConnectionFailed)
 
         is NwcPaymentError.Rejected ->
             localizedTextWithOptionalDetail(
                 nwcError.detail ?: nwcError.code,
-                Res.string.error_payment_rejected_generic,
-                Res.string.error_payment_rejected_message
+                LasrPaymentTextKey.ErrorPaymentRejectedGeneric,
+                LasrPaymentTextKey.ErrorPaymentRejectedMessage
             )
 
         is NwcPaymentError.OutcomeUnknown ->
             localizedTextWithOptionalDetail(
                 nwcError.detail,
-                Res.string.error_payment_unconfirmed,
-                Res.string.error_payment_unconfirmed_message
+                LasrPaymentTextKey.ErrorPaymentUnconfirmed,
+                LasrPaymentTextKey.ErrorPaymentUnconfirmedMessage
             )
 
         is NwcPaymentError.DefinitelyNotSent,

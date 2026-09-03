@@ -3,10 +3,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.lasr.feature.onboarding.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.lasr.feature.onboarding"
@@ -19,9 +15,9 @@ kotlin {
             implementation(project(":feature:onboarding"))
             implementation(project(":lasr:feature:wallet-connection"))
             implementation(project(":lasr:integration:nwc"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.compose.foundation)

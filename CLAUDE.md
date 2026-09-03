@@ -209,9 +209,10 @@ belong in `core:ui`; app- and feature-specific UI remains with its owner.
 Platform source sets carry the renderers, so keep Compose UI Gradle dependencies
 in `androidMain`. A module whose renderer is Android-only still applies the
 Compose convention plugin, which requires `compose.runtime` on every
-compilation; that one dependency stays in `commonMain`. Generated resource
-accessors also stay in `commonMain`, so `compose.components.resources` does
-too.
+compilation; that one dependency stays in `commonMain`. Do not add
+`compose.components.resources`: Android uses its module's generated `R` class,
+iOS resolves Apple String Catalogs through Foundation, and `commonMain` carries
+only semantic localization keys and already-localized presentation snapshots.
 
 ### App-internal dependency direction
 
@@ -235,23 +236,33 @@ be appropriate when it represents a real boundary inside that app. Keep such a
 contract app-owned and introduce it only when the implementations or consumers
 can meaningfully vary; never replicate the pattern in other apps for symmetry.
 
-Generated resource types stay in their owning module and must not leak into
-model or repository APIs. Blink contact import remains Blip-only.
+Android `R` types and iOS native resource handles stay in their owning platform
+source sets and must not leak into model or repository APIs. Blink contact
+import remains Blip-only.
 
 ## Resources, persistence, and sensitive data
 
-- Feature-specific strings and assets belong to that feature's
-  `composeResources`.
+- Feature-specific Android strings and assets belong to that feature's
+  `src/androidMain/res`; feature-specific Apple strings and assets belong to
+  `src/iosMain/resources` and are referenced directly by every consuming Xcode
+  target. Create only catalogs that the platform actually consumes. A shared
+  Apple catalog remains one file and is never copied into an app.
 - Only cross-feature design assets and generic accessibility strings belong in
-  `core:ui`.
+  the corresponding platform resource catalog in `core:ui`.
 - Native iOS renderers read localized text from the exported Kotlin snapshots
-  and controllers. Do not keep a second copy of a translation in
+  and controllers. Kotlin iOS controllers resolve their owning String Catalog
+  through Foundation. Do not keep a third copy of a translation in
   `Localizable.strings`.
 - App branding, icons, URL schemes, store copy, and legal links belong to the
   owning app.
 - Maintain English, German, and Spanish resources together. Keep keys,
-  placeholders, and plurals aligned across `values`, `values-de`, and
-  `values-es`.
+  placeholders, plurals, and translated values aligned within each platform
+  and across intentionally paired Android and Apple catalogs. Declare a
+  platform-only resource surface in `verifyNativeLocalizations` instead of
+  adding an unused mirror catalog. Run the task after changing localized
+  resources.
+- Every iOS and iPadOS target has a minimum deployment version of 18.5. Keep
+  normal and E2E targets aligned.
 - Never edit generated resource accessors or generated build output.
 - Do not add fallback decoders, migration paths, or import behavior for the
   retired combined app unless the user explicitly requests a migration task.

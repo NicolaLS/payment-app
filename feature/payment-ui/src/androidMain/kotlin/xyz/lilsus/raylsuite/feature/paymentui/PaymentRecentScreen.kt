@@ -4,14 +4,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.raylsuite.feature.paymentui.R
 import xyz.lilsus.raylsuite.feature.paymentui.components.SessionTransactionsScreen
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.session_transactions_empty
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.session_transactions_title
 
 /**
  * This session's payments and the detail of one of them. The selected transaction is hoisted so a
@@ -48,8 +46,8 @@ fun PaymentRecentScreen(
     if (detail == null) {
         SessionTransactionsScreen(
             modifier = modifier.fillMaxSize(),
-            title = stringResource(Res.string.session_transactions_title),
-            emptyMessage = stringResource(Res.string.session_transactions_empty),
+            title = stringResource(R.string.session_transactions_title),
+            emptyMessage = stringResource(R.string.session_transactions_empty),
             transactions = state.sessionItems.map(PaymentSessionItem::transaction),
             onBack = onBack,
             onTransactionSelected = onSelectTransaction

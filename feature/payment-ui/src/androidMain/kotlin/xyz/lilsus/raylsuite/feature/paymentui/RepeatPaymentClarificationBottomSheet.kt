@@ -1,5 +1,6 @@
 package xyz.lilsus.raylsuite.feature.paymentui
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,23 +18,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.completed_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.completed_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.create_additional_payment
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.in_progress_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.in_progress_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.outcome_unknown_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.outcome_unknown_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.retry_previous_invoice
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.view_previous_payment
+import xyz.lilsus.raylsuite.feature.paymentui.R
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -81,7 +72,7 @@ fun RepeatPaymentClarificationBottomSheet(
             ) {
                 if (clarification.canRetryPreviousInvoice) {
                     ClarificationButton(
-                        text = stringResource(Res.string.retry_previous_invoice),
+                        text = stringResource(R.string.retry_previous_invoice),
                         testTag = RepeatPaymentTestTags.RETRY_PREVIOUS_INVOICE_BUTTON,
                         onClick = {
                             onDecision(RepeatPaymentDecision.RetryPreviousInvoice)
@@ -89,7 +80,7 @@ fun RepeatPaymentClarificationBottomSheet(
                     )
                 } else if (canViewPreviousPayment) {
                     ClarificationButton(
-                        text = stringResource(Res.string.view_previous_payment),
+                        text = stringResource(R.string.view_previous_payment),
                         testTag = RepeatPaymentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON,
                         onClick = {
                             onDecision(RepeatPaymentDecision.ViewPreviousPayment)
@@ -99,7 +90,7 @@ fun RepeatPaymentClarificationBottomSheet(
 
                 if (!clarification.canRetryPreviousInvoice && !canViewPreviousPayment) {
                     ClarificationButton(
-                        text = stringResource(Res.string.create_additional_payment),
+                        text = stringResource(R.string.create_additional_payment),
                         testTag = RepeatPaymentTestTags.CREATE_ADDITIONAL_PAYMENT_BUTTON,
                         onClick = {
                             onDecision(RepeatPaymentDecision.CreateAdditionalPayment)
@@ -117,7 +108,7 @@ fun RepeatPaymentClarificationBottomSheet(
                                     RepeatPaymentTestTags.CREATE_ADDITIONAL_PAYMENT_BUTTON
                                 )
                     ) {
-                        Text(stringResource(Res.string.create_additional_payment))
+                        Text(stringResource(R.string.create_additional_payment))
                     }
                 }
 
@@ -133,7 +124,7 @@ fun RepeatPaymentClarificationBottomSheet(
                                     RepeatPaymentTestTags.VIEW_PREVIOUS_PAYMENT_BUTTON
                                 )
                     ) {
-                        Text(stringResource(Res.string.view_previous_payment))
+                        Text(stringResource(R.string.view_previous_payment))
                     }
                 }
             }
@@ -151,25 +142,25 @@ private fun ClarificationButton(text: String, testTag: String, onClick: () -> Un
     }
 }
 
-private data class ClarificationCopy(val title: StringResource, val body: StringResource)
+private data class ClarificationCopy(@StringRes val title: Int, @StringRes val body: Int)
 
 private fun PreviousPaymentSituation.copy(): ClarificationCopy = when (this) {
     PreviousPaymentSituation.InProgress ->
         ClarificationCopy(
-            title = Res.string.in_progress_title,
-            body = Res.string.in_progress_body
+            title = R.string.in_progress_title,
+            body = R.string.in_progress_body
         )
 
     PreviousPaymentSituation.OutcomeUnknown ->
         ClarificationCopy(
-            title = Res.string.outcome_unknown_title,
-            body = Res.string.outcome_unknown_body
+            title = R.string.outcome_unknown_title,
+            body = R.string.outcome_unknown_body
         )
 
     PreviousPaymentSituation.Completed ->
         ClarificationCopy(
-            title = Res.string.completed_title,
-            body = Res.string.completed_body
+            title = R.string.completed_title,
+            body = R.string.completed_body
         )
 }
 

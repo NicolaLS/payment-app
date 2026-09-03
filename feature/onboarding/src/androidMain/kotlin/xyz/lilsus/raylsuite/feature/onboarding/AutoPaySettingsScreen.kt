@@ -22,21 +22,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_autopay_always
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_autopay_continue
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_autopay_hint
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_autopay_threshold
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_autopay_threshold_label
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_autopay_title
+import xyz.lilsus.raylsuite.feature.onboarding.R
 
 @Composable
 fun AutoPaySettingsScreen(
@@ -67,7 +61,7 @@ fun AutoPaySettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = stringResource(Res.string.onboarding_autopay_title),
+                text = stringResource(R.string.onboarding_autopay_title),
                 style = MaterialTheme.typography.headlineSmall
             )
 
@@ -94,14 +88,14 @@ fun AutoPaySettingsScreen(
                 ) {
                     ConfirmationModeRow(
                         selected = confirmationMode == PaymentConfirmationMode.Always,
-                        label = stringResource(Res.string.onboarding_autopay_always),
+                        label = stringResource(R.string.onboarding_autopay_always),
                         onClick = {
                             onConfirmationModeChanged(PaymentConfirmationMode.Always)
                         }
                     )
                     ConfirmationModeRow(
                         selected = confirmationMode == PaymentConfirmationMode.Above,
-                        label = stringResource(Res.string.onboarding_autopay_threshold),
+                        label = stringResource(R.string.onboarding_autopay_threshold),
                         onClick = {
                             onConfirmationModeChanged(PaymentConfirmationMode.Above)
                         }
@@ -118,7 +112,7 @@ fun AutoPaySettingsScreen(
                                 )
                             val thresholdLabel =
                                 stringResource(
-                                    Res.string.onboarding_autopay_threshold_label,
+                                    R.string.onboarding_autopay_threshold_label,
                                     currencyEquivalent?.let { "$satsFormatted ($it)" }
                                         ?: satsFormatted
                                 )
@@ -138,7 +132,7 @@ fun AutoPaySettingsScreen(
             }
 
             Text(
-                text = stringResource(Res.string.onboarding_autopay_hint),
+                text = stringResource(R.string.onboarding_autopay_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -151,7 +145,7 @@ fun AutoPaySettingsScreen(
                     .fillMaxWidth()
                     .testTag(OnboardingTestTags.AUTO_PAY_CONTINUE)
             ) {
-                Text(stringResource(Res.string.onboarding_autopay_continue))
+                Text(stringResource(R.string.onboarding_autopay_continue))
             }
         }
     }

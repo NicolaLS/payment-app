@@ -6,10 +6,6 @@ plugins {
     id("xyz.lilsus.raylsuite.app.shared")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.flint.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.flint.shared"
@@ -44,10 +40,10 @@ kotlin {
             api(project(":feature:settings"))
             implementation(project(":feature:theme-settings"))
             implementation(project(":integration:exchange-rate"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.multiplatform.settings)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(libs.androidx.lifecycle.runtimeCompose)

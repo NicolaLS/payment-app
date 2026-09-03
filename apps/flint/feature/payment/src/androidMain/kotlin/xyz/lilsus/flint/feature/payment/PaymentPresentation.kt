@@ -1,12 +1,8 @@
 package xyz.lilsus.flint.feature.payment
 
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.flint.feature.payment.generated.resources.Res
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_fee
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_failure
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_pending
-import xyz.lilsus.flint.feature.payment.generated.resources.transaction_status_success
+import androidx.compose.ui.res.stringResource
+import xyz.lilsus.flint.feature.payment.R
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
@@ -63,7 +59,7 @@ internal fun SessionTransactionItem.toPaymentSessionTransaction(
         supportingText =
             when (status) {
                 PendingStatus.Succeeded -> fee?.let {
-                    stringResource(Res.string.transaction_fee, formatter.format(it))
+                    stringResource(R.string.transaction_fee, formatter.format(it))
                 }
 
                 PendingStatus.OutcomeUnknown,
@@ -95,20 +91,20 @@ private fun PendingStatus.presentation(): StatusPresentation = when (this) {
     PendingStatus.Sending,
     PendingStatus.Resolving ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_pending),
+            stringResource(R.string.transaction_status_pending),
             PaymentStatusTone.Pending
         )
 
     PendingStatus.Succeeded ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_success),
+            stringResource(R.string.transaction_status_success),
             PaymentStatusTone.Success
         )
 
     PendingStatus.OutcomeUnknown,
     PendingStatus.Failed ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_failure),
+            stringResource(R.string.transaction_status_failure),
             PaymentStatusTone.Failure
         )
 }

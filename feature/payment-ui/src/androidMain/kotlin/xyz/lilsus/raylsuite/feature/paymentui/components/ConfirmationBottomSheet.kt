@@ -17,12 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
@@ -31,12 +31,7 @@ import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_approximate_amount
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_exact_amount
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.dismiss_button
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.pay_button
+import xyz.lilsus.raylsuite.feature.paymentui.R
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +59,7 @@ fun ConfirmationBottomSheet(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(Res.string.confirm_payment_title),
+                text = stringResource(R.string.confirm_payment_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center
             )
@@ -80,7 +75,7 @@ fun ConfirmationBottomSheet(
                 text =
                     if (amount.primaryIsEstimate) {
                         stringResource(
-                            Res.string.confirm_payment_approximate_amount,
+                            R.string.confirm_payment_approximate_amount,
                             formatter.format(amount.primary)
                         )
                     } else {
@@ -95,7 +90,7 @@ fun ConfirmationBottomSheet(
                 Text(
                     text =
                         stringResource(
-                            Res.string.confirm_payment_exact_amount,
+                            R.string.confirm_payment_exact_amount,
                             formatter.format(exactSats)
                         ),
                     style = MaterialTheme.typography.bodyMedium
@@ -114,7 +109,7 @@ fun ConfirmationBottomSheet(
                         .fillMaxWidth()
                         .testTag(PaymentTestTags.CONFIRMATION_PAY_BUTTON)
                 ) {
-                    Text(stringResource(Res.string.pay_button))
+                    Text(stringResource(R.string.pay_button))
                 }
                 OutlinedButton(
                     onClick = onDismiss,
@@ -122,7 +117,7 @@ fun ConfirmationBottomSheet(
                         .fillMaxWidth()
                         .testTag(PaymentTestTags.CONFIRMATION_DISMISS_BUTTON)
                 ) {
-                    Text(stringResource(Res.string.dismiss_button))
+                    Text(stringResource(R.string.dismiss_button))
                 }
             }
         }

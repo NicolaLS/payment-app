@@ -10,9 +10,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportButton
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
@@ -20,10 +20,8 @@ import xyz.lilsus.blip.feature.payment.rememberPaymentFlowState
 import xyz.lilsus.blip.feature.payment.rememberPaymentMessages
 import xyz.lilsus.blip.feature.walletsettings.BlinkWalletSettingsActions
 import xyz.lilsus.blip.feature.walletsettings.BlinkWalletSettingsViewModel
-import xyz.lilsus.blip.generated.resources.Res
-import xyz.lilsus.blip.generated.resources.app_name
-import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
-import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
+import xyz.lilsus.blip.shared.R
+import xyz.lilsus.blip.ui.R as BlipUiR
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
@@ -90,7 +88,7 @@ internal fun BlipTabContent(
     val currencyCode by runtime.currencyPreferences.code.collectAsState(
         CurrencyCatalog.DEFAULT_CODE
     )
-    val estimatedFeeHint = stringResource(BlipUiRes.string.result_paid_fee_blink_hint)
+    val estimatedFeeHint = stringResource(BlipUiR.string.result_paid_fee_blink_hint)
 
     when (tab) {
         // Blip has no Recent tab, so its session history lives behind the Scan screen's button.
@@ -112,7 +110,7 @@ internal fun BlipTabContent(
                 PaymentScanScreen(
                     state = flowState,
                     messageEvents = messages,
-                    appTitle = stringResource(Res.string.app_name),
+                    appTitle = stringResource(R.string.app_name),
                     estimatedFeeHint = estimatedFeeHint,
                     savePrompt = hubState.savePrompt,
                     onIntent = coordinator::dispatch,
@@ -224,7 +222,7 @@ private fun BlipSettingsTab(
                 onRemoveWallet = onRemoveWallet
             )
         },
-        donationAppName = stringResource(Res.string.app_name),
+        donationAppName = stringResource(R.string.app_name),
         onDonate = onDonate
     )
 }

@@ -1,26 +1,7 @@
 package xyz.lilsus.lasr.feature.onboarding
 
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.Res
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_add_wallet_intro
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_add_wallet_step1
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_add_wallet_step2
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_add_wallet_step3
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_add_wallet_title
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_agreement_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_autopay_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_subtitle
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_title
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_subtitle
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_title
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_subtitle
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_title
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line1
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line2
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_title
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 
 data class NativeLasrOnboardingPage(val title: String, val subtitle: String, val body: String)
 
@@ -37,35 +18,100 @@ data class NativeLasrOnboardingText(
 )
 
 suspend fun nativeLasrOnboardingText(): NativeLasrOnboardingText = NativeLasrOnboardingText(
-    welcomeTitle = getString(Res.string.onboarding_welcome_title),
-    welcomeSubtitle = getString(Res.string.onboarding_welcome_subtitle_line1),
-    welcomeDescription = getString(Res.string.onboarding_welcome_subtitle_line2),
+    welcomeTitle = nativeString(
+        NativeStringResource(table = "LasrOnboarding", key = "onboarding_welcome_title")
+    ),
+    welcomeSubtitle = nativeString(
+        NativeStringResource(table = "LasrOnboarding", key = "onboarding_welcome_subtitle_line1")
+    ),
+    welcomeDescription = nativeString(
+        NativeStringResource(table = "LasrOnboarding", key = "onboarding_welcome_subtitle_line2")
+    ),
     featurePages =
         listOf(
             NativeLasrOnboardingPage(
-                title = getString(Res.string.onboarding_features_page1_title),
-                subtitle = getString(Res.string.onboarding_features_page1_subtitle),
-                body = getString(Res.string.onboarding_features_page1_body)
+                title = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page1_title"
+                    )
+                ),
+                subtitle = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page1_subtitle"
+                    )
+                ),
+                body = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page1_body"
+                    )
+                )
             ),
             NativeLasrOnboardingPage(
-                title = getString(Res.string.onboarding_features_page2_title),
-                subtitle = getString(Res.string.onboarding_features_page2_subtitle),
-                body = getString(Res.string.onboarding_features_page2_body)
+                title = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page2_title"
+                    )
+                ),
+                subtitle = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page2_subtitle"
+                    )
+                ),
+                body = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page2_body"
+                    )
+                )
             ),
             NativeLasrOnboardingPage(
-                title = getString(Res.string.onboarding_features_page3_title),
-                subtitle = getString(Res.string.onboarding_features_page3_subtitle),
-                body = getString(Res.string.onboarding_features_page3_body)
+                title = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page3_title"
+                    )
+                ),
+                subtitle = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page3_subtitle"
+                    )
+                ),
+                body = nativeString(
+                    NativeStringResource(
+                        table = "LasrOnboarding",
+                        key = "onboarding_features_page3_body"
+                    )
+                )
             )
         ),
-    autoPayBody = getString(Res.string.onboarding_autopay_body),
-    agreementBody = getString(Res.string.onboarding_agreement_body),
-    instructionsTitle = getString(Res.string.onboarding_add_wallet_title),
-    instructionsIntro = getString(Res.string.onboarding_add_wallet_intro),
+    autoPayBody = nativeString(
+        NativeStringResource(table = "LasrOnboarding", key = "onboarding_autopay_body")
+    ),
+    agreementBody = nativeString(
+        NativeStringResource(table = "LasrOnboarding", key = "onboarding_agreement_body")
+    ),
+    instructionsTitle = nativeString(
+        NativeStringResource(table = "LasrOnboarding", key = "onboarding_add_wallet_title")
+    ),
+    instructionsIntro = nativeString(
+        NativeStringResource(table = "LasrOnboarding", key = "onboarding_add_wallet_intro")
+    ),
     instructionSteps =
         listOf(
-            getString(Res.string.onboarding_add_wallet_step1),
-            getString(Res.string.onboarding_add_wallet_step2),
-            getString(Res.string.onboarding_add_wallet_step3)
+            nativeString(
+                NativeStringResource(table = "LasrOnboarding", key = "onboarding_add_wallet_step1")
+            ),
+            nativeString(
+                NativeStringResource(table = "LasrOnboarding", key = "onboarding_add_wallet_step2")
+            ),
+            nativeString(
+                NativeStringResource(table = "LasrOnboarding", key = "onboarding_add_wallet_step3")
+            )
         )
 )

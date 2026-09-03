@@ -1,56 +1,16 @@
 package xyz.lilsus.raylsuite.feature.paymentui
 
-import org.jetbrains.compose.resources.getString
 import xyz.lilsus.raylsuite.core.camera.CameraAuthorizationState
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.paymenthub.host.HubSavePrompt
 import xyz.lilsus.raylsuite.feature.paymenthub.host.toNativePresentation
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 import xyz.lilsus.raylsuite.feature.paymentui.amount.RangeStatus
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_denied_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_denied_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_open_settings
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_restricted_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.camera_permission_restricted_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.completed_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.completed_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_approximate_amount
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_exact_amount
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.confirm_payment_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.create_additional_payment
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.dismiss_button
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.enter_amount_range_max
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.enter_amount_range_min
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.enter_amount_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.in_progress_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.in_progress_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.lnurl_payment_recipient
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.outcome_unknown_body
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.outcome_unknown_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.pay_button
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.point_camera_message_subtitle
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.resolving_payment_subtitle
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.resolving_payment_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_already_paid_message
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_already_paid_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_error_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_paid_fee
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_paid_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_middle
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_only
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_prefix
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_preimage
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_suffix
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_view_receipt
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.retry_previous_invoice
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.tap_continue
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.view_previous_payment
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.view_session_transactions
 
 data class NativePaymentScanSnapshot(
     val heroPhase: String,
@@ -152,7 +112,9 @@ suspend fun nativePaymentScanSnapshot(
         recent =
             if (offersRecentEntryPoint && recentCount > 0) {
                 NativePaymentScanRecentEntry(
-                    title = getString(Res.string.view_session_transactions),
+                    title = nativeString(
+                        NativeStringResource(table = "PaymentUI", key = "view_session_transactions")
+                    ),
                     newTransactionCount = newRecentCount
                 )
             } else {
@@ -172,16 +134,38 @@ private suspend fun CameraAuthorizationState.toNativePermissionContent():
     when (this) {
         CameraAuthorizationState.DENIED ->
             NativeCameraPermissionContent(
-                title = getString(Res.string.camera_permission_denied_title),
-                body = getString(Res.string.camera_permission_denied_body),
-                openSettingsTitle = getString(Res.string.camera_permission_open_settings)
+                title = nativeString(
+                    NativeStringResource(
+                        table = "PaymentUI",
+                        key = "camera_permission_denied_title"
+                    )
+                ),
+                body = nativeString(
+                    NativeStringResource(table = "PaymentUI", key = "camera_permission_denied_body")
+                ),
+                openSettingsTitle = nativeString(
+                    NativeStringResource(
+                        table = "PaymentUI",
+                        key = "camera_permission_open_settings"
+                    )
+                )
             )
 
         CameraAuthorizationState.RESTRICTED,
         CameraAuthorizationState.UNAVAILABLE ->
             NativeCameraPermissionContent(
-                title = getString(Res.string.camera_permission_restricted_title),
-                body = getString(Res.string.camera_permission_restricted_body),
+                title = nativeString(
+                    NativeStringResource(
+                        table = "PaymentUI",
+                        key = "camera_permission_restricted_title"
+                    )
+                ),
+                body = nativeString(
+                    NativeStringResource(
+                        table = "PaymentUI",
+                        key = "camera_permission_restricted_body"
+                    )
+                ),
                 openSettingsTitle = null
             )
 
@@ -200,8 +184,12 @@ private suspend fun PaymentScreenState.toNativeContent(
         if (kind == PaymentLoadingKind.Resolving && showResolvingContent) {
             NativePaymentScanContent(
                 kind = CONTENT_RESOLVING,
-                title = getString(Res.string.resolving_payment_title),
-                subtitle = getString(Res.string.resolving_payment_subtitle),
+                title = nativeString(
+                    NativeStringResource(table = "PaymentUI", key = "resolving_payment_title")
+                ),
+                subtitle = nativeString(
+                    NativeStringResource(table = "PaymentUI", key = "resolving_payment_subtitle")
+                ),
                 primaryAmount = null,
                 secondaryText = null,
                 feeHint = null,
@@ -222,13 +210,17 @@ private suspend fun PaymentScreenState.toNativeContent(
     is PaymentScreenState.Error ->
         NativePaymentScanContent(
             kind = CONTENT_ERROR,
-            title = getString(Res.string.result_error_title),
+            title = nativeString(
+                NativeStringResource(table = "PaymentUI", key = "result_error_title")
+            ),
             subtitle = message,
             primaryAmount = null,
             secondaryText = null,
             feeHint = null,
             actionTitle = null,
-            tapToContinue = getString(Res.string.tap_continue)
+            tapToContinue = nativeString(
+                NativeStringResource(table = "PaymentUI", key = "tap_continue")
+            )
         )
 
     else -> idleContent(appTitle)
@@ -249,7 +241,9 @@ internal suspend fun PaymentScreenState.toNativeRecentDetailContent(
 private suspend fun idleContent(appTitle: String) = NativePaymentScanContent(
     kind = CONTENT_IDLE,
     title = appTitle,
-    subtitle = getString(Res.string.point_camera_message_subtitle),
+    subtitle = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "point_camera_message_subtitle")
+    ),
     primaryAmount = null,
     secondaryText = null,
     feeHint = null,
@@ -262,44 +256,61 @@ private suspend fun PaymentScreenState.Success.successContent(
     estimatedFeeHint: String?
 ) = NativePaymentScanContent(
     kind = CONTENT_SUCCESS,
-    title = getString(Res.string.result_paid_title),
+    title = nativeString(NativeStringResource(table = "PaymentUI", key = "result_paid_title")),
     subtitle = null,
     primaryAmount = formatter.format(amountPaid),
-    secondaryText = getString(Res.string.result_paid_fee, formatter.format(feePaid)),
+    secondaryText = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "result_paid_fee"),
+        formatter.format(feePaid)
+    ),
     feeHint = estimatedFeeHint.takeIf { showEstimatedFeeHint },
     actionTitle =
-        getString(Res.string.result_view_receipt)
+        nativeString(NativeStringResource(table = "PaymentUI", key = "result_view_receipt"))
             .takeIf { !preimage.isNullOrBlank() },
-    tapToContinue = getString(Res.string.tap_continue)
+    tapToContinue = nativeString(NativeStringResource(table = "PaymentUI", key = "tap_continue"))
 )
 
 private suspend fun alreadyPaidContent(preimage: String?) = NativePaymentScanContent(
     kind = CONTENT_ALREADY_PAID,
-    title = getString(Res.string.result_already_paid_title),
-    subtitle = getString(Res.string.result_already_paid_message),
+    title = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "result_already_paid_title")
+    ),
+    subtitle = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "result_already_paid_message")
+    ),
     primaryAmount = null,
     secondaryText = null,
     feeHint = null,
     actionTitle =
-        getString(Res.string.result_view_receipt)
+        nativeString(NativeStringResource(table = "PaymentUI", key = "result_view_receipt"))
             .takeIf { !preimage.isNullOrBlank() },
-    tapToContinue = getString(Res.string.tap_continue)
+    tapToContinue = nativeString(NativeStringResource(table = "PaymentUI", key = "tap_continue"))
 )
 
 private suspend fun receiptContent() = NativePaymentScanContent(
     kind = CONTENT_RECEIPT,
-    title = getString(Res.string.result_receipt_title),
+    title = nativeString(NativeStringResource(table = "PaymentUI", key = "result_receipt_title")),
     subtitle =
-        getString(Res.string.result_receipt_body_prefix) +
-            getString(Res.string.result_receipt_body_preimage) +
-            getString(Res.string.result_receipt_body_middle) +
-            getString(Res.string.result_receipt_body_only) +
-            getString(Res.string.result_receipt_body_suffix),
+        nativeString(
+            NativeStringResource(table = "PaymentUI", key = "result_receipt_body_prefix")
+        ) +
+            nativeString(
+                NativeStringResource(table = "PaymentUI", key = "result_receipt_body_preimage")
+            ) +
+            nativeString(
+                NativeStringResource(table = "PaymentUI", key = "result_receipt_body_middle")
+            ) +
+            nativeString(
+                NativeStringResource(table = "PaymentUI", key = "result_receipt_body_only")
+            ) +
+            nativeString(
+                NativeStringResource(table = "PaymentUI", key = "result_receipt_body_suffix")
+            ),
     primaryAmount = null,
     secondaryText = null,
     feeHint = null,
     actionTitle = null,
-    tapToContinue = getString(Res.string.tap_continue)
+    tapToContinue = nativeString(NativeStringResource(table = "PaymentUI", key = "tap_continue"))
 )
 
 private suspend fun PaymentScreenState.toNativeSheet(
@@ -324,7 +335,7 @@ private suspend fun ManualAmountUiState.toNativeSheet(
     formatter: AmountFormatter
 ): NativePaymentScanSheet = NativePaymentScanSheet(
     kind = SHEET_MANUAL_AMOUNT,
-    title = getString(Res.string.enter_amount_title),
+    title = nativeString(NativeStringResource(table = "PaymentUI", key = "enter_amount_title")),
     body = null,
     amount = committedNumber(),
     exactAmount = null,
@@ -333,17 +344,27 @@ private suspend fun ManualAmountUiState.toNativeSheet(
     recipientImageBase64 = recipient?.image?.encodedBase64(),
     currencyLabel = currency.nativeLabel(),
     minimumTitle = min?.let {
-        getString(Res.string.enter_amount_range_min, formatter.format(it))
+        nativeString(
+            NativeStringResource(table = "PaymentUI", key = "enter_amount_range_min"),
+            formatter.format(it)
+        )
     },
     maximumTitle = max?.let {
-        getString(Res.string.enter_amount_range_max, formatter.format(it))
+        nativeString(
+            NativeStringResource(table = "PaymentUI", key = "enter_amount_range_max"),
+            formatter.format(it)
+        )
     },
     rangeMessage = rangeStatus.message(formatter),
     allowsDecimal = allowDecimal,
     canSubmit = amount != null && amount.minor > 0L && rangeStatus == RangeStatus.InRange,
     primaryAction = "submit",
-    primaryActionTitle = getString(Res.string.pay_button),
-    secondaryActionTitle = getString(Res.string.dismiss_button),
+    primaryActionTitle = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "pay_button")
+    ),
+    secondaryActionTitle = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "dismiss_button")
+    ),
     tertiaryActionTitle = null,
     textFieldLabel = null,
     textFieldValue = null
@@ -353,12 +374,15 @@ private suspend fun PaymentScreenState.Confirm.toNativeSheet(
     formatter: AmountFormatter
 ): NativePaymentScanSheet = NativePaymentScanSheet(
     kind = SHEET_CONFIRMATION,
-    title = getString(Res.string.confirm_payment_title),
+    title = nativeString(NativeStringResource(table = "PaymentUI", key = "confirm_payment_title")),
     body = null,
     amount =
         if (amount.primaryIsEstimate) {
-            getString(
-                Res.string.confirm_payment_approximate_amount,
+            nativeString(
+                NativeStringResource(
+                    table = "PaymentUI",
+                    key = "confirm_payment_approximate_amount"
+                ),
                 formatter.format(amount.primary)
             )
         } else {
@@ -366,7 +390,10 @@ private suspend fun PaymentScreenState.Confirm.toNativeSheet(
         },
     exactAmount =
         amount.exactSats?.let {
-            getString(Res.string.confirm_payment_exact_amount, formatter.format(it))
+            nativeString(
+                NativeStringResource(table = "PaymentUI", key = "confirm_payment_exact_amount"),
+                formatter.format(it)
+            )
         },
     recipientTitle = lnurlPayDisplay?.recipientTitle(),
     recipientDescription = lnurlPayDisplay?.description,
@@ -378,8 +405,12 @@ private suspend fun PaymentScreenState.Confirm.toNativeSheet(
     allowsDecimal = false,
     canSubmit = true,
     primaryAction = "submit",
-    primaryActionTitle = getString(Res.string.pay_button),
-    secondaryActionTitle = getString(Res.string.dismiss_button),
+    primaryActionTitle = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "pay_button")
+    ),
+    secondaryActionTitle = nativeString(
+        NativeStringResource(table = "PaymentUI", key = "dismiss_button")
+    ),
     tertiaryActionTitle = null,
     textFieldLabel = null,
     textFieldValue = null
@@ -392,18 +423,21 @@ private suspend fun PreviousPaymentSituation.toNativeSheet(
     val (title, body) =
         when (this) {
             PreviousPaymentSituation.InProgress ->
-                Res.string.in_progress_title to Res.string.in_progress_body
+                NativeStringResource(table = "PaymentUI", key = "in_progress_title") to
+                    NativeStringResource(table = "PaymentUI", key = "in_progress_body")
 
             PreviousPaymentSituation.OutcomeUnknown ->
-                Res.string.outcome_unknown_title to Res.string.outcome_unknown_body
+                NativeStringResource(table = "PaymentUI", key = "outcome_unknown_title") to
+                    NativeStringResource(table = "PaymentUI", key = "outcome_unknown_body")
 
             PreviousPaymentSituation.Completed ->
-                Res.string.completed_title to Res.string.completed_body
+                NativeStringResource(table = "PaymentUI", key = "completed_title") to
+                    NativeStringResource(table = "PaymentUI", key = "completed_body")
         }
     return NativePaymentScanSheet(
         kind = SHEET_REPEAT_PAYMENT,
-        title = getString(title),
-        body = getString(body),
+        title = nativeString(title),
+        body = nativeString(body),
         amount = null,
         exactAmount = null,
         recipientTitle = null,
@@ -422,18 +456,31 @@ private suspend fun PreviousPaymentSituation.toNativeSheet(
                 else -> "additional"
             },
         primaryActionTitle =
-            getString(
+            nativeString(
                 when {
-                    canRetry -> Res.string.retry_previous_invoice
-                    canOpenPreviousPayment -> Res.string.view_previous_payment
-                    else -> Res.string.create_additional_payment
+                    canRetry -> NativeStringResource(
+                        table = "PaymentUI",
+                        key = "retry_previous_invoice"
+                    )
+
+                    canOpenPreviousPayment -> NativeStringResource(
+                        table = "PaymentUI",
+                        key = "view_previous_payment"
+                    )
+
+                    else -> NativeStringResource(
+                        table = "PaymentUI",
+                        key = "create_additional_payment"
+                    )
                 }
             ),
         secondaryActionTitle =
-            getString(Res.string.create_additional_payment)
+            nativeString(
+                NativeStringResource(table = "PaymentUI", key = "create_additional_payment")
+            )
                 .takeIf { canRetry || canOpenPreviousPayment },
         tertiaryActionTitle =
-            getString(Res.string.view_previous_payment)
+            nativeString(NativeStringResource(table = "PaymentUI", key = "view_previous_payment"))
                 .takeIf { canRetry && canOpenPreviousPayment },
         textFieldLabel = null,
         textFieldValue = null
@@ -467,17 +514,23 @@ private suspend fun HubSavePrompt.toNativeSheet(): NativePaymentScanSheet {
 }
 
 private suspend fun LnurlPayDisplay.recipientTitle(): String =
-    getString(Res.string.lnurl_payment_recipient, domain)
+    nativeString(NativeStringResource(table = "PaymentUI", key = "lnurl_payment_recipient"), domain)
 
 private suspend fun RangeStatus.message(formatter: AmountFormatter): String? = when (this) {
     RangeStatus.InRange,
     RangeStatus.Unknown -> null
 
     is RangeStatus.BelowMin ->
-        getString(Res.string.enter_amount_range_min, formatter.format(min))
+        nativeString(
+            NativeStringResource(table = "PaymentUI", key = "enter_amount_range_min"),
+            formatter.format(min)
+        )
 
     is RangeStatus.AboveMax ->
-        getString(Res.string.enter_amount_range_max, formatter.format(max))
+        nativeString(
+            NativeStringResource(table = "PaymentUI", key = "enter_amount_range_max"),
+            formatter.format(max)
+        )
 }
 
 private fun ManualAmountUiState.committedNumber(): String {

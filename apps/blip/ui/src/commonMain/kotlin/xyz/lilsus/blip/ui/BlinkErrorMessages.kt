@@ -1,134 +1,104 @@
 package xyz.lilsus.blip.ui
 
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.getString
 import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkConnectionError
 import xyz.lilsus.blip.integration.blink.BlinkErrorType
-import xyz.lilsus.blip.ui.generated.resources.Res
-import xyz.lilsus.blip.ui.generated.resources.error_authentication_failure
-import xyz.lilsus.blip.ui.generated.resources.error_blink_amount_too_small
-import xyz.lilsus.blip.ui.generated.resources.error_blink_insufficient_balance
-import xyz.lilsus.blip.ui.generated.resources.error_blink_invalid_api_key
-import xyz.lilsus.blip.ui.generated.resources.error_blink_invalid_invoice
-import xyz.lilsus.blip.ui.generated.resources.error_blink_invoice_expired
-import xyz.lilsus.blip.ui.generated.resources.error_blink_limit_exceeded
-import xyz.lilsus.blip.ui.generated.resources.error_blink_permission_denied
-import xyz.lilsus.blip.ui.generated.resources.error_blink_rate_limited
-import xyz.lilsus.blip.ui.generated.resources.error_blink_required_permissions
-import xyz.lilsus.blip.ui.generated.resources.error_blink_route_not_found
-import xyz.lilsus.blip.ui.generated.resources.error_blink_self_payment
-import xyz.lilsus.blip.ui.generated.resources.error_missing_wallet_connection
-import xyz.lilsus.blip.ui.generated.resources.error_network_unavailable
-import xyz.lilsus.blip.ui.generated.resources.error_payment_rejected_generic
-import xyz.lilsus.blip.ui.generated.resources.error_payment_rejected_message
-import xyz.lilsus.blip.ui.generated.resources.error_timeout
-import xyz.lilsus.blip.ui.generated.resources.error_unexpected_generic
-import xyz.lilsus.blip.ui.generated.resources.error_unexpected_with_details
-import xyz.lilsus.blip.ui.generated.resources.error_wallet_already_connected
+import xyz.lilsus.raylsuite.core.ui.resources.LocalizedText
+import xyz.lilsus.raylsuite.core.ui.resources.LocalizedTextKey
+import xyz.lilsus.raylsuite.core.ui.resources.localizedTextWithOptionalDetail
+
+/** Semantic text owned by Blip's non-payment UI catalogs. */
+internal enum class BlinkUiTextKey(override val key: String) : LocalizedTextKey {
+    ErrorAuthenticationFailure("error_authentication_failure"),
+    ErrorBlinkAmountTooSmall("error_blink_amount_too_small"),
+    ErrorBlinkInsufficientBalance("error_blink_insufficient_balance"),
+    ErrorBlinkInvalidApiKey("error_blink_invalid_api_key"),
+    ErrorBlinkInvalidInvoice("error_blink_invalid_invoice"),
+    ErrorBlinkInvoiceExpired("error_blink_invoice_expired"),
+    ErrorBlinkLimitExceeded("error_blink_limit_exceeded"),
+    ErrorBlinkRateLimited("error_blink_rate_limited"),
+    ErrorBlinkRequiredPermissions("error_blink_required_permissions"),
+    ErrorBlinkRouteNotFound("error_blink_route_not_found"),
+    ErrorBlinkSelfPayment("error_blink_self_payment"),
+    ErrorBlinkWritePermissionDenied("error_blink_write_permission_denied"),
+    ErrorMissingWalletConnection("error_missing_wallet_connection"),
+    ErrorNetworkUnavailable("error_network_unavailable"),
+    ErrorPaymentRejectedGeneric("error_payment_rejected_generic"),
+    ErrorPaymentRejectedMessage("error_payment_rejected_message"),
+    ErrorTimeout("error_timeout"),
+    ErrorUnexpectedGeneric("error_unexpected_generic"),
+    ErrorUnexpectedWithDetails("error_unexpected_with_details"),
+    ErrorWalletAlreadyConnected("error_wallet_already_connected");
+
+    override val table: String = "BlipUI"
+}
 
 /**
  * Presents failures from Blip features outside the payment flow.
  *
  * Payment owns a separate mapping because timeout and uncertain outcomes need
  * payment-specific wording that must not be reused for ordinary wallet operations.
- * This suspending entry point resolves the app-owned presentation for native renderers.
  */
-suspend fun nativeBlinkErrorMessageFor(error: BlinkUiError): String = error.text().resolveNative()
-
-internal fun BlinkUiError.text(): BlinkErrorText = when (this) {
+internal fun BlinkUiError.text(): LocalizedText = when (this) {
     is BlinkUiError.Api -> error.text()
     is BlinkUiError.Connection -> error.text()
     is BlinkUiError.Unexpected -> unexpectedErrorText(detail)
 }
 
-private fun BlinkConnectionError.text(): BlinkErrorText = when (this) {
+private fun BlinkConnectionError.text(): LocalizedText = when (this) {
     BlinkConnectionError.AlreadyConnected ->
-        BlinkErrorText.Plain(Res.string.error_wallet_already_connected)
+        LocalizedText(BlinkUiTextKey.ErrorWalletAlreadyConnected)
 
     BlinkConnectionError.MissingConnection ->
-        BlinkErrorText.Plain(Res.string.error_missing_wallet_connection)
+        LocalizedText(BlinkUiTextKey.ErrorMissingWalletConnection)
 
     BlinkConnectionError.ApiKeyRequired ->
-        BlinkErrorText.Plain(Res.string.error_authentication_failure)
+        LocalizedText(BlinkUiTextKey.ErrorAuthenticationFailure)
 
     BlinkConnectionError.RequiredPermissionsMissing ->
-        BlinkErrorText.Plain(Res.string.error_blink_required_permissions)
+        LocalizedText(BlinkUiTextKey.ErrorBlinkRequiredPermissions)
 }
 
-private fun BlinkApiError.text(): BlinkErrorText = when (this) {
+private fun BlinkApiError.text(): LocalizedText = when (this) {
     is BlinkApiError.BlinkError -> type.text()
 
     BlinkApiError.MissingWalletConnection ->
-        BlinkErrorText.Plain(Res.string.error_missing_wallet_connection)
+        LocalizedText(BlinkUiTextKey.ErrorMissingWalletConnection)
 
-    BlinkApiError.NetworkUnavailable -> BlinkErrorText.Plain(Res.string.error_network_unavailable)
+    BlinkApiError.NetworkUnavailable -> LocalizedText(BlinkUiTextKey.ErrorNetworkUnavailable)
 
-    is BlinkApiError.PaymentRejected -> {
-        val message = this.message?.takeUnless(String::isBlank)
-        if (message == null) {
-            BlinkErrorText.Plain(Res.string.error_payment_rejected_generic)
-        } else {
-            BlinkErrorText.Formatted(Res.string.error_payment_rejected_message, message)
-        }
+    is BlinkApiError.PaymentRejected ->
+        localizedTextWithOptionalDetail(
+            detail = message,
+            generic = BlinkUiTextKey.ErrorPaymentRejectedGeneric,
+            withDetails = BlinkUiTextKey.ErrorPaymentRejectedMessage
+        )
+
+    BlinkApiError.Timeout -> LocalizedText(BlinkUiTextKey.ErrorTimeout)
+
+    is BlinkApiError.Unexpected -> unexpectedErrorText(message)
+}
+
+private fun BlinkErrorType.text(): LocalizedText = LocalizedText(
+    when (this) {
+        BlinkErrorType.PermissionDenied -> BlinkUiTextKey.ErrorBlinkWritePermissionDenied
+        BlinkErrorType.InsufficientBalance -> BlinkUiTextKey.ErrorBlinkInsufficientBalance
+        BlinkErrorType.RouteNotFound -> BlinkUiTextKey.ErrorBlinkRouteNotFound
+        BlinkErrorType.InvoiceExpired -> BlinkUiTextKey.ErrorBlinkInvoiceExpired
+        BlinkErrorType.SelfPayment -> BlinkUiTextKey.ErrorBlinkSelfPayment
+        BlinkErrorType.InvalidInvoice -> BlinkUiTextKey.ErrorBlinkInvalidInvoice
+        BlinkErrorType.AmountTooSmall -> BlinkUiTextKey.ErrorBlinkAmountTooSmall
+        BlinkErrorType.LimitExceeded -> BlinkUiTextKey.ErrorBlinkLimitExceeded
+        BlinkErrorType.RateLimited -> BlinkUiTextKey.ErrorBlinkRateLimited
+        BlinkErrorType.InvalidApiKey -> BlinkUiTextKey.ErrorBlinkInvalidApiKey
     }
+)
 
-    BlinkApiError.Timeout -> BlinkErrorText.Plain(Res.string.error_timeout)
-
-    is BlinkApiError.Unexpected -> unexpectedErrorText(this.message)
-}
-
-private fun BlinkErrorType.text(): BlinkErrorText = when (this) {
-    BlinkErrorType.PermissionDenied ->
-        BlinkErrorText.Plain(Res.string.error_blink_permission_denied)
-
-    BlinkErrorType.InsufficientBalance ->
-        BlinkErrorText.Plain(Res.string.error_blink_insufficient_balance)
-
-    BlinkErrorType.RouteNotFound ->
-        BlinkErrorText.Plain(Res.string.error_blink_route_not_found)
-
-    BlinkErrorType.InvoiceExpired ->
-        BlinkErrorText.Plain(Res.string.error_blink_invoice_expired)
-
-    BlinkErrorType.SelfPayment ->
-        BlinkErrorText.Plain(Res.string.error_blink_self_payment)
-
-    BlinkErrorType.InvalidInvoice ->
-        BlinkErrorText.Plain(Res.string.error_blink_invalid_invoice)
-
-    BlinkErrorType.AmountTooSmall ->
-        BlinkErrorText.Plain(Res.string.error_blink_amount_too_small)
-
-    BlinkErrorType.LimitExceeded ->
-        BlinkErrorText.Plain(Res.string.error_blink_limit_exceeded)
-
-    BlinkErrorType.RateLimited ->
-        BlinkErrorText.Plain(Res.string.error_blink_rate_limited)
-
-    BlinkErrorType.InvalidApiKey ->
-        BlinkErrorText.Plain(Res.string.error_blink_invalid_api_key)
-}
-
-private fun unexpectedErrorText(detail: String?): BlinkErrorText {
-    val message = detail?.takeUnless(String::isBlank)
-    return if (message == null) {
-        BlinkErrorText.Plain(Res.string.error_unexpected_generic)
-    } else {
-        BlinkErrorText.Formatted(Res.string.error_unexpected_with_details, message)
-    }
-}
-
-private suspend fun BlinkErrorText.resolveNative(): String = when (this) {
-    is BlinkErrorText.Plain -> getString(resource)
-    is BlinkErrorText.Formatted -> getString(resource, argument)
-}
-
-internal sealed interface BlinkErrorText {
-    data class Plain(val resource: StringResource) : BlinkErrorText
-
-    data class Formatted(val resource: StringResource, val argument: String) : BlinkErrorText
-}
+private fun unexpectedErrorText(detail: String?): LocalizedText = localizedTextWithOptionalDetail(
+    detail = detail,
+    generic = BlinkUiTextKey.ErrorUnexpectedGeneric,
+    withDetails = BlinkUiTextKey.ErrorUnexpectedWithDetails
+)
 
 /** Provider failures projected for Blip's reusable non-payment UI. */
 sealed interface BlinkUiError {

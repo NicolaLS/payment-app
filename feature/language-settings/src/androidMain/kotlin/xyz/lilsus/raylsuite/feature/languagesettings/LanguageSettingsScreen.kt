@@ -13,8 +13,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.LanguageCatalog
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListScaffold
@@ -22,9 +22,7 @@ import xyz.lilsus.raylsuite.core.ui.components.AppSelectableListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.format.rememberAppLocale
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.languagesettings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.languagesettings.generated.resources.search_placeholder
-import xyz.lilsus.raylsuite.feature.languagesettings.generated.resources.settings_language
+import xyz.lilsus.raylsuite.feature.languagesettings.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +52,7 @@ fun LanguageSettingsScreen(
         topBar = {
             key(localeTag) {
                 CenterAlignedTopAppBar(
-                    title = { Text(stringResource(Res.string.settings_language)) },
+                    title = { Text(stringResource(R.string.settings_language)) },
                     navigationIcon = {
                         BackIconButton(onClick = onBack)
                     },
@@ -76,7 +74,7 @@ fun LanguageSettingsScreen(
             showSearchBar = true,
             searchQuery = state.searchQuery,
             onSearchQueryChange = onQueryChange,
-            searchPlaceholder = stringResource(Res.string.search_placeholder)
+            searchPlaceholder = stringResource(R.string.search_placeholder)
         ) {
             items(filtered, key = LanguageOption::id) { option ->
                 AppSelectableListRow(

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
@@ -40,11 +41,14 @@ fun rememberPaymentFlowState(coordinator: PaymentCoordinator): PaymentFlowState 
 
 /** Localized snackbar text for Lasr's payment errors and unsupported-input toasts. */
 @Composable
-fun rememberPaymentMessages(coordinator: PaymentCoordinator): Flow<String> = remember(coordinator) {
-    coordinator.events.map { event ->
-        when (event) {
-            is PaymentEvent.ShowError -> getLasrPaymentErrorMessageFor(event.error)
-            is PaymentEvent.ShowToast -> event.message.localizedMessage()
+fun rememberPaymentMessages(coordinator: PaymentCoordinator): Flow<String> {
+    val context = LocalContext.current
+    return remember(coordinator, context) {
+        coordinator.events.map { event ->
+            when (event) {
+                is PaymentEvent.ShowError -> getLasrPaymentErrorMessageFor(event.error, context)
+                is PaymentEvent.ShowToast -> event.message.localizedMessage(context)
+            }
         }
     }
 }

@@ -22,12 +22,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.alexzhirkevich.qrose.options.QrBrush
 import io.github.alexzhirkevich.qrose.options.solid
 import io.github.alexzhirkevich.qrose.rememberQrCodePainter
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.raylsuite.core.ui.generated.resources.Res
+import xyz.lilsus.raylsuite.core.ui.R
 
 @Composable
 fun RaylHero(

@@ -9,20 +9,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.lasr.feature.onboarding.LasrOnboardingDestination
 import xyz.lilsus.lasr.feature.onboarding.lasrOnboarding
 import xyz.lilsus.lasr.feature.payment.rememberPaymentFlowState
 import xyz.lilsus.lasr.feature.payment.rememberPaymentMessages
 import xyz.lilsus.lasr.feature.walletdetails.NwcWalletDetailsScreen
-import xyz.lilsus.lasr.generated.resources.Res
-import xyz.lilsus.lasr.generated.resources.app_name
 import xyz.lilsus.lasr.integration.nwc.NwcWalletConnection
+import xyz.lilsus.lasr.shared.R
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
@@ -35,10 +34,8 @@ import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 import xyz.lilsus.raylsuite.feature.settings.SettingsEntry
 import xyz.lilsus.raylsuite.feature.settings.SettingsFlow
 import xyz.lilsus.raylsuite.feature.walletmanagement.ManagedWallet
+import xyz.lilsus.raylsuite.feature.walletmanagement.R as WalletR
 import xyz.lilsus.raylsuite.feature.walletmanagement.WalletManagementScreen
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.Res as WalletRes
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet
-import xyz.lilsus.raylsuite.feature.walletmanagement.generated.resources.settings_manage_wallet_subtitle
 
 internal fun NavGraphBuilder.lasrHome(
     runtime: LasrRuntime,
@@ -102,7 +99,7 @@ internal fun LasrTabContent(
             PaymentScanScreen(
                 state = flowState,
                 messageEvents = messages,
-                appTitle = stringResource(Res.string.app_name),
+                appTitle = stringResource(R.string.app_name),
                 estimatedFeeHint = null,
                 savePrompt = hubState.savePrompt,
                 onIntent = coordinator::dispatch,
@@ -176,18 +173,18 @@ private fun LasrSettingsTab(
                     listOf(
                         SettingsEntry(
                             id = "wallet",
-                            title = stringResource(WalletRes.string.settings_manage_wallet),
+                            title = stringResource(WalletR.string.settings_manage_wallet),
                             subtitle =
                                 connection?.let(::formatWalletSubtitle)
                                     ?: stringResource(
-                                        WalletRes.string.settings_manage_wallet_subtitle
+                                        WalletR.string.settings_manage_wallet_subtitle
                                     ),
                             onClick = {
                                 destination = LasrSettingsDestination.WalletManagement
                             }
                         )
                     ),
-                donationAppName = stringResource(Res.string.app_name),
+                donationAppName = stringResource(R.string.app_name),
                 onDonate = onDonate
             )
 

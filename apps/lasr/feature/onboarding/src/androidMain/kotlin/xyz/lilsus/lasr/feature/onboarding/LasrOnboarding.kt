@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -19,22 +20,7 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.Res
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_agreement_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_autopay_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_subtitle
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page1_title
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_subtitle
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page2_title
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_body
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_subtitle
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_features_page3_title
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line1
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_subtitle_line2
-import xyz.lilsus.lasr.feature.onboarding.generated.resources.onboarding_welcome_title
+import xyz.lilsus.lasr.feature.onboarding.R
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletScreen
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletViewModel
@@ -89,9 +75,9 @@ fun NavGraphBuilder.lasrOnboarding(
 ) {
     composable<LasrOnboardingDestination.Welcome> {
         WelcomeScreen(
-            title = stringResource(Res.string.onboarding_welcome_title),
-            subtitle = stringResource(Res.string.onboarding_welcome_subtitle_line1),
-            description = stringResource(Res.string.onboarding_welcome_subtitle_line2),
+            title = stringResource(R.string.onboarding_welcome_title),
+            subtitle = stringResource(R.string.onboarding_welcome_subtitle_line1),
+            description = stringResource(R.string.onboarding_welcome_subtitle_line2),
             stepIndex = OnboardingStep.Welcome.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onGetStarted = {
@@ -119,7 +105,7 @@ fun NavGraphBuilder.lasrOnboarding(
         val state by onboardingViewModel.uiState.collectAsState()
         val formatter = rememberAmountFormatter()
         AutoPaySettingsScreen(
-            body = stringResource(Res.string.onboarding_autopay_body),
+            body = stringResource(R.string.onboarding_autopay_body),
             confirmationMode = state.confirmationMode,
             thresholdSats = state.thresholdSats,
             currencyEquivalent = state.thresholdCurrencyEquivalent?.let(formatter::format),
@@ -137,7 +123,7 @@ fun NavGraphBuilder.lasrOnboarding(
     composable<LasrOnboardingDestination.Agreement> {
         val state by onboardingViewModel.uiState.collectAsState()
         AgreementScreen(
-            body = stringResource(Res.string.onboarding_agreement_body),
+            body = stringResource(R.string.onboarding_agreement_body),
             hasAgreed = state.hasAgreed,
             stepIndex = OnboardingStep.Agreement.index,
             totalSteps = ONBOARDING_STEP_COUNT,
@@ -308,19 +294,19 @@ private fun ConfirmWalletDestination(
 @Composable
 private fun onboardingFeaturePages(): List<OnboardingFeaturePage> = listOf(
     OnboardingFeaturePage(
-        title = stringResource(Res.string.onboarding_features_page1_title),
-        subtitle = stringResource(Res.string.onboarding_features_page1_subtitle),
-        body = stringResource(Res.string.onboarding_features_page1_body)
+        title = stringResource(R.string.onboarding_features_page1_title),
+        subtitle = stringResource(R.string.onboarding_features_page1_subtitle),
+        body = stringResource(R.string.onboarding_features_page1_body)
     ),
     OnboardingFeaturePage(
-        title = stringResource(Res.string.onboarding_features_page2_title),
-        subtitle = stringResource(Res.string.onboarding_features_page2_subtitle),
-        body = stringResource(Res.string.onboarding_features_page2_body)
+        title = stringResource(R.string.onboarding_features_page2_title),
+        subtitle = stringResource(R.string.onboarding_features_page2_subtitle),
+        body = stringResource(R.string.onboarding_features_page2_body)
     ),
     OnboardingFeaturePage(
-        title = stringResource(Res.string.onboarding_features_page3_title),
-        subtitle = stringResource(Res.string.onboarding_features_page3_subtitle),
-        body = stringResource(Res.string.onboarding_features_page3_body)
+        title = stringResource(R.string.onboarding_features_page3_title),
+        subtitle = stringResource(R.string.onboarding_features_page3_subtitle),
+        body = stringResource(R.string.onboarding_features_page3_body)
     )
 )
 

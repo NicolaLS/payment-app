@@ -21,30 +21,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentTestTags
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_already_paid_message
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_already_paid_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_error_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_paid_fee
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_paid_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_middle
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_only
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_prefix
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_preimage
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_body_suffix
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_receipt_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.result_view_receipt
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.tap_continue
+import xyz.lilsus.raylsuite.feature.paymentui.R
 
 sealed interface PaymentResultPresentation {
     data class Success(
@@ -82,19 +69,19 @@ fun ResultLayout(
                     if (result.wasAlreadyPaid) {
                         Text(
                             modifier = Modifier.testTag(PaymentTestTags.RESULT_ALREADY_PAID),
-                            text = stringResource(Res.string.result_already_paid_title),
+                            text = stringResource(R.string.result_already_paid_title),
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.tertiary
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = stringResource(Res.string.result_already_paid_message),
+                            text = stringResource(R.string.result_already_paid_message),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                     } else {
-                        val paidTitle = stringResource(Res.string.result_paid_title)
+                        val paidTitle = stringResource(R.string.result_paid_title)
                         val amountPaid = formatter.format(result.amountPaid)
                         val paidSummary = buildAnnotatedString {
                             withStyle(SpanStyle(color = MaterialTheme.colorScheme.tertiary)) {
@@ -113,7 +100,7 @@ fun ResultLayout(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = stringResource(
-                                Res.string.result_paid_fee,
+                                R.string.result_paid_fee,
                                 formatter.format(result.feePaid)
                             ),
                             style = MaterialTheme.typography.labelLarge,
@@ -138,7 +125,7 @@ fun ResultLayout(
             is PaymentResultPresentation.Error -> {
                 Text(
                     modifier = Modifier.testTag(PaymentTestTags.RESULT_ERROR),
-                    text = stringResource(Res.string.result_error_title),
+                    text = stringResource(R.string.result_error_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -173,7 +160,7 @@ fun ResultLayout(
         onContinue?.let {
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = it) {
-                Text(text = stringResource(Res.string.tap_continue))
+                Text(text = stringResource(R.string.tap_continue))
             }
         }
     }
@@ -182,19 +169,19 @@ fun ResultLayout(
 @Composable
 private fun PaymentReceiptText() {
     val receiptBody = buildAnnotatedString {
-        append(stringResource(Res.string.result_receipt_body_prefix))
+        append(stringResource(R.string.result_receipt_body_prefix))
         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(stringResource(Res.string.result_receipt_body_preimage))
+            append(stringResource(R.string.result_receipt_body_preimage))
         }
-        append(stringResource(Res.string.result_receipt_body_middle))
+        append(stringResource(R.string.result_receipt_body_middle))
         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-            append(stringResource(Res.string.result_receipt_body_only))
+            append(stringResource(R.string.result_receipt_body_only))
         }
-        append(stringResource(Res.string.result_receipt_body_suffix))
+        append(stringResource(R.string.result_receipt_body_suffix))
     }
 
     Text(
-        text = stringResource(Res.string.result_receipt_title),
+        text = stringResource(R.string.result_receipt_title),
         style = MaterialTheme.typography.titleLarge,
         color = MaterialTheme.colorScheme.tertiary,
         textAlign = TextAlign.Center
@@ -222,7 +209,7 @@ private fun ViewReceiptChip(onClick: () -> Unit) {
         },
         label = {
             Text(
-                text = stringResource(Res.string.result_view_receipt),
+                text = stringResource(R.string.result_view_receipt),
                 style = MaterialTheme.typography.labelMedium
             )
         }

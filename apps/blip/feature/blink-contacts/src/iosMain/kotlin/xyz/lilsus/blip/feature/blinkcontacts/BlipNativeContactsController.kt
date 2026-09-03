@@ -7,25 +7,10 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.Res as BlinkContactsRes
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.import_contacts_no_matches
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.import_contacts_search
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_already_added
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_empty
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_import
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_loading
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_select_all
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_selected
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_skip
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_success
-import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_transactions
 import xyz.lilsus.blip.integration.blink.BlinkWallet
-import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
-import xyz.lilsus.blip.ui.generated.resources.blink_contacts_import
-import xyz.lilsus.blip.ui.generated.resources.blink_contacts_import_hint
-import xyz.lilsus.blip.ui.generated.resources.blink_contacts_title
 import xyz.lilsus.blip.ui.nativeBlinkErrorMessageFor
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 
 data class BlipNativeContactsSnapshot(
@@ -116,43 +101,74 @@ class BlipNativeContactsController(
 
     private suspend fun BlinkContactsImportUiState.toNativeSnapshot(): BlipNativeContactsSnapshot {
         val alreadyAdded =
-            getString(
-                BlinkContactsRes.string.settings_wallet_details_import_contacts_already_added
+            nativeString(
+                NativeStringResource(
+                    table = "BlipContacts",
+                    key = "settings_wallet_details_import_contacts_already_added"
+                )
             )
         return BlipNativeContactsSnapshot(
-            title = getString(BlipUiRes.string.blink_contacts_title),
-            hint = getString(BlipUiRes.string.blink_contacts_import_hint),
-            importTitle = getString(BlipUiRes.string.blink_contacts_import),
+            title = nativeString(
+                NativeStringResource(table = "BlipUI", key = "blink_contacts_title")
+            ),
+            hint = nativeString(
+                NativeStringResource(table = "BlipUI", key = "blink_contacts_import_hint")
+            ),
+            importTitle = nativeString(
+                NativeStringResource(table = "BlipUI", key = "blink_contacts_import")
+            ),
             skipTitle =
-                getString(
-                    BlinkContactsRes.string.settings_wallet_details_import_contacts_skip
+                nativeString(
+                    NativeStringResource(
+                        table = "BlipContacts",
+                        key = "settings_wallet_details_import_contacts_skip"
+                    )
                 ),
             loadingTitle =
-                getString(
-                    BlinkContactsRes.string.settings_wallet_details_import_contacts_loading
+                nativeString(
+                    NativeStringResource(
+                        table = "BlipContacts",
+                        key = "settings_wallet_details_import_contacts_loading"
+                    )
                 ),
             emptyTitle =
-                getString(
-                    BlinkContactsRes.string.settings_wallet_details_import_contacts_empty
+                nativeString(
+                    NativeStringResource(
+                        table = "BlipContacts",
+                        key = "settings_wallet_details_import_contacts_empty"
+                    )
                 ),
             selectAllTitle =
-                getString(
-                    BlinkContactsRes.string.settings_wallet_details_import_contacts_select_all
+                nativeString(
+                    NativeStringResource(
+                        table = "BlipContacts",
+                        key = "settings_wallet_details_import_contacts_select_all"
+                    )
                 ),
             selectedSummary =
-                getString(
-                    BlinkContactsRes.string.settings_wallet_details_import_contacts_selected,
+                nativeString(
+                    NativeStringResource(
+                        table = "BlipContacts",
+                        key = "settings_wallet_details_import_contacts_selected"
+                    ),
                     selectedCount
                 ),
             successMessage =
                 importedCount?.let {
-                    getString(
-                        BlinkContactsRes.string.settings_wallet_details_import_contacts_success,
+                    nativeString(
+                        NativeStringResource(
+                            table = "BlipContacts",
+                            key = "settings_wallet_details_import_contacts_success"
+                        ),
                         it
                     )
                 },
-            searchTitle = getString(BlinkContactsRes.string.import_contacts_search),
-            noMatchesTitle = getString(BlinkContactsRes.string.import_contacts_no_matches),
+            searchTitle = nativeString(
+                NativeStringResource(table = "BlipContacts", key = "import_contacts_search")
+            ),
+            noMatchesTitle = nativeString(
+                NativeStringResource(table = "BlipContacts", key = "import_contacts_no_matches")
+            ),
             items =
                 filteredItems.map { item ->
                     BlipNativeContactItem(
@@ -163,9 +179,11 @@ class BlipNativeContactsController(
                             if (item.alreadyAdded) {
                                 alreadyAdded
                             } else {
-                                getString(
-                                    BlinkContactsRes.string
-                                        .settings_wallet_details_import_contacts_transactions,
+                                nativeString(
+                                    NativeStringResource(
+                                        table = "BlipContacts",
+                                        key = "settings_wallet_details_import_contacts_transactions"
+                                    ),
                                     item.transactionsCount
                                 )
                             },

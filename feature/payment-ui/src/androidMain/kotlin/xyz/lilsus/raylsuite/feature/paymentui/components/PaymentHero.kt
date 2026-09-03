@@ -2,12 +2,11 @@ package xyz.lilsus.raylsuite.feature.paymentui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.res.stringResource
 import xyz.lilsus.raylsuite.core.ui.hero.RaylHero
 import xyz.lilsus.raylsuite.core.ui.hero.RaylHeroPhase
 import xyz.lilsus.raylsuite.core.ui.hero.RaylHeroQrContent
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.payment_receipt_qr_content_description
+import xyz.lilsus.raylsuite.feature.paymentui.R
 
 @Composable
 fun PaymentHero(
@@ -23,7 +22,7 @@ fun PaymentHero(
                 RaylHeroQrContent(
                     data = it,
                     contentDescription = stringResource(
-                        Res.string.payment_receipt_qr_content_description
+                        R.string.payment_receipt_qr_content_description
                     )
                 )
             }

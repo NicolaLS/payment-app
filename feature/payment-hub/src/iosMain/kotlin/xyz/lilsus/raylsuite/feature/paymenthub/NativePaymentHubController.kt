@@ -9,98 +9,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getPluralString
-import org.jetbrains.compose.resources.getString
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativePluralString
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.paymenthub.canvas.CanvasLayoutRepository
 import xyz.lilsus.raylsuite.feature.paymenthub.canvas.CanvasTileSize
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_amber
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_blue
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_green
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_orange
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_pink
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_purple
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_slate
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_accent_teal
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_add
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_move_down
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_move_up
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_pin
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_remove
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_unpin
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_appearance_accent
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_appearance_icon
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_appearance_none
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_add
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_add_all_placed
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_add_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_arrange
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_compact
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_done
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_empty_body
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_move_earlier
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_move_later
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_remove
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_reset
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_canvas_wide
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_editor_delete
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_editor_save
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_enter_amount
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_enter_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_invalid_address
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_whole_amount
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_available_all_added
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_available_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_available_none
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_editor_edit
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_editor_new
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_empty
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_member_count
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_members_empty
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_members_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_name_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_pick_member
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_bolt
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_coffee
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_gift
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_group
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_heart
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_home
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_person
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_restaurant
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_star
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_store
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_wallet
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_icon_work
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_add
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_add_group
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_add_target
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_arrange_pins
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_done
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_empty_body
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_empty_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_no_matches
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_search
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_groups
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_pinned
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_recent
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_targets
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_pin_description
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_pin_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_address_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_fiat_hint
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_mode_ask
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_mode_preset
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_comment_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_editor_edit
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_editor_new
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_groups_empty
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_groups_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_name_label
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubIntent
 import xyz.lilsus.raylsuite.feature.paymenthub.library.DirectTargetEditorState
@@ -555,9 +470,11 @@ class NativePaymentHubController(
             subtitle =
                 target?.address
                     ?: group?.let {
-                        getPluralString(
-                            Res.plurals.hub_group_member_count,
-                            it.memberCount,
+                        nativePluralString(
+                            NativeStringResource(
+                                table = "PaymentHub",
+                                key = "hub_group_member_count"
+                            ),
                             it.memberCount
                         )
                     }.orEmpty(),
@@ -589,7 +506,10 @@ class NativePaymentHubController(
             currencyCode = currencyCode,
             currencyCodes = CurrencyCatalog.supportedCodes,
             fiatHint =
-                getString(Res.string.hub_target_amount_fiat_hint, currencyCode)
+                nativeString(
+                    NativeStringResource(table = "PaymentHub", key = "hub_target_amount_fiat_hint"),
+                    currencyCode
+                )
                     .takeIf {
                         currency.currency is xyz.lilsus.raylsuite.core.model.DisplayCurrency.Fiat
                     },
@@ -603,15 +523,29 @@ class NativePaymentHubController(
                 },
             error =
                 when (error) {
-                    TargetEditorError.EnterTitle -> getString(Res.string.hub_error_enter_title)
+                    TargetEditorError.EnterTitle -> nativeString(
+                        NativeStringResource(table = "PaymentHub", key = "hub_error_enter_title")
+                    )
 
                     TargetEditorError.InvalidAddress ->
-                        getString(Res.string.hub_error_invalid_address)
+                        nativeString(
+                            NativeStringResource(
+                                table = "PaymentHub",
+                                key = "hub_error_invalid_address"
+                            )
+                        )
 
-                    TargetEditorError.EnterAmount -> getString(Res.string.hub_error_enter_amount)
+                    TargetEditorError.EnterAmount -> nativeString(
+                        NativeStringResource(table = "PaymentHub", key = "hub_error_enter_amount")
+                    )
 
                     TargetEditorError.WholeAmountRequired ->
-                        getString(Res.string.hub_error_whole_amount)
+                        nativeString(
+                            NativeStringResource(
+                                table = "PaymentHub",
+                                key = "hub_error_whole_amount"
+                            )
+                        )
 
                     null -> null
                 }
@@ -628,7 +562,10 @@ class NativePaymentHubController(
             available = available.map { it.toNativeItem() },
             error =
                 when (error) {
-                    GroupEditorError.EnterTitle -> getString(Res.string.hub_error_enter_title)
+                    GroupEditorError.EnterTitle -> nativeString(
+                        NativeStringResource(table = "PaymentHub", key = "hub_error_enter_title")
+                    )
+
                     null -> null
                 }
         )
@@ -664,94 +601,235 @@ private fun hubItemId(value: String): HubItemId? =
     value.trim().takeIf(String::isNotEmpty)?.let(::HubItemId)
 
 private suspend fun loadCopy() = NativePaymentHubCopy(
-    title = getString(Res.string.hub_library_title),
-    arrange = getString(Res.string.hub_canvas_arrange),
-    done = getString(Res.string.hub_canvas_done),
-    addTiles = getString(Res.string.hub_canvas_add),
-    reset = getString(Res.string.hub_canvas_reset),
-    emptyTitle = getString(Res.string.hub_library_empty_title),
-    emptyBody = getString(Res.string.hub_library_empty_body),
-    emptyCanvasBody = getString(Res.string.hub_canvas_empty_body),
-    addSheetTitle = getString(Res.string.hub_canvas_add_title),
-    allTilesPlaced = getString(Res.string.hub_canvas_add_all_placed),
-    makeWide = getString(Res.string.hub_canvas_wide),
-    makeCompact = getString(Res.string.hub_canvas_compact),
-    removeTile = getString(Res.string.hub_canvas_remove),
-    moveEarlier = getString(Res.string.hub_canvas_move_earlier),
-    moveLater = getString(Res.string.hub_canvas_move_later),
-    search = getString(Res.string.hub_library_search),
-    noMatches = getString(Res.string.hub_library_no_matches),
-    add = getString(Res.string.hub_library_add),
-    addTarget = getString(Res.string.hub_library_add_target),
-    addGroup = getString(Res.string.hub_library_add_group),
-    arrangePins = getString(Res.string.hub_library_arrange_pins),
-    doneArrangingPins = getString(Res.string.hub_library_done),
-    pinnedSection = getString(Res.string.hub_library_section_pinned),
-    groupsSection = getString(Res.string.hub_library_section_groups),
-    recentSection = getString(Res.string.hub_library_section_recent),
-    targetsSection = getString(Res.string.hub_library_section_targets),
-    pin = getString(Res.string.hub_action_pin),
-    unpin = getString(Res.string.hub_action_unpin),
-    moveUp = getString(Res.string.hub_action_move_up),
-    moveDown = getString(Res.string.hub_action_move_down),
-    groupPickerTitle = getString(Res.string.hub_group_pick_member),
-    emptyGroup = getString(Res.string.hub_group_empty),
-    newTarget = getString(Res.string.hub_target_editor_new),
-    editTarget = getString(Res.string.hub_target_editor_edit),
-    targetName = getString(Res.string.hub_target_name_label),
-    targetAddress = getString(Res.string.hub_target_address_label),
-    amount = getString(Res.string.hub_target_amount_label),
-    askEveryTime = getString(Res.string.hub_target_amount_mode_ask),
-    presetAmount = getString(Res.string.hub_target_amount_mode_preset),
-    comment = getString(Res.string.hub_target_comment_label),
-    icon = getString(Res.string.hub_appearance_icon),
-    accent = getString(Res.string.hub_appearance_accent),
-    none = getString(Res.string.hub_appearance_none),
+    title = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_library_title")),
+    arrange = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_arrange")),
+    done = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_done")),
+    addTiles = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_add")),
+    reset = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_reset")),
+    emptyTitle = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_empty_title")
+    ),
+    emptyBody = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_empty_body")
+    ),
+    emptyCanvasBody = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_canvas_empty_body")
+    ),
+    addSheetTitle = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_canvas_add_title")
+    ),
+    allTilesPlaced = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_canvas_add_all_placed")
+    ),
+    makeWide = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_wide")),
+    makeCompact = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_canvas_compact")
+    ),
+    removeTile = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_canvas_remove")
+    ),
+    moveEarlier = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_canvas_move_earlier")
+    ),
+    moveLater = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_canvas_move_later")
+    ),
+    search = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_library_search")),
+    noMatches = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_no_matches")
+    ),
+    add = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_library_add")),
+    addTarget = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_add_target")
+    ),
+    addGroup = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_add_group")
+    ),
+    arrangePins = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_arrange_pins")
+    ),
+    doneArrangingPins = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_done")
+    ),
+    pinnedSection = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_section_pinned")
+    ),
+    groupsSection = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_section_groups")
+    ),
+    recentSection = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_section_recent")
+    ),
+    targetsSection = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_library_section_targets")
+    ),
+    pin = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_pin")),
+    unpin = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_unpin")),
+    moveUp = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_move_up")),
+    moveDown = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_action_move_down")
+    ),
+    groupPickerTitle = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_pick_member")
+    ),
+    emptyGroup = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_group_empty")),
+    newTarget = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_editor_new")
+    ),
+    editTarget = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_editor_edit")
+    ),
+    targetName = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_name_label")
+    ),
+    targetAddress = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_address_label")
+    ),
+    amount = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_amount_label")
+    ),
+    askEveryTime = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_amount_mode_ask")
+    ),
+    presetAmount = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_amount_mode_preset")
+    ),
+    comment = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_comment_label")
+    ),
+    icon = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_appearance_icon")),
+    accent = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_appearance_accent")
+    ),
+    none = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_appearance_none")),
     iconOptions =
         listOf(
-            NativePaymentHubAppearanceOption("person", getString(Res.string.hub_icon_person)),
-            NativePaymentHubAppearanceOption("group", getString(Res.string.hub_icon_group)),
-            NativePaymentHubAppearanceOption("store", getString(Res.string.hub_icon_store)),
+            NativePaymentHubAppearanceOption(
+                "person",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_person"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "group",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_group"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "store",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_store"))
+            ),
             NativePaymentHubAppearanceOption(
                 "restaurant",
-                getString(Res.string.hub_icon_restaurant)
+                nativeString(
+                    NativeStringResource(table = "PaymentHub", key = "hub_icon_restaurant")
+                )
             ),
-            NativePaymentHubAppearanceOption("coffee", getString(Res.string.hub_icon_coffee)),
-            NativePaymentHubAppearanceOption("gift", getString(Res.string.hub_icon_gift)),
-            NativePaymentHubAppearanceOption("heart", getString(Res.string.hub_icon_heart)),
-            NativePaymentHubAppearanceOption("star", getString(Res.string.hub_icon_star)),
-            NativePaymentHubAppearanceOption("bolt", getString(Res.string.hub_icon_bolt)),
-            NativePaymentHubAppearanceOption("home", getString(Res.string.hub_icon_home)),
-            NativePaymentHubAppearanceOption("wallet", getString(Res.string.hub_icon_wallet)),
-            NativePaymentHubAppearanceOption("work", getString(Res.string.hub_icon_work))
+            NativePaymentHubAppearanceOption(
+                "coffee",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_coffee"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "gift",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_gift"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "heart",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_heart"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "star",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_star"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "bolt",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_bolt"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "home",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_home"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "wallet",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_wallet"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "work",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_work"))
+            )
         ),
     accentOptions =
         listOf(
-            NativePaymentHubAppearanceOption("orange", getString(Res.string.hub_accent_orange)),
-            NativePaymentHubAppearanceOption("blue", getString(Res.string.hub_accent_blue)),
-            NativePaymentHubAppearanceOption("green", getString(Res.string.hub_accent_green)),
-            NativePaymentHubAppearanceOption("purple", getString(Res.string.hub_accent_purple)),
-            NativePaymentHubAppearanceOption("pink", getString(Res.string.hub_accent_pink)),
-            NativePaymentHubAppearanceOption("teal", getString(Res.string.hub_accent_teal)),
-            NativePaymentHubAppearanceOption("amber", getString(Res.string.hub_accent_amber)),
-            NativePaymentHubAppearanceOption("slate", getString(Res.string.hub_accent_slate))
+            NativePaymentHubAppearanceOption(
+                "orange",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_orange"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "blue",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_blue"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "green",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_green"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "purple",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_purple"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "pink",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_pink"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "teal",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_teal"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "amber",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_amber"))
+            ),
+            NativePaymentHubAppearanceOption(
+                "slate",
+                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_slate"))
+            )
         ),
-    pinLabel = getString(Res.string.hub_pin_label),
-    pinDescription = getString(Res.string.hub_pin_description),
-    targetGroups = getString(Res.string.hub_target_groups_label),
-    targetGroupsEmpty = getString(Res.string.hub_target_groups_empty),
-    save = getString(Res.string.hub_editor_save),
-    delete = getString(Res.string.hub_editor_delete),
-    newGroup = getString(Res.string.hub_group_editor_new),
-    editGroup = getString(Res.string.hub_group_editor_edit),
-    groupName = getString(Res.string.hub_group_name_label),
-    members = getString(Res.string.hub_group_members_label),
-    membersEmpty = getString(Res.string.hub_group_members_empty),
-    availableTargets = getString(Res.string.hub_group_available_label),
-    noAvailableTargets = getString(Res.string.hub_group_available_none),
-    allTargetsAdded = getString(Res.string.hub_group_available_all_added),
-    addMember = getString(Res.string.hub_action_add),
-    removeMember = getString(Res.string.hub_action_remove)
+    pinLabel = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_pin_label")),
+    pinDescription = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_pin_description")
+    ),
+    targetGroups = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_groups_label")
+    ),
+    targetGroupsEmpty = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_target_groups_empty")
+    ),
+    save = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_editor_save")),
+    delete = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_editor_delete")),
+    newGroup = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_editor_new")
+    ),
+    editGroup = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_editor_edit")
+    ),
+    groupName = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_name_label")
+    ),
+    members = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_members_label")
+    ),
+    membersEmpty = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_members_empty")
+    ),
+    availableTargets = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_available_label")
+    ),
+    noAvailableTargets = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_available_none")
+    ),
+    allTargetsAdded = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_group_available_all_added")
+    ),
+    addMember = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_add")),
+    removeMember = nativeString(
+        NativeStringResource(table = "PaymentHub", key = "hub_action_remove")
+    )
 )
 
 private const val DESTINATION_CANVAS = "canvas"

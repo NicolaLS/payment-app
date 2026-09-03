@@ -13,19 +13,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListScaffold
 import xyz.lilsus.raylsuite.core.ui.components.AppSelectableListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.themesettings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.themesettings.generated.resources.settings_theme
-import xyz.lilsus.raylsuite.feature.themesettings.generated.resources.settings_theme_dark
-import xyz.lilsus.raylsuite.feature.themesettings.generated.resources.settings_theme_light
-import xyz.lilsus.raylsuite.feature.themesettings.generated.resources.settings_theme_system_default
+import xyz.lilsus.raylsuite.feature.themesettings.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,27 +34,27 @@ fun ThemeSettingsScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val resolvedSystem =
         stringResource(
-            Res.string.settings_theme_system_default,
+            R.string.settings_theme_system_default,
             stringResource(
                 if (isSystemInDarkTheme()) {
-                    Res.string.settings_theme_dark
+                    R.string.settings_theme_dark
                 } else {
-                    Res.string.settings_theme_light
+                    R.string.settings_theme_light
                 }
             )
         )
     val options =
         listOf(
             ThemePreference.System to resolvedSystem,
-            ThemePreference.Light to stringResource(Res.string.settings_theme_light),
-            ThemePreference.Dark to stringResource(Res.string.settings_theme_dark)
+            ThemePreference.Light to stringResource(R.string.settings_theme_light),
+            ThemePreference.Dark to stringResource(R.string.settings_theme_dark)
         )
 
     Scaffold(
         modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.settings_theme)) },
+                title = { Text(stringResource(R.string.settings_theme)) },
                 navigationIcon = {
                     BackIconButton(
                         onClick = onBack,

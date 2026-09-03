@@ -6,12 +6,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import org.jetbrains.compose.resources.pluralStringResource
 import xyz.lilsus.raylsuite.core.ui.components.AppListRow
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_member_count
+import xyz.lilsus.raylsuite.feature.paymenthub.R
 import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemDetail
 import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
 
@@ -65,7 +64,7 @@ fun HubItemRenderModel.subtitle(): String = when (val detail = detail) {
 
     is HubItemDetail.Group ->
         pluralStringResource(
-            Res.plurals.hub_group_member_count,
+            R.plurals.hub_group_member_count,
             detail.memberCount,
             detail.memberCount
         )

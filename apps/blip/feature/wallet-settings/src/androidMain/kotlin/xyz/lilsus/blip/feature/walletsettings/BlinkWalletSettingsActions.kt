@@ -20,16 +20,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.Res
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.settings_blink_connection_refresh
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.settings_blink_connection_refresh_success
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.settings_blink_connection_remove
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.settings_blink_connection_remove_cancel
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.settings_blink_connection_remove_confirm
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.settings_blink_connection_remove_description
-import xyz.lilsus.blip.feature.walletsettings.generated.resources.settings_blink_connection_remove_title
+import xyz.lilsus.blip.feature.walletsettings.R
 import xyz.lilsus.blip.ui.blinkErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListRow
@@ -57,7 +50,7 @@ fun BlinkWalletSettingsActions(
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             RefreshConnectionContent(
-                text = stringResource(Res.string.settings_blink_connection_refresh),
+                text = stringResource(R.string.settings_blink_connection_refresh),
                 state = state,
                 modifier = Modifier.weight(1f)
             )
@@ -83,7 +76,7 @@ fun BlinkWalletSettingsActions(
             contentColor = MaterialTheme.colorScheme.error
         ) {
             Text(
-                text = stringResource(Res.string.settings_blink_connection_remove),
+                text = stringResource(R.string.settings_blink_connection_remove),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f)
             )
@@ -98,12 +91,12 @@ fun BlinkWalletSettingsActions(
         AlertDialog(
             onDismissRequest = { showRemoveConfirmation = false },
             title = {
-                Text(stringResource(Res.string.settings_blink_connection_remove_title))
+                Text(stringResource(R.string.settings_blink_connection_remove_title))
             },
             text = {
                 Text(
                     stringResource(
-                        Res.string.settings_blink_connection_remove_description
+                        R.string.settings_blink_connection_remove_description
                     )
                 )
             },
@@ -117,7 +110,7 @@ fun BlinkWalletSettingsActions(
                     Text(
                         text =
                             stringResource(
-                                Res.string.settings_blink_connection_remove_confirm
+                                R.string.settings_blink_connection_remove_confirm
                             ),
                         color = MaterialTheme.colorScheme.error
                     )
@@ -127,7 +120,7 @@ fun BlinkWalletSettingsActions(
                 TextButton(onClick = { showRemoveConfirmation = false }) {
                     Text(
                         stringResource(
-                            Res.string.settings_blink_connection_remove_cancel
+                            R.string.settings_blink_connection_remove_cancel
                         )
                     )
                 }
@@ -150,7 +143,7 @@ private fun RefreshConnectionContent(
         when {
             state.refreshSucceeded -> {
                 Text(
-                    text = stringResource(Res.string.settings_blink_connection_refresh_success),
+                    text = stringResource(R.string.settings_blink_connection_refresh_success),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 4.dp)

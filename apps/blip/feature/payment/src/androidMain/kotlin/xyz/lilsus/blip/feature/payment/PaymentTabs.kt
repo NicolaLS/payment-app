@@ -4,11 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.payment.generated.resources.Res
-import xyz.lilsus.blip.feature.payment.generated.resources.tap_dismiss_pending_blink
+import xyz.lilsus.blip.feature.payment.R
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentFlowState
@@ -43,11 +43,14 @@ fun rememberPaymentFlowState(coordinator: PaymentCoordinator): PaymentFlowState 
 
 /** Localized snackbar text for Blip's payment errors and unsupported-input toasts. */
 @Composable
-fun rememberPaymentMessages(coordinator: PaymentCoordinator): Flow<String> = remember(coordinator) {
-    coordinator.events.map { event ->
-        when (event) {
-            is PaymentEvent.ShowError -> getBlipPaymentErrorMessageFor(event.error)
-            is PaymentEvent.ShowToast -> event.message.localizedMessage()
+fun rememberPaymentMessages(coordinator: PaymentCoordinator): Flow<String> {
+    val context = LocalContext.current
+    return remember(coordinator, context) {
+        coordinator.events.map { event ->
+            when (event) {
+                is PaymentEvent.ShowError -> getBlipPaymentErrorMessageFor(event.error, context)
+                is PaymentEvent.ShowToast -> event.message.localizedMessage(context)
+            }
         }
     }
 }
@@ -59,7 +62,7 @@ private fun SessionTransactionItem.toPaymentTransactionDetail() = PaymentTransac
     canRetry = status == PendingStatus.StatusUnknown || status == PendingStatus.Failure,
     pendingMessage =
         if (status == PendingStatus.PendingInBlink) {
-            stringResource(Res.string.tap_dismiss_pending_blink)
+            stringResource(R.string.tap_dismiss_pending_blink)
         } else {
             null
         }

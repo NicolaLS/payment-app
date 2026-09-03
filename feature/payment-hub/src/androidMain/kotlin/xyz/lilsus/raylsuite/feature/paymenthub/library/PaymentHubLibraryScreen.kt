@@ -1,5 +1,6 @@
 package xyz.lilsus.raylsuite.feature.paymenthub.library
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,33 +39,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListScaffold
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_move_down
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_move_up
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_pin
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_action_unpin
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_add
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_add_group
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_add_target
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_arrange_pins
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_done
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_empty_body
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_empty_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_no_matches
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_search
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_groups
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_pinned
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_recent
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_section_targets
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_library_title
+import xyz.lilsus.raylsuite.feature.paymenthub.R
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubTestTags
 import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubItemRow
@@ -94,7 +76,7 @@ fun PaymentHubLibraryScreen(
         modifier = modifier.testTag(PaymentHubTestTags.LIBRARY),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.hub_library_title)) },
+                title = { Text(stringResource(R.string.hub_library_title)) },
                 navigationIcon = { BackIconButton(onClick = onBack) },
                 actions = {
                     if (state.pinned.isNotEmpty() || state.arrangingPins) {
@@ -104,9 +86,9 @@ fun PaymentHubLibraryScreen(
                                 contentDescription =
                                     stringResource(
                                         if (state.arrangingPins) {
-                                            Res.string.hub_library_done
+                                            R.string.hub_library_done
                                         } else {
-                                            Res.string.hub_library_arrange_pins
+                                            R.string.hub_library_arrange_pins
                                         }
                                     ),
                                 tint =
@@ -125,7 +107,7 @@ fun PaymentHubLibraryScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Add,
-                                contentDescription = stringResource(Res.string.hub_library_add)
+                                contentDescription = stringResource(R.string.hub_library_add)
                             )
                         }
                         DropdownMenu(
@@ -133,14 +115,14 @@ fun PaymentHubLibraryScreen(
                             onDismissRequest = { addMenuOpen = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.hub_library_add_target)) },
+                                text = { Text(stringResource(R.string.hub_library_add_target)) },
                                 onClick = {
                                     addMenuOpen = false
                                     onAddTarget()
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.hub_library_add_group)) },
+                                text = { Text(stringResource(R.string.hub_library_add_group)) },
                                 onClick = {
                                     addMenuOpen = false
                                     onAddGroup()
@@ -169,16 +151,16 @@ fun PaymentHubLibraryScreen(
             } else {
                 AppListScaffold(
                     isEmpty = !state.hasMatches,
-                    emptyMessage = stringResource(Res.string.hub_library_no_matches),
+                    emptyMessage = stringResource(R.string.hub_library_no_matches),
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     showSearchBar = true,
                     searchQuery = state.query,
                     onSearchQueryChange = onSearchChange,
-                    searchLabel = stringResource(Res.string.hub_library_search)
+                    searchLabel = stringResource(R.string.hub_library_search)
                 ) {
                     section(
                         key = "pinned",
-                        title = Res.string.hub_library_section_pinned,
+                        title = R.string.hub_library_section_pinned,
                         items = state.pinned
                     ) { item, index ->
                         HubItemRow(
@@ -195,7 +177,7 @@ fun PaymentHubLibraryScreen(
                                     Icon(
                                         imageVector = Icons.Filled.ArrowUpward,
                                         contentDescription =
-                                            stringResource(Res.string.hub_action_move_up)
+                                            stringResource(R.string.hub_action_move_up)
                                     )
                                 }
                                 IconButton(
@@ -205,7 +187,7 @@ fun PaymentHubLibraryScreen(
                                     Icon(
                                         imageVector = Icons.Filled.ArrowDownward,
                                         contentDescription =
-                                            stringResource(Res.string.hub_action_move_down)
+                                            stringResource(R.string.hub_action_move_down)
                                     )
                                 }
                             }
@@ -214,7 +196,7 @@ fun PaymentHubLibraryScreen(
                     }
                     section(
                         key = "groups",
-                        title = Res.string.hub_library_section_groups,
+                        title = R.string.hub_library_section_groups,
                         items = state.groups
                     ) { item, _ ->
                         HubItemRow(
@@ -231,14 +213,14 @@ fun PaymentHubLibraryScreen(
                     }
                     section(
                         key = "recent",
-                        title = Res.string.hub_library_section_recent,
+                        title = R.string.hub_library_section_recent,
                         items = state.recent
                     ) { item, _ ->
                         HubItemRow(item = item, onClick = { onOpenItem(item.id) })
                     }
                     section(
                         key = "targets",
-                        title = Res.string.hub_library_section_targets,
+                        title = R.string.hub_library_section_targets,
                         items = state.targets
                     ) { item, _ ->
                         HubItemRow(
@@ -260,7 +242,8 @@ fun PaymentHubLibraryScreen(
 
 private fun LazyListScope.section(
     key: String,
-    title: StringResource,
+    @StringRes
+    title: Int,
     items: List<HubItemRenderModel>,
     row: @Composable (HubItemRenderModel, Int) -> Unit
 ) {
@@ -285,7 +268,7 @@ private fun PinToggle(pinned: Boolean, onPinnedChange: (Boolean) -> Unit) {
             imageVector = if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
             contentDescription =
                 stringResource(
-                    if (pinned) Res.string.hub_action_unpin else Res.string.hub_action_pin
+                    if (pinned) R.string.hub_action_unpin else R.string.hub_action_pin
                 ),
             tint =
                 if (pinned) {
@@ -306,12 +289,12 @@ private fun EmptyLibrary(onAddTarget: () -> Unit, modifier: Modifier = Modifier)
             modifier = Modifier.padding(horizontal = 16.dp)
         ) {
             Text(
-                text = stringResource(Res.string.hub_library_empty_title),
+                text = stringResource(R.string.hub_library_empty_title),
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = stringResource(Res.string.hub_library_empty_body),
+                text = stringResource(R.string.hub_library_empty_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -319,7 +302,7 @@ private fun EmptyLibrary(onAddTarget: () -> Unit, modifier: Modifier = Modifier)
             Button(onClick = onAddTarget) {
                 Icon(Icons.Filled.Add, contentDescription = null)
                 Text(
-                    text = stringResource(Res.string.hub_library_add_target),
+                    text = stringResource(R.string.hub_library_add_target),
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }

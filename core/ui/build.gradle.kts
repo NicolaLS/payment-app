@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.raylsuite.core.ui.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.raylsuite.core.ui"
@@ -14,7 +10,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(project(":core:model"))
-            api(libs.compose.components.resources)
             implementation(libs.compose.runtime)
             implementation(libs.kotlinx.coroutines.core)
         }

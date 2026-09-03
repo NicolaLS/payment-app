@@ -3,11 +3,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.raylsuite.feature.paymenthub.generated.resources"
-    publicResClass = true
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.raylsuite.feature.paymenthub"
@@ -17,7 +12,6 @@ kotlin {
         commonMain.dependencies {
             api(project(":core:model"))
             api(project(":core:ui"))
-            implementation(libs.compose.components.resources)
             implementation(libs.compose.runtime)
             api(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)

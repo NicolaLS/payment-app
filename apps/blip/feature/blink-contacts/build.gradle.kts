@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.blip.feature.blinkcontacts.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.blip.feature.blinkcontacts"
@@ -16,8 +12,8 @@ kotlin {
             api(project(":blip:integration:blink"))
             api(project(":blip:ui"))
             api(project(":feature:payment-hub"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(project(":core:ui"))
@@ -25,6 +21,9 @@ kotlin {
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)
+        }
+        iosMain.dependencies {
+            implementation(project(":core:ui"))
         }
     }
 }

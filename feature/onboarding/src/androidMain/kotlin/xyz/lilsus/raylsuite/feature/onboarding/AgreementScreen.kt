@@ -20,13 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_agreement_checkbox
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_agreement_continue
-import xyz.lilsus.raylsuite.feature.onboarding.generated.resources.onboarding_agreement_title
+import xyz.lilsus.raylsuite.feature.onboarding.R
 
 @Composable
 fun AgreementScreen(
@@ -52,7 +49,7 @@ fun AgreementScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = stringResource(Res.string.onboarding_agreement_title),
+                text = stringResource(R.string.onboarding_agreement_title),
                 style = MaterialTheme.typography.headlineSmall
             )
 
@@ -92,7 +89,7 @@ fun AgreementScreen(
                     onCheckedChange = null
                 )
                 Text(
-                    text = stringResource(Res.string.onboarding_agreement_checkbox),
+                    text = stringResource(R.string.onboarding_agreement_checkbox),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 8.dp)
                 )
@@ -108,7 +105,7 @@ fun AgreementScreen(
                         .fillMaxWidth()
                         .testTag(OnboardingTestTags.AGREEMENT_CONTINUE)
             ) {
-                Text(stringResource(Res.string.onboarding_agreement_continue))
+                Text(stringResource(R.string.onboarding_agreement_continue))
             }
         }
     }

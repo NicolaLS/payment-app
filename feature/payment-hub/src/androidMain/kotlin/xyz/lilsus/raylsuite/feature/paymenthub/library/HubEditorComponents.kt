@@ -26,19 +26,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.feature.paymenthub.HubAccent
 import xyz.lilsus.raylsuite.feature.paymenthub.HubIcon
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_appearance_accent
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_appearance_icon
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_appearance_none
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_pin_description
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_pin_label
+import xyz.lilsus.raylsuite.feature.paymenthub.R
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubGlyph
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.containerColor
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.contentColor
@@ -71,8 +66,8 @@ internal fun AppearancePickers(
     onIconSelected: (HubIcon?) -> Unit,
     onAccentSelected: (HubAccent?) -> Unit
 ) {
-    val noneLabel = stringResource(Res.string.hub_appearance_none)
-    EditorSectionTitle(stringResource(Res.string.hub_appearance_icon))
+    val noneLabel = stringResource(R.string.hub_appearance_none)
+    EditorSectionTitle(stringResource(R.string.hub_appearance_icon))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         item(key = "none") {
             SelectableGlyph(
@@ -93,7 +88,7 @@ internal fun AppearancePickers(
             }
         }
     }
-    EditorSectionTitle(stringResource(Res.string.hub_appearance_accent))
+    EditorSectionTitle(stringResource(R.string.hub_appearance_accent))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         item(key = "none") {
             SelectableGlyph(
@@ -185,12 +180,12 @@ internal fun PinToggleRow(pinned: Boolean, onPinnedChange: (Boolean) -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
             Text(
-                text = stringResource(Res.string.hub_pin_label),
+                text = stringResource(R.string.hub_pin_label),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = stringResource(Res.string.hub_pin_description),
+                text = stringResource(R.string.hub_pin_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

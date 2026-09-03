@@ -40,22 +40,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.Res
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_api_key_label
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_api_key_placeholder
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_connect
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_description
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_hide_api_key
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_paste
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_show_api_key
-import xyz.lilsus.blip.feature.walletconnection.generated.resources.add_blink_wallet_title
+import xyz.lilsus.blip.feature.walletconnection.R
 import xyz.lilsus.blip.ui.blinkErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.platform.readPlainText
@@ -86,7 +78,7 @@ fun AddBlinkWalletScreen(
         modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.add_blink_wallet_title)) },
+                title = { Text(stringResource(R.string.add_blink_wallet_title)) },
                 navigationIcon = {
                     BackIconButton(onClick = onBack)
                 },
@@ -107,7 +99,7 @@ fun AddBlinkWalletScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
-                text = stringResource(Res.string.add_blink_wallet_description),
+                text = stringResource(R.string.add_blink_wallet_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -121,9 +113,9 @@ fun AddBlinkWalletScreen(
                             .fillMaxWidth()
                             .testTag(BlinkWalletConnectionTestTags.API_KEY_FIELD),
                     singleLine = true,
-                    label = { Text(stringResource(Res.string.add_blink_wallet_api_key_label)) },
+                    label = { Text(stringResource(R.string.add_blink_wallet_api_key_label)) },
                     placeholder = {
-                        Text(stringResource(Res.string.add_blink_wallet_api_key_placeholder))
+                        Text(stringResource(R.string.add_blink_wallet_api_key_placeholder))
                     },
                     enabled = !state.isSaving,
                     visualTransformation =
@@ -146,9 +138,9 @@ fun AddBlinkWalletScreen(
                         val visibilityDescription =
                             stringResource(
                                 if (apiKeyVisible) {
-                                    Res.string.add_blink_wallet_hide_api_key
+                                    R.string.add_blink_wallet_hide_api_key
                                 } else {
-                                    Res.string.add_blink_wallet_show_api_key
+                                    R.string.add_blink_wallet_show_api_key
                                 }
                             )
                         IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
@@ -179,7 +171,7 @@ fun AddBlinkWalletScreen(
                     enabled = !state.isSaving,
                     modifier = Modifier.align(Alignment.End)
                 ) {
-                    Text(stringResource(Res.string.add_blink_wallet_paste))
+                    Text(stringResource(R.string.add_blink_wallet_paste))
                 }
             }
 
@@ -206,7 +198,7 @@ fun AddBlinkWalletScreen(
                         strokeWidth = 2.dp
                     )
                 }
-                Text(text = stringResource(Res.string.add_blink_wallet_connect))
+                Text(text = stringResource(R.string.add_blink_wallet_connect))
             }
         }
     }

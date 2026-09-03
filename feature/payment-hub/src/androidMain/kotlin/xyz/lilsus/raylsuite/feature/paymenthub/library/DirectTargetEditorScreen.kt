@@ -1,5 +1,6 @@
 package xyz.lilsus.raylsuite.feature.paymenthub.library
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,13 +45,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
@@ -58,26 +58,7 @@ import xyz.lilsus.raylsuite.core.ui.keyboard.doneKeyboardPlatformImeOptions
 import xyz.lilsus.raylsuite.feature.paymenthub.HubAccent
 import xyz.lilsus.raylsuite.feature.paymenthub.HubIcon
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_editor_delete
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_editor_save
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_enter_amount
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_enter_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_invalid_address
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_error_whole_amount
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_keyboard_done
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_address_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_fiat_hint
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_mode_ask
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_amount_mode_preset
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_comment_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_currency_content_description
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_editor_edit
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_editor_new
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_groups_empty
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_groups_label
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_name_label
+import xyz.lilsus.raylsuite.feature.paymenthub.R
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubTestTags
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,7 +82,7 @@ fun DirectTargetEditorScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val focusManager = LocalFocusManager.current
-    val doneLabel = stringResource(Res.string.hub_keyboard_done)
+    val doneLabel = stringResource(R.string.hub_keyboard_done)
     Scaffold(
         modifier = modifier.testTag(PaymentHubTestTags.TARGET_EDITOR),
         topBar = {
@@ -110,9 +91,9 @@ fun DirectTargetEditorScreen(
                     Text(
                         stringResource(
                             if (state.isNew) {
-                                Res.string.hub_target_editor_new
+                                R.string.hub_target_editor_new
                             } else {
-                                Res.string.hub_target_editor_edit
+                                R.string.hub_target_editor_edit
                             }
                         )
                     )
@@ -138,7 +119,7 @@ fun DirectTargetEditorScreen(
                 value = state.title,
                 onValueChange = onTitleChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.hub_target_name_label)) },
+                label = { Text(stringResource(R.string.hub_target_name_label)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 singleLine = true
             )
@@ -146,12 +127,12 @@ fun DirectTargetEditorScreen(
                 value = state.address,
                 onValueChange = onAddressChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.hub_target_address_label)) },
+                label = { Text(stringResource(R.string.hub_target_address_label)) },
                 keyboardOptions =
                     KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
                 singleLine = true
             )
-            EditorSectionTitle(stringResource(Res.string.hub_target_amount_label))
+            EditorSectionTitle(stringResource(R.string.hub_target_amount_label))
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 TargetAmountMode.entries.forEachIndexed { index, mode ->
                     SegmentedButton(
@@ -170,7 +151,7 @@ fun DirectTargetEditorScreen(
             if (state.amountMode == TargetAmountMode.Preset) {
                 val fiatHint =
                     if (state.currency.currency is DisplayCurrency.Fiat) {
-                        stringResource(Res.string.hub_target_amount_fiat_hint, state.currency.code)
+                        stringResource(R.string.hub_target_amount_fiat_hint, state.currency.code)
                     } else {
                         null
                     }
@@ -178,7 +159,7 @@ fun DirectTargetEditorScreen(
                     value = state.amount,
                     onValueChange = onAmountChange,
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text(stringResource(Res.string.hub_target_amount_label)) },
+                    label = { Text(stringResource(R.string.hub_target_amount_label)) },
                     trailingIcon = {
                         CurrencyDropdown(
                             selectedCode = state.currency.code,
@@ -205,7 +186,7 @@ fun DirectTargetEditorScreen(
                 value = state.comment,
                 onValueChange = onCommentChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.hub_target_comment_label)) },
+                label = { Text(stringResource(R.string.hub_target_comment_label)) },
                 singleLine = true
             )
             AppearancePickers(
@@ -216,10 +197,10 @@ fun DirectTargetEditorScreen(
                 onAccentSelected = onAccentChange
             )
             PinToggleRow(pinned = state.pinned, onPinnedChange = onPinnedChange)
-            EditorSectionTitle(stringResource(Res.string.hub_target_groups_label))
+            EditorSectionTitle(stringResource(R.string.hub_target_groups_label))
             if (state.groups.isEmpty()) {
                 Text(
-                    text = stringResource(Res.string.hub_target_groups_empty),
+                    text = stringResource(R.string.hub_target_groups_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -228,13 +209,13 @@ fun DirectTargetEditorScreen(
             }
             state.error?.let { error -> EditorErrorText(stringResource(error.resource)) }
             Button(onClick = onSave, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.hub_editor_save))
+                Text(stringResource(R.string.hub_editor_save))
             }
             if (!state.isNew) {
                 OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Filled.Delete, contentDescription = null)
                     Text(
-                        text = stringResource(Res.string.hub_editor_delete),
+                        text = stringResource(R.string.hub_editor_delete),
                         modifier = Modifier.padding(start = 8.dp)
                     )
                 }
@@ -269,7 +250,7 @@ private fun GroupChips(state: DirectTargetEditorState, onGroupToggle: (HubItemId
 private fun CurrencyDropdown(selectedCode: String, onCurrencySelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val description =
-        stringResource(Res.string.hub_target_currency_content_description, selectedCode)
+        stringResource(R.string.hub_target_currency_content_description, selectedCode)
     Box {
         TextButton(
             onClick = { expanded = true },
@@ -295,18 +276,20 @@ private fun CurrencyDropdown(selectedCode: String, onCurrencySelected: (String) 
     }
 }
 
-private val TargetAmountMode.label: StringResource
+@get:StringRes
+private val TargetAmountMode.label: Int
     get() =
         when (this) {
-            TargetAmountMode.AskEveryTime -> Res.string.hub_target_amount_mode_ask
-            TargetAmountMode.Preset -> Res.string.hub_target_amount_mode_preset
+            TargetAmountMode.AskEveryTime -> R.string.hub_target_amount_mode_ask
+            TargetAmountMode.Preset -> R.string.hub_target_amount_mode_preset
         }
 
-private val TargetEditorError.resource: StringResource
+@get:StringRes
+private val TargetEditorError.resource: Int
     get() =
         when (this) {
-            TargetEditorError.EnterTitle -> Res.string.hub_error_enter_title
-            TargetEditorError.InvalidAddress -> Res.string.hub_error_invalid_address
-            TargetEditorError.EnterAmount -> Res.string.hub_error_enter_amount
-            TargetEditorError.WholeAmountRequired -> Res.string.hub_error_whole_amount
+            TargetEditorError.EnterTitle -> R.string.hub_error_enter_title
+            TargetEditorError.InvalidAddress -> R.string.hub_error_invalid_address
+            TargetEditorError.EnterAmount -> R.string.hub_error_enter_amount
+            TargetEditorError.WholeAmountRequired -> R.string.hub_error_whole_amount
         }

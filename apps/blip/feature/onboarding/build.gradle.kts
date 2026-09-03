@@ -3,10 +3,6 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.blip.feature.onboarding.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.blip.feature.onboarding"
@@ -14,7 +10,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.compose.components.resources)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(project(":blip:feature:blink-contacts"))
@@ -30,6 +26,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.navigation.compose)
+        }
+        iosMain.dependencies {
+            implementation(project(":core:ui"))
         }
     }
 }

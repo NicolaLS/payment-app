@@ -27,22 +27,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.Res
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_description
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_scan_allow_camera
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_scan_instruction
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_scan_open_settings
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_scan_permission
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_scan_restricted
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_scan_retry
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_title
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_label
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_paste
-import xyz.lilsus.lasr.feature.walletconnection.generated.resources.add_wallet_uri_placeholder
+import xyz.lilsus.lasr.feature.walletconnection.R
 import xyz.lilsus.raylsuite.core.camera.CameraAuthorizationState
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 
@@ -71,7 +60,7 @@ fun AddNwcWalletScreen(
         modifier = modifier.testTag(NwcWalletConnectionTestTags.SCREEN),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(stringResource(Res.string.add_wallet_title)) },
+                title = { Text(stringResource(R.string.add_wallet_title)) },
                 navigationIcon = {
                     BackIconButton(onClick = onBack)
                 },
@@ -92,7 +81,7 @@ fun AddNwcWalletScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
-                text = stringResource(Res.string.add_wallet_description),
+                text = stringResource(R.string.add_wallet_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -104,9 +93,9 @@ fun AddNwcWalletScreen(
                         .fillMaxWidth()
                         .testTag(NwcWalletConnectionTestTags.URI_FIELD),
                 singleLine = true,
-                label = { Text(stringResource(Res.string.add_wallet_uri_label)) },
+                label = { Text(stringResource(R.string.add_wallet_uri_label)) },
                 placeholder = {
-                    Text(stringResource(Res.string.add_wallet_uri_placeholder))
+                    Text(stringResource(R.string.add_wallet_uri_placeholder))
                 },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -119,7 +108,7 @@ fun AddNwcWalletScreen(
                 onClick = onPaste,
                 modifier = Modifier.testTag(NwcWalletConnectionTestTags.PASTE_BUTTON)
             ) {
-                Text(stringResource(Res.string.add_wallet_uri_paste))
+                Text(stringResource(R.string.add_wallet_uri_paste))
             }
             state.error?.let { error ->
                 Text(
@@ -159,7 +148,7 @@ private fun CameraCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = stringResource(Res.string.add_wallet_scan_instruction),
+                text = stringResource(R.string.add_wallet_scan_instruction),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -182,9 +171,9 @@ private fun CameraCard(
                                 authorization == CameraAuthorizationState.RESTRICTED ||
                                 authorization == CameraAuthorizationState.UNAVAILABLE
                             ) {
-                                Res.string.add_wallet_scan_restricted
+                                R.string.add_wallet_scan_restricted
                             } else {
-                                Res.string.add_wallet_scan_permission
+                                R.string.add_wallet_scan_permission
                             }
                         ),
                     style = MaterialTheme.typography.bodySmall,
@@ -201,11 +190,11 @@ private fun CameraCard(
                                     authorization == CameraAuthorizationState.DENIED &&
                                     !canRequestPermission
                                 ) {
-                                    Res.string.add_wallet_scan_open_settings
+                                    R.string.add_wallet_scan_open_settings
                                 } else if (authorization == CameraAuthorizationState.DENIED) {
-                                    Res.string.add_wallet_scan_retry
+                                    R.string.add_wallet_scan_retry
                                 } else {
-                                    Res.string.add_wallet_scan_allow_camera
+                                    R.string.add_wallet_scan_allow_camera
                                 }
                             )
                         )

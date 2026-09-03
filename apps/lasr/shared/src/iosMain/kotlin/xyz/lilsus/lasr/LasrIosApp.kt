@@ -5,17 +5,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 import xyz.lilsus.lasr.feature.payment.PaymentEvent
 import xyz.lilsus.lasr.feature.payment.PaymentUiState
 import xyz.lilsus.lasr.feature.payment.previousPaymentSituation
 import xyz.lilsus.lasr.feature.payment.toNativePaymentScreenState
 import xyz.lilsus.lasr.feature.payment.toNativeRecentItem
-import xyz.lilsus.lasr.generated.resources.Res
-import xyz.lilsus.lasr.generated.resources.app_name
 import xyz.lilsus.raylsuite.core.settings.createAppSettings
 import xyz.lilsus.raylsuite.core.settings.createSecureSettings
 import xyz.lilsus.raylsuite.core.ui.platform.createHapticFeedbackManager
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
 import xyz.lilsus.raylsuite.feature.appshell.appTabTitles
 import xyz.lilsus.raylsuite.feature.appshell.nativeColorSchemeValue
@@ -166,7 +165,9 @@ object LasrIosApp {
                     }
                 controller.update(
                     payment = payment.toNativePaymentScreenState(),
-                    appTitle = getString(Res.string.app_name),
+                    appTitle = nativeString(
+                        NativeStringResource(table = "LasrApp", key = "app_name")
+                    ),
                     estimatedFeeHint = null,
                     previousPaymentSituation = previousSituation,
                     savePrompt = hubState.savePrompt

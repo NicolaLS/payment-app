@@ -1,15 +1,8 @@
 package xyz.lilsus.blip.feature.payment
 
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.blip.feature.payment.generated.resources.Res
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_fee
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_already_paid
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_failure
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_pending_blink
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_sending
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_success
-import xyz.lilsus.blip.feature.payment.generated.resources.transaction_status_unknown
+import androidx.compose.ui.res.stringResource
+import xyz.lilsus.blip.feature.payment.R
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
@@ -67,7 +60,7 @@ internal fun SessionTransactionItem.toPaymentSessionTransaction(
         supportingText =
             when (status) {
                 PendingStatus.Success -> fee?.let {
-                    stringResource(Res.string.transaction_fee, formatter.format(it))
+                    stringResource(R.string.transaction_fee, formatter.format(it))
                 }
 
                 PendingStatus.StatusUnknown,
@@ -100,37 +93,37 @@ private fun PendingStatus.toPreviousPaymentSituation(): PreviousPaymentSituation
 private fun PendingStatus.presentation(): StatusPresentation = when (this) {
     PendingStatus.Sending ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_sending),
+            stringResource(R.string.transaction_status_sending),
             PaymentStatusTone.Pending
         )
 
     PendingStatus.PendingInBlink ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_pending_blink),
+            stringResource(R.string.transaction_status_pending_blink),
             PaymentStatusTone.Pending
         )
 
     PendingStatus.StatusUnknown ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_unknown),
+            stringResource(R.string.transaction_status_unknown),
             PaymentStatusTone.Failure
         )
 
     PendingStatus.Success ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_success),
+            stringResource(R.string.transaction_status_success),
             PaymentStatusTone.Success
         )
 
     PendingStatus.AlreadyPaid ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_already_paid),
+            stringResource(R.string.transaction_status_already_paid),
             PaymentStatusTone.Success
         )
 
     PendingStatus.Failure ->
         StatusPresentation(
-            stringResource(Res.string.transaction_status_failure),
+            stringResource(R.string.transaction_status_failure),
             PaymentStatusTone.Failure
         )
 }

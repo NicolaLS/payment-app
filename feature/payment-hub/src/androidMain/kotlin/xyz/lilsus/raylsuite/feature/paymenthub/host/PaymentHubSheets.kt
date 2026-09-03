@@ -22,18 +22,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.ui.platform.enableTestTagsAsResourceId
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_empty
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_group_pick_member
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_save_prompt_body
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_save_prompt_not_now
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_save_prompt_save
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_save_prompt_title
-import xyz.lilsus.raylsuite.feature.paymenthub.generated.resources.hub_target_name_label
+import xyz.lilsus.raylsuite.feature.paymenthub.R
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubItemGlyph
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubItemRow
 
@@ -72,7 +65,7 @@ fun HubGroupBottomSheet(
                         style = MaterialTheme.typography.titleLarge
                     )
                     Text(
-                        text = stringResource(Res.string.hub_group_pick_member),
+                        text = stringResource(R.string.hub_group_pick_member),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -80,7 +73,7 @@ fun HubGroupBottomSheet(
             }
             if (sheet.members.isEmpty()) {
                 Text(
-                    text = stringResource(Res.string.hub_group_empty),
+                    text = stringResource(R.string.hub_group_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 16.dp)
@@ -126,11 +119,11 @@ fun HubSavePromptBottomSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = stringResource(Res.string.hub_save_prompt_title),
+                text = stringResource(R.string.hub_save_prompt_title),
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(
-                text = stringResource(Res.string.hub_save_prompt_body, prompt.address.full),
+                text = stringResource(R.string.hub_save_prompt_body, prompt.address.full),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -138,15 +131,15 @@ fun HubSavePromptBottomSheet(
                 value = prompt.title,
                 onValueChange = onTitleChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.hub_target_name_label)) },
+                label = { Text(stringResource(R.string.hub_target_name_label)) },
                 singleLine = true
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(Res.string.hub_save_prompt_not_now))
+                    Text(stringResource(R.string.hub_save_prompt_not_now))
                 }
                 Button(onClick = onSave, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(Res.string.hub_save_prompt_save))
+                    Text(stringResource(R.string.hub_save_prompt_save))
                 }
             }
         }

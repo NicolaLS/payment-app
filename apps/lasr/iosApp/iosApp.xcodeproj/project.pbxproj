@@ -23,6 +23,36 @@
 		A82E00000000000000000003 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82E00000000000000000001 /* NativeWalletManagementView.swift */; };
 		D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
 		E2E000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */; };
+		D30000000000000000000001 /* CoreUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000001 /* CoreUI.xcstrings */; };
+		D30000000000000000000002 /* AppShell.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000002 /* AppShell.xcstrings */; };
+		D30000000000000000000003 /* CurrencySettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000003 /* CurrencySettings.xcstrings */; };
+		D30000000000000000000004 /* LanguageSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000004 /* LanguageSettings.xcstrings */; };
+		D30000000000000000000005 /* Onboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000005 /* Onboarding.xcstrings */; };
+		D30000000000000000000006 /* PaymentHub.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000006 /* PaymentHub.xcstrings */; };
+		D30000000000000000000007 /* PaymentSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000007 /* PaymentSettings.xcstrings */; };
+		D30000000000000000000008 /* PaymentUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000008 /* PaymentUI.xcstrings */; };
+		D30000000000000000000009 /* Settings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000009 /* Settings.xcstrings */; };
+		D3000000000000000000000A /* WalletManagement.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000A /* WalletManagement.xcstrings */; };
+		D3000000000000000000000B /* LasrOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000B /* LasrOnboarding.xcstrings */; };
+		D3000000000000000000000C /* LasrPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000C /* LasrPayment.xcstrings */; };
+		D3000000000000000000000D /* LasrWalletConnection.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000D /* LasrWalletConnection.xcstrings */; };
+		D3000000000000000000000E /* LasrWalletDetails.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000E /* LasrWalletDetails.xcstrings */; };
+		D3000000000000000000000F /* LasrApp.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000F /* LasrApp.xcstrings */; };
+		E30000000000000000000001 /* CoreUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000001 /* CoreUI.xcstrings */; };
+		E30000000000000000000002 /* AppShell.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000002 /* AppShell.xcstrings */; };
+		E30000000000000000000003 /* CurrencySettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000003 /* CurrencySettings.xcstrings */; };
+		E30000000000000000000004 /* LanguageSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000004 /* LanguageSettings.xcstrings */; };
+		E30000000000000000000005 /* Onboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000005 /* Onboarding.xcstrings */; };
+		E30000000000000000000006 /* PaymentHub.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000006 /* PaymentHub.xcstrings */; };
+		E30000000000000000000007 /* PaymentSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000007 /* PaymentSettings.xcstrings */; };
+		E30000000000000000000008 /* PaymentUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000008 /* PaymentUI.xcstrings */; };
+		E30000000000000000000009 /* Settings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C30000000000000000000009 /* Settings.xcstrings */; };
+		E3000000000000000000000A /* WalletManagement.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000A /* WalletManagement.xcstrings */; };
+		E3000000000000000000000B /* LasrOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000B /* LasrOnboarding.xcstrings */; };
+		E3000000000000000000000C /* LasrPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000C /* LasrPayment.xcstrings */; };
+		E3000000000000000000000D /* LasrWalletConnection.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000D /* LasrWalletConnection.xcstrings */; };
+		E3000000000000000000000E /* LasrWalletDetails.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000E /* LasrWalletDetails.xcstrings */; };
+		E3000000000000000000000F /* LasrApp.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C3000000000000000000000F /* LasrApp.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +66,21 @@
 		A82E00000000000000000001 /* NativeWalletManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeWalletManagementView.swift; path = ../../../feature/wallet-management/src/iosMain/swift/NativeWalletManagementView.swift; sourceTree = "<group>"; };
 		D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E2E000000000000000000001 /* Lasr E2E.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Lasr E2E.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C30000000000000000000001 /* CoreUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CoreUI.xcstrings; path = ../../../core/ui/src/iosMain/resources/CoreUI.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000002 /* AppShell.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = AppShell.xcstrings; path = ../../../feature/app-shell/src/iosMain/resources/AppShell.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000003 /* CurrencySettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CurrencySettings.xcstrings; path = ../../../feature/currency-settings/src/iosMain/resources/CurrencySettings.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000004 /* LanguageSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LanguageSettings.xcstrings; path = ../../../feature/language-settings/src/iosMain/resources/LanguageSettings.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000005 /* Onboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Onboarding.xcstrings; path = ../../../feature/onboarding/src/iosMain/resources/Onboarding.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000006 /* PaymentHub.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentHub.xcstrings; path = ../../../feature/payment-hub/src/iosMain/resources/PaymentHub.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000007 /* PaymentSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentSettings.xcstrings; path = ../../../feature/payment-settings/src/iosMain/resources/PaymentSettings.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000008 /* PaymentUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentUI.xcstrings; path = ../../../feature/payment-ui/src/iosMain/resources/PaymentUI.xcstrings; sourceTree = "<group>"; };
+		C30000000000000000000009 /* Settings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Settings.xcstrings; path = ../../../feature/settings/src/iosMain/resources/Settings.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000A /* WalletManagement.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = WalletManagement.xcstrings; path = ../../../feature/wallet-management/src/iosMain/resources/WalletManagement.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000B /* LasrOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrOnboarding.xcstrings; path = ../feature/onboarding/src/iosMain/resources/LasrOnboarding.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000C /* LasrPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrPayment.xcstrings; path = ../feature/payment/src/iosMain/resources/LasrPayment.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000D /* LasrWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrWalletConnection.xcstrings; path = ../feature/wallet-connection/src/iosMain/resources/LasrWalletConnection.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000E /* LasrWalletDetails.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrWalletDetails.xcstrings; path = ../feature/wallet-details/src/iosMain/resources/LasrWalletDetails.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000F /* LasrApp.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrApp.xcstrings; path = ../shared/src/iosMain/resources/LasrApp.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -99,6 +144,21 @@
 		97A229AE63675C10A9DAA454 = {
 			isa = PBXGroup;
 			children = (
+				C30000000000000000000001 /* CoreUI.xcstrings */,
+				C30000000000000000000002 /* AppShell.xcstrings */,
+				C30000000000000000000003 /* CurrencySettings.xcstrings */,
+				C30000000000000000000004 /* LanguageSettings.xcstrings */,
+				C30000000000000000000005 /* Onboarding.xcstrings */,
+				C30000000000000000000006 /* PaymentHub.xcstrings */,
+				C30000000000000000000007 /* PaymentSettings.xcstrings */,
+				C30000000000000000000008 /* PaymentUI.xcstrings */,
+				C30000000000000000000009 /* Settings.xcstrings */,
+				C3000000000000000000000A /* WalletManagement.xcstrings */,
+				C3000000000000000000000B /* LasrOnboarding.xcstrings */,
+				C3000000000000000000000C /* LasrPayment.xcstrings */,
+				C3000000000000000000000D /* LasrWalletConnection.xcstrings */,
+				C3000000000000000000000E /* LasrWalletDetails.xcstrings */,
+				C3000000000000000000000F /* LasrApp.xcstrings */,
 				A22E00000000000000000001 /* NativeAppShell.swift */,
 				A32E00000000000000000001 /* NativeSettingsView.swift */,
 				A42E00000000000000000001 /* NativePaymentScanView.swift */,
@@ -218,6 +278,21 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D30000000000000000000001 /* CoreUI.xcstrings in Resources */,
+				D30000000000000000000002 /* AppShell.xcstrings in Resources */,
+				D30000000000000000000003 /* CurrencySettings.xcstrings in Resources */,
+				D30000000000000000000004 /* LanguageSettings.xcstrings in Resources */,
+				D30000000000000000000005 /* Onboarding.xcstrings in Resources */,
+				D30000000000000000000006 /* PaymentHub.xcstrings in Resources */,
+				D30000000000000000000007 /* PaymentSettings.xcstrings in Resources */,
+				D30000000000000000000008 /* PaymentUI.xcstrings in Resources */,
+				D30000000000000000000009 /* Settings.xcstrings in Resources */,
+				D3000000000000000000000A /* WalletManagement.xcstrings in Resources */,
+				D3000000000000000000000B /* LasrOnboarding.xcstrings in Resources */,
+				D3000000000000000000000C /* LasrPayment.xcstrings in Resources */,
+				D3000000000000000000000D /* LasrWalletConnection.xcstrings in Resources */,
+				D3000000000000000000000E /* LasrWalletDetails.xcstrings in Resources */,
+				D3000000000000000000000F /* LasrApp.xcstrings in Resources */,
 				D8D428B72EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -226,6 +301,21 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E30000000000000000000001 /* CoreUI.xcstrings in Resources */,
+				E30000000000000000000002 /* AppShell.xcstrings in Resources */,
+				E30000000000000000000003 /* CurrencySettings.xcstrings in Resources */,
+				E30000000000000000000004 /* LanguageSettings.xcstrings in Resources */,
+				E30000000000000000000005 /* Onboarding.xcstrings in Resources */,
+				E30000000000000000000006 /* PaymentHub.xcstrings in Resources */,
+				E30000000000000000000007 /* PaymentSettings.xcstrings in Resources */,
+				E30000000000000000000008 /* PaymentUI.xcstrings in Resources */,
+				E30000000000000000000009 /* Settings.xcstrings in Resources */,
+				E3000000000000000000000A /* WalletManagement.xcstrings in Resources */,
+				E3000000000000000000000B /* LasrOnboarding.xcstrings in Resources */,
+				E3000000000000000000000C /* LasrPayment.xcstrings in Resources */,
+				E3000000000000000000000D /* LasrWalletConnection.xcstrings in Resources */,
+				E3000000000000000000000E /* LasrWalletDetails.xcstrings in Resources */,
+				E3000000000000000000000F /* LasrApp.xcstrings in Resources */,
 				E2E000000000000000000008 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -427,7 +517,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -493,7 +583,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -710,7 +800,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;

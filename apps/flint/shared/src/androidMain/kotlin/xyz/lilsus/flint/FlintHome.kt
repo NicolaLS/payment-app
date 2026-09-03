@@ -8,12 +8,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.flint.application.wallet.WalletAccessState
 import xyz.lilsus.flint.feature.onboarding.FlintOnboardingDestination
 import xyz.lilsus.flint.feature.onboarding.flintOnboarding
@@ -21,10 +21,7 @@ import xyz.lilsus.flint.feature.payment.rememberPaymentFlowState
 import xyz.lilsus.flint.feature.payment.rememberPaymentMessages
 import xyz.lilsus.flint.feature.walletconnection.WalletAction
 import xyz.lilsus.flint.feature.walletconnection.WalletViewModel
-import xyz.lilsus.flint.generated.resources.Res
-import xyz.lilsus.flint.generated.resources.app_name
-import xyz.lilsus.flint.generated.resources.settings_wallet_subtitle
-import xyz.lilsus.flint.generated.resources.settings_wallet_title
+import xyz.lilsus.flint.shared.R
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
@@ -101,7 +98,7 @@ internal fun FlintTabContent(
             PaymentScanScreen(
                 state = flowState,
                 messageEvents = messages,
-                appTitle = stringResource(Res.string.app_name),
+                appTitle = stringResource(R.string.app_name),
                 estimatedFeeHint = null,
                 savePrompt = hubState.savePrompt,
                 onIntent = coordinator::dispatch,
@@ -171,12 +168,12 @@ private fun FlintSettingsTab(
                     listOf(
                         SettingsEntry(
                             id = "wallet",
-                            title = stringResource(Res.string.settings_wallet_title),
-                            subtitle = stringResource(Res.string.settings_wallet_subtitle),
+                            title = stringResource(R.string.settings_wallet_title),
+                            subtitle = stringResource(R.string.settings_wallet_subtitle),
                             onClick = { destination = FlintSettingsDestination.WalletManagement }
                         )
                     ),
-                donationAppName = stringResource(Res.string.app_name),
+                donationAppName = stringResource(R.string.app_name),
                 onDonate = onDonate
             )
 
@@ -186,10 +183,10 @@ private fun FlintSettingsTab(
                     if (walletState.access == WalletAccessState.Connected) {
                         ManagedWallet(
                             id = "spark",
-                            title = stringResource(Res.string.settings_wallet_title),
+                            title = stringResource(R.string.settings_wallet_title),
                             details =
                                 listOf(
-                                    stringResource(Res.string.settings_wallet_subtitle),
+                                    stringResource(R.string.settings_wallet_subtitle),
                                     runtime.networkLabel
                                 )
                         )

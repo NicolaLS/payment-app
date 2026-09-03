@@ -9,13 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.dismiss_button
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.retry_payment
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.session_transactions_empty
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.session_transactions_title
-import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.tap_dismiss_pending
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 
 data class NativePaymentRecentItem(
     val id: String,
@@ -123,9 +118,15 @@ class NativePaymentRecentController(
         val detail = selected?.toNativeDetail()
         snapshot.value =
             NativePaymentRecentSnapshot(
-                title = getString(Res.string.session_transactions_title),
-                emptyMessage = getString(Res.string.session_transactions_empty),
-                dismissTitle = getString(Res.string.dismiss_button),
+                title = nativeString(
+                    NativeStringResource(table = "PaymentUI", key = "session_transactions_title")
+                ),
+                emptyMessage = nativeString(
+                    NativeStringResource(table = "PaymentUI", key = "session_transactions_empty")
+                ),
+                dismissTitle = nativeString(
+                    NativeStringResource(table = "PaymentUI", key = "dismiss_button")
+                ),
                 items = items,
                 selectedDetail = detail
             )
@@ -146,9 +147,16 @@ class NativePaymentRecentController(
                 if (terminal) {
                     null
                 } else {
-                    pendingMessage ?: getString(Res.string.tap_dismiss_pending)
+                    pendingMessage
+                        ?: nativeString(
+                            NativeStringResource(table = "PaymentUI", key = "tap_dismiss_pending")
+                        )
                 },
-            retryTitle = getString(Res.string.retry_payment).takeIf { canRetry }
+            retryTitle = nativeString(
+                NativeStringResource(table = "PaymentUI", key = "retry_payment")
+            ).takeIf {
+                canRetry
+            }
         )
     }
 }

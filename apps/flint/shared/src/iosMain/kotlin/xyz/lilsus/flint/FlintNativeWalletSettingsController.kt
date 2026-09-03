@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getString
 import xyz.lilsus.flint.application.wallet.WalletAccess
 import xyz.lilsus.flint.application.wallet.WalletAccessState
 import xyz.lilsus.flint.feature.walletconnection.NativeFlintWalletConnectionText
@@ -16,9 +15,8 @@ import xyz.lilsus.flint.feature.walletconnection.WalletAction
 import xyz.lilsus.flint.feature.walletconnection.WalletMessage
 import xyz.lilsus.flint.feature.walletconnection.WalletViewModel
 import xyz.lilsus.flint.feature.walletconnection.nativeFlintWalletConnectionText
-import xyz.lilsus.flint.generated.resources.Res
-import xyz.lilsus.flint.generated.resources.settings_wallet_subtitle
-import xyz.lilsus.flint.generated.resources.settings_wallet_title
+import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
+import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.walletmanagement.nativeWalletManagementText
 
 data class FlintNativeWalletSettingsSnapshot(
@@ -67,8 +65,10 @@ class FlintNativeWalletSettingsController internal constructor(
         val state = wallet.state.value
         val management = nativeWalletManagementText()
         val connection = nativeFlintWalletConnectionText()
-        val title = getString(Res.string.settings_wallet_title)
-        val subtitle = getString(Res.string.settings_wallet_subtitle)
+        val title =
+            nativeString(NativeStringResource(table = "FlintApp", key = "settings_wallet_title"))
+        val subtitle =
+            nativeString(NativeStringResource(table = "FlintApp", key = "settings_wallet_subtitle"))
         val connected = state.access == WalletAccessState.Connected
 
         snapshot.value =

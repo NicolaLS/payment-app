@@ -6,10 +6,6 @@ plugins {
     id("xyz.lilsus.raylsuite.app.shared")
 }
 
-compose.resources {
-    packageOfResClass = "xyz.lilsus.blip.generated.resources"
-}
-
 kotlin {
     android {
         namespace = "xyz.lilsus.blip.shared"
@@ -48,9 +44,9 @@ kotlin {
             implementation(project(":feature:theme-settings"))
             implementation(project(":integration:exchange-rate"))
             implementation(project(":integration:lnurl"))
-            implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.multiplatform.settings)
+            implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
             implementation(project(":blip:feature:onboarding"))

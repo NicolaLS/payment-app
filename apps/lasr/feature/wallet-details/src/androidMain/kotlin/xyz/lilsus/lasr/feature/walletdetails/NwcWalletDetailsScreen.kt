@@ -19,14 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.stringResource
-import xyz.lilsus.lasr.feature.walletdetails.generated.resources.Res
-import xyz.lilsus.lasr.feature.walletdetails.generated.resources.settings_wallet_details_connection_id
-import xyz.lilsus.lasr.feature.walletdetails.generated.resources.settings_wallet_details_title
-import xyz.lilsus.lasr.feature.walletdetails.generated.resources.settings_wallet_details_type
-import xyz.lilsus.lasr.feature.walletdetails.generated.resources.wallet_type_nwc
+import xyz.lilsus.lasr.feature.walletdetails.R
 import xyz.lilsus.lasr.integration.nwc.NwcWalletConnection
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 
@@ -43,7 +39,7 @@ fun NwcWalletDetailsScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(stringResource(Res.string.settings_wallet_details_title))
+                    Text(stringResource(R.string.settings_wallet_details_title))
                 },
                 navigationIcon = {
                     BackIconButton(onClick = onBack)
@@ -86,14 +82,14 @@ fun NwcWalletDetailsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     DetailRow(
-                        label = stringResource(Res.string.settings_wallet_details_type),
-                        value = stringResource(Res.string.wallet_type_nwc)
+                        label = stringResource(R.string.settings_wallet_details_type),
+                        value = stringResource(R.string.wallet_type_nwc)
                     )
                     HorizontalDivider()
                     DetailRow(
                         label =
                             stringResource(
-                                Res.string.settings_wallet_details_connection_id
+                                R.string.settings_wallet_details_connection_id
                             ),
                         value = connection.walletPublicKey
                     )
