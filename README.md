@@ -54,5 +54,6 @@ frameworks directly:
 ```
 
 See [release](docs/release.md), [E2E](docs/e2e.md),
-[performance monitoring](docs/performance-monitoring.md), and the [extraction
-completion record](docs/MIGRATION_LEDGER.md).
+[performance monitoring](docs/performance-monitoring.md), the
+[payment hub](docs/payment-hub.md), the [native app shell](docs/native-shell.md),
+and the [extraction completion record](docs/MIGRATION_LEDGER.md).

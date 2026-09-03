@@ -1,68 +1,30 @@
-# Extraction completion record
+# Product extraction completion record
 
-The read-only multi-wallet reference application was archived at `papp-final`
-and `papp-legacy`, then removed from the active Gradle project. Git history
-remains the source for any future parity investigation.
+The retired multi-wallet reference application was archived at `papp-final` and `papp-legacy`, then
+removed from the active Gradle project. Git history remains the source for future parity research.
+There is no runtime provider selector and no import path for that application's credentials,
+preferences, databases, or installation state.
 
-The suite now contains three independent applications:
+The suite now contains three independent products:
 
-- Blip owns the Blink integration and uses `xyz.lilsus.blip`.
-- Flint owns the Spark integration and uses `xyz.lilsus.flint`.
-- Lasr owns the NWC integration and uses `xyz.lilsus.lasr`.
-- Shared `core:*`, `feature:*`, and `integration:*` modules contain only
-  provider-neutral code.
-- Neither app imports or decodes legacy preferences, credentials, databases,
-  identifiers, or installation state.
+- Blip owns Blink behavior (`xyz.lilsus.blip` on Android and `com.nicolasusca.blip` on iOS).
+- Flint owns Spark behavior (`xyz.lilsus.flint`).
+- Lasr owns Nostr Wallet Connect behavior (`xyz.lilsus.lasr`).
+- Root `core:*`, `feature:*`, and `integration:*` modules contain only provider-neutral behavior and
+  presentation used directly by real consumers.
 
-## Completed boundaries
+Blink credentials, API access, contact import, wallet connection, and wallet details remain
+Blip-owned. Spark credentials, SDK lifecycle, payment state, and wallet connection remain
+Flint-owned. NWC credentials, discovery, relay lifecycle, wallet connection, and wallet details
+remain Lasr-owned. App identity, icons, legal links, store metadata, deep links, and signing inputs
+remain app-specific.
 
-- Shared model, UI, settings, camera, network, payment, onboarding, contacts,
-  wallet management, exchange-rate, and LNURL modules are consumed by both
-  apps where applicable.
-- Blink credentials, API access, contact import, wallet connection, and wallet
-  details remain Blip-owned.
-- NWC credentials, discovery, relay lifecycle, wallet connection, and wallet
-  details remain Lasr-owned.
-- Spark credentials, SDK lifecycle, payment state, and wallet connection remain
-  Flint-owned.
-- Provider selection and provider branching were removed from the new apps.
-- App identity, icons, legal links, store metadata, deep links, backup
-  exclusions, Android release signing inputs, and iOS Release builds are
-  app-specific and ready for candidate preparation.
+The previous extraction closeout verified repository formatting/checks, Blip and Lasr Android
+Debug/E2E/Release builds, Kotlin/Native frameworks, and unsigned Xcode Release builds. Flint was
+added later and is covered by current suite build workflows. Those historical signals do not
+replace current release QA.
 
-## Verified extraction closeout
-
-The following records the Blip and Lasr extraction closeout. Flint was added
-after that closeout and is covered by the current CI matrices.
-
-- Repository ktlint and existing checks.
-- Blip and Lasr Android debug and minified E2E APK assembly.
-- Blip and Lasr Android Release bundle and lint tasks.
-- Blip and Lasr Kotlin/Native Release frameworks for arm64 iOS devices and
-  arm64 simulators.
-- Blip and Lasr unsigned Xcode Release builds for a generic iOS destination.
-
-No new unit or integration tests were added during closeout. Manual wallet,
-payment, localization, accessibility, and store-submission verification belongs
-to the dedicated QA/release pass.
-
-## Accepted release exceptions and owner gates
-
-- Lasr intentionally resolves maintainer-owned
-  `io.github.nicolals:nwc-kmp:0.3.3-SNAPSHOT`. Every candidate must record the
-  resolved artifact checksum.
-- Kotlin/Native Release frameworks disable only
-  `RemoveRedundantCallsToStaticInitializersPhase` as a narrowly scoped
-  workaround for KT-64508. The same failure is present in the archived legacy
-  app after the ACINQ dependency graph was introduced; Debug builds did not
-  exercise this Release optimizer phase.
-- One locally managed Android app-signing key and one local Play upload key are
-  shared by all three packages. Locally signed universal APKs, built from the
-  release bundle and verified against the pinned app-signing certificate, are
-  the artifacts redistributed through GitHub and Zapstore.
-- The Zapstore publisher key, store-account configuration, final localized
-  screenshots, live-wallet smoke tests, signing/archive uploads, review forms,
-  and production publication require owner or QA credentials and approval.
-- A provider-neutral shared E2E harness remains optional follow-up work. The
-  archived harness is coupled to the old multi-provider runtime and was not
-  copied into the completed product tree.
+Release candidates still require the owner gates in `docs/release.md`, real-wallet smoke testing,
+localized screenshots, store/reviewer declarations, and explicit publication approval. The
+owner-approved `io.github.nicolals:nwc-kmp:0.3.3-SNAPSHOT` dependency remains a documented exception
+whose resolved checksum must be recorded for a candidate.
