@@ -51,8 +51,12 @@ migration state.
 - Android renderers are Jetpack Compose and live in their module's
   `androidMain`.
 - iOS renderers are SwiftUI/UIKit and live in their module's `src/iosMain/swift`,
-  compiled directly by each app's Xcode project. A shared SwiftUI file is one
-  file consumed by all three products; never copy it into an app.
+  compiled directly by each app's Xcode project. Each consuming target registers
+  that `swift` directory as an Xcode filesystem-synchronized buildable folder,
+  so files added inside it require no per-file project edit. Register a new
+  renderer directory once per consuming target, and keep adjacent resources on
+  their explicit bundle-resource path. A shared SwiftUI file is one file consumed
+  by all three products; never copy it into an app.
 - Navigation, tab bars, sheets, dialogs, alerts, lists, forms, pickers, toggles,
   keyboard handling, insets, permissions, and system pickers belong to the
   platform.

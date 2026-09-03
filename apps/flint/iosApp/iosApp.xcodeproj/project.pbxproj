@@ -8,13 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* BreezSdkSpark in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000003 /* BreezSdkSpark */; };
-		A23E00000000000000000002 /* NativeAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A23E00000000000000000001 /* NativeAppShell.swift */; };
-		A33E00000000000000000002 /* NativeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33E00000000000000000001 /* NativeSettingsView.swift */; };
-		A43E00000000000000000002 /* NativePaymentScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A43E00000000000000000001 /* NativePaymentScanView.swift */; };
-		A63E00000000000000000002 /* RaylHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63E00000000000000000001 /* RaylHeroView.swift */; };
-		A53E00000000000000000002 /* NativePaymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A53E00000000000000000001 /* NativePaymentHubView.swift */; };
-		A73E00000000000000000002 /* NativeOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73E00000000000000000001 /* NativeOnboardingView.swift */; };
-		A83E00000000000000000002 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A83E00000000000000000001 /* NativeWalletManagementView.swift */; };
 		D20000000000000000000001 /* CoreUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000001 /* CoreUI.xcstrings */; };
 		D20000000000000000000002 /* AppShell.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000002 /* AppShell.xcstrings */; };
 		D20000000000000000000003 /* CurrencySettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000003 /* CurrencySettings.xcstrings */; };
@@ -33,13 +26,6 @@
 
 /* Begin PBXFileReference section */
 		03744610E04387BAFD950419 /* Flint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Flint.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A23E00000000000000000001 /* NativeAppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeAppShell.swift; path = ../../../feature/app-shell/src/iosMain/swift/NativeAppShell.swift; sourceTree = "<group>"; };
-		A33E00000000000000000001 /* NativeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeSettingsView.swift; path = ../../../feature/settings/src/iosMain/swift/NativeSettingsView.swift; sourceTree = "<group>"; };
-		A43E00000000000000000001 /* NativePaymentScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentScanView.swift; path = ../../../feature/payment-ui/src/iosMain/swift/NativePaymentScanView.swift; sourceTree = "<group>"; };
-		A63E00000000000000000001 /* RaylHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RaylHeroView.swift; path = ../../../feature/payment-ui/src/iosMain/swift/RaylHeroView.swift; sourceTree = "<group>"; };
-		A53E00000000000000000001 /* NativePaymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentHubView.swift; path = ../../../feature/payment-hub/src/iosMain/swift/NativePaymentHubView.swift; sourceTree = "<group>"; };
-		A73E00000000000000000001 /* NativeOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeOnboardingView.swift; path = ../../../feature/onboarding/src/iosMain/swift/NativeOnboardingView.swift; sourceTree = "<group>"; };
-		A83E00000000000000000001 /* NativeWalletManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeWalletManagementView.swift; path = ../../../feature/wallet-management/src/iosMain/swift/NativeWalletManagementView.swift; sourceTree = "<group>"; };
 		C20000000000000000000001 /* CoreUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CoreUI.xcstrings; path = ../../../core/ui/src/iosMain/resources/CoreUI.xcstrings; sourceTree = "<group>"; };
 		C20000000000000000000002 /* AppShell.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = AppShell.xcstrings; path = ../../../feature/app-shell/src/iosMain/resources/AppShell.xcstrings; sourceTree = "<group>"; };
 		C20000000000000000000003 /* CurrencySettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CurrencySettings.xcstrings; path = ../../../feature/currency-settings/src/iosMain/resources/CurrencySettings.xcstrings; sourceTree = "<group>"; };
@@ -80,6 +66,42 @@
 			path = Configuration;
 			sourceTree = "<group>";
 		};
+		F23E00000000000000000001 /* App Shell Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "App Shell Swift";
+			path = ../../../feature/app-shell/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F23E00000000000000000002 /* Settings Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Settings Swift";
+			path = ../../../feature/settings/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F23E00000000000000000003 /* Payment UI Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Payment UI Swift";
+			path = ../../../feature/payment-ui/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F23E00000000000000000004 /* Payment Hub Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Payment Hub Swift";
+			path = ../../../feature/payment-hub/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F23E00000000000000000005 /* Onboarding Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Onboarding Swift";
+			path = ../../../feature/onboarding/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F23E00000000000000000006 /* Wallet Management Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Wallet Management Swift";
+			path = ../../../feature/wallet-management/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,13 +133,12 @@
 				C2000000000000000000000C /* FlintPayment.xcstrings */,
 				C2000000000000000000000D /* FlintWalletConnection.xcstrings */,
 				C2000000000000000000000E /* FlintApp.xcstrings */,
-				A23E00000000000000000001 /* NativeAppShell.swift */,
-				A33E00000000000000000001 /* NativeSettingsView.swift */,
-				A43E00000000000000000001 /* NativePaymentScanView.swift */,
-				A63E00000000000000000001 /* RaylHeroView.swift */,
-				A53E00000000000000000001 /* NativePaymentHubView.swift */,
-				A73E00000000000000000001 /* NativeOnboardingView.swift */,
-				A83E00000000000000000001 /* NativeWalletManagementView.swift */,
+				F23E00000000000000000001 /* App Shell Swift */,
+				F23E00000000000000000002 /* Settings Swift */,
+				F23E00000000000000000003 /* Payment UI Swift */,
+				F23E00000000000000000004 /* Payment Hub Swift */,
+				F23E00000000000000000005 /* Onboarding Swift */,
+				F23E00000000000000000006 /* Wallet Management Swift */,
 				10547F63D981DF7A37B0159C /* Configuration */,
 				57A9F0E1B32B9C0C32E3D02F /* iosApp */,
 				44EB8F64DE2CA358E1D0BAC9 /* Products */,
@@ -150,6 +171,12 @@
 			);
 			fileSystemSynchronizedGroups = (
 				57A9F0E1B32B9C0C32E3D02F /* iosApp */,
+				F23E00000000000000000001 /* App Shell Swift */,
+				F23E00000000000000000002 /* Settings Swift */,
+				F23E00000000000000000003 /* Payment UI Swift */,
+				F23E00000000000000000004 /* Payment Hub Swift */,
+				F23E00000000000000000005 /* Onboarding Swift */,
+				F23E00000000000000000006 /* Wallet Management Swift */,
 			);
 			name = iosApp;
 			packageProductDependencies = (
@@ -249,13 +276,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A23E00000000000000000002 /* NativeAppShell.swift in Sources */,
-				A33E00000000000000000002 /* NativeSettingsView.swift in Sources */,
-				A43E00000000000000000002 /* NativePaymentScanView.swift in Sources */,
-				A63E00000000000000000002 /* RaylHeroView.swift in Sources */,
-				A53E00000000000000000002 /* NativePaymentHubView.swift in Sources */,
-				A73E00000000000000000002 /* NativeOnboardingView.swift in Sources */,
-				A83E00000000000000000002 /* NativeWalletManagementView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

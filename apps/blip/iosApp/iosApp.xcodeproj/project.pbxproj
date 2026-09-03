@@ -7,14 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A21E00000000000000000002 /* NativeAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A21E00000000000000000001 /* NativeAppShell.swift */; };
-		A21E00000000000000000003 /* NativeAppShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A21E00000000000000000001 /* NativeAppShell.swift */; };
-		A31E00000000000000000002 /* NativeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A31E00000000000000000001 /* NativeSettingsView.swift */; };
-		A31E00000000000000000003 /* NativeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A31E00000000000000000001 /* NativeSettingsView.swift */; };
-		A41E00000000000000000002 /* NativePaymentScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41E00000000000000000001 /* NativePaymentScanView.swift */; };
-		A41E00000000000000000003 /* NativePaymentScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A41E00000000000000000001 /* NativePaymentScanView.swift */; };
-		A51E00000000000000000002 /* NativePaymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51E00000000000000000001 /* NativePaymentHubView.swift */; };
-		A51E00000000000000000003 /* NativePaymentHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A51E00000000000000000001 /* NativePaymentHubView.swift */; };
 		A61E00000000000000000011 /* blink_dashboard_email.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000001 /* blink_dashboard_email.png */; };
 		A61E00000000000000000012 /* blink_dashboard_api_keys.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000002 /* blink_dashboard_api_keys.png */; };
 		A61E00000000000000000013 /* blink_dashboard_key_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000003 /* blink_dashboard_key_settings.png */; };
@@ -23,12 +15,6 @@
 		A61E00000000000000000022 /* blink_dashboard_api_keys.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000002 /* blink_dashboard_api_keys.png */; };
 		A61E00000000000000000023 /* blink_dashboard_key_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000003 /* blink_dashboard_key_settings.png */; };
 		A61E00000000000000000024 /* blink_dashboard_copy_key.png in Resources */ = {isa = PBXBuildFile; fileRef = A61E00000000000000000004 /* blink_dashboard_copy_key.png */; };
-		A71E00000000000000000002 /* RaylHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71E00000000000000000001 /* RaylHeroView.swift */; };
-		A71E00000000000000000003 /* RaylHeroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71E00000000000000000001 /* RaylHeroView.swift */; };
-		A81E00000000000000000002 /* NativeOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E00000000000000000001 /* NativeOnboardingView.swift */; };
-		A81E00000000000000000003 /* NativeOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A81E00000000000000000001 /* NativeOnboardingView.swift */; };
-		A91E00000000000000000002 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91E00000000000000000001 /* NativeWalletManagementView.swift */; };
-		A91E00000000000000000003 /* NativeWalletManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91E00000000000000000001 /* NativeWalletManagementView.swift */; };
 		D10000000000000000000001 /* CoreUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* CoreUI.xcstrings */; };
 		D10000000000000000000002 /* AppShell.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* AppShell.xcstrings */; };
 		D10000000000000000000003 /* CurrencySettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000003 /* CurrencySettings.xcstrings */; };
@@ -69,17 +55,10 @@
 
 /* Begin PBXFileReference section */
 		3E2F28A87C1CC1A08DDA1A6F /* Blip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Blip.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A21E00000000000000000001 /* NativeAppShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeAppShell.swift; path = "../../../feature/app-shell/src/iosMain/swift/NativeAppShell.swift"; sourceTree = "<group>"; };
-		A31E00000000000000000001 /* NativeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeSettingsView.swift; path = ../../../feature/settings/src/iosMain/swift/NativeSettingsView.swift; sourceTree = "<group>"; };
-		A41E00000000000000000001 /* NativePaymentScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentScanView.swift; path = "../../../feature/payment-ui/src/iosMain/swift/NativePaymentScanView.swift"; sourceTree = "<group>"; };
-		A51E00000000000000000001 /* NativePaymentHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativePaymentHubView.swift; path = "../../../feature/payment-hub/src/iosMain/swift/NativePaymentHubView.swift"; sourceTree = "<group>"; };
 		A61E00000000000000000001 /* blink_dashboard_email.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_email.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_email.png; sourceTree = "<group>"; };
 		A61E00000000000000000002 /* blink_dashboard_api_keys.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_api_keys.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_api_keys.png; sourceTree = "<group>"; };
 		A61E00000000000000000003 /* blink_dashboard_key_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_key_settings.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_key_settings.png; sourceTree = "<group>"; };
 		A61E00000000000000000004 /* blink_dashboard_copy_key.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_copy_key.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_copy_key.png; sourceTree = "<group>"; };
-		A71E00000000000000000001 /* RaylHeroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RaylHeroView.swift; path = "../../../feature/payment-ui/src/iosMain/swift/RaylHeroView.swift"; sourceTree = "<group>"; };
-		A81E00000000000000000001 /* NativeOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeOnboardingView.swift; path = ../../../feature/onboarding/src/iosMain/swift/NativeOnboardingView.swift; sourceTree = "<group>"; };
-		A91E00000000000000000001 /* NativeWalletManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NativeWalletManagementView.swift; path = "../../../feature/wallet-management/src/iosMain/swift/NativeWalletManagementView.swift"; sourceTree = "<group>"; };
 		C10000000000000000000001 /* CoreUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CoreUI.xcstrings; path = ../../../core/ui/src/iosMain/resources/CoreUI.xcstrings; sourceTree = "<group>"; };
 		C10000000000000000000002 /* AppShell.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = AppShell.xcstrings; path = "../../../feature/app-shell/src/iosMain/resources/AppShell.xcstrings"; sourceTree = "<group>"; };
 		C10000000000000000000003 /* CurrencySettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CurrencySettings.xcstrings; path = "../../../feature/currency-settings/src/iosMain/resources/CurrencySettings.xcstrings"; sourceTree = "<group>"; };
@@ -139,6 +118,42 @@
 			path = iosAppE2E;
 			sourceTree = "<group>";
 		};
+		F21E00000000000000000001 /* App Shell Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "App Shell Swift";
+			path = ../../../feature/app-shell/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F21E00000000000000000002 /* Settings Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Settings Swift";
+			path = ../../../feature/settings/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F21E00000000000000000003 /* Payment UI Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Payment UI Swift";
+			path = ../../../feature/payment-ui/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F21E00000000000000000004 /* Payment Hub Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Payment Hub Swift";
+			path = ../../../feature/payment-hub/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F21E00000000000000000005 /* Onboarding Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Onboarding Swift";
+			path = ../../../feature/onboarding/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
+		F21E00000000000000000006 /* Wallet Management Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Wallet Management Swift";
+			path = ../../../feature/wallet-management/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,13 +194,12 @@
 				C1000000000000000000000F /* BlipWalletSettings.xcstrings */,
 				C10000000000000000000010 /* BlipApp.xcstrings */,
 				C10000000000000000000011 /* BlipUI.xcstrings */,
-				A21E00000000000000000001 /* NativeAppShell.swift */,
-				A31E00000000000000000001 /* NativeSettingsView.swift */,
-				A41E00000000000000000001 /* NativePaymentScanView.swift */,
-				A71E00000000000000000001 /* RaylHeroView.swift */,
-				A81E00000000000000000001 /* NativeOnboardingView.swift */,
-				A91E00000000000000000001 /* NativeWalletManagementView.swift */,
-				A51E00000000000000000001 /* NativePaymentHubView.swift */,
+				F21E00000000000000000001 /* App Shell Swift */,
+				F21E00000000000000000002 /* Settings Swift */,
+				F21E00000000000000000003 /* Payment UI Swift */,
+				F21E00000000000000000004 /* Payment Hub Swift */,
+				F21E00000000000000000005 /* Onboarding Swift */,
+				F21E00000000000000000006 /* Wallet Management Swift */,
 				A61E00000000000000000001 /* blink_dashboard_email.png */,
 				A61E00000000000000000002 /* blink_dashboard_api_keys.png */,
 				A61E00000000000000000003 /* blink_dashboard_key_settings.png */,
@@ -225,6 +239,12 @@
 			);
 			fileSystemSynchronizedGroups = (
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
+				F21E00000000000000000001 /* App Shell Swift */,
+				F21E00000000000000000002 /* Settings Swift */,
+				F21E00000000000000000003 /* Payment UI Swift */,
+				F21E00000000000000000004 /* Payment Hub Swift */,
+				F21E00000000000000000005 /* Onboarding Swift */,
+				F21E00000000000000000006 /* Wallet Management Swift */,
 			);
 			name = iosApp;
 			packageProductDependencies = (
@@ -249,6 +269,12 @@
 			fileSystemSynchronizedGroups = (
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				E2E000000000000000000002 /* iosAppE2E */,
+				F21E00000000000000000001 /* App Shell Swift */,
+				F21E00000000000000000002 /* Settings Swift */,
+				F21E00000000000000000003 /* Payment UI Swift */,
+				F21E00000000000000000004 /* Payment Hub Swift */,
+				F21E00000000000000000005 /* Onboarding Swift */,
+				F21E00000000000000000006 /* Wallet Management Swift */,
 			);
 			name = iosAppE2E;
 			packageProductDependencies = (
@@ -404,13 +430,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A21E00000000000000000002 /* NativeAppShell.swift in Sources */,
-				A31E00000000000000000002 /* NativeSettingsView.swift in Sources */,
-				A41E00000000000000000002 /* NativePaymentScanView.swift in Sources */,
-				A71E00000000000000000002 /* RaylHeroView.swift in Sources */,
-				A51E00000000000000000002 /* NativePaymentHubView.swift in Sources */,
-				A81E00000000000000000002 /* NativeOnboardingView.swift in Sources */,
-				A91E00000000000000000002 /* NativeWalletManagementView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -418,13 +437,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A21E00000000000000000003 /* NativeAppShell.swift in Sources */,
-				A31E00000000000000000003 /* NativeSettingsView.swift in Sources */,
-				A41E00000000000000000003 /* NativePaymentScanView.swift in Sources */,
-				A71E00000000000000000003 /* RaylHeroView.swift in Sources */,
-				A51E00000000000000000003 /* NativePaymentHubView.swift in Sources */,
-				A81E00000000000000000003 /* NativeOnboardingView.swift in Sources */,
-				A91E00000000000000000003 /* NativeWalletManagementView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
