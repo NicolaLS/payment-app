@@ -7,7 +7,8 @@ provider-selection UI.
 - Android package: `xyz.lilsus.blip`
 - Debug package: `xyz.lilsus.blip.dev`
 - E2E package: `xyz.lilsus.blip.e2e`
-- iOS bundle: `xyz.lilsus.blip`
+- iOS bundle: `com.nicolasusca.blip`
+- iOS E2E bundle: `com.nicolasusca.blip.e2e`
 
 Build from the repository root:
 
