@@ -3,10 +3,23 @@ three Kotlin Multiplatform (KMP) apps for both Android and IOS. KMP shares
 behavior and presentation state; the user interface is native on each platform.
 Android renders with Android-owned Jetpack Compose and iOS renders with
 SwiftUI/UIKit. The apps still share most UI/UX, but as one renderer per platform
-rather than one Compose renderer for both. `docs/native-ui-migration.md` records
-the boundary and its remaining work.
+rather than one Compose renderer for both.
 
 # Rayl Suite development guidelines
+
+## Work tracking
+
+- Track repository work in the Linear `RAYL` workspace under the `Mobile`
+  (`MOB`) team.
+- Use Linear's native priority and status fields. Use `Bug`, `Improvement`, or
+  `Feature` for issue type; add `blip-only`, `lasr-only`, or `flint-only` only
+  when one app exclusively owns the work, and `security` only for concrete
+  security, privacy, credential, or supply-chain risk. No app-only label means
+  shared or multi-app scope. Do not create local `issues/` trackers, Projects,
+  Initiatives, or additional workflow structure unless the owner asks.
+- Reference the `MOB-…` identifier in related branches, commits, and pull
+  requests when practical, and keep the Linear issue current as scope or status
+  changes.
 
 ## Products and identity
 
