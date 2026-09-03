@@ -9,13 +9,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
@@ -41,9 +41,11 @@ fun App(host: FlintAppHost, performanceDiagnostics: PerformanceDiagnostics? = nu
             onDispose = FlintRuntime::clear
         )
     val themePreference by
-        runtime.themePreferences.preference.collectAsState(initial = ThemePreference.System)
+        runtime.themePreferences.preference.collectAsStateWithLifecycle(
+            initialValue = ThemePreference.System
+        )
     val walletViewModel = viewModel { WalletViewModel(runtime.walletAccess) }
-    val walletState by walletViewModel.state.collectAsState()
+    val walletState by walletViewModel.state.collectAsStateWithLifecycle()
     var navigationReady by remember { mutableStateOf(!walletState.access.isInitialising()) }
 
     LaunchedEffect(walletState.access) {

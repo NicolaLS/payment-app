@@ -2,13 +2,13 @@ package xyz.lilsus.flint
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
@@ -58,7 +58,7 @@ private fun FlintTabs(
     onWalletRemoved: () -> Unit
 ) {
     val tabState = runtime.tabState
-    val selectedTab by tabState.selectedTab.collectAsState()
+    val selectedTab by tabState.selectedTab.collectAsStateWithLifecycle()
     val flowState = rememberPaymentFlowState(runtime.paymentCoordinator)
 
     AppTabScaffold(
@@ -85,11 +85,11 @@ internal fun FlintTabContent(
 ) {
     val coordinator = runtime.paymentCoordinator
     val tabState = runtime.tabState
-    val selectedTransactionId by tabState.selectedTransactionId.collectAsState()
+    val selectedTransactionId by tabState.selectedTransactionId.collectAsStateWithLifecycle()
     val flowState = rememberPaymentFlowState(coordinator)
     val messages = rememberPaymentMessages(coordinator)
-    val hubState by runtime.paymentHub.state.collectAsState()
-    val currencyCode by runtime.currencyPreferences.code.collectAsState(
+    val hubState by runtime.paymentHub.state.collectAsStateWithLifecycle()
+    val currencyCode by runtime.currencyPreferences.code.collectAsStateWithLifecycle(
         CurrencyCatalog.DEFAULT_CODE
     )
 
@@ -147,7 +147,7 @@ private fun FlintSettingsTab(
 ) {
     var destination by rememberSaveable { mutableStateOf(FlintSettingsDestination.Root) }
     val walletViewModel = viewModel { WalletViewModel(runtime.walletAccess) }
-    val walletState by walletViewModel.state.collectAsState()
+    val walletState by walletViewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(walletState.access) {
         if (walletState.access == WalletAccessState.NoWallet) onWalletRemoved()

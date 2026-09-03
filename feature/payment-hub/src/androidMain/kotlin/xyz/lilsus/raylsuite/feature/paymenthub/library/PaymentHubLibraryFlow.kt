@@ -4,12 +4,12 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -32,7 +32,7 @@ fun PaymentHubLibraryFlow(
 ) {
     var destination by remember { mutableStateOf<LibraryDestination>(LibraryDestination.Library) }
     val libraryViewModel = remember(repository) { PaymentHubLibraryViewModel(repository) }
-    val libraryState by libraryViewModel.uiState.collectAsState()
+    val libraryState by libraryViewModel.uiState.collectAsStateWithLifecycle()
     DisposableEffect(libraryViewModel) {
         onDispose(libraryViewModel::clear)
     }
@@ -108,7 +108,7 @@ private fun TargetEditorDestination(
                 defaultCurrencyCode = preferredCurrencyCode()
             )
         }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     DisposableEffect(viewModel) {
         onDispose(viewModel::clear)
     }
@@ -146,7 +146,7 @@ private fun GroupEditorDestination(
     modifier: Modifier
 ) {
     val viewModel = remember(repository, groupId) { GroupEditorViewModel(repository, groupId) }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     DisposableEffect(viewModel) {
         onDispose(viewModel::clear)
     }

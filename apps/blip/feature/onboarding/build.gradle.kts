@@ -20,6 +20,7 @@ kotlin {
             implementation(project(":core:ui"))
             implementation(project(":feature:payment-hub"))
             implementation(project(":feature:onboarding"))
+            implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.compose.material3)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)

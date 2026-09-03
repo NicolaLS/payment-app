@@ -1,10 +1,10 @@
 package xyz.lilsus.blip
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import xyz.lilsus.blip.feature.onboarding.BlipOnboardingDestination
@@ -37,8 +37,8 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
             onDispose = BlipRuntime::clear
         )
     val themePreference by
-        runtime.themePreferences.preference.collectAsState(
-            initial = ThemePreference.System
+        runtime.themePreferences.preference.collectAsStateWithLifecycle(
+            initialValue = ThemePreference.System
         )
     val navController = rememberNavController()
     val startDestination =

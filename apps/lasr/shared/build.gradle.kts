@@ -48,6 +48,7 @@ kotlin {
         androidMain.dependencies {
             implementation(project(":lasr:feature:wallet-details"))
             implementation(project(":feature:wallet-management"))
+            implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.navigation.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)

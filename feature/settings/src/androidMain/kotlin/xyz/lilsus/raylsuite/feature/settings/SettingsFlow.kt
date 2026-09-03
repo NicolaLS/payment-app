@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,6 +11,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -65,7 +65,7 @@ fun SettingsFlow(
                 bitcoinPriceProvider = bitcoinPriceProvider
             )
         }
-    val paymentSettingsState by paymentSettingsViewModel.uiState.collectAsState()
+    val paymentSettingsState by paymentSettingsViewModel.uiState.collectAsStateWithLifecycle()
 
     fun navigateBack() {
         when (destination) {
@@ -113,7 +113,7 @@ fun SettingsFlow(
                 remember(currencyPreferences) {
                     CurrencySettingsViewModel(currencyPreferences)
                 }
-            val state by viewModel.uiState.collectAsState()
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
             ClearOnDispose(viewModel, viewModel::clear)
             CurrencySettingsScreen(
                 state = state,
@@ -129,7 +129,7 @@ fun SettingsFlow(
                 remember(languageRepository) {
                     LanguageSettingsViewModel(languageRepository)
                 }
-            val state by viewModel.uiState.collectAsState()
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
             ClearOnDispose(viewModel, viewModel::clear)
             LanguageSettingsScreen(
                 state = state,
@@ -145,7 +145,7 @@ fun SettingsFlow(
                 remember(themePreferences) {
                     ThemeSettingsViewModel(themePreferences)
                 }
-            val state by viewModel.uiState.collectAsState()
+            val state by viewModel.uiState.collectAsStateWithLifecycle()
             ClearOnDispose(viewModel, viewModel::clear)
             ThemeSettingsScreen(
                 state = state,
@@ -199,12 +199,13 @@ private fun SettingsOverview(
     onDonate: ((Long) -> Unit)?
 ) {
     val performanceDiagnosticsEnabled =
-        performanceDiagnostics?.sharingEnabled?.collectAsState()?.value
-    val currencyCode by currencyPreferences.code.collectAsState(
+        performanceDiagnostics?.sharingEnabled?.collectAsStateWithLifecycle()?.value
+    val currencyCode by currencyPreferences.code.collectAsStateWithLifecycle(
         CurrencyCatalog.DEFAULT_CODE
     )
-    val languagePreference by languageRepository.preference.collectAsState()
-    val themePreference by themePreferences.preference.collectAsState(ThemePreference.System)
+    val languagePreference by languageRepository.preference.collectAsStateWithLifecycle()
+    val themePreference by
+        themePreferences.preference.collectAsStateWithLifecycle(ThemePreference.System)
 
     SettingsScreen(
         onBack = onBack,

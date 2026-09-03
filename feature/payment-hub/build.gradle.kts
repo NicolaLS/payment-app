@@ -18,6 +18,7 @@ kotlin {
             implementation(libs.multiplatform.settings)
         }
         androidMain.dependencies {
+            implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)
             implementation(libs.compose.material3)

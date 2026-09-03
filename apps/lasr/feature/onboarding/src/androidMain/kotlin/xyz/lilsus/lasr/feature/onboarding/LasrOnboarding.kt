@@ -5,13 +5,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -86,7 +86,7 @@ fun NavGraphBuilder.lasrOnboarding(
         )
     }
     composable<LasrOnboardingDestination.Features> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         val cameraPermission = rememberCameraPermissionState()
         FeaturesScreen(
             pages = onboardingFeaturePages(),
@@ -102,7 +102,7 @@ fun NavGraphBuilder.lasrOnboarding(
         )
     }
     composable<LasrOnboardingDestination.AutoPay> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         val formatter = rememberAmountFormatter()
         AutoPaySettingsScreen(
             body = stringResource(R.string.onboarding_autopay_body),
@@ -121,7 +121,7 @@ fun NavGraphBuilder.lasrOnboarding(
         )
     }
     composable<LasrOnboardingDestination.Agreement> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         AgreementScreen(
             body = stringResource(R.string.onboarding_agreement_body),
             hasAgreed = state.hasAgreed,
@@ -186,7 +186,7 @@ private fun AddWalletDestination(
     connectionDraft: NwcConnectionDraft
 ) {
     val viewModel = remember { AddNwcWalletViewModel() }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     val cameraPermission = rememberCameraPermissionState()
@@ -267,7 +267,7 @@ private fun ConfirmWalletDestination(
         return
     }
     val viewModel = remember(nwcWallet) { ConnectNwcWalletViewModel(nwcWallet) }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     DisposableEffect(viewModel) {
         onDispose(viewModel::clear)

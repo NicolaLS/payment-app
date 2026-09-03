@@ -3,10 +3,10 @@ package xyz.lilsus.blip.feature.onboarding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -74,7 +74,7 @@ fun NavGraphBuilder.blipOnboarding(
         )
     }
     composable<BlipOnboardingDestination.Features> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         val cameraPermission = rememberCameraPermissionState()
         FeaturesScreen(
             pages = onboardingFeaturePages(),
@@ -90,7 +90,7 @@ fun NavGraphBuilder.blipOnboarding(
         )
     }
     composable<BlipOnboardingDestination.AutoPay> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         val formatter = rememberAmountFormatter()
         AutoPaySettingsScreen(
             body = stringResource(R.string.onboarding_autopay_body),
@@ -109,7 +109,7 @@ fun NavGraphBuilder.blipOnboarding(
         )
     }
     composable<BlipOnboardingDestination.Agreement> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         AgreementScreen(
             body = stringResource(R.string.onboarding_agreement_body),
             hasAgreed = state.hasAgreed,
@@ -157,7 +157,7 @@ private fun AddWalletDestination(
     onBack: () -> Unit
 ) {
     val viewModel = remember(blinkWallet) { AddBlinkWalletViewModel(blinkWallet) }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     DisposableEffect(viewModel) {
         onDispose(viewModel::clear)
@@ -192,7 +192,7 @@ private fun OnboardingBlinkContactsImportDestination(
                 paymentHub = paymentHub
             )
         }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     DisposableEffect(viewModel) {
         onDispose(viewModel::clear)

@@ -1,11 +1,11 @@
 package xyz.lilsus.blip.feature.payment
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import xyz.lilsus.blip.feature.payment.R
@@ -19,11 +19,12 @@ import xyz.lilsus.raylsuite.feature.paymentui.localizedMessage
 /** Projects Blip's payment state into the Android Compose Scan and Recent render state. */
 @Composable
 fun rememberPaymentFlowState(coordinator: PaymentCoordinator): PaymentFlowState {
-    val uiState by coordinator.uiState.collectAsState()
-    val sessionTransactions by coordinator.sessionTransactions.collectAsState()
-    val newSessionTransactionCount by coordinator.newSessionTransactionCount.collectAsState()
+    val uiState by coordinator.uiState.collectAsStateWithLifecycle()
+    val sessionTransactions by coordinator.sessionTransactions.collectAsStateWithLifecycle()
+    val newSessionTransactionCount by
+        coordinator.newSessionTransactionCount.collectAsStateWithLifecycle()
     val transactionDetailNavigationTarget by
-        coordinator.transactionDetailNavigationTarget.collectAsState()
+        coordinator.transactionDetailNavigationTarget.collectAsStateWithLifecycle()
     val formatter = rememberAmountFormatter()
 
     return PaymentFlowState(

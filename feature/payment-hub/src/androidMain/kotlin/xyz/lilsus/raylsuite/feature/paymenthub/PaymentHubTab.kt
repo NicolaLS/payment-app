@@ -2,7 +2,6 @@ package xyz.lilsus.raylsuite.feature.paymenthub
 
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -10,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -36,9 +36,9 @@ fun PaymentHubTab(
     libraryActions: @Composable ColumnScope.() -> Unit = {}
 ) {
     var showLibrary by rememberSaveable { mutableStateOf(false) }
-    val layout by canvasLayout.layout.collectAsState()
-    val hubState by controller.state.collectAsState()
-    val hub by repository.hub.collectAsState()
+    val layout by canvasLayout.layout.collectAsStateWithLifecycle()
+    val hubState by controller.state.collectAsStateWithLifecycle()
+    val hub by repository.hub.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val existingIds =
         remember(hub) { (hub.targets.map { it.id } + hub.groups.map { it.id }).toSet() }

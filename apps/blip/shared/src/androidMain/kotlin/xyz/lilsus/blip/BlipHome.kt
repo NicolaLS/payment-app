@@ -3,7 +3,6 @@ package xyz.lilsus.blip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -11,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportButton
@@ -55,7 +55,7 @@ private fun BlipTabs(
     onRemoveWallet: () -> Unit
 ) {
     val tabState = runtime.tabState
-    val selectedTab by tabState.selectedTab.collectAsState()
+    val selectedTab by tabState.selectedTab.collectAsStateWithLifecycle()
 
     AppTabScaffold(
         selectedTab = selectedTab,
@@ -81,11 +81,11 @@ internal fun BlipTabContent(
 ) {
     val coordinator = runtime.paymentCoordinator
     val tabState = runtime.tabState
-    val selectedTransactionId by tabState.selectedTransactionId.collectAsState()
+    val selectedTransactionId by tabState.selectedTransactionId.collectAsStateWithLifecycle()
     val flowState = rememberPaymentFlowState(coordinator)
     val messages = rememberPaymentMessages(coordinator)
-    val hubState by runtime.paymentHub.state.collectAsState()
-    val currencyCode by runtime.currencyPreferences.code.collectAsState(
+    val hubState by runtime.paymentHub.state.collectAsStateWithLifecycle()
+    val currencyCode by runtime.currencyPreferences.code.collectAsStateWithLifecycle(
         CurrencyCatalog.DEFAULT_CODE
     )
     val estimatedFeeHint = stringResource(BlipUiR.string.result_paid_fee_blink_hint)
@@ -162,7 +162,7 @@ private fun BlipHubTab(runtime: BlipRuntime, currencyCode: String) {
                     paymentHub = runtime.paymentHubRepository
                 )
             }
-        val state by viewModel.uiState.collectAsState()
+        val state by viewModel.uiState.collectAsStateWithLifecycle()
         DisposableEffect(viewModel) {
             onDispose(viewModel::clear)
         }
@@ -202,7 +202,7 @@ private fun BlipSettingsTab(
         remember(runtime.blinkWallet) {
             BlinkWalletSettingsViewModel(runtime.blinkWallet)
         }
-    val walletSettingsState by walletSettingsViewModel.uiState.collectAsState()
+    val walletSettingsState by walletSettingsViewModel.uiState.collectAsStateWithLifecycle()
     DisposableEffect(walletSettingsViewModel) {
         onDispose(walletSettingsViewModel::clear)
     }

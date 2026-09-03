@@ -50,6 +50,7 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(project(":blip:feature:onboarding"))
+            implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.navigation.compose)
             implementation(libs.compose.runtime)
             implementation(libs.compose.ui)

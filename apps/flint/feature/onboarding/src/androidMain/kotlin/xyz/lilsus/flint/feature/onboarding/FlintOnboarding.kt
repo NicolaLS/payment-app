@@ -3,11 +3,11 @@ package xyz.lilsus.flint.feature.onboarding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -72,7 +72,7 @@ fun NavGraphBuilder.flintOnboarding(
         )
     }
     composable<FlintOnboardingDestination.Features> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         val cameraPermission = rememberCameraPermissionState()
         FeaturesScreen(
             pages = onboardingFeaturePages(),
@@ -86,7 +86,7 @@ fun NavGraphBuilder.flintOnboarding(
         )
     }
     composable<FlintOnboardingDestination.AutoPay> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         val formatter = rememberAmountFormatter()
         AutoPaySettingsScreen(
             body = stringResource(R.string.onboarding_autopay_body),
@@ -105,7 +105,7 @@ fun NavGraphBuilder.flintOnboarding(
         )
     }
     composable<FlintOnboardingDestination.Agreement> {
-        val state by onboardingViewModel.uiState.collectAsState()
+        val state by onboardingViewModel.uiState.collectAsStateWithLifecycle()
         AgreementScreen(
             body = stringResource(R.string.onboarding_agreement_body),
             hasAgreed = state.hasAgreed,
@@ -144,7 +144,7 @@ fun NavGraphBuilder.flintOnboarding(
         )
     }
     composable<FlintOnboardingDestination.AddWalletFromSettings> {
-        val state by walletViewModel.state.collectAsState()
+        val state by walletViewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(state.access) {
             if (state.access == WalletAccessState.Connected) {
                 navController.navigateUp()
@@ -157,7 +157,7 @@ fun NavGraphBuilder.flintOnboarding(
         )
     }
     composable<FlintOnboardingDestination.WalletRecovery> {
-        val state by walletViewModel.state.collectAsState()
+        val state by walletViewModel.state.collectAsStateWithLifecycle()
         LaunchedEffect(state.access) {
             when (state.access) {
                 WalletAccessState.Connected -> onWalletConnected()
@@ -186,7 +186,7 @@ private fun OnboardingWalletDestination(
     walletViewModel: WalletViewModel,
     onWalletConnected: () -> Unit
 ) {
-    val state by walletViewModel.state.collectAsState()
+    val state by walletViewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.access) {
         if (state.access == WalletAccessState.Connected) onWalletConnected()
     }

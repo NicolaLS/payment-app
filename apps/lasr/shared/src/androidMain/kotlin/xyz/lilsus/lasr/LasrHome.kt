@@ -2,7 +2,6 @@ package xyz.lilsus.lasr
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -10,6 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -59,7 +59,7 @@ private fun LasrTabs(
     onRemoveWallet: () -> Unit
 ) {
     val tabState = runtime.tabState
-    val selectedTab by tabState.selectedTab.collectAsState()
+    val selectedTab by tabState.selectedTab.collectAsStateWithLifecycle()
     val flowState = rememberPaymentFlowState(runtime.paymentCoordinator)
 
     AppTabScaffold(
@@ -86,11 +86,11 @@ internal fun LasrTabContent(
 ) {
     val coordinator = runtime.paymentCoordinator
     val tabState = runtime.tabState
-    val selectedTransactionId by tabState.selectedTransactionId.collectAsState()
+    val selectedTransactionId by tabState.selectedTransactionId.collectAsStateWithLifecycle()
     val flowState = rememberPaymentFlowState(coordinator)
     val messages = rememberPaymentMessages(coordinator)
-    val hubState by runtime.paymentHub.state.collectAsState()
-    val currencyCode by runtime.currencyPreferences.code.collectAsState(
+    val hubState by runtime.paymentHub.state.collectAsStateWithLifecycle()
+    val currencyCode by runtime.currencyPreferences.code.collectAsStateWithLifecycle(
         CurrencyCatalog.DEFAULT_CODE
     )
 
@@ -150,8 +150,8 @@ private fun LasrSettingsTab(
     onDonate: (Long) -> Unit
 ) {
     var destination by rememberSaveable { mutableStateOf(LasrSettingsDestination.Root) }
-    val connection by runtime.nwcWallet.connection.collectAsState()
-    val walletFlowRequested by runtime.settingsWalletFlow.collectAsState()
+    val connection by runtime.nwcWallet.connection.collectAsStateWithLifecycle()
+    val walletFlowRequested by runtime.settingsWalletFlow.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(walletFlowRequested) {
