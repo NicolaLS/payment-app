@@ -10,10 +10,7 @@ internal sealed interface FlintDestination {
     data object Settings : FlintDestination
 
     @Serializable
-    data object Contacts : FlintDestination
-
-    @Serializable
-    data object ShortcutCreate : FlintDestination
+    data object PaymentHub : FlintDestination
 
     @Serializable
     data object WalletManagement : FlintDestination

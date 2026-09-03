@@ -1,9 +1,12 @@
 <resources>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_payments">Zahlungen</string>
-    <string name="settings_payments_subtitle">Bestätigungen und Shortcuts</string>
-    <string name="settings_contacts">Kontakte</string>
-    <string name="settings_contacts_subtitle">Gespeicherte Kontakte</string>
+    <string name="settings_payments_subtitle">Bestätigungen und Vibrationen</string>
+    <string name="settings_payment_hub">Zahlungs-Hub</string>
+    <string name="settings_payment_hub_subtitle">Gespeicherte Ziele und Gruppen</string>
+    <string name="settings_home_layout">Start-Layout</string>
+    <string name="settings_home_layout_subtitle">Anordnung deines Startbildschirms</string>
+    <string name="settings_home_layout_body">Jedes Layout zeigt dieselben Ziele, Gruppen und angehefteten Einträge. Ein Wechsel ändert deine Hub-Daten nie.</string>
     <string name="settings_currency">Währung</string>
     <string name="settings_currency_subtitle">Währung für Zahlungsanzeige</string>
     <string name="settings_language">Sprache</string>

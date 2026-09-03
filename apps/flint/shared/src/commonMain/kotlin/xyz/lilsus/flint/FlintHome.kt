@@ -23,9 +23,13 @@ import xyz.lilsus.flint.generated.resources.settings_wallet_subtitle
 import xyz.lilsus.flint.generated.resources.settings_wallet_title
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubLensPreferences
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
+import xyz.lilsus.raylsuite.feature.paymenthub.host.rememberSelectedPaymentHubLens
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubLensDefinition
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
@@ -45,23 +49,29 @@ internal fun NavGraphBuilder.flintHome(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    paymentHubRepository: PaymentHubRepository,
+    paymentHub: PaymentHubController,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     walletViewModel: WalletViewModel,
     performanceDiagnostics: PerformanceDiagnostics?,
     networkLabel: String
 ) {
     composable<FlintDestination.Home> {
+        val lens =
+            checkNotNull(rememberSelectedPaymentHubLens(lensPreferences, lensDefinitions)) {
+                "Flint registers at least one payment hub lens"
+            }
         PaymentFlow(
             coordinator = paymentCoordinator,
+            paymentHub = paymentHub,
+            lens = lens,
             appTitle = stringResource(Res.string.app_name),
             estimatedFeeHint = null,
             errorMessageFor = ::flintPaymentErrorMessageFor,
             eventErrorMessageFor = ::getFlintPaymentErrorMessageFor,
             onNavigateSettings = { navController.navigate(FlintDestination.Settings) },
-            onNavigateShortcutCreate = {
-                navController.navigate(FlintDestination.ShortcutCreate)
-            },
-            onNavigateContacts = { navController.navigate(FlintDestination.Contacts) }
+            onNavigateLibrary = { navController.navigate(FlintDestination.PaymentHub) }
         )
     }
     composable<FlintDestination.Settings> {
@@ -73,35 +83,25 @@ internal fun NavGraphBuilder.flintHome(
             currencyPreferences = currencyPreferences,
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
+            paymentHubRepository = paymentHubRepository,
+            lensPreferences = lensPreferences,
+            lensDefinitions = lensDefinitions,
             paymentCoordinator = paymentCoordinator,
             performanceDiagnostics = performanceDiagnostics
         )
     }
-    composable<FlintDestination.Contacts> {
+    composable<FlintDestination.PaymentHub> {
         FlintSettings(
-            startDestination = SettingsStartDestination.Contacts,
+            startDestination = SettingsStartDestination.PaymentHub,
             navController = navController,
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
-            paymentCoordinator = paymentCoordinator,
-            performanceDiagnostics = performanceDiagnostics
-        )
-    }
-    composable<FlintDestination.ShortcutCreate> {
-        FlintSettings(
-            startDestination = SettingsStartDestination.ShortcutCreate,
-            navController = navController,
-            themePreferences = themePreferences,
-            bitcoinPriceProvider = bitcoinPriceProvider,
-            currencyPreferences = currencyPreferences,
-            languageRepository = languageRepository,
-            paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
+            paymentHubRepository = paymentHubRepository,
+            lensPreferences = lensPreferences,
+            lensDefinitions = lensDefinitions,
             paymentCoordinator = paymentCoordinator,
             performanceDiagnostics = performanceDiagnostics
         )
@@ -149,7 +149,9 @@ private fun FlintSettings(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    paymentHubRepository: PaymentHubRepository,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     paymentCoordinator: PaymentCoordinator,
     performanceDiagnostics: PerformanceDiagnostics?
 ) {
@@ -163,7 +165,9 @@ private fun FlintSettings(
         startDestination = startDestination,
         currencyPreferences = currencyPreferences,
         paymentPreferences = paymentPreferences,
-        contactsRepository = contactsRepository,
+        paymentHub = paymentHubRepository,
+        lensPreferences = lensPreferences,
+        lensDefinitions = lensDefinitions,
         performanceDiagnostics = performanceDiagnostics,
         leadingEntries =
             listOf(

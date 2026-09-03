@@ -15,7 +15,7 @@ import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.CurrencyInfo
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
-import xyz.lilsus.raylsuite.core.model.ShortcutAmount
+import xyz.lilsus.raylsuite.core.model.StoredAmount
 import xyz.lilsus.raylsuite.core.model.convertMsatsToDisplayAmount
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 
@@ -61,7 +61,8 @@ class PaymentCurrencyManager(
             fiatPricePerBitcoin = currencyState.exchangeRate
         ) ?: DisplayAmount(msats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
 
-    suspend fun quoteShortcutAmount(amount: ShortcutAmount): PaymentAmountQuote? {
+    /** Quotes a stored display-currency amount with a fresh exchange rate when it is fiat. */
+    suspend fun quoteStoredAmount(amount: StoredAmount): PaymentAmountQuote? {
         val code = amount.normalizedCurrencyCode
         if (code !in CurrencyCatalog.supportedCodes || amount.minor <= 0L) return null
         val info = CurrencyCatalog.infoFor(code)

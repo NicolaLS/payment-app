@@ -18,7 +18,7 @@ kotlin {
             api(project(":core:payment"))
             api(project(":lasr:integration:nwc"))
             implementation(project(":core:ui"))
-            implementation(project(":feature:contacts"))
+            api(project(":feature:payment-hub"))
             implementation(project(":feature:currency-settings"))
             implementation(project(":feature:payment-currency"))
             implementation(project(":feature:payment-settings"))

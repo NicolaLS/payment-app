@@ -13,9 +13,12 @@ import xyz.lilsus.lasr.integration.nwc.createNwcWallet
 import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.platform.createAppLifecycleObserver
-import xyz.lilsus.raylsuite.feature.contacts.DefaultContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.DefaultPaymentHubLensPreferences
+import xyz.lilsus.raylsuite.feature.paymenthub.DefaultPaymentHubRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
+import xyz.lilsus.raylsuite.feature.paymenthub.lenses.paymentHubLenses
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
 import xyz.lilsus.raylsuite.integration.exchangerate.CoinGeckoBitcoinPriceProvider
@@ -34,7 +37,10 @@ internal class LasrRuntime(
     val currencyPreferences = DefaultCurrencyPreferences(appSettings)
     val languageRepository = createLanguageRepository()
     val paymentPreferences = DefaultPaymentPreferencesRepository(appSettings)
-    val contactsRepository = DefaultContactsRepository(appSettings)
+    val paymentHubRepository = DefaultPaymentHubRepository(appSettings)
+    val lensPreferences = DefaultPaymentHubLensPreferences(appSettings)
+    val lensDefinitions = paymentHubLenses(appSettings)
+    val paymentHub = PaymentHubController(paymentHubRepository, scope)
     val bitcoinPriceProvider = CoinGeckoBitcoinPriceProvider()
     val connectionDraft = NwcConnectionDraft()
     val nwcWallet =
@@ -52,7 +58,7 @@ internal class LasrRuntime(
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
+            paymentHub = paymentHub,
             haptics = haptics,
             paymentAttemptSettings = appSettings
         )

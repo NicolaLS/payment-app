@@ -8,4 +8,6 @@
     <string name="settings_wallet_details_import_contacts_success">%1$d Kontakte importiert.</string>
     <string name="settings_wallet_details_import_contacts_transactions">%1$d Transaktionen</string>
     <string name="settings_wallet_details_import_contacts_already_added">Bereits hinzugefügt</string>
+    <string name="import_contacts_no_matches">Keine passenden Kontakte</string>
+    <string name="import_contacts_search">Kontakte suchen</string>
 </resources>

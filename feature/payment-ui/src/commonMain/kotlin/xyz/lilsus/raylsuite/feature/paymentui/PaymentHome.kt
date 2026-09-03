@@ -1,8 +1,5 @@
 package xyz.lilsus.raylsuite.feature.paymentui
 
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -10,9 +7,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
@@ -21,19 +17,30 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.camera.rememberQrScannerController
+import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubHostState
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubIntent
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubActions
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubLensDefinition
 
+/**
+ * Owns the single scanner controller and camera lifecycle for the home. Lenses receive a
+ * scanner surface and UI intents; they never start or stop the camera.
+ */
 @Composable
 internal fun PaymentHome(
     state: PaymentFlowState,
     messageEvents: Flow<String>,
     appTitle: String,
     estimatedFeeHint: String?,
+    hub: PaymentHubHostState,
+    lens: PaymentHubLensDefinition,
     onIntent: (PaymentIntent) -> Unit,
+    onHubIntent: (PaymentHubIntent) -> Unit,
     onNavigateTransactions: () -> Unit,
     onNavigateTransactionDetail: (String) -> Unit,
     onNavigateSettings: () -> Unit,
-    onNavigateShortcutCreate: () -> Unit,
-    onNavigateContacts: () -> Unit
+    onNavigateLibrary: () -> Unit
 ) {
     val cameraPermission = rememberCameraPermissionState()
     val scannerController = rememberQrScannerController()
@@ -50,7 +57,7 @@ internal fun PaymentHome(
     val scannerShouldRun =
         screenResumed &&
             state.payment == PaymentScreenState.Active &&
-            !state.contacts.isOpen &&
+            !hub.hasModalContent &&
             cameraPermission.hasPermission
 
     fun requestCameraPermissionAfterScannerFailure() {
@@ -120,6 +127,8 @@ internal fun PaymentHome(
     LaunchedEffect(state.payment) {
         if (state.payment == PaymentScreenState.Active) {
             scannerAutoRestartAttempts = 0
+        } else if (hub.scannerRequested) {
+            onHubIntent(PaymentHubIntent.DismissScanner)
         }
     }
 
@@ -142,52 +151,51 @@ internal fun PaymentHome(
         if (scannerShouldRun && !scannerStarted) startScannerIfNeeded()
     }
 
-    var contactsSwipeDragY by remember { mutableStateOf(0f) }
-    val canSwipeOpenContacts =
-        state.payment == PaymentScreenState.Active && !state.contacts.isOpen
-    val gestureModifier =
-        Modifier
-            .fillMaxSize()
-            .pointerInput(canSwipeOpenContacts) {
-                if (!canSwipeOpenContacts) return@pointerInput
-                detectVerticalDragGestures(
-                    onDragStart = { contactsSwipeDragY = 0f },
-                    onDragEnd = { contactsSwipeDragY = 0f },
-                    onDragCancel = { contactsSwipeDragY = 0f },
-                    onVerticalDrag = { _, dragAmount ->
-                        contactsSwipeDragY += dragAmount
-                        if (contactsSwipeDragY <= CONTACTS_SWIPE_THRESHOLD) {
-                            contactsSwipeDragY = 0f
-                            onIntent(PaymentIntent.OpenContacts)
-                        }
-                    }
-                )
-            }
+    val currentOnIntent = rememberUpdatedState(onIntent)
+    val currentOnHubIntent = rememberUpdatedState(onHubIntent)
+    val currentOnNavigateLibrary = rememberUpdatedState(onNavigateLibrary)
+    val hubActions =
+        remember {
+            object : PaymentHubActions {
+                override fun selectItem(id: HubItemId) {
+                    currentOnHubIntent.value(PaymentHubIntent.SelectItem(id))
+                }
 
-    Box(modifier = gestureModifier) {
-        PaymentScreen(
-            appTitle = appTitle,
-            onNavigateSettings = onNavigateSettings,
-            uiState = state.payment,
-            sessionTransactions = state.sessionItems.map(PaymentSessionItem::reference),
-            newSessionTransactionCount = state.newSessionTransactionCount,
-            contactsState = state.contacts,
-            snackbarHostState = snackbarHostState,
-            estimatedFeeHint = estimatedFeeHint,
-            onIntent = onIntent,
-            onOpenTransactions = onNavigateTransactions,
-            onCreateShortcut = {
-                onIntent(PaymentIntent.DismissContacts)
-                onNavigateShortcutCreate()
-            },
-            onCreateContact = {
-                onIntent(PaymentIntent.DismissContacts)
-                onNavigateContacts()
+                override fun openGroup(id: HubItemId) {
+                    currentOnHubIntent.value(PaymentHubIntent.OpenGroup(id))
+                }
+
+                override fun openLibrary() {
+                    currentOnNavigateLibrary.value()
+                }
+
+                override fun submitRawPaymentInput(value: String) {
+                    currentOnIntent.value(PaymentIntent.RawInputSubmitted(value))
+                }
+
+                override fun openScanner() {
+                    currentOnHubIntent.value(PaymentHubIntent.OpenScanner)
+                }
             }
-        )
-    }
+        }
+
+    PaymentScreen(
+        appTitle = appTitle,
+        onNavigateSettings = onNavigateSettings,
+        uiState = state.payment,
+        sessionTransactions = state.sessionItems.map(PaymentSessionItem::reference),
+        newSessionTransactionCount = state.newSessionTransactionCount,
+        snackbarHostState = snackbarHostState,
+        estimatedFeeHint = estimatedFeeHint,
+        hub = hub,
+        lens = lens,
+        hubActions = hubActions,
+        onIntent = onIntent,
+        onHubIntent = onHubIntent,
+        onOpenTransactions = onNavigateTransactions,
+        onOpenLibrary = onNavigateLibrary
+    )
 }
 
 private const val SCANNER_AUTO_RESTART_DELAY_MS = 350L
 private const val MAX_SCANNER_AUTO_RESTARTS = 5
-private const val CONTACTS_SWIPE_THRESHOLD = -96f

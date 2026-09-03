@@ -41,39 +41,34 @@ import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_contacts
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_ask_save_contacts
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_label
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_manual_entry
-import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_shortcuts
+import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_presets
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_confirm_threshold
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_payment
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_scan
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_haptics_title
+import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_hub_title
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_lnurl_review
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_lnurl_review_description
+import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_offer_save_targets
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_option_above
 import xyz.lilsus.raylsuite.feature.paymentsettings.generated.resources.settings_payments_option_always
-import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutItem
-import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutsSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentSettingsScreen(
     state: PaymentSettingsUiState,
-    shortcuts: List<PaymentShortcutItem>,
     onBack: () -> Unit,
     onModeSelected: (PaymentConfirmationMode) -> Unit,
     onThresholdChanged: (Long) -> Unit,
     onConfirmManualEntryChanged: (Boolean) -> Unit,
-    onConfirmShortcutPaymentsChanged: (Boolean) -> Unit,
+    onConfirmPresetPaymentsChanged: (Boolean) -> Unit,
     onShowLnurlPayDetailsChanged: (Boolean) -> Unit,
-    onAskToSaveNewContactsChanged: (Boolean) -> Unit,
+    onOfferToSaveNewTargetsChanged: (Boolean) -> Unit,
     onVibrateOnScanChanged: (Boolean) -> Unit,
     onVibrateOnPaymentChanged: (Boolean) -> Unit,
-    onAddShortcut: () -> Unit,
-    onEditShortcut: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
@@ -131,28 +126,18 @@ fun PaymentSettingsScreen(
                     modifier = Modifier.testTag(PaymentSettingsTestTags.LNURL_PAY_DETAILS)
                 )
             }
-            PaymentShortcutsSection(
-                shortcuts = shortcuts,
-                onAddShortcut = onAddShortcut,
-                onEditShortcut = onEditShortcut,
-                additionalSettings = {
-                    SettingsToggle(
-                        label = stringResource(
-                            Res.string.settings_payments_confirm_shortcuts
-                        ),
-                        checked = state.confirmShortcutPayments,
-                        onCheckedChange = onConfirmShortcutPaymentsChanged
-                    )
-                }
-            )
-            SettingsSection(title = stringResource(Res.string.settings_contacts)) {
+            SettingsSection(title = stringResource(Res.string.settings_payments_hub_title)) {
                 SettingsToggle(
-                    label = stringResource(
-                        Res.string.settings_payments_ask_save_contacts
-                    ),
-                    checked = state.askToSaveNewContacts,
-                    onCheckedChange = onAskToSaveNewContactsChanged,
-                    modifier = Modifier.testTag(PaymentSettingsTestTags.ASK_TO_SAVE_CONTACTS)
+                    label = stringResource(Res.string.settings_payments_confirm_presets),
+                    checked = state.confirmPresetPayments,
+                    onCheckedChange = onConfirmPresetPaymentsChanged,
+                    modifier = Modifier.testTag(PaymentSettingsTestTags.CONFIRM_PRESETS)
+                )
+                SettingsToggle(
+                    label = stringResource(Res.string.settings_payments_offer_save_targets),
+                    checked = state.offerToSaveNewTargets,
+                    onCheckedChange = onOfferToSaveNewTargetsChanged,
+                    modifier = Modifier.testTag(PaymentSettingsTestTags.OFFER_TO_SAVE_TARGETS)
                 )
             }
             SettingsSection(
@@ -329,5 +314,6 @@ object PaymentSettingsTestTags {
     const val MODE_ABOVE = "payment_settings_mode_above"
     const val CONFIRM_MANUAL_ENTRY = "payment_settings_confirm_manual_entry"
     const val LNURL_PAY_DETAILS = "payment_settings_lnurl_pay_details"
-    const val ASK_TO_SAVE_CONTACTS = "payment_settings_ask_to_save_contacts"
+    const val CONFIRM_PRESETS = "payment_settings_confirm_presets"
+    const val OFFER_TO_SAVE_TARGETS = "payment_settings_offer_to_save_targets"
 }

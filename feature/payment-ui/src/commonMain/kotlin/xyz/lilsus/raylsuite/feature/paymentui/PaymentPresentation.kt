@@ -4,7 +4,6 @@ import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.hero.RaylHeroPhase
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountUiState
 import xyz.lilsus.raylsuite.feature.paymentui.components.PaymentResultPresentation
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsUiState
 
 sealed interface PaymentScreenState {
     data object Active : PaymentScreenState
@@ -87,7 +86,6 @@ data class PaymentFlowState(
     val payment: PaymentScreenState,
     val sessionItems: List<PaymentSessionItem>,
     val newSessionTransactionCount: Int = 0,
-    val contacts: PaymentContactsUiState = PaymentContactsUiState(),
     val transactionDetailNavigationTarget: String? = null
 )
 

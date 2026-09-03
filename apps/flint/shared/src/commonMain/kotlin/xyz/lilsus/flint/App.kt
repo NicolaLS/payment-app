@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,10 +30,13 @@ import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
-import xyz.lilsus.raylsuite.feature.contacts.DefaultContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
+import xyz.lilsus.raylsuite.feature.paymenthub.DefaultPaymentHubLensPreferences
+import xyz.lilsus.raylsuite.feature.paymenthub.DefaultPaymentHubRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
+import xyz.lilsus.raylsuite.feature.paymenthub.lenses.paymentHubLenses
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
@@ -46,7 +50,14 @@ fun App(host: FlintAppHost, performanceDiagnostics: PerformanceDiagnostics? = nu
     val languageRepository = remember { createLanguageRepository() }
     val paymentPreferences =
         remember(appSettings) { DefaultPaymentPreferencesRepository(appSettings) }
-    val contactsRepository = remember(appSettings) { DefaultContactsRepository(appSettings) }
+    val paymentHubRepository = remember(appSettings) { DefaultPaymentHubRepository(appSettings) }
+    val lensPreferences = remember(appSettings) { DefaultPaymentHubLensPreferences(appSettings) }
+    val lensDefinitions = remember(appSettings) { paymentHubLenses(appSettings) }
+    val hubScope = rememberCoroutineScope()
+    val paymentHub =
+        remember(paymentHubRepository, hubScope) {
+            PaymentHubController(repository = paymentHubRepository, scope = hubScope)
+        }
     val bitcoinPriceProvider = remember { CoinGeckoBitcoinPriceProvider() }
     val themePreference by
         themePreferences.preference.collectAsState(initial = ThemePreference.System)
@@ -59,7 +70,7 @@ fun App(host: FlintAppHost, performanceDiagnostics: PerformanceDiagnostics? = nu
             bitcoinPriceProvider,
             currencyPreferences,
             paymentPreferences,
-            contactsRepository,
+            paymentHub,
             haptics
         ) {
             PaymentCoordinator(
@@ -68,7 +79,7 @@ fun App(host: FlintAppHost, performanceDiagnostics: PerformanceDiagnostics? = nu
                 bitcoinPriceProvider = bitcoinPriceProvider,
                 currencyPreferences = currencyPreferences,
                 paymentPreferences = paymentPreferences,
-                contactsRepository = contactsRepository,
+                paymentHub = paymentHub,
                 haptics = haptics
             )
         }
@@ -142,7 +153,10 @@ fun App(host: FlintAppHost, performanceDiagnostics: PerformanceDiagnostics? = nu
                     currencyPreferences = currencyPreferences,
                     languageRepository = languageRepository,
                     paymentPreferences = paymentPreferences,
-                    contactsRepository = contactsRepository,
+                    paymentHubRepository = paymentHubRepository,
+                    paymentHub = paymentHub,
+                    lensPreferences = lensPreferences,
+                    lensDefinitions = lensDefinitions,
                     walletViewModel = walletViewModel,
                     performanceDiagnostics = performanceDiagnostics,
                     networkLabel = host.bootstrapConfig.environment.networkLabel

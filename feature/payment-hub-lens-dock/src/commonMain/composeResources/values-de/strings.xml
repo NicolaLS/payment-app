@@ -1,0 +1,8 @@
+<resources>
+    <string name="dock_lens_name">Dock</string>
+    <string name="dock_lens_description">Scanner zuerst, mit deinen angehefteten Zielen in einer Reihe unten.</string>
+    <string name="dock_lens_library">Zahlungs-Hub</string>
+    <string name="dock_lens_add">Hinzufügen</string>
+    <string name="dock_lens_pay">%1$s bezahlen</string>
+    <string name="dock_lens_open_group">Gruppe %1$s öffnen</string>
+</resources>

@@ -5,12 +5,12 @@
     <string name="settings_payments_option_always">Immer</string>
     <string name="settings_payments_option_above">Über</string>
     <string name="settings_payments_confirm_manual_entry">Manuell eingegebene Beträge bestätigen</string>
-    <string name="settings_payments_confirm_shortcuts">Shortcut-Zahlungen immer bestätigen</string>
     <string name="settings_payments_lnurl_review">LNURL-Zahlungen</string>
     <string name="settings_payments_lnurl_review_description">Empfängerdomain und Beschreibung anzeigen, bevor eine Rechnung angefordert wird</string>
     <string name="settings_payments_haptics_title">Vibrationen</string>
     <string name="settings_payments_haptics_scan">Vibrieren, wenn ein Code erkannt wird</string>
     <string name="settings_payments_haptics_payment">Vibrieren bei erfolgreicher Zahlung</string>
-    <string name="settings_contacts">Kontakte</string>
-    <string name="settings_payments_ask_save_contacts">Nachfragen, ob neue Kontakte gespeichert werden sollen</string>
+    <string name="settings_payments_hub_title">Zahlungs-Hub</string>
+    <string name="settings_payments_confirm_presets">Feste Beträge immer bestätigen</string>
+    <string name="settings_payments_offer_save_targets">Nach dem Bezahlen anbieten, neue Adressen zu speichern</string>
 </resources>

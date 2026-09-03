@@ -11,6 +11,8 @@ import xyz.lilsus.blip.feature.payment.generated.resources.Res
 import xyz.lilsus.blip.feature.payment.generated.resources.tap_dismiss_pending_blink
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubLensDefinition
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentFlow as SharedPaymentFlow
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentFlowState
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
@@ -21,13 +23,14 @@ import xyz.lilsus.raylsuite.feature.paymentui.localizedMessage
 @Composable
 fun PaymentFlow(
     coordinator: PaymentCoordinator,
+    paymentHub: PaymentHubController,
+    lens: PaymentHubLensDefinition,
     appTitle: String,
     estimatedFeeHint: String?,
     errorMessageFor: @Composable (PaymentUiError) -> String,
     eventErrorMessageFor: suspend (PaymentUiError) -> String,
     onNavigateSettings: () -> Unit,
-    onNavigateShortcutCreate: () -> Unit,
-    onNavigateContacts: () -> Unit,
+    onNavigateLibrary: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by coordinator.uiState.collectAsState()
@@ -35,7 +38,7 @@ fun PaymentFlow(
     val newSessionTransactionCount by coordinator.newSessionTransactionCount.collectAsState()
     val transactionDetailNavigationTarget by
         coordinator.transactionDetailNavigationTarget.collectAsState()
-    val contactsState by coordinator.contactsState.collectAsState()
+    val hubState by paymentHub.state.collectAsState()
     val formatter = rememberAmountFormatter()
     val eventMessages = remember(coordinator, eventErrorMessageFor) {
         coordinator.events.map { event ->
@@ -60,16 +63,17 @@ fun PaymentFlow(
                     )
                 },
                 newSessionTransactionCount = newSessionTransactionCount,
-                contacts = contactsState,
                 transactionDetailNavigationTarget = transactionDetailNavigationTarget
             ),
         messageEvents = eventMessages,
         appTitle = appTitle,
         estimatedFeeHint = estimatedFeeHint,
+        hub = hubState,
+        lens = lens,
         onIntent = dispatch,
+        onHubIntent = paymentHub::dispatch,
         onNavigateSettings = onNavigateSettings,
-        onNavigateShortcutCreate = onNavigateShortcutCreate,
-        onNavigateContacts = onNavigateContacts,
+        onNavigateLibrary = onNavigateLibrary,
         modifier = modifier
     )
 }

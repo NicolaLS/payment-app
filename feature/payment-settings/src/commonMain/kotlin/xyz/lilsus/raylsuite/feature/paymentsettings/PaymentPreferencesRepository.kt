@@ -20,7 +20,9 @@ interface PaymentPreferencesRepository {
 
     suspend fun setConfirmManualEntry(enabled: Boolean)
 
-    suspend fun setConfirmShortcutPayments(enabled: Boolean)
+    suspend fun setConfirmPresetPayments(enabled: Boolean)
+
+    suspend fun setOfferToSaveNewTargets(enabled: Boolean)
 
     suspend fun setShowLnurlPayDetails(enabled: Boolean)
 
@@ -50,8 +52,12 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
         update { it.copy(confirmManualEntry = enabled) }
     }
 
-    override suspend fun setConfirmShortcutPayments(enabled: Boolean) {
-        update { it.copy(confirmShortcutPayments = enabled) }
+    override suspend fun setConfirmPresetPayments(enabled: Boolean) {
+        update { it.copy(confirmPresetPayments = enabled) }
+    }
+
+    override suspend fun setOfferToSaveNewTargets(enabled: Boolean) {
+        update { it.copy(offerToSaveNewTargets = enabled) }
     }
 
     override suspend fun setShowLnurlPayDetails(enabled: Boolean) {
@@ -88,13 +94,12 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
                 KEY_CONFIRM_THRESHOLD_SATS,
                 PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS
             )
-        val confirmShortcutPayments =
-            settings.getBoolean(KEY_CONFIRM_SHORTCUT_PAYMENTS, false)
         return PaymentPreferences(
             confirmationMode = confirmationMode,
             thresholdSats = thresholdSats,
             confirmManualEntry = settings.getBoolean(KEY_CONFIRM_MANUAL_ENTRY, false),
-            confirmShortcutPayments = confirmShortcutPayments,
+            confirmPresetPayments = settings.getBoolean(KEY_CONFIRM_PRESET_PAYMENTS, false),
+            offerToSaveNewTargets = settings.getBoolean(KEY_OFFER_TO_SAVE_NEW_TARGETS, true),
             showLnurlPayDetails = settings.getBoolean(KEY_SHOW_LNURL_PAY_DETAILS, false),
             vibrateOnScan = settings.getBoolean(KEY_VIBRATE_SCAN, true),
             vibrateOnPayment = settings.getBoolean(KEY_VIBRATE_PAYMENT, true)
@@ -111,10 +116,8 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
         )
         settings.putLong(KEY_CONFIRM_THRESHOLD_SATS, preferences.thresholdSats)
         settings.putBoolean(KEY_CONFIRM_MANUAL_ENTRY, preferences.confirmManualEntry)
-        settings.putBoolean(
-            KEY_CONFIRM_SHORTCUT_PAYMENTS,
-            preferences.confirmShortcutPayments
-        )
+        settings.putBoolean(KEY_CONFIRM_PRESET_PAYMENTS, preferences.confirmPresetPayments)
+        settings.putBoolean(KEY_OFFER_TO_SAVE_NEW_TARGETS, preferences.offerToSaveNewTargets)
         settings.putBoolean(KEY_SHOW_LNURL_PAY_DETAILS, preferences.showLnurlPayDetails)
         settings.putBoolean(KEY_VIBRATE_SCAN, preferences.vibrateOnScan)
         settings.putBoolean(KEY_VIBRATE_PAYMENT, preferences.vibrateOnPayment)
@@ -124,7 +127,8 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
         const val KEY_CONFIRM_MODE = "payments.confirmationMode"
         const val KEY_CONFIRM_THRESHOLD_SATS = "payments.confirmationThresholdSats"
         const val KEY_CONFIRM_MANUAL_ENTRY = "payments.confirmManualEntry"
-        const val KEY_CONFIRM_SHORTCUT_PAYMENTS = "payments.confirmShortcuts"
+        const val KEY_CONFIRM_PRESET_PAYMENTS = "payments.confirmPresetPayments"
+        const val KEY_OFFER_TO_SAVE_NEW_TARGETS = "payments.offerToSaveNewTargets"
         const val KEY_SHOW_LNURL_PAY_DETAILS = "payments.showLnurlPayDetails"
         const val KEY_VIBRATE_SCAN = "payments.vibrateOnScan"
         const val KEY_VIBRATE_PAYMENT = "payments.vibrateOnPayment"

@@ -10,7 +10,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
-import xyz.lilsus.raylsuite.feature.contacts.DefaultContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 
 class PaymentSettingsViewModelTest {
@@ -19,12 +18,10 @@ class PaymentSettingsViewModelTest {
         val paymentPreferences = DefaultPaymentPreferencesRepository(MapSettings())
         val currencyPreferences = DefaultCurrencyPreferences(MapSettings())
         currencyPreferences.setCode("USD")
-        val contactsRepository = DefaultContactsRepository(MapSettings())
         val viewModel =
             PaymentSettingsViewModel(
                 paymentPreferences = paymentPreferences,
                 currencyPreferences = currencyPreferences,
-                contactsRepository = contactsRepository,
                 bitcoinPriceProvider = { 60_000.0 },
                 dispatcher = StandardTestDispatcher(testScheduler)
             )
@@ -38,12 +35,14 @@ class PaymentSettingsViewModelTest {
 
         viewModel.updateConfirmationThreshold(20_000L)
         viewModel.setShowLnurlPayDetails(true)
-        viewModel.setAskToSaveNewContacts(false)
+        viewModel.setOfferToSaveNewTargets(false)
+        viewModel.setConfirmPresetPayments(true)
         advanceUntilIdle()
 
         assertEquals(20_000L, paymentPreferences.current().thresholdSats)
         assertEquals(true, paymentPreferences.current().showLnurlPayDetails)
-        assertEquals(false, viewModel.uiState.value.askToSaveNewContacts)
+        assertEquals(false, viewModel.uiState.value.offerToSaveNewTargets)
+        assertEquals(true, paymentPreferences.current().confirmPresetPayments)
         assertEquals(
             DisplayAmount(1_200L, DisplayCurrency.Fiat("USD")),
             viewModel.uiState.value.thresholdCurrencyEquivalent

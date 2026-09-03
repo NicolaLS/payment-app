@@ -36,13 +36,13 @@ import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletViewModel
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.onboarding.AgreementScreen
 import xyz.lilsus.raylsuite.feature.onboarding.AutoPaySettingsScreen
 import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingFeaturePage
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 
 @Serializable
 sealed interface BlipOnboardingDestination {
@@ -72,7 +72,7 @@ fun NavGraphBuilder.blipOnboarding(
     navController: NavController,
     blinkWallet: BlinkWallet,
     onboardingViewModel: OnboardingViewModel,
-    contactsRepository: ContactsRepository,
+    paymentHub: PaymentHubRepository,
     onFinished: () -> Unit
 ) {
     composable<BlipOnboardingDestination.Welcome> {
@@ -158,7 +158,7 @@ fun NavGraphBuilder.blipOnboarding(
     composable<BlipOnboardingDestination.BlinkContactsImport> {
         OnboardingBlinkContactsImportDestination(
             blinkWallet = blinkWallet,
-            contactsRepository = contactsRepository,
+            paymentHub = paymentHub,
             onFinished = onFinished
         )
     }
@@ -196,14 +196,14 @@ private fun AddWalletDestination(
 @Composable
 private fun OnboardingBlinkContactsImportDestination(
     blinkWallet: BlinkWallet,
-    contactsRepository: ContactsRepository,
+    paymentHub: PaymentHubRepository,
     onFinished: () -> Unit
 ) {
     val viewModel =
-        remember(blinkWallet, contactsRepository) {
+        remember(blinkWallet, paymentHub) {
             BlinkContactsImportViewModel(
                 blinkWallet = blinkWallet,
-                contactsRepository = contactsRepository
+                paymentHub = paymentHub
             )
         }
     val state by viewModel.uiState.collectAsState()

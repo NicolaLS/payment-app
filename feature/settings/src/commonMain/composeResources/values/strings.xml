@@ -1,9 +1,12 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="settings_payments">Payments</string>
-    <string name="settings_payments_subtitle">Confirmations and shortcuts</string>
-    <string name="settings_contacts">Contacts</string>
-    <string name="settings_contacts_subtitle">Saved contacts</string>
+    <string name="settings_payments_subtitle">Confirmations and vibrations</string>
+    <string name="settings_payment_hub">Payment hub</string>
+    <string name="settings_payment_hub_subtitle">Saved targets and groups</string>
+    <string name="settings_home_layout">Home layout</string>
+    <string name="settings_home_layout_subtitle">How your home screen is arranged</string>
+    <string name="settings_home_layout_body">Every layout shows the same targets, groups, and pins. Switching never changes your hub data.</string>
     <string name="settings_currency">Currency</string>
     <string name="settings_currency_subtitle">Payment display currency</string>
     <string name="settings_language">Language</string>

@@ -6,12 +6,12 @@ class PaymentConfirmationPolicy(private val preferencesRepository: PaymentPrefer
     suspend fun shouldConfirm(
         amountMsats: Long,
         isManualEntry: Boolean,
-        isShortcut: Boolean = false
+        isPresetTarget: Boolean = false
     ): Boolean {
         require(amountMsats >= 0) { "amountMsats must be non-negative" }
 
         val preferences = preferencesRepository.current()
-        if (isShortcut && preferences.confirmShortcutPayments) return true
+        if (isPresetTarget && preferences.confirmPresetPayments) return true
         if (isManualEntry && !preferences.confirmManualEntry) return false
 
         val amountSats = amountMsats / MSATS_PER_SAT

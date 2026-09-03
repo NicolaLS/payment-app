@@ -44,11 +44,14 @@ import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.model.Satoshi
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
+import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetAmountRule
+import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
+import xyz.lilsus.raylsuite.feature.paymenthub.host.DirectTargetPaymentIntent
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
@@ -57,9 +60,6 @@ import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactContext
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactSelection
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsController
 
 class PaymentCoordinator(
     private val engine: PaymentEngine,
@@ -67,7 +67,7 @@ class PaymentCoordinator(
     bitcoinPriceProvider: BitcoinPriceProvider,
     private val currencyPreferences: CurrencyPreferences,
     private val paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    private val paymentHub: PaymentHubController,
     private val haptics: HapticFeedbackManager,
     coroutineContext: CoroutineContext = Dispatchers.Main
 ) {
@@ -81,13 +81,7 @@ class PaymentCoordinator(
                 exchangeRate = null
             )
         )
-    private val contactsController =
-        PaymentContactsController(
-            repository = contactsRepository,
-            scope = scope,
-            onPaymentRequested = ::requestContactPayment,
-            clock = ::currentTimeMillis
-        )
+    private val hubContexts = mutableMapOf<String, HubTargetContext>()
 
     private val mutableUiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Active)
     val uiState: StateFlow<PaymentUiState> = mutableUiState.asStateFlow()
@@ -100,8 +94,6 @@ class PaymentCoordinator(
     val sessionTransactions: StateFlow<List<SessionTransactionItem>> =
         mutableSessionTransactions.asStateFlow()
 
-    val contactsState = contactsController.state
-
     private val mutableTransactionDetailNavigationTarget = MutableStateFlow<String?>(null)
     val transactionDetailNavigationTarget: StateFlow<String?> =
         mutableTransactionDetailNavigationTarget.asStateFlow()
@@ -113,7 +105,7 @@ class PaymentCoordinator(
     private val sessionAttemptIds = linkedSetOf<String>()
     private val knownSessionTransactionIds = mutableSetOf<String>()
     private val newSessionTransactionIds = mutableSetOf<String>()
-    private val terminalContactUpdates = mutableSetOf<String>()
+    private val terminalHubUpdates = mutableSetOf<String>()
     private val successNotifications = mutableSetOf<String>()
     private var activeDraft: ActiveDraft? = null
     private var manualRequest: ManualRequest? = null
@@ -123,6 +115,8 @@ class PaymentCoordinator(
     private var activeLinkId: String? = null
     private var vibrateOnScan = true
     private var vibrateOnPayment = true
+    private var confirmPresetPayments = false
+    private var offerToSaveNewTargets = true
     private var pendingPresentationJob: Job? = null
 
     init {
@@ -130,6 +124,8 @@ class PaymentCoordinator(
             paymentPreferences.preferences.collectLatest { preferences ->
                 vibrateOnScan = preferences.vibrateOnScan
                 vibrateOnPayment = preferences.vibrateOnPayment
+                confirmPresetPayments = preferences.confirmPresetPayments
+                offerToSaveNewTargets = preferences.offerToSaveNewTargets
                 engine.updateConfirmationPolicy(preferences.toFlintConfirmationPolicy())
             }
         }
@@ -150,6 +146,9 @@ class PaymentCoordinator(
         }
         scope.launch {
             engine.activity.collectLatest(::handleActivityUpdate)
+        }
+        scope.launch {
+            paymentHub.paymentRequests.collect(::payTarget)
         }
         scope.launch {
             paymentLinks.revision.collect {
@@ -186,7 +185,8 @@ class PaymentCoordinator(
         sessionAttemptIds.clear()
         knownSessionTransactionIds.clear()
         newSessionTransactionIds.clear()
-        terminalContactUpdates.clear()
+        terminalHubUpdates.clear()
+        hubContexts.clear()
         successNotifications.clear()
         activeDraft = null
         manualRequest = null
@@ -196,7 +196,7 @@ class PaymentCoordinator(
         mutableSessionTransactions.value = emptyList()
         mutableNewSessionTransactionCount.value = 0
         mutableTransactionDetailNavigationTarget.value = null
-        contactsController.resetSession()
+        paymentHub.resetSession()
         mutableUiState.value = PaymentUiState.Active
     }
 
@@ -218,6 +218,9 @@ class PaymentCoordinator(
 
             is PaymentIntent.DeepLinkReceived ->
                 handlePaymentInput(intent.rawValue, PaymentOrigin.DEEP_LINK)
+
+            is PaymentIntent.RawInputSubmitted ->
+                handlePaymentInput(intent.rawValue, PaymentOrigin.DETECTED_CONTENT)
 
             PaymentIntent.ManualAmountDismiss -> dismissManualAmount()
 
@@ -244,28 +247,6 @@ class PaymentCoordinator(
 
             is PaymentIntent.StartDonation ->
                 startDonation(intent.amountSats, intent.address)
-
-            PaymentIntent.OpenContacts -> contactsController.open()
-
-            PaymentIntent.DismissContacts -> contactsController.dismiss()
-
-            is PaymentIntent.PaymentSheetTabSelected -> contactsController.selectTab(intent.tab)
-
-            is PaymentIntent.ContactRoleSelected -> contactsController.selectRole(intent.role)
-
-            is PaymentIntent.SelectShortcut -> contactsController.selectShortcut(intent.id)
-
-            is PaymentIntent.SelectContact -> contactsController.selectContact(intent.id)
-
-            is PaymentIntent.SaveContactPromptAliasChanged ->
-                contactsController.updateSavePromptAlias(intent.alias)
-
-            is PaymentIntent.SaveContactPromptRoleSelected ->
-                contactsController.updateSavePromptRole(intent.role)
-
-            PaymentIntent.SaveContactPromptSave -> contactsController.savePrompt()
-
-            PaymentIntent.SaveContactPromptDismiss -> contactsController.dismissSavePrompt()
         }
     }
 
@@ -273,8 +254,8 @@ class PaymentCoordinator(
         rawInput: String,
         origin: PaymentOrigin,
         notifyScan: Boolean = false,
-        contactContext: PaymentContactContext? = reusableLightningAddress(rawInput)?.let {
-            contactsController.contextFor(it, allowSavePrompt = true)
+        targetContext: HubTargetContext? = reusableLightningAddress(rawInput)?.let {
+            HubTargetContext(targetId = null, address = it, isPreset = false)
         },
         requestedAmountMsats: Long? = null,
         paymentQuote: PaymentAmountQuote? = null
@@ -286,7 +267,7 @@ class PaymentCoordinator(
         mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
         applyPrepareResult(
             result = engine.prepare(rawInput, origin),
-            contactContext = contactContext,
+            targetContext = targetContext,
             requestedAmountMsats = requestedAmountMsats,
             paymentQuote = paymentQuote
         )
@@ -294,7 +275,7 @@ class PaymentCoordinator(
 
     private suspend fun applyPrepareResult(
         result: PreparePaymentResult,
-        contactContext: PaymentContactContext?,
+        targetContext: HubTargetContext?,
         requestedAmountMsats: Long?,
         paymentQuote: PaymentAmountQuote? = null
     ) {
@@ -313,7 +294,7 @@ class PaymentCoordinator(
                         }
                         null
                     }
-                val request = ManualRequest(result.payment, contactContext, lnurlPayDisplay)
+                val request = ManualRequest(result.payment, targetContext, lnurlPayDisplay)
                 manualRequest = request
                 if (requestedAmountMsats != null && lnurlPayDisplay != null) {
                     reviewLnurlAmount(request, requestedAmountMsats, paymentQuote)
@@ -321,7 +302,7 @@ class PaymentCoordinator(
                     prepareRequestedAmount(
                         result.payment,
                         requestedAmountMsats,
-                        contactContext,
+                        targetContext,
                         paymentQuote
                     )
                 } else if (
@@ -335,7 +316,7 @@ class PaymentCoordinator(
             }
 
             is PreparePaymentResult.Ready ->
-                handlePreparedPayment(result.payment, contactContext, paymentQuote)
+                handlePreparedPayment(result.payment, targetContext, paymentQuote)
 
             is PreparePaymentResult.Existing -> {
                 sessionAttemptIds += result.activity.attemptId
@@ -359,7 +340,7 @@ class PaymentCoordinator(
 
     private suspend fun handlePreparedPayment(
         payment: PreparedPayment,
-        contactContext: PaymentContactContext?,
+        targetContext: HubTargetContext?,
         paymentQuote: PaymentAmountQuote?
     ) {
         manualRequest = null
@@ -371,21 +352,26 @@ class PaymentCoordinator(
             showError(PaymentUiError.InvalidInvoice("Quoted amount does not match payment"))
             return
         }
+        // The Spark engine policy knows nothing about hub targets; preset confirmation is
+        // decided here so all three apps honor the same preference.
+        val requiresConfirmation =
+            payment.requiresConfirmation ||
+                (targetContext?.isPreset == true && confirmPresetPayments)
         val confirmationAmount =
-            if (payment.requiresConfirmation) {
+            if (requiresConfirmation) {
                 confirmationAmount(payment.amountSats.toMsats(), paymentQuote)
             } else {
                 null
             }
-        val draft = ActiveDraft(payment, contactContext, paymentQuote, confirmationAmount)
+        val draft = ActiveDraft(payment, targetContext, paymentQuote, confirmationAmount)
         activeDraft = draft
         mutableUiState.value =
-            if (payment.requiresConfirmation) {
+            if (requiresConfirmation) {
                 PaymentUiState.Confirm(requireNotNull(confirmationAmount))
             } else {
                 PaymentUiState.Loading()
             }
-        if (!payment.requiresConfirmation) {
+        if (!requiresConfirmation) {
             applyConfirmResult(engine.autoPay(payment.handle), draft)
         }
     }
@@ -396,7 +382,7 @@ class PaymentCoordinator(
             mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
             applyPrepareResult(
                 engine.prepareAmount(review.request.payment.handle, review.amountSats),
-                review.request.contactContext,
+                review.request.targetContext,
                 requestedAmountMsats = null,
                 paymentQuote = review.paymentQuote
             )
@@ -413,10 +399,7 @@ class PaymentCoordinator(
                 activeDraft = null
                 activeAttemptId = result.activity.attemptId
                 sessionAttemptIds += result.activity.attemptId
-                contactsController.bindPendingPayment(
-                    result.activity.attemptId,
-                    draft.contactContext
-                )
+                draft.targetContext?.let { hubContexts[result.activity.attemptId] = it }
                 refreshSessionTransactions(engine.activity.value)
                 showActivity(result.activity)
             }
@@ -504,7 +487,7 @@ class PaymentCoordinator(
         }
         applyPrepareResult(
             engine.prepareAmount(request.payment.handle, sats),
-            request.contactContext,
+            request.targetContext,
             requestedAmountMsats = null,
             paymentQuote = paymentQuote
         )
@@ -513,7 +496,7 @@ class PaymentCoordinator(
     private suspend fun prepareRequestedAmount(
         payment: AmountRequiredPayment,
         amountMsats: Long,
-        contactContext: PaymentContactContext?,
+        targetContext: HubTargetContext?,
         paymentQuote: PaymentAmountQuote? = null
     ) {
         val sats = msatsToSatoshi(amountMsats)
@@ -527,7 +510,7 @@ class PaymentCoordinator(
         }
         applyPrepareResult(
             engine.prepareAmount(payment.handle, sats),
-            contactContext,
+            targetContext,
             requestedAmountMsats = null,
             paymentQuote = paymentQuote
         )
@@ -585,7 +568,7 @@ class PaymentCoordinator(
 
     private fun handleActivityUpdate(activity: List<PaymentActivity>) {
         refreshSessionTransactions(activity)
-        activity.forEach(::updateTerminalContactState)
+        activity.forEach(::updateTerminalHubState)
         val active = activeAttemptId?.let { id -> activity.firstOrNull { it.attemptId == id } }
         if (active != null) {
             when (active.outcome) {
@@ -704,20 +687,23 @@ class PaymentCoordinator(
         )
     }
 
-    private fun updateTerminalContactState(activity: PaymentActivity) {
-        if (activity.attemptId in terminalContactUpdates) return
+    private fun updateTerminalHubState(activity: PaymentActivity) {
+        if (activity.attemptId in terminalHubUpdates) return
         when (activity.outcome) {
             PaymentOutcome.COMPLETED -> {
-                terminalContactUpdates += activity.attemptId
-                contactsController.paymentSucceeded(
-                    activity.attemptId,
-                    activity.amountSats.toMsats()
-                )
+                terminalHubUpdates += activity.attemptId
+                val context = hubContexts.remove(activity.attemptId) ?: return
+                val targetId = context.targetId
+                if (targetId != null) {
+                    paymentHub.recordSuccessfulPayment(targetId)
+                } else if (offerToSaveNewTargets) {
+                    paymentHub.offerSave(context.address)
+                }
             }
 
             PaymentOutcome.FAILED -> {
-                terminalContactUpdates += activity.attemptId
-                contactsController.paymentFinishedWithoutSuccess(activity.attemptId)
+                terminalHubUpdates += activity.attemptId
+                hubContexts.remove(activity.attemptId)
             }
 
             else -> Unit
@@ -747,18 +733,17 @@ class PaymentCoordinator(
         }
     }
 
-    private fun resolveContactPayment(
+    private fun resolveTargetPayment(
         address: LightningAddress,
-        context: PaymentContactContext,
-        paymentQuote: PaymentAmountQuote?,
-        comment: String?
+        context: HubTargetContext,
+        paymentQuote: PaymentAmountQuote?
     ) {
         scope.launch {
             actionMutex.withLock {
                 handlePaymentInput(
                     rawInput = address.full,
                     origin = PaymentOrigin.DETECTED_CONTENT,
-                    contactContext = context.copy(comment = comment ?: context.comment),
+                    targetContext = context,
                     requestedAmountMsats = paymentQuote?.amountMsats,
                     paymentQuote = paymentQuote
                 )
@@ -766,32 +751,33 @@ class PaymentCoordinator(
         }
     }
 
-    private fun requestContactPayment(selection: PaymentContactSelection) {
-        val context = selection.context
-        val shortcutAmount = selection.shortcutAmount
-        if (shortcutAmount == null) {
-            resolveContactPayment(context.address, context, null, context.comment)
+    /** Maps a hub selection into Flint's own Spark preparation and confirmation flow. */
+    private fun payTarget(intent: DirectTargetPaymentIntent) {
+        val preset = (intent.amountRule as? DirectTargetAmountRule.Preset)?.amount
+        val context =
+            HubTargetContext(
+                targetId = intent.targetId,
+                address = intent.address,
+                isPreset = preset != null
+            )
+        if (preset == null) {
+            resolveTargetPayment(intent.address, context, null)
             return
         }
         scope.launch {
-            val paymentQuote = currencyManager.quoteShortcutAmount(shortcutAmount)
+            val paymentQuote = currencyManager.quoteStoredAmount(preset)
             if (paymentQuote == null) {
-                val info = CurrencyCatalog.infoFor(shortcutAmount.normalizedCurrencyCode)
+                val info = CurrencyCatalog.infoFor(preset.normalizedCurrencyCode)
                 showError(
                     if (info.currency is DisplayCurrency.Fiat) {
                         PaymentUiError.ExchangeRateUnavailable(info.code)
                     } else {
-                        PaymentUiError.InvalidInvoice("Shortcut amount could not be converted")
+                        PaymentUiError.InvalidInvoice("Preset amount could not be converted")
                     }
                 )
                 return@launch
             }
-            resolveContactPayment(
-                context.address,
-                context,
-                paymentQuote,
-                context.comment
-            )
+            resolveTargetPayment(intent.address, context, paymentQuote)
         }
     }
 
@@ -800,7 +786,7 @@ class PaymentCoordinator(
         handlePaymentInput(
             rawInput = address.full,
             origin = PaymentOrigin.DETECTED_CONTENT,
-            contactContext = contactsController.contextFor(address, allowSavePrompt = false),
+            targetContext = null,
             requestedAmountMsats = Satoshi.positive(amountSats).toMsats()
         )
     }
@@ -903,14 +889,14 @@ class PaymentCoordinator(
 
     private data class ActiveDraft(
         val payment: PreparedPayment,
-        val contactContext: PaymentContactContext?,
+        val targetContext: HubTargetContext?,
         val paymentQuote: PaymentAmountQuote?,
         val confirmationAmount: PaymentConfirmationAmount?
     )
 
     private data class ManualRequest(
         val payment: AmountRequiredPayment,
-        val contactContext: PaymentContactContext?,
+        val targetContext: HubTargetContext?,
         val lnurlPayDisplay: LnurlPayDisplay?
     )
 
@@ -921,6 +907,13 @@ class PaymentCoordinator(
     )
 
     private data class VisibleActivity(val activity: PaymentActivity, val wasAlreadyPaid: Boolean)
+
+    /** App-owned link between a Spark attempt and the hub target it was started from. */
+    private data class HubTargetContext(
+        val targetId: HubItemId?,
+        val address: LightningAddress,
+        val isPreset: Boolean
+    )
 }
 
 private fun PaymentRejection.toPaymentUiError(): PaymentUiError = when (this) {

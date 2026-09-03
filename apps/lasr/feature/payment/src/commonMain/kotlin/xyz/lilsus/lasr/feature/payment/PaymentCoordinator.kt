@@ -38,12 +38,14 @@ import xyz.lilsus.raylsuite.core.payment.lightningAddressDynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.payment.lnurlDynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.payment.roundToFullSatoshis
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
+import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetAmountRule
+import xyz.lilsus.raylsuite.feature.paymenthub.host.DirectTargetPaymentIntent
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentConfirmationPolicy
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
@@ -52,9 +54,6 @@ import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactContext
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactSelection
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactsController
 
 class PaymentCoordinator(
     private val nwcWallet: NwcWallet,
@@ -62,7 +61,7 @@ class PaymentCoordinator(
     bitcoinPriceProvider: BitcoinPriceProvider,
     private val currencyPreferences: CurrencyPreferences,
     private val paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    private val paymentHub: PaymentHubController,
     private val haptics: HapticFeedbackManager,
     private val showEstimatedFeeHint: Boolean = false,
     paymentAttemptSettings: Settings,
@@ -84,13 +83,7 @@ class PaymentCoordinator(
             showEstimatedFeeHint = showEstimatedFeeHint,
             store = PendingPaymentStore(paymentAttemptSettings)
         )
-    private val contactsController =
-        PaymentContactsController(
-            repository = contactsRepository,
-            scope = scope,
-            onPaymentRequested = ::requestContactPayment,
-            clock = ::currentTimeMillis
-        )
+    private val hubContexts = mutableMapOf<String, HubTargetContext>()
 
     private val mutableUiState = sessionState.uiState
     val uiState: StateFlow<PaymentUiState> = mutableUiState.asStateFlow()
@@ -99,7 +92,6 @@ class PaymentCoordinator(
     val events: SharedFlow<PaymentEvent> = mutableEvents.asSharedFlow()
 
     val sessionTransactions: StateFlow<List<SessionTransactionItem>> = pendingTracker.displayItems
-    val contactsState = contactsController.state
 
     private val mutableTransactionDetailNavigationTarget =
         sessionState.transactionDetailNavigationTarget
@@ -138,6 +130,7 @@ class PaymentCoordinator(
     private var vibrateOnScan = true
     private var vibrateOnPayment = true
     private var showLnurlPayDetails = false
+    private var offerToSaveNewTargets = true
     private val paymentJobs = sessionState.paymentJobs
     private var paymentAdmissionInProgress: Boolean
         get() = sessionState.paymentAdmissionInProgress
@@ -151,7 +144,11 @@ class PaymentCoordinator(
                 vibrateOnScan = preferences.vibrateOnScan
                 vibrateOnPayment = preferences.vibrateOnPayment
                 showLnurlPayDetails = preferences.showLnurlPayDetails
+                offerToSaveNewTargets = preferences.offerToSaveNewTargets
             }
+        }
+        scope.launch {
+            paymentHub.paymentRequests.collect(::payTarget)
         }
         scope.launch {
             currencyPreferences.code.collectLatest { code ->
@@ -199,7 +196,8 @@ class PaymentCoordinator(
     fun resetSession() {
         sessionState.reset(currencyManager.state.value)
         pendingTracker.resetSession()
-        contactsController.resetSession()
+        hubContexts.clear()
+        paymentHub.resetSession()
     }
 
     private suspend fun handleIntent(intent: PaymentIntent) {
@@ -241,27 +239,8 @@ class PaymentCoordinator(
 
             is PaymentIntent.StartDonation -> startDonation(intent.amountSats, intent.address)
 
-            PaymentIntent.OpenContacts -> contactsController.open()
-
-            PaymentIntent.DismissContacts -> contactsController.dismiss()
-
-            is PaymentIntent.PaymentSheetTabSelected -> contactsController.selectTab(intent.tab)
-
-            is PaymentIntent.ContactRoleSelected -> contactsController.selectRole(intent.role)
-
-            is PaymentIntent.SelectShortcut -> contactsController.selectShortcut(intent.id)
-
-            is PaymentIntent.SelectContact -> contactsController.selectContact(intent.id)
-
-            is PaymentIntent.SaveContactPromptAliasChanged ->
-                contactsController.updateSavePromptAlias(intent.alias)
-
-            is PaymentIntent.SaveContactPromptRoleSelected ->
-                contactsController.updateSavePromptRole(intent.role)
-
-            PaymentIntent.SaveContactPromptSave -> contactsController.savePrompt()
-
-            PaymentIntent.SaveContactPromptDismiss -> contactsController.dismissSavePrompt()
+            is PaymentIntent.RawInputSubmitted ->
+                handlePaymentInput(intent.rawValue, PaymentRequestSource.Camera)
         }
     }
 
@@ -315,10 +294,11 @@ class PaymentCoordinator(
 
                     is LightningInputParser.Target.LightningAddressTarget -> {
                         val sourceKey = lightningAddressDynamicPaymentSourceKey(target.address)
-                        val contactContext =
-                            contactsController.contextFor(
-                                target.address,
-                                allowSavePrompt = true
+                        val targetContext =
+                            HubTargetContext(
+                                targetId = null,
+                                address = target.address,
+                                isPreset = false
                             )
                         val existing =
                             pendingTracker.findGuardingByDynamicSourceKey(sourceKey)
@@ -330,7 +310,7 @@ class PaymentCoordinator(
                                         address = target.address,
                                         sourceKey = sourceKey,
                                         paymentSource = source,
-                                        contactContext = contactContext
+                                        targetContext = targetContext
                                     )
                             )
                             return
@@ -340,7 +320,7 @@ class PaymentCoordinator(
                             address = target.address,
                             paymentSource = source,
                             sourceKey = sourceKey,
-                            contactContext = contactContext
+                            targetContext = targetContext
                         )
                     }
 
@@ -430,9 +410,9 @@ class PaymentCoordinator(
         address: LightningAddress,
         paymentSource: PaymentRequestSource,
         sourceKey: DynamicPaymentSourceKey?,
-        contactContext: PaymentContactContext? = null,
-        shortcutPaymentQuote: PaymentAmountQuote? = null,
-        shortcutComment: String? = null,
+        targetContext: HubTargetContext? = null,
+        presetQuote: PaymentAmountQuote? = null,
+        targetComment: String? = null,
         replacesDynamicGuardId: String? = null
     ) {
         mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
@@ -443,9 +423,9 @@ class PaymentCoordinator(
                         params = result.data,
                         paymentSource = paymentSource,
                         sourceKey = sourceKey,
-                        contactContext = contactContext,
-                        shortcutPaymentQuote = shortcutPaymentQuote,
-                        shortcutComment = shortcutComment,
+                        targetContext = targetContext,
+                        presetQuote = presetQuote,
+                        targetComment = targetComment,
                         replacesDynamicGuardId = replacesDynamicGuardId
                     )
 
@@ -454,9 +434,9 @@ class PaymentCoordinator(
         }
     }
 
-    private fun resolveContactPayment(
+    private fun resolveTargetPayment(
         address: LightningAddress,
-        context: PaymentContactContext,
+        context: HubTargetContext,
         paymentQuote: PaymentAmountQuote?,
         comment: String?
     ) {
@@ -470,9 +450,9 @@ class PaymentCoordinator(
                         address = address,
                         sourceKey = sourceKey,
                         paymentSource = PaymentRequestSource.Camera,
-                        contactContext = context,
-                        shortcutPaymentQuote = paymentQuote,
-                        shortcutComment = comment
+                        targetContext = context,
+                        presetQuote = paymentQuote,
+                        targetComment = comment
                     )
             )
             return
@@ -482,37 +462,43 @@ class PaymentCoordinator(
             address = address,
             paymentSource = PaymentRequestSource.Camera,
             sourceKey = sourceKey,
-            contactContext = context,
-            shortcutPaymentQuote = paymentQuote,
-            shortcutComment = comment
+            targetContext = context,
+            presetQuote = paymentQuote,
+            targetComment = comment
         )
     }
 
-    private fun requestContactPayment(selection: PaymentContactSelection) {
-        val context = selection.context
-        val shortcutAmount = selection.shortcutAmount
-        if (shortcutAmount == null) {
-            resolveContactPayment(context.address, context, null, context.comment)
+    /** Maps a hub selection into this app's own resolution, quoting, and confirmation flow. */
+    private fun payTarget(intent: DirectTargetPaymentIntent) {
+        val preset = (intent.amountRule as? DirectTargetAmountRule.Preset)?.amount
+        val context =
+            HubTargetContext(
+                targetId = intent.targetId,
+                address = intent.address,
+                isPreset = preset != null
+            )
+        if (preset == null) {
+            resolveTargetPayment(intent.address, context, null, intent.comment)
             return
         }
         scope.launch {
-            val paymentQuote = currencyManager.quoteShortcutAmount(shortcutAmount)
+            val paymentQuote = currencyManager.quoteStoredAmount(preset)
             if (paymentQuote == null) {
-                val info = CurrencyCatalog.infoFor(shortcutAmount.normalizedCurrencyCode)
+                val info = CurrencyCatalog.infoFor(preset.normalizedCurrencyCode)
                 emitError(
                     if (info.currency is DisplayCurrency.Fiat) {
                         PaymentUiError.ExchangeRateUnavailable(info.code)
                     } else {
-                        PaymentUiError.InvalidInvoice("Shortcut amount could not be converted")
+                        PaymentUiError.InvalidInvoice("Preset amount could not be converted")
                     }
                 )
                 return@launch
             }
-            resolveContactPayment(
-                context.address,
+            resolveTargetPayment(
+                intent.address,
                 context,
                 paymentQuote,
-                context.comment
+                intent.comment
             )
         }
     }
@@ -524,9 +510,9 @@ class PaymentCoordinator(
         prefillMsats: Long? = null,
         inputCurrencyOverride: CurrencyInfo? = null,
         sourceKey: DynamicPaymentSourceKey? = null,
-        contactContext: PaymentContactContext? = null,
-        shortcutPaymentQuote: PaymentAmountQuote? = null,
-        shortcutComment: String? = null,
+        targetContext: HubTargetContext? = null,
+        presetQuote: PaymentAmountQuote? = null,
+        targetComment: String? = null,
         replacesDynamicGuardId: String? = null
     ) {
         if (params.minSendable <= 0 || params.maxSendable < params.minSendable) {
@@ -553,8 +539,8 @@ class PaymentCoordinator(
                 display = lnurlPayDisplay,
                 sourceKey = sourceKey,
                 paymentSource = paymentSource,
-                contactContext = contactContext?.copy(comment = shortcutComment),
-                comment = shortcutComment,
+                targetContext = targetContext,
+                comment = targetComment,
                 replacesDynamicGuardId = replacesDynamicGuardId
             )
         val currencyState = currencyManager.state.value
@@ -575,7 +561,7 @@ class PaymentCoordinator(
             currencyManager.ensureExchangeRateIfNeeded(inputInfo)
         }
 
-        shortcutPaymentQuote?.let { paymentQuote ->
+        presetQuote?.let { paymentQuote ->
             val roundedAmount = paymentQuote.amountMsats
             if (
                 roundedAmount < params.minSendable ||
@@ -583,7 +569,7 @@ class PaymentCoordinator(
             ) {
                 emitError(
                     PaymentUiError.InvalidInvoice(
-                        "Shortcut amount is outside the allowed range"
+                        "Preset amount is outside the allowed range"
                     )
                 )
                 return
@@ -719,7 +705,7 @@ class PaymentCoordinator(
                 },
             source = session.paymentSource,
             dynamicSourceKey = session.sourceKey,
-            contactContext = session.contactContext,
+            targetContext = session.targetContext,
             replacesDynamicGuardId = session.replacesDynamicGuardId,
             lnurlAuthorized = session.display != null,
             paymentQuote = paymentQuote
@@ -853,7 +839,7 @@ class PaymentCoordinator(
             amountOverrideMsats = pending.amountOverrideMsats,
             origin = pending.origin,
             dynamicSourceKey = pending.dynamicSourceKey,
-            contactContext = pending.contactContext,
+            targetContext = pending.targetContext,
             replacesDynamicGuardId = pending.replacesDynamicGuardId
         )
     }
@@ -864,7 +850,7 @@ class PaymentCoordinator(
         origin: PendingOrigin,
         source: PaymentRequestSource,
         dynamicSourceKey: DynamicPaymentSourceKey? = null,
-        contactContext: PaymentContactContext? = null,
+        targetContext: HubTargetContext? = null,
         replacesDynamicGuardId: String? = null,
         lnurlAuthorized: Boolean = false,
         paymentQuote: PaymentAmountQuote? = null
@@ -889,7 +875,7 @@ class PaymentCoordinator(
                                         confirmationPolicy.shouldConfirm(
                                             amountMsats = amountMsats,
                                             isManualEntry = isManualEntry,
-                                            isShortcut = contactContext?.shortcutId != null
+                                            isPresetTarget = targetContext?.isPreset == true
                                         )
                                     )
                             )
@@ -901,7 +887,7 @@ class PaymentCoordinator(
                             amountOverrideMsats = amountOverrideMsats,
                             origin = origin,
                             dynamicSourceKey = dynamicSourceKey,
-                            contactContext = contactContext,
+                            targetContext = targetContext,
                             replacesDynamicGuardId = replacesDynamicGuardId
                         )
                     mutableUiState.value = PaymentUiState.Confirm(display)
@@ -911,7 +897,7 @@ class PaymentCoordinator(
                         amountOverrideMsats,
                         origin,
                         dynamicSourceKey,
-                        contactContext,
+                        targetContext,
                         replacesDynamicGuardId
                     )
                 }
@@ -930,7 +916,7 @@ class PaymentCoordinator(
         amountOverrideMsats: Long?,
         origin: PendingOrigin,
         dynamicSourceKey: DynamicPaymentSourceKey?,
-        contactContext: PaymentContactContext?,
+        targetContext: HubTargetContext?,
         replacesDynamicGuardId: String? = null
     ) {
         mutableUiState.value = PaymentUiState.Loading()
@@ -944,7 +930,7 @@ class PaymentCoordinator(
                 dynamicSourceKey = dynamicSourceKey,
                 replacesDynamicGuardId = replacesDynamicGuardId
             )
-        contactsController.bindPendingPayment(pendingId, contactContext)
+        targetContext?.let { hubContexts[pendingId] = it }
         paymentJobs.remove(pendingId)?.cancel()
         val job =
             scope.launch {
@@ -984,7 +970,7 @@ class PaymentCoordinator(
 
             is PendingEvent.Settled -> {
                 clearPaymentSessionState()
-                contactsController.paymentSucceeded(event.id, event.paidMsats)
+                reportPaymentSuccess(event.id, event.paidMsats)
                 if (vibrateOnPayment) haptics.notifyPaymentSuccess()
                 if (!event.wasVisible && mutableUiState.value is PaymentUiState.Loading) {
                     showPaymentSuccess(
@@ -1002,7 +988,7 @@ class PaymentCoordinator(
 
             is PendingEvent.Failed -> {
                 clearPaymentSessionState()
-                contactsController.paymentFinishedWithoutSuccess(event.id)
+                hubContexts.remove(event.id)
                 if (pendingRetry?.recordId == event.id) {
                     pendingRetry = null
                     mutableUiState.value = PaymentUiState.Active
@@ -1015,7 +1001,7 @@ class PaymentCoordinator(
 
             is PendingEvent.OutcomeUnknown -> {
                 clearPaymentSessionState()
-                contactsController.paymentFinishedWithoutSuccess(event.id)
+                hubContexts.remove(event.id)
             }
         }
     }
@@ -1060,9 +1046,9 @@ class PaymentCoordinator(
                     continuation.address,
                     continuation.paymentSource,
                     continuation.sourceKey,
-                    continuation.contactContext,
-                    continuation.shortcutPaymentQuote,
-                    continuation.shortcutComment,
+                    continuation.targetContext,
+                    continuation.presetQuote,
+                    continuation.targetComment,
                     replacesDynamicGuardId = choice.recordId
                 )
         }
@@ -1139,6 +1125,17 @@ class PaymentCoordinator(
 
     private fun dismissResult() {
         sessionState.dismissResult()
+    }
+
+    private fun reportPaymentSuccess(pendingId: String, paidMsats: Long) {
+        val context = hubContexts.remove(pendingId) ?: return
+        if (paidMsats <= 0L) return
+        val targetId = context.targetId
+        if (targetId != null) {
+            paymentHub.recordSuccessfulPayment(targetId)
+        } else if (offerToSaveNewTargets) {
+            paymentHub.offerSave(context.address)
+        }
     }
 
     private fun emitError(error: PaymentUiError) {
@@ -1277,9 +1274,9 @@ internal sealed interface PendingRetryContinuation {
         val address: xyz.lilsus.raylsuite.core.model.LightningAddress,
         val sourceKey: DynamicPaymentSourceKey,
         val paymentSource: PaymentRequestSource,
-        val contactContext: PaymentContactContext? = null,
-        val shortcutPaymentQuote: PaymentAmountQuote? = null,
-        val shortcutComment: String? = null
+        val targetContext: HubTargetContext? = null,
+        val presetQuote: PaymentAmountQuote? = null,
+        val targetComment: String? = null
     ) : PendingRetryContinuation
 }
 

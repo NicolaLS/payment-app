@@ -3,6 +3,7 @@ package xyz.lilsus.lasr.feature.payment
 import fr.acinq.lightning.payment.Bolt11Invoice
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.CurrencyInfo
+import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.payment.LightningInputParser
 import xyz.lilsus.raylsuite.core.payment.LnurlInvoiceRequest
@@ -12,10 +13,10 @@ import xyz.lilsus.raylsuite.core.payment.LnurlPayClient
 import xyz.lilsus.raylsuite.core.payment.LnurlPayParams
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
+import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentContactContext
 
 internal class PaymentPreparation(lnurlPayClient: LnurlPayClient) {
     val inputParser = LightningInputParser()
@@ -62,7 +63,7 @@ internal data class PendingPayment(
     val amountOverrideMsats: Long?,
     val origin: PendingOrigin,
     val dynamicSourceKey: DynamicPaymentSourceKey?,
-    val contactContext: PaymentContactContext?,
+    val targetContext: HubTargetContext?,
     val replacesDynamicGuardId: String?
 )
 
@@ -78,9 +79,19 @@ internal data class LnurlSession(
     val display: LnurlPayDisplay?,
     val sourceKey: DynamicPaymentSourceKey?,
     val paymentSource: PaymentRequestSource,
-    val contactContext: PaymentContactContext?,
+    val targetContext: HubTargetContext?,
     val comment: String?,
     val replacesDynamicGuardId: String?
+)
+
+/**
+ * App-owned link between a pending payment and the hub. A known [targetId] receives the success
+ * statistic; an unknown address may be offered for saving. Never persisted.
+ */
+internal data class HubTargetContext(
+    val targetId: HubItemId?,
+    val address: LightningAddress,
+    val isPreset: Boolean
 )
 
 internal enum class PaymentRequestSource {

@@ -16,7 +16,7 @@ kotlin {
             api(project(":core:model"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
-            api(project(":feature:contacts"))
+            api(project(":feature:payment-hub"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)
             implementation(libs.compose.material.icons.extended)

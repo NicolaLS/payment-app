@@ -47,7 +47,6 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
     val currencyPreferences = runtime.currencyPreferences
     val languageRepository = runtime.languageRepository
     val paymentPreferences = runtime.paymentPreferences
-    val contactsRepository = runtime.contactsRepository
     val blinkWallet = runtime.blinkWallet
     val paymentCoordinator = runtime.paymentCoordinator
     val onboardingViewModel =
@@ -94,7 +93,7 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
                 navController = navController,
                 blinkWallet = blinkWallet,
                 onboardingViewModel = onboardingViewModel,
-                contactsRepository = contactsRepository,
+                paymentHub = runtime.paymentHubRepository,
                 onFinished = {
                     navController.navigate(BlipDestination.Home) {
                         popUpTo(navController.graph.id) { inclusive = true }
@@ -109,14 +108,17 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
                 currencyPreferences = currencyPreferences,
                 languageRepository = languageRepository,
                 paymentPreferences = paymentPreferences,
-                contactsRepository = contactsRepository,
+                paymentHubRepository = runtime.paymentHubRepository,
+                paymentHub = runtime.paymentHub,
+                lensPreferences = runtime.lensPreferences,
+                lensDefinitions = runtime.lensDefinitions,
                 paymentCoordinator = paymentCoordinator,
                 blinkWallet = blinkWallet,
                 performanceDiagnostics = performanceDiagnostics,
                 onRemoveWallet = {
                     runtime.resetPaymentSession()
                     PaymentDeepLinkEvents.clear()
-                    // Contacts, shortcuts, and app preferences intentionally survive disconnect.
+                    // Hub targets and app preferences intentionally survive disconnect.
                     blinkWallet.disconnect()
                     navController.navigate(BlipOnboardingDestination.Welcome) {
                         popUpTo(navController.graph.id) {

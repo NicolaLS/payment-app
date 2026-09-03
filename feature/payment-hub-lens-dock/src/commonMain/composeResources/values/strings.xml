@@ -1,0 +1,8 @@
+<resources>
+    <string name="dock_lens_name">Dock</string>
+    <string name="dock_lens_description">Scanner first, with your pinned targets in a row at the bottom.</string>
+    <string name="dock_lens_library">Payment hub</string>
+    <string name="dock_lens_add">Add</string>
+    <string name="dock_lens_pay">Pay %1$s</string>
+    <string name="dock_lens_open_group">Open group %1$s</string>
+</resources>

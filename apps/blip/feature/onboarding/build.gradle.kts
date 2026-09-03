@@ -19,7 +19,7 @@ kotlin {
             implementation(project(":blip:integration:blink"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
-            implementation(project(":feature:contacts"))
+            implementation(project(":feature:payment-hub"))
             implementation(project(":feature:onboarding"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.material3)

@@ -1,10 +1,8 @@
 package xyz.lilsus.raylsuite.feature.paymentui
 
-import xyz.lilsus.raylsuite.core.model.ContactRole
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
-import xyz.lilsus.raylsuite.feature.paymentui.contacts.PaymentSheetTab
 
 sealed interface PaymentToastMessage {
     data object BitcoinAddressNotSupported : PaymentToastMessage
@@ -20,6 +18,9 @@ sealed interface PaymentIntent {
     data class QrCodeScanned(val rawValue: String) : PaymentIntent
 
     data class DeepLinkReceived(val rawValue: String) : PaymentIntent
+
+    /** Raw text typed or pasted into a lens. It uses the app's ordinary parser, never a saved target. */
+    data class RawInputSubmitted(val rawValue: String) : PaymentIntent
 
     data class TransactionDetailNavigationHandled(val id: String) : PaymentIntent
 
@@ -50,24 +51,4 @@ sealed interface PaymentIntent {
     data class RetryTransaction(val id: String) : PaymentIntent
 
     data class StartDonation(val amountSats: Long, val address: LightningAddress) : PaymentIntent
-
-    data object OpenContacts : PaymentIntent
-
-    data object DismissContacts : PaymentIntent
-
-    data class PaymentSheetTabSelected(val tab: PaymentSheetTab) : PaymentIntent
-
-    data class ContactRoleSelected(val role: ContactRole?) : PaymentIntent
-
-    data class SelectShortcut(val id: String) : PaymentIntent
-
-    data class SelectContact(val id: String) : PaymentIntent
-
-    data class SaveContactPromptAliasChanged(val alias: String) : PaymentIntent
-
-    data class SaveContactPromptRoleSelected(val role: ContactRole?) : PaymentIntent
-
-    data object SaveContactPromptSave : PaymentIntent
-
-    data object SaveContactPromptDismiss : PaymentIntent
 }

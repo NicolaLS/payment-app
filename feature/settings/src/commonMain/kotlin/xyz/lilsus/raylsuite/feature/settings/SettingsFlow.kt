@@ -4,17 +4,17 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
@@ -22,25 +22,20 @@ import xyz.lilsus.raylsuite.core.model.LanguageCatalog
 import xyz.lilsus.raylsuite.core.model.LanguagePreference
 import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
-import xyz.lilsus.raylsuite.feature.contacts.ContactEditorScreen
-import xyz.lilsus.raylsuite.feature.contacts.ContactsEvent
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
-import xyz.lilsus.raylsuite.feature.contacts.ContactsScreen
-import xyz.lilsus.raylsuite.feature.contacts.ContactsViewModel
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencySettingsScreen
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencySettingsViewModel
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsScreen
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageSettingsViewModel
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubLensPreferences
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.host.rememberSelectedPaymentHubLens
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubLensDefinition
+import xyz.lilsus.raylsuite.feature.paymenthub.library.PaymentHubLibraryFlow
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsScreen
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentSettingsViewModel
-import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutContactPickerScreen
-import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutCurrencyPickerScreen
-import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutEditorScreen
-import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutsEvent
-import xyz.lilsus.raylsuite.feature.paymentshortcuts.PaymentShortcutsViewModel
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.Res
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_english
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_german
@@ -59,8 +54,10 @@ fun SettingsFlow(
     languageRepository: LanguageRepository,
     bitcoinPriceProvider: BitcoinPriceProvider,
     currencyPreferences: CurrencyPreferences,
-    contactsRepository: ContactsRepository,
     paymentPreferences: PaymentPreferencesRepository,
+    paymentHub: PaymentHubRepository,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     legalLinks: SettingsLegalLinks,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -71,46 +68,23 @@ fun SettingsFlow(
     performanceDiagnostics: PerformanceDiagnostics? = null,
     donationAppName: String? = null,
     onDonate: ((Long) -> Unit)? = null,
-    additionalContactActions: @Composable ColumnScope.() -> Unit = {}
+    hubLibraryActions: @Composable ColumnScope.() -> Unit = {}
 ) {
     var destination by remember(startDestination) {
         mutableStateOf(startDestination.toInternalDestination())
     }
-    var shortcutReturnDestination by remember {
-        mutableStateOf<SettingsDestination?>(SettingsDestination.Payments)
-    }
-    var shortcutCurrencySearch by remember { mutableStateOf("") }
 
     val currencyState =
         currencyPreferences.code.collectAsState(CurrencyCatalog.DEFAULT_CODE)
 
-    val contactsViewModel =
-        remember(contactsRepository) {
-            ContactsViewModel(contactsRepository)
-        }
-    val shortcutsViewModel =
-        remember(contactsRepository) {
-            PaymentShortcutsViewModel(
-                repository = contactsRepository,
-                preferredCurrencyCode = { currencyState.value }
-            )
-        }
     val paymentSettingsViewModel =
-        remember(
-            paymentPreferences,
-            currencyPreferences,
-            contactsRepository,
-            bitcoinPriceProvider
-        ) {
+        remember(paymentPreferences, currencyPreferences, bitcoinPriceProvider) {
             PaymentSettingsViewModel(
                 paymentPreferences = paymentPreferences,
                 currencyPreferences = currencyPreferences,
-                contactsRepository = contactsRepository,
                 bitcoinPriceProvider = bitcoinPriceProvider
             )
         }
-    val contactsState by contactsViewModel.uiState.collectAsState()
-    val shortcutsState by shortcutsViewModel.uiState.collectAsState()
     val paymentSettingsState by paymentSettingsViewModel.uiState.collectAsState()
     val navigationEventState =
         rememberNavigationEventState(
@@ -124,30 +98,15 @@ fun SettingsFlow(
             SettingsDestination.Currency,
             SettingsDestination.Language,
             SettingsDestination.Theme,
-            SettingsDestination.Payments -> destination = SettingsDestination.Overview
+            SettingsDestination.Payments,
+            SettingsDestination.HomeLayout -> destination = SettingsDestination.Overview
 
-            SettingsDestination.Contacts -> {
-                if (startDestination == SettingsStartDestination.Contacts) {
+            SettingsDestination.PaymentHub -> {
+                if (startDestination == SettingsStartDestination.PaymentHub) {
                     onBack()
                 } else {
                     destination = SettingsDestination.Overview
                 }
-            }
-
-            SettingsDestination.ContactEditor -> contactsViewModel.dismissEditor()
-
-            SettingsDestination.ShortcutEditor -> shortcutsViewModel.dismissEditor()
-
-            SettingsDestination.ShortcutContactPicker -> {
-                if (shortcutReturnDestination == null) {
-                    onBack()
-                } else {
-                    destination = SettingsDestination.ShortcutEditor
-                }
-            }
-
-            SettingsDestination.ShortcutCurrencyPicker -> {
-                destination = SettingsDestination.ShortcutEditor
             }
         }
     }
@@ -155,45 +114,13 @@ fun SettingsFlow(
     NavigationEventHandler(
         state = navigationEventState,
         isForwardEnabled = false,
+        // The hub library owns back handling for its own internal destinations.
+        isBackEnabled = destination != SettingsDestination.PaymentHub,
         onBackCompleted = ::navigateBack
     )
 
-    LaunchedEffect(startDestination, shortcutsViewModel) {
-        if (startDestination == SettingsStartDestination.ShortcutCreate) {
-            shortcutsViewModel.startAdd()
-            shortcutReturnDestination = null
-        }
-    }
-    DisposableEffect(contactsViewModel, shortcutsViewModel, paymentSettingsViewModel) {
-        onDispose {
-            contactsViewModel.clear()
-            shortcutsViewModel.clear()
-            paymentSettingsViewModel.clear()
-        }
-    }
-    LaunchedEffect(contactsViewModel) {
-        contactsViewModel.events.collectLatest { event ->
-            when (event) {
-                ContactsEvent.CloseEditor -> {
-                    destination = SettingsDestination.Contacts
-                }
-
-                is ContactsEvent.CreateShortcut -> {
-                    shortcutsViewModel.startAdd(event.contactId)
-                    shortcutReturnDestination = SettingsDestination.ContactEditor
-                    destination = SettingsDestination.ShortcutEditor
-                }
-            }
-        }
-    }
-    LaunchedEffect(shortcutsViewModel) {
-        shortcutsViewModel.events.collectLatest { event ->
-            when (event) {
-                PaymentShortcutsEvent.CloseEditor -> {
-                    shortcutReturnDestination?.let { destination = it } ?: onBack()
-                }
-            }
-        }
+    DisposableEffect(paymentSettingsViewModel) {
+        onDispose(paymentSettingsViewModel::clear)
     }
 
     when (destination) {
@@ -202,10 +129,13 @@ fun SettingsFlow(
                 currencyPreferences = currencyPreferences,
                 languageRepository = languageRepository,
                 themePreferences = themePreferences,
+                lensPreferences = lensPreferences,
+                lensDefinitions = lensDefinitions,
                 legalLinks = legalLinks,
                 onBack = onBack,
                 onPayments = { destination = SettingsDestination.Payments },
-                onContacts = { destination = SettingsDestination.Contacts },
+                onPaymentHub = { destination = SettingsDestination.PaymentHub },
+                onHomeLayout = { destination = SettingsDestination.HomeLayout },
                 onCurrency = { destination = SettingsDestination.Currency },
                 onLanguage = { destination = SettingsDestination.Language },
                 onTheme = { destination = SettingsDestination.Theme },
@@ -269,115 +199,43 @@ fun SettingsFlow(
         SettingsDestination.Payments -> {
             PaymentSettingsScreen(
                 state = paymentSettingsState,
-                shortcuts = shortcutsState.shortcuts,
                 onBack = ::navigateBack,
                 onModeSelected = paymentSettingsViewModel::selectConfirmationMode,
                 onThresholdChanged =
                     paymentSettingsViewModel::updateConfirmationThreshold,
                 onConfirmManualEntryChanged =
                     paymentSettingsViewModel::setConfirmManualEntry,
-                onConfirmShortcutPaymentsChanged =
-                    paymentSettingsViewModel::setConfirmShortcutPayments,
+                onConfirmPresetPaymentsChanged =
+                    paymentSettingsViewModel::setConfirmPresetPayments,
                 onShowLnurlPayDetailsChanged =
                     paymentSettingsViewModel::setShowLnurlPayDetails,
-                onAskToSaveNewContactsChanged =
-                    paymentSettingsViewModel::setAskToSaveNewContacts,
+                onOfferToSaveNewTargetsChanged =
+                    paymentSettingsViewModel::setOfferToSaveNewTargets,
                 onVibrateOnScanChanged = paymentSettingsViewModel::setVibrateOnScan,
                 onVibrateOnPaymentChanged =
                     paymentSettingsViewModel::setVibrateOnPayment,
-                onAddShortcut = {
-                    shortcutsViewModel.startAdd()
-                    shortcutReturnDestination = SettingsDestination.Payments
-                    destination = SettingsDestination.ShortcutEditor
-                },
-                onEditShortcut = { shortcutId ->
-                    shortcutsViewModel.startEdit(shortcutId)
-                    shortcutReturnDestination = SettingsDestination.Payments
-                    destination = SettingsDestination.ShortcutEditor
-                },
                 modifier = modifier
             )
         }
 
-        SettingsDestination.Contacts -> {
-            ContactsScreen(
-                state = contactsState,
+        SettingsDestination.PaymentHub -> {
+            PaymentHubLibraryFlow(
+                repository = paymentHub,
+                preferredCurrencyCode = { currencyState.value },
                 onBack = ::navigateBack,
-                onAddContact = {
-                    contactsViewModel.startAddContact()
-                    destination = SettingsDestination.ContactEditor
-                },
-                onSearchChange = contactsViewModel::updateSearch,
-                onEditContact = { contactId ->
-                    contactsViewModel.startEditContact(contactId)
-                    destination = SettingsDestination.ContactEditor
-                },
                 modifier = modifier,
-                additionalActions = additionalContactActions
+                libraryActions = hubLibraryActions
             )
         }
 
-        SettingsDestination.ContactEditor -> {
-            ContactEditorScreen(
-                state = contactsState.editor,
+        SettingsDestination.HomeLayout -> {
+            val selectedLens = rememberSelectedPaymentHubLens(lensPreferences, lensDefinitions)
+            val scope = rememberCoroutineScope()
+            HomeLayoutSettingsScreen(
+                definitions = lensDefinitions,
+                selectedId = selectedLens?.id,
+                onSelect = { id -> scope.launch { lensPreferences.select(id) } },
                 onBack = ::navigateBack,
-                onAddressChange = contactsViewModel::updateEditorAddress,
-                onAliasChange = contactsViewModel::updateEditorAlias,
-                onRoleSelected = contactsViewModel::toggleEditorRole,
-                onSave = contactsViewModel::saveNewContact,
-                onDelete = contactsViewModel::deleteEditedContact,
-                onCreateShortcut = contactsViewModel::createShortcutForEditedContact,
-                modifier = modifier
-            )
-        }
-
-        SettingsDestination.ShortcutEditor -> {
-            PaymentShortcutEditorScreen(
-                state = shortcutsState.editor,
-                onBack = ::navigateBack,
-                onTitleChange = shortcutsViewModel::updateTitle,
-                onContactChange = {
-                    shortcutsViewModel.updateContactSearch("")
-                    destination = SettingsDestination.ShortcutContactPicker
-                },
-                onAmountChange = shortcutsViewModel::updateAmount,
-                onCurrencyChange = {
-                    shortcutCurrencySearch = ""
-                    destination = SettingsDestination.ShortcutCurrencyPicker
-                },
-                onCommentChange = shortcutsViewModel::updateComment,
-                onSave = shortcutsViewModel::saveEditor,
-                onDelete = shortcutsViewModel::deleteEditedShortcut,
-                modifier = modifier
-            )
-        }
-
-        SettingsDestination.ShortcutContactPicker -> {
-            PaymentShortcutContactPickerScreen(
-                state = shortcutsState,
-                selectedContactId = shortcutsState.editor?.selectedContact?.id,
-                onBack = ::navigateBack,
-                onSearchChange = shortcutsViewModel::updateContactSearch,
-                onContactSelected = { contactId ->
-                    shortcutsViewModel.selectContact(contactId)
-                    destination = SettingsDestination.ShortcutEditor
-                },
-                modifier = modifier
-            )
-        }
-
-        SettingsDestination.ShortcutCurrencyPicker -> {
-            PaymentShortcutCurrencyPickerScreen(
-                selectedCode =
-                    shortcutsState.editor?.currencyCode
-                        ?: CurrencyCatalog.DEFAULT_CODE,
-                searchQuery = shortcutCurrencySearch,
-                onBack = ::navigateBack,
-                onSearchChange = { shortcutCurrencySearch = it },
-                onCurrencySelected = { code ->
-                    shortcutsViewModel.selectCurrency(code)
-                    destination = SettingsDestination.ShortcutEditor
-                },
                 modifier = modifier
             )
         }
@@ -389,10 +247,13 @@ private fun SettingsOverview(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     themePreferences: ThemePreferences,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     legalLinks: SettingsLegalLinks,
     onBack: () -> Unit,
     onPayments: () -> Unit,
-    onContacts: () -> Unit,
+    onPaymentHub: () -> Unit,
+    onHomeLayout: () -> Unit,
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
     onTheme: () -> Unit,
@@ -411,16 +272,19 @@ private fun SettingsOverview(
     )
     val languagePreference by languageRepository.preference.collectAsState()
     val themePreference by themePreferences.preference.collectAsState(ThemePreference.System)
+    val selectedLens = rememberSelectedPaymentHubLens(lensPreferences, lensDefinitions)
 
     SettingsScreen(
         onBack = onBack,
         onPayments = onPayments,
-        onContacts = onContacts,
+        onPaymentHub = onPaymentHub,
+        onHomeLayout = onHomeLayout,
         onCurrency = onCurrency,
         onLanguage = onLanguage,
         onTheme = onTheme,
         legalLinks = legalLinks,
         modifier = modifier,
+        homeLayoutSubtitle = selectedLens?.metadata?.name?.resolve(),
         currencySubtitle = currencyCode,
         languageSubtitle = languageSubtitle(languagePreference),
         themeSubtitle = themeSubtitle(themePreference),
@@ -498,11 +362,8 @@ private enum class SettingsDestination {
     Language,
     Theme,
     Payments,
-    Contacts,
-    ContactEditor,
-    ShortcutEditor,
-    ShortcutContactPicker,
-    ShortcutCurrencyPicker
+    PaymentHub,
+    HomeLayout
 }
 
 private data class SettingsNavigationInfo(val destination: SettingsDestination) :
@@ -510,12 +371,10 @@ private data class SettingsNavigationInfo(val destination: SettingsDestination) 
 
 enum class SettingsStartDestination {
     Overview,
-    Contacts,
-    ShortcutCreate
+    PaymentHub
 }
 
 private fun SettingsStartDestination.toInternalDestination(): SettingsDestination = when (this) {
     SettingsStartDestination.Overview -> SettingsDestination.Overview
-    SettingsStartDestination.Contacts -> SettingsDestination.Contacts
-    SettingsStartDestination.ShortcutCreate -> SettingsDestination.ShortcutContactPicker
+    SettingsStartDestination.PaymentHub -> SettingsDestination.PaymentHub
 }

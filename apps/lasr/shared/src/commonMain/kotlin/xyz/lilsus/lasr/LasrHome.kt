@@ -23,9 +23,13 @@ import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.lasr.integration.nwc.NwcWalletConnection
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubLensPreferences
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
+import xyz.lilsus.raylsuite.feature.paymenthub.host.rememberSelectedPaymentHubLens
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubLensDefinition
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
@@ -47,15 +51,24 @@ internal fun NavGraphBuilder.lasrHome(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    paymentHubRepository: PaymentHubRepository,
+    paymentHub: PaymentHubController,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     paymentCoordinator: PaymentCoordinator,
     nwcWallet: NwcWallet,
     performanceDiagnostics: PerformanceDiagnostics?,
     onRemoveWallet: () -> Unit
 ) {
     composable<LasrDestination.Home> {
+        val lens =
+            checkNotNull(rememberSelectedPaymentHubLens(lensPreferences, lensDefinitions)) {
+                "Lasr registers at least one payment hub lens"
+            }
         PaymentFlow(
             coordinator = paymentCoordinator,
+            paymentHub = paymentHub,
+            lens = lens,
             appTitle = stringResource(Res.string.app_name),
             estimatedFeeHint = null,
             errorMessageFor = ::lasrPaymentErrorMessageFor,
@@ -63,11 +76,8 @@ internal fun NavGraphBuilder.lasrHome(
             onNavigateSettings = {
                 navController.navigate(LasrDestination.Settings)
             },
-            onNavigateShortcutCreate = {
-                navController.navigate(LasrDestination.ShortcutCreate)
-            },
-            onNavigateContacts = {
-                navController.navigate(LasrDestination.Contacts)
+            onNavigateLibrary = {
+                navController.navigate(LasrDestination.PaymentHub)
             }
         )
     }
@@ -80,37 +90,26 @@ internal fun NavGraphBuilder.lasrHome(
             currencyPreferences = currencyPreferences,
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
+            paymentHubRepository = paymentHubRepository,
+            lensPreferences = lensPreferences,
+            lensDefinitions = lensDefinitions,
             paymentCoordinator = paymentCoordinator,
             nwcWallet = nwcWallet,
             performanceDiagnostics = performanceDiagnostics
         )
     }
-    composable<LasrDestination.Contacts> {
+    composable<LasrDestination.PaymentHub> {
         LasrSettings(
-            startDestination = SettingsStartDestination.Contacts,
+            startDestination = SettingsStartDestination.PaymentHub,
             navController = navController,
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
-            paymentCoordinator = paymentCoordinator,
-            nwcWallet = nwcWallet,
-            performanceDiagnostics = performanceDiagnostics
-        )
-    }
-    composable<LasrDestination.ShortcutCreate> {
-        LasrSettings(
-            startDestination = SettingsStartDestination.ShortcutCreate,
-            navController = navController,
-            themePreferences = themePreferences,
-            bitcoinPriceProvider = bitcoinPriceProvider,
-            currencyPreferences = currencyPreferences,
-            languageRepository = languageRepository,
-            paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
+            paymentHubRepository = paymentHubRepository,
+            lensPreferences = lensPreferences,
+            lensDefinitions = lensDefinitions,
             paymentCoordinator = paymentCoordinator,
             nwcWallet = nwcWallet,
             performanceDiagnostics = performanceDiagnostics
@@ -174,7 +173,9 @@ private fun LasrSettings(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    paymentHubRepository: PaymentHubRepository,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     paymentCoordinator: PaymentCoordinator,
     nwcWallet: NwcWallet,
     performanceDiagnostics: PerformanceDiagnostics?
@@ -190,7 +191,9 @@ private fun LasrSettings(
         startDestination = startDestination,
         currencyPreferences = currencyPreferences,
         paymentPreferences = paymentPreferences,
-        contactsRepository = contactsRepository,
+        paymentHub = paymentHubRepository,
+        lensPreferences = lensPreferences,
+        lensDefinitions = lensDefinitions,
         performanceDiagnostics = performanceDiagnostics,
         leadingEntries =
             listOf(

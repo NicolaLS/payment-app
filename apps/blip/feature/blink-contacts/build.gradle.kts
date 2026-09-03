@@ -15,7 +15,7 @@ kotlin {
         commonMain.dependencies {
             api(project(":blip:integration:blink"))
             api(project(":blip:ui"))
-            api(project(":feature:contacts"))
+            api(project(":feature:payment-hub"))
             implementation(project(":core:ui"))
             implementation(libs.compose.components.resources)
             implementation(libs.compose.foundation)

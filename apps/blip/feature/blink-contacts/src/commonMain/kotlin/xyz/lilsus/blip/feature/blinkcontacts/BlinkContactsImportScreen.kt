@@ -2,6 +2,7 @@ package xyz.lilsus.blip.feature.blinkcontacts
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,10 +27,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.Res as BlinkContactsRes
+import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.import_contacts_no_matches
+import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.import_contacts_search
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_already_added
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_empty
 import xyz.lilsus.blip.feature.blinkcontacts.generated.resources.settings_wallet_details_import_contacts_import
@@ -47,11 +52,6 @@ import xyz.lilsus.blip.ui.generated.resources.blink_contacts_title
 import xyz.lilsus.raylsuite.core.ui.components.AppListDefaults
 import xyz.lilsus.raylsuite.core.ui.components.AppListScaffold
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
-import xyz.lilsus.raylsuite.feature.contacts.ContactListEntry
-import xyz.lilsus.raylsuite.feature.contacts.ContactSummary
-import xyz.lilsus.raylsuite.feature.contacts.generated.resources.Res as ContactsRes
-import xyz.lilsus.raylsuite.feature.contacts.generated.resources.contacts_no_matching_contacts
-import xyz.lilsus.raylsuite.feature.contacts.generated.resources.contacts_search_label
 
 @Composable
 fun BlinkContactsImportButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -153,14 +153,20 @@ fun BlinkContactsImportScreen(
             if (state.items.isNotEmpty()) {
                 AppListScaffold(
                     isEmpty = state.filteredItems.isEmpty(),
-                    emptyMessage = stringResource(ContactsRes.string.contacts_no_matching_contacts),
+                    emptyMessage =
+                        stringResource(
+                            BlinkContactsRes.string.import_contacts_no_matches
+                        ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     showSearchBar = true,
                     searchQuery = state.searchQuery,
                     onSearchQueryChange = onSearchQueryChange,
-                    searchLabel = stringResource(ContactsRes.string.contacts_search_label)
+                    searchLabel =
+                        stringResource(
+                            BlinkContactsRes.string.import_contacts_search
+                        )
                 ) {
                     item {
                         SelectAllContactsRow(
@@ -351,8 +357,8 @@ private fun BlinkContactImportRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Checkbox(checked = selected, onCheckedChange = null, enabled = enabled)
-            ContactSummary(
-                contact = item.toContactListEntry(),
+            ImportedContactSummary(
+                item = item,
                 modifier = Modifier.weight(1f),
                 titleColor = titleColor
             ) {
@@ -366,8 +372,28 @@ private fun BlinkContactImportRow(
     }
 }
 
-private fun BlinkContactImportItem.toContactListEntry(): ContactListEntry = ContactListEntry(
-    id = id,
-    displayName = displayName,
-    address = address
-)
+@Composable
+private fun ImportedContactSummary(
+    item: BlinkContactImportItem,
+    modifier: Modifier = Modifier,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    supportingContent: @Composable ColumnScope.() -> Unit
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = item.displayName,
+            style = MaterialTheme.typography.bodyLarge,
+            color = titleColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = item.address,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        supportingContent()
+    }
+}

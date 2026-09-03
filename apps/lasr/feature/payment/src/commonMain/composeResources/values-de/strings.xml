@@ -3,7 +3,6 @@
     <string name="transaction_status_success">Bezahlt</string>
     <string name="transaction_status_failure">Fehlgeschlagen</string>
     <string name="transaction_fee">Gebühr %1$s</string>
-    <string name="shortcuts_title">Shortcuts</string>
     <string name="error_missing_wallet_connection">Verbinde zuerst eine Wallet.</string>
     <string name="error_payment_rejected_generic">Zahlung wurde abgewiesen.</string>
     <string name="error_payment_rejected_message">Zahlung wurde abgewiesen: %1$s</string>

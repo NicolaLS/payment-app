@@ -18,13 +18,11 @@ import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.model.convertMsatsToDisplayAmount
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 
 class PaymentSettingsViewModel(
     private val paymentPreferences: PaymentPreferencesRepository,
     currencyPreferences: CurrencyPreferences,
-    private val contactsRepository: ContactsRepository,
     private val bitcoinPriceProvider: BitcoinPriceProvider,
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
@@ -44,20 +42,13 @@ class PaymentSettingsViewModel(
                         confirmationMode = preferences.confirmationMode,
                         thresholdSats = preferences.thresholdSats,
                         confirmManualEntry = preferences.confirmManualEntry,
-                        confirmShortcutPayments = preferences.confirmShortcutPayments,
+                        confirmPresetPayments = preferences.confirmPresetPayments,
+                        offerToSaveNewTargets = preferences.offerToSaveNewTargets,
                         showLnurlPayDetails = preferences.showLnurlPayDetails,
                         vibrateOnScan = preferences.vibrateOnScan,
                         vibrateOnPayment = preferences.vibrateOnPayment
                     )
                 publishThresholdPreview()
-            }
-        }
-        scope.launch {
-            contactsRepository.preferences.collectLatest { preferences ->
-                mutableUiState.value =
-                    mutableUiState.value.copy(
-                        askToSaveNewContacts = preferences.askToSaveNewContacts
-                    )
             }
         }
         scope.launch {
@@ -83,9 +74,15 @@ class PaymentSettingsViewModel(
         }
     }
 
-    fun setConfirmShortcutPayments(enabled: Boolean) {
+    fun setConfirmPresetPayments(enabled: Boolean) {
         scope.launch {
-            paymentPreferences.setConfirmShortcutPayments(enabled)
+            paymentPreferences.setConfirmPresetPayments(enabled)
+        }
+    }
+
+    fun setOfferToSaveNewTargets(enabled: Boolean) {
+        scope.launch {
+            paymentPreferences.setOfferToSaveNewTargets(enabled)
         }
     }
 
@@ -104,12 +101,6 @@ class PaymentSettingsViewModel(
     fun setVibrateOnPayment(enabled: Boolean) {
         scope.launch {
             paymentPreferences.setVibrateOnPayment(enabled)
-        }
-    }
-
-    fun setAskToSaveNewContacts(enabled: Boolean) {
-        scope.launch {
-            contactsRepository.setAskToSaveNewContacts(enabled)
         }
     }
 
@@ -149,11 +140,11 @@ data class PaymentSettingsUiState(
     val confirmationMode: PaymentConfirmationMode = PaymentPreferences().confirmationMode,
     val thresholdSats: Long = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val confirmManualEntry: Boolean = PaymentPreferences().confirmManualEntry,
-    val confirmShortcutPayments: Boolean = PaymentPreferences().confirmShortcutPayments,
+    val confirmPresetPayments: Boolean = PaymentPreferences().confirmPresetPayments,
+    val offerToSaveNewTargets: Boolean = PaymentPreferences().offerToSaveNewTargets,
     val showLnurlPayDetails: Boolean = PaymentPreferences().showLnurlPayDetails,
     val vibrateOnScan: Boolean = PaymentPreferences().vibrateOnScan,
     val vibrateOnPayment: Boolean = PaymentPreferences().vibrateOnPayment,
-    val askToSaveNewContacts: Boolean = true,
     val thresholdCurrencyEquivalent: DisplayAmount? = null
 )
 

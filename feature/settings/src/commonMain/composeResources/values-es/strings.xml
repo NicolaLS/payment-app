@@ -1,9 +1,12 @@
 <resources>
     <string name="settings_title">Ajustes</string>
     <string name="settings_payments">Pagos</string>
-    <string name="settings_payments_subtitle">Confirmaciones y accesos directos</string>
-    <string name="settings_contacts">Contactos</string>
-    <string name="settings_contacts_subtitle">Contactos guardados</string>
+    <string name="settings_payments_subtitle">Confirmaciones y vibraciones</string>
+    <string name="settings_payment_hub">Centro de pagos</string>
+    <string name="settings_payment_hub_subtitle">Destinos y grupos guardados</string>
+    <string name="settings_home_layout">Diseño de inicio</string>
+    <string name="settings_home_layout_subtitle">Cómo se organiza tu pantalla de inicio</string>
+    <string name="settings_home_layout_body">Todos los diseños muestran los mismos destinos, grupos y elementos fijados. Cambiar nunca modifica los datos de tu centro de pagos.</string>
     <string name="settings_currency">Moneda</string>
     <string name="settings_currency_subtitle">Moneda para mostrar pagos</string>
     <string name="settings_language">Idioma</string>

@@ -27,9 +27,13 @@ import xyz.lilsus.blip.ui.generated.resources.Res as BlipUiRes
 import xyz.lilsus.blip.ui.generated.resources.result_paid_fee_blink_hint
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
-import xyz.lilsus.raylsuite.feature.contacts.ContactsRepository
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.LanguageRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubLensPreferences
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
+import xyz.lilsus.raylsuite.feature.paymenthub.host.rememberSelectedPaymentHubLens
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubLensDefinition
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
@@ -45,15 +49,24 @@ internal fun NavGraphBuilder.blipHome(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    paymentHubRepository: PaymentHubRepository,
+    paymentHub: PaymentHubController,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     paymentCoordinator: PaymentCoordinator,
     blinkWallet: BlinkWallet,
     performanceDiagnostics: PerformanceDiagnostics?,
     onRemoveWallet: () -> Unit
 ) {
     composable<BlipDestination.Home> {
+        val lens =
+            checkNotNull(rememberSelectedPaymentHubLens(lensPreferences, lensDefinitions)) {
+                "Blip registers at least one payment hub lens"
+            }
         PaymentFlow(
             coordinator = paymentCoordinator,
+            paymentHub = paymentHub,
+            lens = lens,
             appTitle = stringResource(Res.string.app_name),
             estimatedFeeHint =
                 stringResource(BlipUiRes.string.result_paid_fee_blink_hint),
@@ -62,11 +75,8 @@ internal fun NavGraphBuilder.blipHome(
             onNavigateSettings = {
                 navController.navigate(BlipDestination.Settings)
             },
-            onNavigateShortcutCreate = {
-                navController.navigate(BlipDestination.ShortcutCreate)
-            },
-            onNavigateContacts = {
-                navController.navigate(BlipDestination.Contacts)
+            onNavigateLibrary = {
+                navController.navigate(BlipDestination.PaymentHub)
             }
         )
     }
@@ -79,39 +89,27 @@ internal fun NavGraphBuilder.blipHome(
             currencyPreferences = currencyPreferences,
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
+            paymentHubRepository = paymentHubRepository,
+            lensPreferences = lensPreferences,
+            lensDefinitions = lensDefinitions,
             blinkWallet = blinkWallet,
             paymentCoordinator = paymentCoordinator,
             performanceDiagnostics = performanceDiagnostics,
             onRemoveWallet = onRemoveWallet
         )
     }
-    composable<BlipDestination.Contacts> {
+    composable<BlipDestination.PaymentHub> {
         BlipSettings(
-            startDestination = SettingsStartDestination.Contacts,
+            startDestination = SettingsStartDestination.PaymentHub,
             navController = navController,
             themePreferences = themePreferences,
             bitcoinPriceProvider = bitcoinPriceProvider,
             currencyPreferences = currencyPreferences,
             languageRepository = languageRepository,
             paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
-            blinkWallet = blinkWallet,
-            paymentCoordinator = paymentCoordinator,
-            performanceDiagnostics = performanceDiagnostics,
-            onRemoveWallet = onRemoveWallet
-        )
-    }
-    composable<BlipDestination.ShortcutCreate> {
-        BlipSettings(
-            startDestination = SettingsStartDestination.ShortcutCreate,
-            navController = navController,
-            themePreferences = themePreferences,
-            bitcoinPriceProvider = bitcoinPriceProvider,
-            currencyPreferences = currencyPreferences,
-            languageRepository = languageRepository,
-            paymentPreferences = paymentPreferences,
-            contactsRepository = contactsRepository,
+            paymentHubRepository = paymentHubRepository,
+            lensPreferences = lensPreferences,
+            lensDefinitions = lensDefinitions,
             blinkWallet = blinkWallet,
             paymentCoordinator = paymentCoordinator,
             performanceDiagnostics = performanceDiagnostics,
@@ -120,10 +118,10 @@ internal fun NavGraphBuilder.blipHome(
     }
     composable<BlipDestination.BlinkContactsImport> {
         val viewModel =
-            remember(blinkWallet, contactsRepository) {
+            remember(blinkWallet, paymentHubRepository) {
                 BlinkContactsImportViewModel(
                     blinkWallet = blinkWallet,
-                    contactsRepository = contactsRepository
+                    paymentHub = paymentHubRepository
                 )
             }
         val state by viewModel.uiState.collectAsState()
@@ -154,7 +152,9 @@ private fun BlipSettings(
     currencyPreferences: CurrencyPreferences,
     languageRepository: LanguageRepository,
     paymentPreferences: PaymentPreferencesRepository,
-    contactsRepository: ContactsRepository,
+    paymentHubRepository: PaymentHubRepository,
+    lensPreferences: PaymentHubLensPreferences,
+    lensDefinitions: List<PaymentHubLensDefinition>,
     blinkWallet: BlinkWallet,
     paymentCoordinator: PaymentCoordinator,
     performanceDiagnostics: PerformanceDiagnostics?,
@@ -178,7 +178,9 @@ private fun BlipSettings(
         startDestination = startDestination,
         currencyPreferences = currencyPreferences,
         paymentPreferences = paymentPreferences,
-        contactsRepository = contactsRepository,
+        paymentHub = paymentHubRepository,
+        lensPreferences = lensPreferences,
+        lensDefinitions = lensDefinitions,
         performanceDiagnostics = performanceDiagnostics,
         overviewBottomContent = {
             BlinkWalletSettingsActions(
@@ -187,7 +189,7 @@ private fun BlipSettings(
                 onRemoveWallet = onRemoveWallet
             )
         },
-        additionalContactActions = {
+        hubLibraryActions = {
             BlinkContactsImportButton(
                 onClick = {
                     navController.navigate(BlipDestination.BlinkContactsImport)

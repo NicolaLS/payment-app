@@ -14,6 +14,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubHostState
+import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubIntent
+import xyz.lilsus.raylsuite.feature.paymenthub.lens.PaymentHubLensDefinition
 import xyz.lilsus.raylsuite.feature.paymentui.components.SessionTransactionsScreen
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.Res
 import xyz.lilsus.raylsuite.feature.paymentui.generated.resources.session_transactions_empty
@@ -25,14 +28,17 @@ fun PaymentFlow(
     messageEvents: Flow<String>,
     appTitle: String,
     estimatedFeeHint: String?,
+    hub: PaymentHubHostState,
+    lens: PaymentHubLensDefinition,
     onIntent: (PaymentIntent) -> Unit,
+    onHubIntent: (PaymentHubIntent) -> Unit,
     onNavigateSettings: () -> Unit,
-    onNavigateShortcutCreate: () -> Unit,
-    onNavigateContacts: () -> Unit,
+    onNavigateLibrary: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
     val currentState = rememberUpdatedState(state)
+    val currentHub = rememberUpdatedState(hub)
     val currentMessageEvents = rememberUpdatedState(messageEvents)
     val currentOnIntent = rememberUpdatedState(onIntent)
     var selectedTransactionId by remember { mutableStateOf<String?>(null) }
@@ -47,7 +53,10 @@ fun PaymentFlow(
                 messageEvents = currentMessageEvents.value,
                 appTitle = appTitle,
                 estimatedFeeHint = estimatedFeeHint,
+                hub = currentHub.value,
+                lens = lens,
                 onIntent = currentOnIntent.value,
+                onHubIntent = onHubIntent,
                 onNavigateTransactions = {
                     navController.navigate(PAYMENT_TRANSACTIONS_ROUTE) {
                         launchSingleTop = true
@@ -58,8 +67,7 @@ fun PaymentFlow(
                     navController.navigate(PAYMENT_DETAIL_ROUTE)
                 },
                 onNavigateSettings = onNavigateSettings,
-                onNavigateShortcutCreate = onNavigateShortcutCreate,
-                onNavigateContacts = onNavigateContacts
+                onNavigateLibrary = onNavigateLibrary
             )
         }
         composable(PAYMENT_TRANSACTIONS_ROUTE) {

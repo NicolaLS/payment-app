@@ -36,17 +36,20 @@ import xyz.lilsus.raylsuite.core.ui.components.AppListRow
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.platform.appVersionName
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubLensId
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.Res
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_contacts
-import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_contacts_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_currency_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_privacy
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_repo
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_terms
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_footer_version
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_home_layout
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_home_layout_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_language_subtitle
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payment_hub
+import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payment_hub_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_payments_subtitle
 import xyz.lilsus.raylsuite.feature.settings.generated.resources.settings_performance_diagnostics
@@ -80,12 +83,14 @@ data class SettingsLegalLinks(
 fun SettingsScreen(
     onBack: () -> Unit,
     onPayments: () -> Unit,
-    onContacts: () -> Unit,
+    onPaymentHub: () -> Unit,
+    onHomeLayout: () -> Unit,
     onCurrency: () -> Unit,
     onLanguage: () -> Unit,
     onTheme: () -> Unit,
     legalLinks: SettingsLegalLinks,
     modifier: Modifier = Modifier,
+    homeLayoutSubtitle: String? = null,
     currencySubtitle: String? = null,
     languageSubtitle: String? = null,
     themeSubtitle: String? = null,
@@ -104,6 +109,8 @@ fun SettingsScreen(
         languageSubtitle ?: stringResource(Res.string.settings_language_subtitle)
     val resolvedThemeSubtitle =
         themeSubtitle ?: stringResource(Res.string.settings_theme_subtitle)
+    val resolvedHomeLayoutSubtitle =
+        homeLayoutSubtitle ?: stringResource(Res.string.settings_home_layout_subtitle)
     val sharedEntries =
         listOf(
             SettingsEntry(
@@ -114,11 +121,18 @@ fun SettingsScreen(
                 onClick = onPayments
             ),
             SettingsEntry(
-                id = "contacts",
-                title = stringResource(Res.string.settings_contacts),
-                subtitle = stringResource(Res.string.settings_contacts_subtitle),
-                testTag = SettingsTestTags.CONTACTS_ROW,
-                onClick = onContacts
+                id = "payment-hub",
+                title = stringResource(Res.string.settings_payment_hub),
+                subtitle = stringResource(Res.string.settings_payment_hub_subtitle),
+                testTag = SettingsTestTags.PAYMENT_HUB_ROW,
+                onClick = onPaymentHub
+            ),
+            SettingsEntry(
+                id = "home-layout",
+                title = stringResource(Res.string.settings_home_layout),
+                subtitle = resolvedHomeLayoutSubtitle,
+                testTag = SettingsTestTags.HOME_LAYOUT_ROW,
+                onClick = onHomeLayout
             ),
             SettingsEntry(
                 id = "currency",
@@ -324,7 +338,11 @@ private fun SettingsFooter(legalLinks: SettingsLegalLinks) {
 object SettingsTestTags {
     const val SCREEN = "settings_screen"
     const val PAYMENTS_ROW = "settings_payments_row"
-    const val CONTACTS_ROW = "settings_contacts_row"
+    const val PAYMENT_HUB_ROW = "settings_payment_hub_row"
+    const val HOME_LAYOUT_ROW = "settings_home_layout_row"
+    const val HOME_LAYOUT_SCREEN = "settings_home_layout"
+
+    fun homeLayoutOption(id: PaymentHubLensId): String = "settings_home_layout_option_${id.value}"
     const val CURRENCY_ROW = "settings_currency_row"
     const val LANGUAGE_ROW = "settings_language_row"
     const val THEME_ROW = "settings_theme_row"
@@ -337,7 +355,8 @@ private fun SettingsScreenPreview() {
         SettingsScreen(
             onBack = {},
             onPayments = {},
-            onContacts = {},
+            onPaymentHub = {},
+            onHomeLayout = {},
             onCurrency = {},
             onLanguage = {},
             onTheme = {},

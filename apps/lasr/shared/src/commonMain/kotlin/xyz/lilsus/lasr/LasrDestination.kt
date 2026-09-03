@@ -10,10 +10,7 @@ internal sealed interface LasrDestination {
     data object Settings : LasrDestination
 
     @Serializable
-    data object Contacts : LasrDestination
-
-    @Serializable
-    data object ShortcutCreate : LasrDestination
+    data object PaymentHub : LasrDestination
 
     @Serializable
     data object WalletManagement : LasrDestination

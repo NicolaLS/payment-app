@@ -130,7 +130,7 @@ class PaymentSessionStateTest {
         display = null,
         sourceKey = null,
         paymentSource = PaymentRequestSource.Camera,
-        contactContext = null,
+        targetContext = null,
         comment = null,
         replacesDynamicGuardId = null
     )
