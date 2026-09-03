@@ -19,14 +19,20 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import xyz.lilsus.blip.integration.blink.BlinkApiError
+import xyz.lilsus.blip.integration.blink.BlinkApiException
+import xyz.lilsus.blip.integration.blink.BlinkConnectionException
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
+import xyz.lilsus.blip.integration.blink.BlinkPaymentAmount
 import xyz.lilsus.blip.integration.blink.BlinkPaymentOutcome
 import xyz.lilsus.blip.integration.blink.BlinkPaymentRequest
 import xyz.lilsus.blip.integration.blink.BlinkWallet
+import xyz.lilsus.blip.integration.blink.BlinkWalletCurrency
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.CurrencyInfo
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.LightningAddress
+import xyz.lilsus.raylsuite.core.model.convertMsatsToDisplayAmount
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.core.payment.LightningInputParser
@@ -60,7 +66,7 @@ import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 class PaymentCoordinator(
     private val blinkWallet: BlinkWallet,
     private val lnurlPayClient: LnurlPayClient,
-    bitcoinPriceProvider: BitcoinPriceProvider,
+    private val bitcoinPriceProvider: BitcoinPriceProvider,
     private val currencyPreferences: CurrencyPreferences,
     private val paymentPreferences: PaymentPreferencesRepository,
     private val paymentHub: PaymentHubController,
@@ -636,6 +642,7 @@ class PaymentCoordinator(
         paymentQuote: PaymentAmountQuote? = null
     ) {
         val display = session.display ?: return
+        val fundingWallet = snapshotFundingWallet() ?: return
         val roundedAmount = roundToFullSatoshis(amountMsats)
         val confirmationAmount = confirmationAmount(roundedAmount, paymentQuote)
         pendingLnurlReview =
@@ -643,11 +650,13 @@ class PaymentCoordinator(
                 session = session,
                 amountMsats = roundedAmount,
                 isManualEntry = isManualEntry,
+                fundingWallet = fundingWallet,
                 paymentQuote = paymentQuote
             )
         mutableUiState.value =
             PaymentUiState.Confirm(
                 amount = confirmationAmount,
+                fundingWallet = fundingWallet,
                 lnurlPayDisplay = display
             )
     }
@@ -656,7 +665,8 @@ class PaymentCoordinator(
         session: LnurlSession,
         amountMsats: Long,
         isManualEntry: Boolean,
-        paymentQuote: PaymentAmountQuote? = null
+        paymentQuote: PaymentAmountQuote? = null,
+        fundingWallet: BlinkFundingWallet? = null
     ) {
         mutableUiState.value = PaymentUiState.Loading()
         scope.launch {
@@ -667,7 +677,8 @@ class PaymentCoordinator(
                         amountMsats = result.amountMsats,
                         invoice = result.invoice,
                         isManualEntry = isManualEntry,
-                        paymentQuote = paymentQuote
+                        paymentQuote = paymentQuote,
+                        fundingWallet = fundingWallet
                     )
 
                 is LnurlInvoiceResolution.Failure -> {
@@ -683,7 +694,8 @@ class PaymentCoordinator(
         amountMsats: Long,
         invoice: Bolt11Invoice,
         isManualEntry: Boolean,
-        paymentQuote: PaymentAmountQuote?
+        paymentQuote: PaymentAmountQuote?,
+        fundingWallet: BlinkFundingWallet?
     ) {
         pendingTracker.findLatestByPaymentHash(invoice.paymentHash.toHex())?.let { existing ->
             manualEntryContext = null
@@ -706,7 +718,8 @@ class PaymentCoordinator(
             targetContext = session.targetContext,
             replacesDynamicGuardId = session.replacesDynamicGuardId,
             lnurlAuthorized = session.display != null,
-            paymentQuote = paymentQuote
+            paymentQuote = paymentQuote,
+            fundingWalletSnapshot = fundingWallet
         )
     }
 
@@ -826,7 +839,8 @@ class PaymentCoordinator(
                 review.session,
                 review.amountMsats,
                 review.isManualEntry,
-                review.paymentQuote
+                review.paymentQuote,
+                review.fundingWallet
             )
             return
         }
@@ -835,6 +849,8 @@ class PaymentCoordinator(
         startPayment(
             invoice = pending.invoice,
             amountOverrideMsats = pending.amountOverrideMsats,
+            fundingWallet = pending.fundingWallet,
+            fundingAmountCents = pending.fundingAmountCents,
             origin = pending.origin,
             dynamicSourceKey = pending.dynamicSourceKey,
             targetContext = pending.targetContext,
@@ -851,7 +867,8 @@ class PaymentCoordinator(
         targetContext: HubTargetContext? = null,
         replacesDynamicGuardId: String? = null,
         lnurlAuthorized: Boolean = false,
-        paymentQuote: PaymentAmountQuote? = null
+        paymentQuote: PaymentAmountQuote? = null,
+        fundingWalletSnapshot: BlinkFundingWallet? = null
     ) {
         if (paymentAdmissionInProgress) return
         paymentAdmissionInProgress = true
@@ -862,6 +879,21 @@ class PaymentCoordinator(
                     emitError(PaymentUiError.InvalidInvoice("Quoted amount does not match invoice"))
                     return@launch
                 }
+                val fundingWallet =
+                    fundingWalletSnapshot ?: snapshotFundingWallet() ?: return@launch
+                val fundingAmountCents =
+                    if (
+                        amountOverrideMsats != null &&
+                        fundingWallet.currency == BlinkWalletCurrency.USD
+                    ) {
+                        usdPaymentAmountCents(amountOverrideMsats, paymentQuote)
+                            ?: run {
+                                emitError(PaymentUiError.ExchangeRateUnavailable(USD_CODE))
+                                return@launch
+                            }
+                    } else {
+                        null
+                    }
                 val isManualEntry =
                     origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
                 val requiresConfirmation =
@@ -883,16 +915,24 @@ class PaymentCoordinator(
                         PendingPayment(
                             invoice = invoice,
                             amountOverrideMsats = amountOverrideMsats,
+                            fundingWallet = fundingWallet,
+                            fundingAmountCents = fundingAmountCents,
                             origin = origin,
                             dynamicSourceKey = dynamicSourceKey,
                             targetContext = targetContext,
                             replacesDynamicGuardId = replacesDynamicGuardId
                         )
-                    mutableUiState.value = PaymentUiState.Confirm(display)
+                    mutableUiState.value =
+                        PaymentUiState.Confirm(
+                            amount = display,
+                            fundingWallet = fundingWallet
+                        )
                 } else {
                     startPayment(
                         invoice,
                         amountOverrideMsats,
+                        fundingWallet,
+                        fundingAmountCents,
                         origin,
                         dynamicSourceKey,
                         targetContext,
@@ -912,6 +952,8 @@ class PaymentCoordinator(
     private fun startPayment(
         invoice: Bolt11Invoice,
         amountOverrideMsats: Long?,
+        fundingWallet: BlinkFundingWallet,
+        fundingAmountCents: Long?,
         origin: PendingOrigin,
         dynamicSourceKey: DynamicPaymentSourceKey?,
         targetContext: HubTargetContext?,
@@ -924,6 +966,8 @@ class PaymentCoordinator(
                 summary = invoice,
                 amountMsats = amountMsats,
                 amountOverrideMsats = amountOverrideMsats,
+                fundingWallet = fundingWallet,
+                fundingAmountCents = fundingAmountCents,
                 origin = origin,
                 dynamicSourceKey = dynamicSourceKey,
                 replacesDynamicGuardId = replacesDynamicGuardId
@@ -932,14 +976,18 @@ class PaymentCoordinator(
         launchPayment(
             pendingId = pendingId,
             invoice = invoice,
-            amountOverrideMsats = amountOverrideMsats
+            amountOverrideMsats = amountOverrideMsats,
+            fundingWallet = fundingWallet,
+            fundingAmountCents = fundingAmountCents
         )
     }
 
     private fun launchPayment(
         pendingId: String,
         invoice: Bolt11Invoice,
-        amountOverrideMsats: Long?
+        amountOverrideMsats: Long?,
+        fundingWallet: BlinkFundingWallet,
+        fundingAmountCents: Long?
     ) {
         paymentJobs.remove(pendingId)?.cancel()
         val job =
@@ -950,7 +998,19 @@ class PaymentCoordinator(
                             blinkWallet.submitPayment(
                                 BlinkPaymentRequest(
                                     invoice = invoice.write(),
-                                    amountMsats = amountOverrideMsats
+                                    fundingWallet = fundingWallet,
+                                    amount =
+                                        amountOverrideMsats?.let { amountMsats ->
+                                            when (fundingWallet.currency) {
+                                                BlinkWalletCurrency.BTC ->
+                                                    BlinkPaymentAmount.Bitcoin(amountMsats)
+
+                                                BlinkWalletCurrency.USD ->
+                                                    BlinkPaymentAmount.Usd(
+                                                        requireNotNull(fundingAmountCents)
+                                                    )
+                                            }
+                                        }
                                 )
                             )
                     ) {
@@ -1172,12 +1232,22 @@ class PaymentCoordinator(
                 }
                 ?: return
         if (rejectExpiredInvoice(record.summary)) return
+        if (
+            record.amountOverrideMsats != null &&
+            record.fundingWallet.currency == BlinkWalletCurrency.USD &&
+            record.fundingAmountCents == null
+        ) {
+            emitError(PaymentUiError.Blink(BlinkApiError.FundingWalletUnavailable))
+            return
+        }
         mutableUiState.value = PaymentUiState.Loading()
         pendingTracker.markSending(id)
         launchPayment(
             pendingId = id,
             invoice = record.summary,
-            amountOverrideMsats = record.amountOverrideMsats
+            amountOverrideMsats = record.amountOverrideMsats,
+            fundingWallet = record.fundingWallet,
+            fundingAmountCents = record.fundingAmountCents
         )
     }
 
@@ -1339,6 +1409,43 @@ class PaymentCoordinator(
         )
     }
 
+    private suspend fun snapshotFundingWallet(): BlinkFundingWallet? = try {
+        blinkWallet.prepareFundingWallet()
+    } catch (cause: CancellationException) {
+        throw cause
+    } catch (error: BlinkApiException) {
+        emitError(PaymentUiError.Blink(error.error))
+        null
+    } catch (_: BlinkConnectionException) {
+        emitError(PaymentUiError.Blink(BlinkApiError.MissingWalletConnection))
+        null
+    }
+
+    private suspend fun usdPaymentAmountCents(
+        amountMsats: Long,
+        paymentQuote: PaymentAmountQuote?
+    ): Long? {
+        val requestedAmount = paymentQuote?.requestedAmount
+        val requestedCurrency = requestedAmount?.currency as? DisplayCurrency.Fiat
+        if (
+            requestedAmount != null &&
+            requestedCurrency?.iso4217?.equals(USD_CODE, ignoreCase = true) == true
+        ) {
+            return requestedAmount.minor.takeIf { it > 0L }
+        }
+
+        val usdRate =
+            bitcoinPriceProvider
+                .pricePerBitcoin(USD_CODE)
+                ?.takeIf { it.isFinite() && it > 0.0 }
+                ?: return null
+        return convertMsatsToDisplayAmount(
+            msats = amountMsats,
+            info = CurrencyCatalog.infoFor(USD_CODE),
+            fiatPricePerBitcoin = usdRate
+        )?.minor?.takeIf { it > 0L }
+    }
+
     private fun clearPaymentSessionState() {
         preparation.reset(currencyManager.state.value)
     }
@@ -1374,7 +1481,11 @@ internal sealed interface PendingRetryContinuation {
     ) : PendingRetryContinuation
 }
 
-private fun Throwable.toPaymentUiError(): PaymentUiError = PaymentUiError.Unexpected(message)
+private fun Throwable.toPaymentUiError(): PaymentUiError = when (this) {
+    is BlinkApiException -> PaymentUiError.Blink(error)
+    is BlinkConnectionException -> PaymentUiError.Blink(BlinkApiError.MissingWalletConnection)
+    else -> PaymentUiError.Unexpected(message)
+}
 
 private fun CurrencyManagerError.toPaymentUiError(): PaymentUiError = when (this) {
     is CurrencyManagerError.ExchangeRateUnavailable ->
@@ -1410,3 +1521,4 @@ private fun LnurlInvoiceResolutionError.toPaymentUiError(): PaymentUiError = whe
 }
 
 private const val MSATS_PER_SAT = 1_000L
+private const val USD_CODE = "USD"

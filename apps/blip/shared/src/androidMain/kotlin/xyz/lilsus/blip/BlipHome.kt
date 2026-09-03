@@ -218,7 +218,8 @@ private fun BlipSettingsTab(
         overviewBottomContent = {
             BlinkWalletSettingsActions(
                 state = walletSettingsState,
-                onRefreshConnection = walletSettingsViewModel::refreshConnection,
+                onLoadFundingWallets = walletSettingsViewModel::loadFundingWallets,
+                onSelectFundingWallet = walletSettingsViewModel::selectFundingWallet,
                 onRemoveWallet = onRemoveWallet
             )
         },

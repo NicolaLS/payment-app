@@ -1,5 +1,6 @@
 <resources>
     <string name="error_missing_wallet_connection">Connect a wallet to continue.</string>
+    <string name="error_funding_wallet_unavailable">Choose an available funding balance in Settings before paying.</string>
     <string name="error_wallet_already_connected">Disconnect your current wallet before connecting another.</string>
     <string name="error_payment_rejected_generic">Payment was rejected.</string>
     <string name="error_payment_rejected_message">Payment was rejected: %1$s</string>

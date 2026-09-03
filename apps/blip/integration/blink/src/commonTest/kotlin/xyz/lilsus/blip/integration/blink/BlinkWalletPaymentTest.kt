@@ -6,9 +6,46 @@ import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
+import xyz.lilsus.blip.integration.blink.graphql.AuthorizationQuery
+import xyz.lilsus.blip.integration.blink.graphql.FundingWalletsQuery
+import xyz.lilsus.blip.integration.blink.graphql.LnInvoicePaymentSendMutation
+import xyz.lilsus.blip.integration.blink.graphql.LnNoAmountUsdInvoicePaymentSendMutation
 
 class BlinkWalletPaymentTest {
+    @Test
+    fun connectSeedsTheServerDefaultByWalletIdentity() = runBlocking {
+        val store = BlinkCredentialStore(MapSettings())
+        val wallet =
+            BlinkWallet(
+                apiClient =
+                    createClient { request ->
+                        when (request.operation) {
+                            is AuthorizationQuery ->
+                                request.responseFromJson(authorizationResponse())
+
+                            is FundingWalletsQuery ->
+                                request.responseFromJson(
+                                    fundingWalletsResponse(
+                                        defaultWalletId = TEST_USD_WALLET.id,
+                                        wallets = listOf(TEST_USD_WALLET, TEST_BTC_WALLET)
+                                    )
+                                )
+
+                            else -> error("Unexpected operation ${request.operation.name()}")
+                        }
+                    },
+                credentialStore = store,
+                isNetworkAvailable = { true }
+            )
+
+        wallet.connect("test-api-key")
+
+        assertEquals(TEST_USD_WALLET, wallet.selectedFundingWallet.value)
+        assertEquals(TEST_USD_WALLET, store.read()?.selectedFundingWallet)
+    }
+
     @Test
     fun pendingApiResponseRemainsPending() = runBlocking {
         val wallet =
@@ -16,7 +53,7 @@ class BlinkWalletPaymentTest {
                 responseJson = paymentResponse(status = "PENDING")
             )
 
-        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test"))
+        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test", TEST_BTC_WALLET))
 
         assertEquals(BlinkPaymentOutcome.Pending, result)
     }
@@ -38,7 +75,7 @@ class BlinkWalletPaymentTest {
                     )
             )
 
-        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test"))
+        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test", TEST_BTC_WALLET))
 
         assertEquals(
             BlinkPaymentOutcome.DefinitiveFailure(
@@ -55,7 +92,7 @@ class BlinkWalletPaymentTest {
                 responseJson = paymentResponse(status = "FUTURE_STATUS")
             )
 
-        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test"))
+        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test", TEST_BTC_WALLET))
 
         assertIs<BlinkPaymentOutcome.StatusUnknown>(result)
         Unit
@@ -76,7 +113,7 @@ class BlinkWalletPaymentTest {
                 isNetworkAvailable = { true }
             )
 
-        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test"))
+        val result = wallet.submitPayment(BlinkPaymentRequest("lnbc1test", TEST_BTC_WALLET))
 
         assertEquals(
             BlinkPaymentOutcome.DefinitiveFailure(BlinkApiError.MissingWalletConnection),
@@ -85,18 +122,132 @@ class BlinkWalletPaymentTest {
         assertEquals(0, requestCount)
     }
 
-    private fun createWallet(responseJson: String): BlinkWallet {
-        val store = BlinkCredentialStore(MapSettings())
+    @Test
+    fun submittedPaymentKeepsSnapshottedWalletAfterSelectionChanges() = runBlocking {
+        var submittedWalletId: String? = null
+        val store = credentialStore(TEST_BTC_WALLET)
+        val wallet =
+            BlinkWallet(
+                apiClient =
+                    createClient { request ->
+                        submittedWalletId =
+                            assertIs<LnInvoicePaymentSendMutation>(request.operation).input.walletId
+                        request.responseFromJson(paymentResponse(status = "SUCCESS"))
+                    },
+                credentialStore = store,
+                isNetworkAvailable = { true }
+            )
+        val paymentSnapshot = TEST_BTC_WALLET
+
+        wallet.selectFundingWallet(TEST_USD_WALLET)
+        wallet.submitPayment(BlinkPaymentRequest("lnbc1test", paymentSnapshot))
+
+        assertEquals(TEST_BTC_WALLET.id, submittedWalletId)
+        assertEquals(TEST_USD_WALLET, wallet.selectedFundingWallet.value)
+    }
+
+    @Test
+    fun refreshDoesNotFollowAnExternallyChangedDefault() = runBlocking {
+        val store = credentialStore(TEST_BTC_WALLET)
+        val wallet =
+            BlinkWallet(
+                apiClient =
+                    createClient {
+                        it.responseFromJson(
+                            fundingWalletsResponse(
+                                defaultWalletId = TEST_USD_WALLET.id,
+                                wallets = listOf(TEST_BTC_WALLET, TEST_USD_WALLET)
+                            )
+                        )
+                    },
+                credentialStore = store,
+                isNetworkAvailable = { true }
+            )
+
+        wallet.refreshFundingWallets()
+
+        assertEquals(TEST_BTC_WALLET, wallet.selectedFundingWallet.value)
+        assertEquals(TEST_BTC_WALLET, store.read()?.selectedFundingWallet)
+    }
+
+    @Test
+    fun missingSelectedWalletFailsClosed() = runBlocking {
+        val store = credentialStore(TEST_BTC_WALLET)
+        val wallet =
+            BlinkWallet(
+                apiClient =
+                    createClient {
+                        it.responseFromJson(
+                            fundingWalletsResponse(
+                                defaultWalletId = TEST_USD_WALLET.id,
+                                wallets = listOf(TEST_USD_WALLET)
+                            )
+                        )
+                    },
+                credentialStore = store,
+                isNetworkAvailable = { true }
+            )
+
+        wallet.refreshFundingWallets()
+
+        assertNull(wallet.selectedFundingWallet.value)
+        assertNull(store.read()?.selectedFundingWallet)
+        val error = runCatching { wallet.prepareFundingWallet() }.exceptionOrNull()
+        assertEquals(
+            BlinkApiError.FundingWalletUnavailable,
+            assertIs<BlinkApiException>(error).error
+        )
+    }
+
+    @Test
+    fun usdZeroAmountPaymentUsesUsdMutationAndCents() = runBlocking {
+        var submittedWalletId: String? = null
+        var submittedCents: Long? = null
+        val wallet =
+            BlinkWallet(
+                apiClient =
+                    createClient { request ->
+                        val operation =
+                            assertIs<LnNoAmountUsdInvoicePaymentSendMutation>(request.operation)
+                        submittedWalletId = operation.input.walletId
+                        submittedCents = operation.input.amount
+                        request.responseFromJson(
+                            paymentResponse(
+                                status = "SUCCESS",
+                                operation = "lnNoAmountUsdInvoicePaymentSend"
+                            )
+                        )
+                    },
+                credentialStore = credentialStore(TEST_USD_WALLET),
+                isNetworkAvailable = { true }
+            )
+
+        val result =
+            wallet.submitPayment(
+                BlinkPaymentRequest(
+                    invoice = "lnbc1test",
+                    fundingWallet = TEST_USD_WALLET,
+                    amount = BlinkPaymentAmount.Usd(cents = 125L)
+                )
+            )
+
+        assertIs<BlinkPaymentOutcome.Paid>(result)
+        assertEquals(TEST_USD_WALLET.id, submittedWalletId)
+        assertEquals(125L, submittedCents)
+    }
+
+    private fun createWallet(responseJson: String): BlinkWallet = BlinkWallet(
+        apiClient = createClient { it.responseFromJson(responseJson) },
+        credentialStore = credentialStore(TEST_BTC_WALLET),
+        isNetworkAvailable = { true }
+    )
+
+    private fun credentialStore(wallet: BlinkFundingWallet): BlinkCredentialStore = BlinkCredentialStore(MapSettings()).also { store ->
         store.save(
             BlinkCredentials(
                 apiKey = "test-api-key",
-                defaultWalletId = "wallet-123"
+                selectedFundingWallet = wallet
             )
-        )
-        return BlinkWallet(
-            apiClient = createClient { it.responseFromJson(responseJson) },
-            credentialStore = store,
-            isNetworkAvailable = { true }
         )
     }
 
@@ -104,11 +255,11 @@ class BlinkWalletPaymentTest {
         createBlinkApolloTestClient(BlinkApolloTestTransport(handler))
     )
 
-    private fun paymentResponse(status: String, errors: String = "[]"): String =
+    private fun paymentResponse(status: String, errors: String = "[]", operation: String = "lnInvoicePaymentSend"): String =
         """
         {
             "data": {
-                "lnInvoicePaymentSend": {
+                "$operation": {
                     "status": "$status",
                     "errors": $errors,
                     "transaction": null
@@ -116,4 +267,39 @@ class BlinkWalletPaymentTest {
             }
         }
         """.trimIndent()
+
+    private fun authorizationResponse(): String =
+        """
+        {
+            "data": {
+                "authorization": {
+                    "scopes": ["READ", "WRITE"]
+                }
+            }
+        }
+        """.trimIndent()
+
+    private fun fundingWalletsResponse(defaultWalletId: String, wallets: List<BlinkFundingWallet>): String {
+        val encodedWallets =
+            wallets.joinToString(",") { wallet ->
+                """{"id":"${wallet.id}","walletCurrency":"${wallet.currency.name}"}"""
+            }
+        return """
+        {
+            "data": {
+                "me": {
+                    "defaultAccount": {
+                        "defaultWallet": {"id": "$defaultWalletId"},
+                        "wallets": [$encodedWallets]
+                    }
+                }
+            }
+        }
+        """.trimIndent()
+    }
+
+    private companion object {
+        val TEST_BTC_WALLET = BlinkFundingWallet("wallet-btc", BlinkWalletCurrency.BTC)
+        val TEST_USD_WALLET = BlinkFundingWallet("wallet-usd", BlinkWalletCurrency.USD)
+    }
 }

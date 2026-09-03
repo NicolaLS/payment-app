@@ -6,6 +6,8 @@ import fr.acinq.lightning.payment.Bolt11Invoice
 import fr.acinq.lightning.payment.PaymentRequest
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
+import xyz.lilsus.blip.integration.blink.BlinkWalletCurrency
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 
 internal class PendingPaymentStore(
@@ -60,6 +62,9 @@ private data class StoredPendingRecord(
     val invoice: String,
     val amountMsats: Long,
     val amountOverrideMsats: Long?,
+    val fundingWalletId: String,
+    val fundingWalletCurrency: String,
+    val fundingAmountCents: Long? = null,
     val origin: String,
     val createdAtMs: Long,
     val dynamicSourceKey: String?,
@@ -75,6 +80,9 @@ private fun PendingRecord.toStored(): StoredPendingRecord = StoredPendingRecord(
     invoice = summary.write(),
     amountMsats = amountMsats,
     amountOverrideMsats = amountOverrideMsats,
+    fundingWalletId = fundingWallet.id,
+    fundingWalletCurrency = fundingWallet.currency.name,
+    fundingAmountCents = fundingAmountCents,
     origin = origin.name,
     createdAtMs = createdAtMs,
     dynamicSourceKey = dynamicSourceKey?.value,
@@ -93,6 +101,15 @@ private fun StoredPendingRecord.toPendingRecord(): PendingRecord? {
         } ?: return null
     val restoredStatus = PendingStatus.entries.firstOrNull { it.name == status } ?: return null
     val restoredOrigin = PendingOrigin.entries.firstOrNull { it.name == origin } ?: return null
+    val restoredFundingWallet =
+        fundingWalletId
+            .trim()
+            .takeIf(String::isNotEmpty)
+            ?.let { walletId ->
+                BlinkWalletCurrency.entries
+                    .firstOrNull { it.name == fundingWalletCurrency }
+                    ?.let { currency -> BlinkFundingWallet(walletId, currency) }
+            } ?: return null
     val restoredError =
         when (restoredStatus) {
             PendingStatus.Sending,
@@ -108,6 +125,8 @@ private fun StoredPendingRecord.toPendingRecord(): PendingRecord? {
         summary = summary,
         amountMsats = amountMsats,
         amountOverrideMsats = amountOverrideMsats,
+        fundingWallet = restoredFundingWallet,
+        fundingAmountCents = fundingAmountCents?.takeIf { it > 0L },
         origin = restoredOrigin,
         createdAtMs = createdAtMs,
         dynamicSourceKey =

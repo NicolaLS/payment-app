@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.lilsus.blip.integration.blink.BlinkApiException
 import xyz.lilsus.blip.integration.blink.BlinkConnectionException
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.blip.ui.BlinkUiError
 
@@ -21,34 +22,73 @@ class BlinkWalletSettingsViewModel(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
 
-    private val mutableUiState = MutableStateFlow(BlinkWalletSettingsUiState())
+    private val mutableUiState =
+        MutableStateFlow(
+            BlinkWalletSettingsUiState(
+                selectedWallet = blinkWallet.selectedFundingWallet.value
+            )
+        )
     val uiState: StateFlow<BlinkWalletSettingsUiState> = mutableUiState.asStateFlow()
 
-    fun refreshConnection() {
+    fun loadFundingWallets() {
+        if (mutableUiState.value.isLoading) return
         scope.launch {
             mutableUiState.update {
-                it.copy(isRefreshing = true, refreshSucceeded = false, error = null)
+                it.copy(
+                    wallets = emptyList(),
+                    isLoading = true,
+                    selectionUnavailable = false,
+                    error = null
+                )
             }
             try {
-                blinkWallet.refreshDefaultWalletId()
+                val wallets = blinkWallet.refreshFundingWallets()
+                val selectedWallet = blinkWallet.selectedFundingWallet.value
                 mutableUiState.update {
-                    it.copy(isRefreshing = false, refreshSucceeded = true)
+                    it.copy(
+                        isLoading = false,
+                        wallets = wallets,
+                        selectedWallet = selectedWallet,
+                        selectionUnavailable = selectedWallet == null
+                    )
                 }
             } catch (error: BlinkApiException) {
                 mutableUiState.update {
-                    it.copy(isRefreshing = false, error = BlinkUiError.Api(error.error))
+                    it.copy(isLoading = false, error = BlinkUiError.Api(error.error))
                 }
             } catch (error: BlinkConnectionException) {
                 mutableUiState.update {
-                    it.copy(isRefreshing = false, error = BlinkUiError.Connection(error.error))
+                    it.copy(isLoading = false, error = BlinkUiError.Connection(error.error))
                 }
             } catch (error: Exception) {
                 mutableUiState.update {
                     it.copy(
-                        isRefreshing = false,
+                        isLoading = false,
                         error = BlinkUiError.Unexpected(error.message)
                     )
                 }
+            }
+        }
+    }
+
+    fun selectFundingWallet(walletId: String) {
+        val wallet = mutableUiState.value.wallets.firstOrNull { it.id == walletId } ?: return
+        try {
+            blinkWallet.selectFundingWallet(wallet)
+            mutableUiState.update {
+                it.copy(
+                    selectedWallet = wallet,
+                    selectionUnavailable = false,
+                    error = null
+                )
+            }
+        } catch (error: BlinkConnectionException) {
+            mutableUiState.update {
+                it.copy(error = BlinkUiError.Connection(error.error))
+            }
+        } catch (error: Exception) {
+            mutableUiState.update {
+                it.copy(error = BlinkUiError.Unexpected(error.message))
             }
         }
     }
@@ -59,7 +99,9 @@ class BlinkWalletSettingsViewModel(
 }
 
 data class BlinkWalletSettingsUiState(
-    val isRefreshing: Boolean = false,
-    val refreshSucceeded: Boolean = false,
+    val selectedWallet: BlinkFundingWallet? = null,
+    val wallets: List<BlinkFundingWallet> = emptyList(),
+    val isLoading: Boolean = false,
+    val selectionUnavailable: Boolean = false,
     val error: BlinkUiError? = null
 )

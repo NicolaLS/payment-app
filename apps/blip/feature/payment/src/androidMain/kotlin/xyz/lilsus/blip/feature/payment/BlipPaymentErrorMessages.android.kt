@@ -39,6 +39,9 @@ private fun blipPaymentStringResource(key: LocalizedTextKey): Int = when (key) {
 
         BlipPaymentTextKey.ErrorBlinkSelfPayment -> R.string.error_blink_self_payment
 
+        BlipPaymentTextKey.ErrorFundingWalletUnavailable ->
+            R.string.error_funding_wallet_unavailable
+
         BlipPaymentTextKey.ErrorMissingWalletConnection ->
             R.string.error_missing_wallet_connection
 

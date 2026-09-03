@@ -38,6 +38,7 @@ import xyz.lilsus.raylsuite.feature.paymentui.R
 fun ConfirmationBottomSheet(
     amount: PaymentConfirmationAmount,
     lnurlPayDisplay: LnurlPayDisplay? = null,
+    fundingSource: String? = null,
     onPay: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -94,6 +95,16 @@ fun ConfirmationBottomSheet(
                             formatter.format(exactSats)
                         ),
                     style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            fundingSource?.let { source ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = source,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
             }
 

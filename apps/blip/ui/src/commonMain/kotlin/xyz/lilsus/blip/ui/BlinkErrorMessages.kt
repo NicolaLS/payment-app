@@ -21,6 +21,7 @@ internal enum class BlinkUiTextKey(override val key: String) : LocalizedTextKey 
     ErrorBlinkRouteNotFound("error_blink_route_not_found"),
     ErrorBlinkSelfPayment("error_blink_self_payment"),
     ErrorBlinkWritePermissionDenied("error_blink_write_permission_denied"),
+    ErrorFundingWalletUnavailable("error_funding_wallet_unavailable"),
     ErrorMissingWalletConnection("error_missing_wallet_connection"),
     ErrorNetworkUnavailable("error_network_unavailable"),
     ErrorPaymentRejectedGeneric("error_payment_rejected_generic"),
@@ -61,6 +62,9 @@ private fun BlinkConnectionError.text(): LocalizedText = when (this) {
 
 private fun BlinkApiError.text(): LocalizedText = when (this) {
     is BlinkApiError.BlinkError -> type.text()
+
+    BlinkApiError.FundingWalletUnavailable ->
+        LocalizedText(BlinkUiTextKey.ErrorFundingWalletUnavailable)
 
     BlinkApiError.MissingWalletConnection ->
         LocalizedText(BlinkUiTextKey.ErrorMissingWalletConnection)

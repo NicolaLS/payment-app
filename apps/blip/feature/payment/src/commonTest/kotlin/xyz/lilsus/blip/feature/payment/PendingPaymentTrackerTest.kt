@@ -18,6 +18,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
+import xyz.lilsus.blip.integration.blink.BlinkWalletCurrency
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
@@ -26,7 +28,15 @@ class PendingPaymentTrackerTest {
     @Test
     fun fastSuccessIsPublishedToSessionPayments() = runTest {
         val tracker = tracker()
-        val id = tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+        val id =
+            tracker.register(
+                invoice(),
+                AMOUNT_MSATS,
+                null,
+                TEST_FUNDING_WALLET,
+                null,
+                PendingOrigin.Invoice
+            )
 
         tracker.markSuccess(id, AMOUNT_MSATS, feeMsats = 0)
 
@@ -37,7 +47,15 @@ class PendingPaymentTrackerTest {
     @Test
     fun fastFailureIsPublishedToSessionPayments() = runTest {
         val tracker = tracker()
-        val id = tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+        val id =
+            tracker.register(
+                invoice(),
+                AMOUNT_MSATS,
+                null,
+                TEST_FUNDING_WALLET,
+                null,
+                PendingOrigin.Invoice
+            )
 
         tracker.markFailure(id, PaymentUiError.Unexpected("rejected"))
 
@@ -50,13 +68,35 @@ class PendingPaymentTrackerTest {
         var now = 0L
         val tracker = tracker(clock = { ++now })
         val unresolvedId =
-            tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+            tracker.register(
+                invoice(),
+                AMOUNT_MSATS,
+                null,
+                TEST_FUNDING_WALLET,
+                null,
+                PendingOrigin.Invoice
+            )
         val oldestResolvedId =
-            tracker.register(invoice("oldest"), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+            tracker.register(
+                invoice("oldest"),
+                AMOUNT_MSATS,
+                null,
+                TEST_FUNDING_WALLET,
+                null,
+                PendingOrigin.Invoice
+            )
         tracker.markSuccess(oldestResolvedId, AMOUNT_MSATS, feeMsats = 0)
 
         repeat(12) {
-            val id = tracker.register(invoice("payment-$it"), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+            val id =
+                tracker.register(
+                    invoice("payment-$it"),
+                    AMOUNT_MSATS,
+                    null,
+                    TEST_FUNDING_WALLET,
+                    null,
+                    PendingOrigin.Invoice
+                )
             tracker.markSuccess(id, AMOUNT_MSATS, feeMsats = 0)
         }
 
@@ -84,6 +124,8 @@ class PendingPaymentTrackerTest {
                 invoice("first"),
                 AMOUNT_MSATS,
                 null,
+                TEST_FUNDING_WALLET,
+                null,
                 PendingOrigin.LnurlFixed,
                 dynamicSourceKey = sourceKey
             )
@@ -96,6 +138,8 @@ class PendingPaymentTrackerTest {
             tracker.register(
                 invoice("replacement"),
                 AMOUNT_MSATS,
+                null,
+                TEST_FUNDING_WALLET,
                 null,
                 PendingOrigin.LnurlFixed,
                 dynamicSourceKey = sourceKey,
@@ -127,6 +171,8 @@ class PendingPaymentTrackerTest {
                 invoice("restart"),
                 AMOUNT_MSATS,
                 null,
+                TEST_FUNDING_WALLET,
+                null,
                 PendingOrigin.LnurlFixed,
                 dynamicSourceKey = sourceKey
             )
@@ -136,6 +182,7 @@ class PendingPaymentTrackerTest {
         val restored = tracker(settings = settings)
 
         assertEquals(PendingStatus.StatusUnknown, restored.get(id)?.status)
+        assertEquals(TEST_FUNDING_WALLET, restored.get(id)?.fundingWallet)
         assertEquals(id, restored.findLatestByPaymentHash(paymentHash)?.id)
         assertEquals(id, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
 
@@ -155,10 +202,39 @@ class PendingPaymentTrackerTest {
     }
 
     @Test
+    fun usdFundingPayloadSurvivesProcessRestart() = runTest {
+        val settings = MapSettings()
+        val original = tracker(settings = settings)
+        val id =
+            original.register(
+                invoice("usd"),
+                AMOUNT_MSATS,
+                AMOUNT_MSATS,
+                TEST_USD_FUNDING_WALLET,
+                25L,
+                PendingOrigin.ManualEntry
+            )
+        original.close()
+
+        val restored = tracker(settings = settings).get(id)
+
+        assertEquals(TEST_USD_FUNDING_WALLET, restored?.fundingWallet)
+        assertEquals(25L, restored?.fundingAmountCents)
+    }
+
+    @Test
     fun resetSessionDropsAllPayments() = runTest {
         val settings = MapSettings()
         val tracker = tracker(settings = settings)
-        val id = tracker.register(invoice(), AMOUNT_MSATS, null, PendingOrigin.Invoice)
+        val id =
+            tracker.register(
+                invoice(),
+                AMOUNT_MSATS,
+                null,
+                TEST_FUNDING_WALLET,
+                null,
+                PendingOrigin.Invoice
+            )
         tracker.markSuccess(id, AMOUNT_MSATS, feeMsats = 0)
 
         tracker.resetSession()
@@ -200,5 +276,9 @@ class PendingPaymentTrackerTest {
 
     private companion object {
         const val AMOUNT_MSATS = 100_000L
+        val TEST_FUNDING_WALLET =
+            BlinkFundingWallet("wallet-btc", BlinkWalletCurrency.BTC)
+        val TEST_USD_FUNDING_WALLET =
+            BlinkFundingWallet("wallet-usd", BlinkWalletCurrency.USD)
     }
 }

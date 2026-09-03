@@ -35,6 +35,8 @@ private fun BlinkUiTextKey.androidStringResource(): Int = when (this) {
     BlinkUiTextKey.ErrorBlinkWritePermissionDenied ->
         R.string.error_blink_write_permission_denied
 
+    BlinkUiTextKey.ErrorFundingWalletUnavailable -> R.string.error_funding_wallet_unavailable
+
     BlinkUiTextKey.ErrorMissingWalletConnection -> R.string.error_missing_wallet_connection
 
     BlinkUiTextKey.ErrorNetworkUnavailable -> R.string.error_network_unavailable

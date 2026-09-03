@@ -1,6 +1,12 @@
 <resources>
-    <string name="settings_blink_connection_refresh">Verbindung aktualisieren</string>
-    <string name="settings_blink_connection_refresh_success">Verbindung aktualisiert.</string>
+    <string name="settings_blink_funding_wallet">Bezahlen mit</string>
+    <string name="settings_blink_funding_wallet_title">Zahlungsguthaben</string>
+    <string name="settings_blink_funding_wallet_choose">Guthaben auswählen</string>
+    <string name="settings_blink_funding_wallet_bitcoin">Bitcoin</string>
+    <string name="settings_blink_funding_wallet_stablesats">Stablesats (USD)</string>
+    <string name="settings_blink_funding_wallet_loading">Guthaben werden geladen…</string>
+    <string name="settings_blink_funding_wallet_unavailable">Das ausgewählte Zahlungsguthaben ist nicht verfügbar. Wähle ein anderes Guthaben.</string>
+    <string name="settings_blink_funding_wallet_close">Schließen</string>
     <string name="settings_blink_connection_remove">Wallet entfernen</string>
     <string name="settings_blink_connection_remove_title">Blink-Wallet entfernen?</string>
     <string name="settings_blink_connection_remove_description">Blip entfernt den gespeicherten API-Schlüssel von diesem Gerät. Du musst die Wallet erneut verbinden, bevor du Zahlungen senden kannst.</string>

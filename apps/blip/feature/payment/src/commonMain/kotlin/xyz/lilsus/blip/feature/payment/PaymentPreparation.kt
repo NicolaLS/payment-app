@@ -1,6 +1,7 @@
 package xyz.lilsus.blip.feature.payment
 
 import fr.acinq.lightning.payment.Bolt11Invoice
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.CurrencyInfo
 import xyz.lilsus.raylsuite.core.model.LightningAddress
@@ -61,6 +62,8 @@ internal class PaymentPreparation(lnurlPayClient: LnurlPayClient) {
 internal data class PendingPayment(
     val invoice: Bolt11Invoice,
     val amountOverrideMsats: Long?,
+    val fundingWallet: BlinkFundingWallet,
+    val fundingAmountCents: Long?,
     val origin: PendingOrigin,
     val dynamicSourceKey: DynamicPaymentSourceKey?,
     val targetContext: HubTargetContext?,
@@ -71,6 +74,7 @@ internal data class PendingLnurlReview(
     val session: LnurlSession,
     val amountMsats: Long,
     val isManualEntry: Boolean,
+    val fundingWallet: BlinkFundingWallet,
     val paymentQuote: PaymentAmountQuote? = null
 )
 

@@ -1,6 +1,98 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "confirm_payment_funding_wallet" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezahlen mit %1$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay from %1$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pagar con %1$@"
+          }
+        }
+      }
+    },
+    "error_funding_wallet_unavailable" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle vor der Zahlung unter Einstellungen ein verfügbares Zahlungsguthaben aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an available funding balance in Settings before paying."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un saldo de pago disponible en Ajustes antes de pagar."
+          }
+        }
+      }
+    },
+    "funding_wallet_bitcoin" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bitcoin"
+          }
+        }
+      }
+    },
+    "funding_wallet_stablesats" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stablesats (USD)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stablesats (USD)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stablesats (USD)"
+          }
+        }
+      }
+    },
     "error_blink_amount_too_small" : {
       "extractionState" : "stale",
       "localizations" : {

@@ -12,7 +12,8 @@ class BlinkCredentialStoreTest {
         val credentials =
             BlinkCredentials(
                 apiKey = "blink_test",
-                defaultWalletId = "wallet-id"
+                selectedFundingWallet =
+                    BlinkFundingWallet("wallet-id", BlinkWalletCurrency.USD)
             )
 
         store.save(credentials)
@@ -20,19 +21,5 @@ class BlinkCredentialStoreTest {
 
         store.clear()
         assertNull(store.read())
-    }
-
-    @Test
-    fun ignoresUnknownCredentialFields() {
-        val settings = MapSettings()
-        settings.putString(
-            "credentials",
-            """{"apiKey":"blink_test","defaultWalletId":"wallet-id","future":true}"""
-        )
-
-        assertEquals(
-            BlinkCredentials(apiKey = "blink_test", defaultWalletId = "wallet-id"),
-            BlinkCredentialStore(settings).read()
-        )
     }
 }

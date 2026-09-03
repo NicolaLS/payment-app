@@ -47,6 +47,7 @@ apollo {
         mapScalar("ContactAlias", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("ContactHandle", "kotlin.String", "com.apollographql.apollo.api.StringAdapter")
         mapScalar("SatAmount", "kotlin.Long", "com.apollographql.apollo.api.LongAdapter")
+        mapScalar("CentAmount", "kotlin.Long", "com.apollographql.apollo.api.LongAdapter")
         mapScalar("SignedAmount", "kotlin.Long", "com.apollographql.apollo.api.LongAdapter")
         introspection {
             endpointUrl.set("https://api.blink.sv/graphql")

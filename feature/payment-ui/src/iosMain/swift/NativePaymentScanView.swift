@@ -414,6 +414,11 @@ private struct NativePaymentScanSheetView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
         }
+        if let fundingSource = sheet.fundingSource {
+            Text(fundingSource)
+                .font(.body)
+                .foregroundStyle(.secondary)
+        }
     }
 
     @ViewBuilder

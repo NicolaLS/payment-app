@@ -22,6 +22,8 @@ enum class BlinkErrorType {
 sealed class BlinkApiError {
     data object MissingWalletConnection : BlinkApiError()
 
+    data object FundingWalletUnavailable : BlinkApiError()
+
     data class PaymentRejected(val code: String? = null, val message: String? = null) :
         BlinkApiError()
 

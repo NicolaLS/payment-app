@@ -16,6 +16,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.Job
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
+import xyz.lilsus.blip.integration.blink.BlinkWalletCurrency
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.LnurlPayClient
@@ -46,10 +48,13 @@ class PaymentSessionStateTest {
                 session,
                 CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE)
             )
-        preparation.pendingLnurlReview = PendingLnurlReview(session, 5_000L, true)
+        preparation.pendingLnurlReview =
+            PendingLnurlReview(session, 5_000L, true, TEST_FUNDING_WALLET)
         preparation.pendingPayment =
             PendingPayment(
                 invoice(),
+                null,
+                TEST_FUNDING_WALLET,
                 null,
                 PendingOrigin.Invoice,
                 null,
@@ -150,6 +155,9 @@ class PaymentSessionStateTest {
         timestampSeconds = 1L
     )
 }
+
+private val TEST_FUNDING_WALLET =
+    BlinkFundingWallet("wallet-btc", BlinkWalletCurrency.BTC)
 
 private object UnusedLnurlPayClient : LnurlPayClient {
     override suspend fun fetchPayParams(endpoint: String): LnurlResult<LnurlPayParams> = error("not used")

@@ -312,6 +312,7 @@ fun PaymentScanScreen(
         ConfirmationBottomSheet(
             amount = confirm.amount,
             lnurlPayDisplay = confirm.lnurlPayDisplay,
+            fundingSource = confirm.fundingSource,
             onPay = { onIntent(PaymentIntent.ConfirmPaymentSubmit) },
             onDismiss = { onIntent(PaymentIntent.ConfirmPaymentDismiss) }
         )

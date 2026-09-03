@@ -302,6 +302,7 @@ private final class BlipWalletSettingsModel: ObservableObject {
 
 private struct BlipWalletSettingsActionsView: View {
     @StateObject private var model: BlipWalletSettingsModel
+    @State private var showsFundingWallets = false
     @State private var confirmsRemoval = false
 
     init(controller: BlipNativeSettingsController) {
@@ -312,26 +313,29 @@ private struct BlipWalletSettingsActionsView: View {
         Group {
             if let snapshot = model.snapshot {
                 VStack(alignment: .leading, spacing: 12) {
-                    Button(action: model.controller.refreshConnection) {
+                    Button {
+                        showsFundingWallets = true
+                        model.controller.loadFundingWallets()
+                    } label: {
                         HStack {
-                            Label(snapshot.refreshTitle, systemImage: "arrow.clockwise")
-                            Spacer()
-                            if snapshot.isRefreshing {
-                                ProgressView()
+                            Label {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(snapshot.fundingWalletTitle)
+                                    Text(snapshot.selectedFundingWalletTitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } icon: {
+                                Image(systemName: "wallet.bifold")
                             }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(snapshot.isRefreshing)
-
-                    if let statusMessage = snapshot.statusMessage {
-                        Text(statusMessage)
-                            .font(.caption)
-                            .foregroundStyle(
-                                snapshot.statusIsError ? Color.red : Color.accentColor
-                            )
-                    }
 
                     Divider()
 
@@ -352,10 +356,67 @@ private struct BlipWalletSettingsActionsView: View {
                         Text(snapshot.removeDialogDescription)
                     }
                 }
+                .sheet(isPresented: $showsFundingWallets) {
+                    fundingWalletPicker(snapshot)
+                }
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity)
             }
         }
+    }
+
+    private func fundingWalletPicker(
+        _ snapshot: BlipNativeWalletSettingsSnapshot
+    ) -> some View {
+        NavigationStack {
+            List {
+                if snapshot.isLoadingFundingWallets {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text(snapshot.fundingWalletLoadingTitle)
+                    }
+                }
+
+                if let message = snapshot.fundingWalletUnavailableMessage {
+                    Text(message)
+                        .foregroundStyle(.red)
+                }
+
+                if let message = snapshot.fundingWalletErrorMessage {
+                    Text(message)
+                        .foregroundStyle(.red)
+                }
+
+                ForEach(snapshot.fundingWalletOptions, id: \.id) { option in
+                    Button {
+                        model.controller.selectFundingWallet(id: option.id)
+                        showsFundingWallets = false
+                    } label: {
+                        HStack {
+                            Text(option.title)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if option.selected {
+                                Image(systemName: "checkmark")
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle(snapshot.fundingWalletPickerTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(snapshot.fundingWalletCloseTitle) {
+                        showsFundingWallets = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }

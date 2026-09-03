@@ -14,12 +14,14 @@ import fr.acinq.lightning.utils.msat
 import kotlin.math.absoluteValue
 import xyz.lilsus.blip.integration.blink.graphql.AuthorizationQuery
 import xyz.lilsus.blip.integration.blink.graphql.BlinkContactsQuery
-import xyz.lilsus.blip.integration.blink.graphql.DefaultWalletIdQuery
+import xyz.lilsus.blip.integration.blink.graphql.FundingWalletsQuery
 import xyz.lilsus.blip.integration.blink.graphql.LnInvoicePaymentSendMutation
 import xyz.lilsus.blip.integration.blink.graphql.LnNoAmountInvoicePaymentSendMutation
+import xyz.lilsus.blip.integration.blink.graphql.LnNoAmountUsdInvoicePaymentSendMutation
 import xyz.lilsus.blip.integration.blink.graphql.fragment.BlinkTransactionPaymentResult
 import xyz.lilsus.blip.integration.blink.graphql.type.LnInvoicePaymentInput
 import xyz.lilsus.blip.integration.blink.graphql.type.LnNoAmountInvoicePaymentInput
+import xyz.lilsus.blip.integration.blink.graphql.type.LnNoAmountUsdInvoicePaymentInput
 import xyz.lilsus.blip.integration.blink.graphql.type.PaymentSendResult
 import xyz.lilsus.blip.integration.blink.graphql.type.WalletCurrency
 
@@ -183,30 +185,36 @@ class BlinkApiClient(
             .mapNotNull { scope -> scope.rawValue.trim().takeIf { it.isNotEmpty() } }
     }
 
-    /**
-     * Fetches the user's default Blink wallet id using the provided API key.
-     *
-     * Blink requires `walletId` for payment mutations; this allows the app to use the user's
-     * default wallet context without asking them for account/wallet identifiers.
-     */
-    suspend fun fetchDefaultWalletId(apiKey: String): String {
+    /** Fetches the custodial wallets and the server-side default used to seed a new connection. */
+    internal suspend fun fetchFundingWallets(apiKey: String): BlinkFundingWalletCatalog {
         val data = executeGraphQlRequest(
             apiKey = apiKey,
-            logLabel = "DefaultWalletId",
-            call = apolloClient.query(DefaultWalletIdQuery())
+            logLabel = "FundingWallets",
+            call = apolloClient.query(FundingWalletsQuery())
         )
 
-        val walletId = data.me?.defaultAccount?.defaultWallet?.id
-            ?.trim()
-            .orEmpty()
+        val account = data.me?.defaultAccount
+            ?: throw BlinkApiException(
+                BlinkApiError.Unexpected("Missing default account in response")
+            )
+        val defaultWalletId = account.defaultWallet.id.trim()
 
-        if (walletId.isBlank()) {
+        if (defaultWalletId.isBlank()) {
             throw BlinkApiException(
                 BlinkApiError.Unexpected("Missing default wallet id in response")
             )
         }
 
-        return walletId
+        return BlinkFundingWalletCatalog(
+            defaultWalletId = defaultWalletId,
+            wallets =
+                account.wallets.mapNotNull { wallet ->
+                    val id = wallet.id.trim()
+                    val currency =
+                        wallet.walletCurrency.toFundingWalletCurrency() ?: return@mapNotNull null
+                    id.takeIf(String::isNotEmpty)?.let { BlinkFundingWallet(it, currency) }
+                }
+        )
     }
 
     /**
@@ -314,6 +322,43 @@ class BlinkApiClient(
                     ?.blinkTransactionPaymentResult
                     ?.feesPaid(),
                 preimage = data.lnNoAmountInvoicePaymentSend.transaction
+                    ?.blinkTransactionPaymentResult
+                    ?.preimage()
+            )
+        )
+    }
+
+    /** Pays a zero-amount BOLT11 invoice from a Stablesats wallet. */
+    suspend fun payNoAmountUsdInvoice(
+        apiKey: String,
+        walletId: String,
+        invoice: String,
+        amountCents: Long
+    ): BlinkPaymentResult {
+        val data = executeGraphQlRequest(
+            apiKey = apiKey,
+            logLabel = "lnNoAmountUsdInvoicePaymentSend",
+            call = apolloClient.mutation(
+                LnNoAmountUsdInvoicePaymentSendMutation(
+                    LnNoAmountUsdInvoicePaymentInput(
+                        amount = amountCents,
+                        paymentRequest = invoice,
+                        walletId = walletId
+                    )
+                )
+            )
+        )
+
+        return parsePaymentResponse(
+            PaymentPayload(
+                status = data.lnNoAmountUsdInvoicePaymentSend.status,
+                errors = data.lnNoAmountUsdInvoicePaymentSend.errors.map {
+                    PaymentPayloadError(it.code, it.message)
+                },
+                feesPaid = data.lnNoAmountUsdInvoicePaymentSend.transaction
+                    ?.blinkTransactionPaymentResult
+                    ?.feesPaid(),
+                preimage = data.lnNoAmountUsdInvoicePaymentSend.transaction
                     ?.blinkTransactionPaymentResult
                     ?.preimage()
             )
@@ -470,6 +515,17 @@ class BlinkApiClient(
 
         private const val BLINK_HTTP_TIMEOUT_MS = 90_000L
     }
+}
+
+internal data class BlinkFundingWalletCatalog(
+    val defaultWalletId: String,
+    val wallets: List<BlinkFundingWallet>
+)
+
+private fun WalletCurrency.toFundingWalletCurrency(): BlinkWalletCurrency? = when (this) {
+    WalletCurrency.BTC -> BlinkWalletCurrency.BTC
+    WalletCurrency.USD -> BlinkWalletCurrency.USD
+    WalletCurrency.UNKNOWN__ -> null
 }
 
 /**

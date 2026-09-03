@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 
@@ -48,6 +49,8 @@ internal class PendingPaymentTracker(
         summary: Bolt11Invoice,
         amountMsats: Long,
         amountOverrideMsats: Long?,
+        fundingWallet: BlinkFundingWallet,
+        fundingAmountCents: Long?,
         origin: PendingOrigin,
         dynamicSourceKey: DynamicPaymentSourceKey? = null,
         replacesDynamicGuardId: String? = null
@@ -59,6 +62,8 @@ internal class PendingPaymentTracker(
                 summary = summary,
                 amountMsats = amountMsats,
                 amountOverrideMsats = amountOverrideMsats,
+                fundingWallet = fundingWallet,
+                fundingAmountCents = fundingAmountCents,
                 origin = origin,
                 createdAtMs = clock(),
                 dynamicSourceKey = dynamicSourceKey,
@@ -327,6 +332,8 @@ internal data class PendingRecord(
     val summary: Bolt11Invoice,
     val amountMsats: Long,
     val amountOverrideMsats: Long?,
+    val fundingWallet: BlinkFundingWallet,
+    val fundingAmountCents: Long?,
     val origin: PendingOrigin,
     val createdAtMs: Long,
     val dynamicSourceKey: DynamicPaymentSourceKey?,

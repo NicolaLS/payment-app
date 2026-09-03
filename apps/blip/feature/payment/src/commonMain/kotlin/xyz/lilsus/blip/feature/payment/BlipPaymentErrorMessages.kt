@@ -21,6 +21,7 @@ internal enum class BlipPaymentTextKey(override val key: String) : LocalizedText
     ErrorBlinkRateLimited("error_blink_rate_limited"),
     ErrorBlinkRouteNotFound("error_blink_route_not_found"),
     ErrorBlinkSelfPayment("error_blink_self_payment"),
+    ErrorFundingWalletUnavailable("error_funding_wallet_unavailable"),
     ErrorMissingWalletConnection("error_missing_wallet_connection"),
     ErrorNetworkUnavailable("error_network_unavailable"),
     ErrorPaymentRejectedGeneric("error_payment_rejected_generic"),
@@ -45,6 +46,9 @@ internal fun PaymentUiError.toLocalizedText(): LocalizedText = when (this) {
 }
 
 private fun BlinkApiError.toLocalizedText(): LocalizedText = when (this) {
+    BlinkApiError.FundingWalletUnavailable ->
+        LocalizedText(BlipPaymentTextKey.ErrorFundingWalletUnavailable)
+
     BlinkApiError.MissingWalletConnection ->
         LocalizedText(BlipPaymentTextKey.ErrorMissingWalletConnection)
 

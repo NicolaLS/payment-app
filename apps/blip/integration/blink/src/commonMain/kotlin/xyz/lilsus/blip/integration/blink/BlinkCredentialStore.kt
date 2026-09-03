@@ -4,7 +4,10 @@ import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-internal data class BlinkCredentials(val apiKey: String, val defaultWalletId: String)
+internal data class BlinkCredentials(
+    val apiKey: String,
+    val selectedFundingWallet: BlinkFundingWallet?
+)
 
 internal class BlinkCredentialStore(
     private val settings: Settings,
@@ -19,9 +22,6 @@ internal class BlinkCredentialStore(
 
     fun save(credentials: BlinkCredentials) {
         require(credentials.apiKey.isNotBlank()) { "Blink API key cannot be blank" }
-        require(credentials.defaultWalletId.isNotBlank()) {
-            "Blink wallet ID cannot be blank"
-        }
         settings.putString(
             CREDENTIALS_KEY,
             json.encodeToString(credentials.toStored())
@@ -34,19 +34,40 @@ internal class BlinkCredentialStore(
 }
 
 @Serializable
-private data class StoredBlinkCredentials(val apiKey: String, val defaultWalletId: String)
+private data class StoredBlinkCredentials(
+    val apiKey: String,
+    val selectedFundingWallet: StoredBlinkFundingWallet?
+)
+
+@Serializable
+private data class StoredBlinkFundingWallet(val id: String, val currency: String)
 
 private fun BlinkCredentials.toStored(): StoredBlinkCredentials = StoredBlinkCredentials(
     apiKey = apiKey,
-    defaultWalletId = defaultWalletId
+    selectedFundingWallet =
+        selectedFundingWallet?.let { wallet ->
+            StoredBlinkFundingWallet(
+                id = wallet.id,
+                currency = wallet.currency.name
+            )
+        }
 )
 
 private fun StoredBlinkCredentials.toCredentials(): BlinkCredentials? {
-    if (apiKey.isBlank() || defaultWalletId.isBlank()) return null
+    if (apiKey.isBlank()) return null
+    val fundingWallet = selectedFundingWallet?.toFundingWallet()
+    if (selectedFundingWallet != null && fundingWallet == null) return null
     return BlinkCredentials(
         apiKey = apiKey,
-        defaultWalletId = defaultWalletId
+        selectedFundingWallet = fundingWallet
     )
+}
+
+private fun StoredBlinkFundingWallet.toFundingWallet(): BlinkFundingWallet? {
+    val walletId = id.trim().takeIf(String::isNotEmpty) ?: return null
+    val walletCurrency = BlinkWalletCurrency.entries.firstOrNull { it.name == currency }
+        ?: return null
+    return BlinkFundingWallet(walletId, walletCurrency)
 }
 
 private const val CREDENTIALS_KEY = "credentials"

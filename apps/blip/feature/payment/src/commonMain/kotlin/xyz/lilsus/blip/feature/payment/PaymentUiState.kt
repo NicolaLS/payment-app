@@ -1,6 +1,7 @@
 package xyz.lilsus.blip.feature.payment
 
 import xyz.lilsus.blip.integration.blink.BlinkApiError
+import xyz.lilsus.blip.integration.blink.BlinkFundingWallet
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
@@ -20,6 +21,7 @@ sealed interface PaymentUiState {
 
     data class Confirm(
         val amount: PaymentConfirmationAmount,
+        val fundingWallet: BlinkFundingWallet,
         val lnurlPayDisplay: LnurlPayDisplay? = null
     ) : PaymentUiState
 

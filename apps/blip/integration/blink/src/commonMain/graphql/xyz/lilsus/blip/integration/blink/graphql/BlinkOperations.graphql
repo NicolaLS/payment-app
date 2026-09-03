@@ -4,11 +4,15 @@ query Authorization {
   }
 }
 
-query DefaultWalletId {
+query FundingWallets {
   me {
     defaultAccount {
       defaultWallet {
         id
+      }
+      wallets {
+        id
+        walletCurrency
       }
     }
   }
@@ -54,6 +58,19 @@ mutation LnInvoicePaymentSend($input: LnInvoicePaymentInput!) {
 
 mutation LnNoAmountInvoicePaymentSend($input: LnNoAmountInvoicePaymentInput!) {
   lnNoAmountInvoicePaymentSend(input: $input) {
+    status
+    errors {
+      message
+      code
+    }
+    transaction {
+      ...BlinkTransactionPaymentResult
+    }
+  }
+}
+
+mutation LnNoAmountUsdInvoicePaymentSend($input: LnNoAmountUsdInvoicePaymentInput!) {
+  lnNoAmountUsdInvoicePaymentSend(input: $input) {
     status
     errors {
       message

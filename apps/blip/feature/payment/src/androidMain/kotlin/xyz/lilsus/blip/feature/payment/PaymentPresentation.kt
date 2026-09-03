@@ -3,6 +3,7 @@ package xyz.lilsus.blip.feature.payment
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import xyz.lilsus.blip.feature.payment.R
+import xyz.lilsus.blip.integration.blink.BlinkWalletCurrency
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentLoadingKind
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScreenState
@@ -24,7 +25,16 @@ internal fun PaymentUiState.toPaymentScreenState(
 
     is PaymentUiState.EnterAmount -> PaymentScreenState.EnterAmount(entry, lnurlPayDisplay)
 
-    is PaymentUiState.Confirm -> PaymentScreenState.Confirm(amount, lnurlPayDisplay)
+    is PaymentUiState.Confirm ->
+        PaymentScreenState.Confirm(
+            amount = amount,
+            lnurlPayDisplay = lnurlPayDisplay,
+            fundingSource =
+                stringResource(
+                    R.string.confirm_payment_funding_wallet,
+                    fundingWallet.currency.androidTitle()
+                )
+        )
 
     is PaymentUiState.PendingRetry -> PaymentScreenState.PendingRetry(id)
 
@@ -77,6 +87,14 @@ private fun LoadingKind.toPresentation(): PaymentLoadingKind = when (this) {
     LoadingKind.Resolving -> PaymentLoadingKind.Resolving
     LoadingKind.Paying -> PaymentLoadingKind.Paying
 }
+
+@Composable
+private fun BlinkWalletCurrency.androidTitle(): String = stringResource(
+    when (this) {
+        BlinkWalletCurrency.BTC -> R.string.funding_wallet_bitcoin
+        BlinkWalletCurrency.USD -> R.string.funding_wallet_stablesats
+    }
+)
 
 private fun PendingStatus.toPreviousPaymentSituation(): PreviousPaymentSituation = when (this) {
     PendingStatus.Sending,

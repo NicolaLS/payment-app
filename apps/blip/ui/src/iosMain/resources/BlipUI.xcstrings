@@ -1,6 +1,29 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "error_funding_wallet_unavailable" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle vor der Zahlung unter Einstellungen ein verfügbares Zahlungsguthaben aus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an available funding balance in Settings before paying."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige un saldo de pago disponible en Ajustes antes de pagar."
+          }
+        }
+      }
+    },
     "blink_contacts_import" : {
       "extractionState" : "stale",
       "localizations" : {

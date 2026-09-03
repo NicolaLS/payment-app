@@ -1,5 +1,6 @@
 package xyz.lilsus.blip.feature.payment
 
+import xyz.lilsus.blip.integration.blink.BlinkWalletCurrency
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
@@ -27,7 +28,19 @@ suspend fun PaymentUiState.toNativePaymentScreenState(): PaymentScreenState = wh
 
     is PaymentUiState.EnterAmount -> PaymentScreenState.EnterAmount(entry, lnurlPayDisplay)
 
-    is PaymentUiState.Confirm -> PaymentScreenState.Confirm(amount, lnurlPayDisplay)
+    is PaymentUiState.Confirm ->
+        PaymentScreenState.Confirm(
+            amount = amount,
+            lnurlPayDisplay = lnurlPayDisplay,
+            fundingSource =
+                nativeString(
+                    NativeStringResource(
+                        table = "BlipPayment",
+                        key = "confirm_payment_funding_wallet"
+                    ),
+                    fundingWallet.currency.nativeTitle()
+                )
+        )
 
     is PaymentUiState.PendingRetry -> PaymentScreenState.PendingRetry(id)
 
@@ -156,3 +169,14 @@ private fun PendingStatus.nativeStatusTone(): String = when (this) {
 }
 
 private fun DisplayAmount.zero(): DisplayAmount = DisplayAmount(0, currency)
+
+private suspend fun BlinkWalletCurrency.nativeTitle(): String = nativeString(
+    NativeStringResource(
+        table = "BlipPayment",
+        key =
+            when (this) {
+                BlinkWalletCurrency.BTC -> "funding_wallet_bitcoin"
+                BlinkWalletCurrency.USD -> "funding_wallet_stablesats"
+            }
+    )
+)

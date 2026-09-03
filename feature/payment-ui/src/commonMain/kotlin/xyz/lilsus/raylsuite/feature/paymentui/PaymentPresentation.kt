@@ -18,7 +18,8 @@ sealed interface PaymentScreenState {
 
     data class Confirm(
         val amount: PaymentConfirmationAmount,
-        val lnurlPayDisplay: LnurlPayDisplay? = null
+        val lnurlPayDisplay: LnurlPayDisplay? = null,
+        val fundingSource: String? = null
     ) : PaymentScreenState
 
     data class PendingRetry(val transactionId: String) : PaymentScreenState

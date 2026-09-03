@@ -8,11 +8,25 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 data object BlinkWalletConnection
 
-data class BlinkPaymentRequest(val invoice: String, val amountMsats: Long? = null) {
+data class BlinkPaymentRequest(
+    val invoice: String,
+    val fundingWallet: BlinkFundingWallet,
+    val amount: BlinkPaymentAmount? = null
+) {
     init {
         require(invoice.isNotBlank()) { "An encoded Lightning invoice cannot be blank" }
-        require(amountMsats == null || amountMsats > 0) {
-            "An explicit invoice amount must be greater than zero"
+        require(
+            amount == null ||
+                (
+                    fundingWallet.currency == BlinkWalletCurrency.BTC &&
+                        amount is BlinkPaymentAmount.Bitcoin
+                    ) ||
+                (
+                    fundingWallet.currency == BlinkWalletCurrency.USD &&
+                        amount is BlinkPaymentAmount.Usd
+                    )
+        ) {
+            "The explicit payment amount must use the funding wallet's currency"
         }
     }
 }
@@ -46,12 +60,17 @@ class BlinkWallet internal constructor(
     private val credentialStore: BlinkCredentialStore,
     private val isNetworkAvailable: () -> Boolean
 ) {
+    private val initialCredentials = credentialStore.read()
     private val mutableConnection =
         MutableStateFlow(
-            credentialStore.read()?.let { BlinkWalletConnection }
+            initialCredentials?.let { BlinkWalletConnection }
         )
+    private val mutableSelectedFundingWallet =
+        MutableStateFlow(initialCredentials?.selectedFundingWallet)
 
     val connection: StateFlow<BlinkWalletConnection?> = mutableConnection.asStateFlow()
+    val selectedFundingWallet: StateFlow<BlinkFundingWallet?> =
+        mutableSelectedFundingWallet.asStateFlow()
 
     suspend fun connect(apiKey: String) {
         ensureNotConnected()
@@ -66,29 +85,61 @@ class BlinkWallet internal constructor(
             throw BlinkConnectionException(BlinkConnectionError.RequiredPermissionsMissing)
         }
 
-        val defaultWalletId = apiClient.fetchDefaultWalletId(normalizedApiKey)
+        val walletCatalog = apiClient.fetchFundingWallets(normalizedApiKey)
+        val defaultWallet = walletCatalog.wallets.firstOrNull {
+            it.id == walletCatalog.defaultWalletId
+        } ?: throw BlinkApiException(
+            BlinkApiError.Unexpected("Blink did not return a usable default funding wallet")
+        )
         ensureNotConnected()
 
         val credentials = BlinkCredentials(
             apiKey = normalizedApiKey,
-            defaultWalletId = defaultWalletId
+            selectedFundingWallet = defaultWallet
         )
         credentialStore.save(credentials)
 
+        mutableSelectedFundingWallet.value = defaultWallet
         mutableConnection.value = BlinkWalletConnection
     }
 
     fun disconnect() {
         credentialStore.clear()
+        mutableSelectedFundingWallet.value = null
         mutableConnection.value = null
     }
 
-    suspend fun refreshDefaultWalletId(): String {
+    suspend fun refreshFundingWallets(): List<BlinkFundingWallet> {
+        val requestCredentials = requireCredentials()
+        val wallets = apiClient.fetchFundingWallets(requestCredentials.apiKey).wallets
         val credentials = requireCredentials()
-        val defaultWalletId = apiClient.fetchDefaultWalletId(credentials.apiKey)
-        credentialStore.save(credentials.copy(defaultWalletId = defaultWalletId))
-        return defaultWalletId
+        if (credentials.apiKey != requestCredentials.apiKey) {
+            throw BlinkApiException(
+                BlinkApiError.Unexpected(
+                    "Blink connection changed while refreshing funding wallets"
+                )
+            )
+        }
+        val selectedWallet = credentials.selectedFundingWallet?.let { selection ->
+            wallets.firstOrNull { wallet -> wallet == selection }
+        }
+        credentialStore.save(
+            credentials.copy(selectedFundingWallet = selectedWallet)
+        )
+        mutableSelectedFundingWallet.value = selectedWallet
+        return wallets
     }
+
+    fun selectFundingWallet(wallet: BlinkFundingWallet) {
+        val credentials = requireCredentials()
+        credentialStore.save(
+            credentials.copy(selectedFundingWallet = wallet)
+        )
+        mutableSelectedFundingWallet.value = wallet
+    }
+
+    fun prepareFundingWallet(): BlinkFundingWallet = requireCredentials().selectedFundingWallet
+        ?: throw BlinkApiException(BlinkApiError.FundingWalletUnavailable)
 
     suspend fun fetchContacts(): List<BlinkContact> {
         val credentials = requireCredentials()
@@ -105,22 +156,28 @@ class BlinkWallet internal constructor(
                 BlinkApiError.MissingWalletConnection
             )
 
-        val amountMsats = request.amountMsats
         val result =
             withTimeoutOrNull(PAYMENT_RESOURCE_GUARD_MS) {
                 try {
-                    if (amountMsats != null) {
-                        apiClient.payNoAmountInvoice(
+                    when (val amount = request.amount) {
+                        null -> apiClient.payInvoice(
                             apiKey = credentials.apiKey,
-                            walletId = credentials.defaultWalletId,
-                            invoice = request.invoice,
-                            amountSats = amountMsats.toSatsRoundedUp()
-                        )
-                    } else {
-                        apiClient.payInvoice(
-                            apiKey = credentials.apiKey,
-                            walletId = credentials.defaultWalletId,
+                            walletId = request.fundingWallet.id,
                             invoice = request.invoice
+                        )
+
+                        is BlinkPaymentAmount.Bitcoin -> apiClient.payNoAmountInvoice(
+                            apiKey = credentials.apiKey,
+                            walletId = request.fundingWallet.id,
+                            invoice = request.invoice,
+                            amountSats = amount.milliSatoshis.toSatsRoundedUp()
+                        )
+
+                        is BlinkPaymentAmount.Usd -> apiClient.payNoAmountUsdInvoice(
+                            apiKey = credentials.apiKey,
+                            walletId = request.fundingWallet.id,
+                            invoice = request.invoice,
+                            amountCents = amount.cents
                         )
                     }
                 } catch (error: BlinkApiException) {
@@ -174,6 +231,7 @@ private fun BlinkApiException.toPaymentOutcome(): BlinkPaymentOutcome = when (er
     is BlinkApiError.Unexpected -> BlinkPaymentOutcome.StatusUnknown(error)
 
     BlinkApiError.MissingWalletConnection,
+    BlinkApiError.FundingWalletUnavailable,
     is BlinkApiError.BlinkError,
     is BlinkApiError.PaymentRejected -> BlinkPaymentOutcome.DefinitiveFailure(error)
 }
