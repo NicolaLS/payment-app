@@ -30,6 +30,11 @@ internal class QrPresenceGate(
         return value
     }
 
+    fun reset() {
+        blockedValue = null
+        absentObservations = 0
+    }
+
     private companion object {
         const val DEFAULT_ABSENT_OBSERVATIONS_TO_REARM = 3
     }

@@ -63,7 +63,6 @@ private class AndroidQrScannerController(
     private var hasStartedOnce = false
     private var startToReadyTrace: AndroidCameraTraceInterval? = null
     private var startToFirstFrameTrace: AndroidCameraTraceInterval? = null
-    private val qrPresenceGate = QrPresenceGate()
 
     override fun start(
         onQrCodeScanned: (String) -> Unit,
@@ -141,6 +140,7 @@ private class AndroidQrScannerController(
                             analysisExecutor = it
                         }
                     val mainExecutor = ContextCompat.getMainExecutor(context)
+                    val qrPresenceGate = QrPresenceGate()
 
                     if (!isCurrentGeneration(generation)) return@addListener
                     val analyzer = analyzer ?: QrCodeAnalyzer(

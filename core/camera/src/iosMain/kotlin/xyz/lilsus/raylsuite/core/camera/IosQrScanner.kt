@@ -107,6 +107,7 @@ private class IosQrScannerController : QrScannerController {
         dispatch_async(sessionQueue) {
             try {
                 if (generation != currentGeneration) return@dispatch_async
+                qrPresenceGate.reset()
                 started = true
                 ensureSessionRunning()
             } finally {

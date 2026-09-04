@@ -6,13 +6,15 @@ import kotlin.test.assertNull
 
 class QrPresenceGateTest {
     @Test
-    fun sameVisibleQrRemainsBlockedAcrossScannerRestart() {
+    fun sameVisibleQrEmitsOnceAfterScannerRestart() {
         val gate = QrPresenceGate(absentObservationsToRearm = 2)
 
         assertEquals("invoice", gate.observe("invoice"))
         assertNull(gate.observe("invoice"))
 
-        // Starting a new camera session does not reset the app-lived gate.
+        gate.reset()
+
+        assertEquals("invoice", gate.observe("invoice"))
         assertNull(gate.observe("invoice"))
     }
 
