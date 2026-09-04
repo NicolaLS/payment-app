@@ -27,9 +27,7 @@ class DefaultPaymentEngine(
     private val sessionMutex = Mutex()
     private val refreshMutex = Mutex()
     private val policyMutex = Mutex()
-    private val drafts = mutableMapOf<String, VerifiedDraft>()
-    private val amountDrafts = mutableMapOf<String, AmountDraft>()
-    private val handlesByFingerprint = mutableMapOf<InvoiceFingerprint, String>()
+    private val draftRegistry = SparkPaymentDraftRegistry()
     private val paymentsById = mutableMapOf<String, SdkPayment>()
     private val mutableActivity = MutableStateFlow<List<PaymentActivity>>(emptyList())
     private val mutableConfirmationPolicy = MutableStateFlow(PaymentConfirmationPolicy.Default)
@@ -66,9 +64,7 @@ class DefaultPaymentEngine(
     override suspend fun clearWalletData(): Boolean = submissionMutex.withLock {
         draftMutex.withLock {
             if (storageAttempt { repository.clear() }.isFailure) return@withLock false
-            drafts.clear()
-            amountDrafts.clear()
-            handlesByFingerprint.clear()
+            draftRegistry.clear()
             paymentsById.clear()
             mutableActivity.value = emptyList()
             true
@@ -106,17 +102,7 @@ class DefaultPaymentEngine(
                 }
             }
 
-            handlesByFingerprint[admitted.fingerprint]?.let { existingHandle ->
-                drafts[existingHandle]?.takeUnless { it.isExpired(now) }?.let {
-                    return@withLock PreparePaymentResult.Ready(it.projection)
-                }
-                amountDrafts[existingHandle]?.takeUnless { it.isExpired(now) }?.let {
-                    return@withLock PreparePaymentResult.AmountRequired(it.projection)
-                }
-                drafts.remove(existingHandle)
-                amountDrafts.remove(existingHandle)
-                handlesByFingerprint.remove(admitted.fingerprint)
-            }
+            draftRegistry.reusable(admitted.fingerprint, now)?.let { return@withLock it }
 
             val lnurlReviewDetails =
                 admitted.lnurlRequest
@@ -132,14 +118,15 @@ class DefaultPaymentEngine(
                     maximumAmountSats = admitted.maximumAmountSats,
                     lnurlPayDetails = lnurlReviewDetails
                 )
-                amountDrafts[handle.value] =
+                draftRegistry.registerAmount(
+                    handle,
                     AmountDraft(
                         admission = admitted,
                         projection = projection,
                         origin = origin,
                         lnurlAuthorized = lnurlReviewDetails != null
                     )
-                handlesByFingerprint[admitted.fingerprint] = handle.value
+                )
                 return@withLock PreparePaymentResult.AmountRequired(projection)
             }
             val amountSats = admitted.amountSats
@@ -190,7 +177,7 @@ class DefaultPaymentEngine(
                     amountEnteredByUser = false
                 )
             )
-            registerDraft(
+            draftRegistry.register(
                 handle,
                 VerifiedDraft(
                     admission = verifiedAdmission,
@@ -214,11 +201,11 @@ class DefaultPaymentEngine(
     ): PreparePaymentResult = draftMutex.withLock {
         val currentClient = client ?: return@withLock PreparePaymentResult.WalletUnavailable
         val amountDraft =
-            amountDrafts[handle.value] ?: return@withLock PreparePaymentResult.Rejected(
+            draftRegistry.amount(handle) ?: return@withLock PreparePaymentResult.Rejected(
                 PaymentRejection.INVALID_AMOUNT
             )
         if (amountDraft.isExpired(nowEpochSeconds())) {
-            consumeAmountDraft(handle)
+            draftRegistry.consumeAmount(handle)
             return@withLock PreparePaymentResult.Rejected(PaymentRejection.EXPIRED)
         }
         if (amountSats.value < amountDraft.projection.minimumAmountSats.value ||
@@ -257,7 +244,7 @@ class DefaultPaymentEngine(
         }
         val policy = currentPolicy()
 
-        consumeAmountDraft(handle)
+        draftRegistry.consumeAmount(handle)
         val draftHandle = PaymentDraftHandle(handle.value)
         val projection = PreparedPayment(
             handle = draftHandle,
@@ -272,7 +259,7 @@ class DefaultPaymentEngine(
                 amountEnteredByUser = true
             ) && !amountDraft.lnurlAuthorized
         )
-        registerDraft(
+        draftRegistry.register(
             draftHandle,
             VerifiedDraft(
                 admission = admitted,
@@ -291,12 +278,12 @@ class DefaultPaymentEngine(
         }
 
     override suspend fun cancel(handle: PaymentDraftHandle) = draftMutex.withLock {
-        consumeDraft(handle)
+        draftRegistry.consume(handle)
         Unit
     }
 
     override suspend fun cancel(handle: PaymentAmountHandle) = draftMutex.withLock {
-        consumeAmountDraft(handle)
+        draftRegistry.consumeAmount(handle)
         Unit
     }
 
@@ -312,12 +299,12 @@ class DefaultPaymentEngine(
     ): ConfirmPaymentResult = submissionMutex.withLock {
         var confirmationRequired = false
         val draft = draftMutex.withLock {
-            val existing = drafts[handle.value] ?: return@withLock null
+            val existing = draftRegistry.draft(handle) ?: return@withLock null
             if (!explicitlyConfirmed && existing.projection.requiresConfirmation) {
                 confirmationRequired = true
                 null
             } else {
-                consumeDraft(handle)
+                draftRegistry.consume(handle)
             }
         }
         if (confirmationRequired) return@withLock ConfirmPaymentResult.ConfirmationRequired
@@ -780,63 +767,5 @@ class DefaultPaymentEngine(
             require(submissionMillis > 0)
             require(lookupMillis > 0)
         }
-    }
-
-    private fun consumeDraft(handle: PaymentDraftHandle): VerifiedDraft? {
-        val draft = drafts.remove(handle.value) ?: return null
-        draft.fingerprints.forEach { fingerprint ->
-            if (handlesByFingerprint[fingerprint] == handle.value) {
-                handlesByFingerprint.remove(fingerprint)
-            }
-        }
-        return draft
-    }
-
-    private fun registerDraft(handle: PaymentDraftHandle, draft: VerifiedDraft) {
-        drafts[handle.value] = draft
-        draft.fingerprints.forEach { handlesByFingerprint[it] = handle.value }
-    }
-
-    private fun consumeAmountDraft(handle: PaymentAmountHandle): AmountDraft? {
-        val draft = amountDrafts.remove(handle.value) ?: return null
-        handlesByFingerprint.remove(draft.admission.fingerprint)
-        return draft
-    }
-
-    private sealed interface Admission {
-        data class Accepted(
-            val invoice: String,
-            val fingerprint: InvoiceFingerprint,
-            val method: PaymentMethod,
-            val amountSats: Satoshi?,
-            val expiresAtEpochSeconds: Long?,
-            val minimumAmountSats: Satoshi = Satoshi.positive(1),
-            val maximumAmountSats: Satoshi? = null,
-            val lnurlRequest: ParsedSdkInput.LnurlPay? = null,
-            val amountOverrideSats: Satoshi? = null
-        ) : Admission
-
-        data class Rejected(val reason: PaymentRejection) : Admission
-    }
-
-    private data class VerifiedDraft(
-        val admission: Admission.Accepted,
-        val prepared: SdkPreparedPayment,
-        val projection: PreparedPayment,
-        val origin: PaymentOrigin,
-        val fingerprints: Set<InvoiceFingerprint>
-    ) {
-        fun isExpired(nowEpochSeconds: Long): Boolean =
-            admission.expiresAtEpochSeconds?.let { it <= nowEpochSeconds } ?: false
-    }
-
-    private data class AmountDraft(
-        val admission: Admission.Accepted,
-        val projection: AmountRequiredPayment,
-        val origin: PaymentOrigin,
-        val lnurlAuthorized: Boolean = false
-    ) {
-        fun isExpired(nowEpochSeconds: Long): Boolean =
-            admission.expiresAtEpochSeconds?.let { it <= nowEpochSeconds } ?: false
     }
 }

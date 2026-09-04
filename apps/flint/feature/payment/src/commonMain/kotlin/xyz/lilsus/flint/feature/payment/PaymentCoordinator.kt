@@ -27,7 +27,6 @@ import xyz.lilsus.flint.application.payment.LnurlPayReviewDetails
 import xyz.lilsus.flint.application.payment.PaymentActivity
 import xyz.lilsus.flint.application.payment.PaymentConfirmationMode as FlintConfirmationMode
 import xyz.lilsus.flint.application.payment.PaymentConfirmationPolicy
-import xyz.lilsus.flint.application.payment.PaymentDraftHandle
 import xyz.lilsus.flint.application.payment.PaymentEngine
 import xyz.lilsus.flint.application.payment.PaymentLinkInbox
 import xyz.lilsus.flint.application.payment.PaymentOrigin
@@ -49,7 +48,6 @@ import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
 import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetAmountRule
-import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymenthub.host.DirectTargetPaymentIntent
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
@@ -107,11 +105,7 @@ class PaymentCoordinator(
     private val newSessionTransactionIds = mutableSetOf<String>()
     private val terminalHubUpdates = mutableSetOf<String>()
     private val successNotifications = mutableSetOf<String>()
-    private var activeDraft: ActiveDraft? = null
-    private var manualRequest: ManualRequest? = null
-    private var pendingLnurlReview: PendingLnurlReview? = null
-    private var activeAttemptId: String? = null
-    private var visibleActivity: VisibleActivity? = null
+    private val interaction = PaymentInteractionSession()
     private var activeLinkId: String? = null
     private var vibrateOnScan = true
     private var vibrateOnPayment = true
@@ -188,11 +182,7 @@ class PaymentCoordinator(
         terminalHubUpdates.clear()
         hubContexts.clear()
         successNotifications.clear()
-        activeDraft = null
-        manualRequest = null
-        pendingLnurlReview = null
-        activeAttemptId = null
-        visibleActivity = null
+        interaction.reset()
         mutableSessionTransactions.value = emptyList()
         mutableNewSessionTransactionCount.value = 0
         mutableTransactionDetailNavigationTarget.value = null
@@ -295,7 +285,7 @@ class PaymentCoordinator(
                         null
                     }
                 val request = ManualRequest(result.payment, targetContext, lnurlPayDisplay)
-                manualRequest = request
+                interaction.requestManualAmount(request)
                 if (requestedAmountMsats != null && lnurlPayDisplay != null) {
                     reviewLnurlAmount(request, requestedAmountMsats, paymentQuote)
                 } else if (requestedAmountMsats != null) {
@@ -343,7 +333,7 @@ class PaymentCoordinator(
         targetContext: HubTargetContext?,
         paymentQuote: PaymentAmountQuote?
     ) {
-        manualRequest = null
+        interaction.reset()
         if (
             paymentQuote != null &&
             payment.amountSats.toMsats() != paymentQuote.amountMsats
@@ -364,7 +354,7 @@ class PaymentCoordinator(
                 null
             }
         val draft = ActiveDraft(payment, targetContext, paymentQuote, confirmationAmount)
-        activeDraft = draft
+        interaction.prepareDraft(draft)
         mutableUiState.value =
             if (requiresConfirmation) {
                 PaymentUiState.Confirm(requireNotNull(confirmationAmount))
@@ -377,8 +367,7 @@ class PaymentCoordinator(
     }
 
     private suspend fun submitConfirmation() {
-        pendingLnurlReview?.let { review ->
-            pendingLnurlReview = null
+        interaction.takeLnurlReview()?.let { review ->
             mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
             applyPrepareResult(
                 engine.prepareAmount(review.request.payment.handle, review.amountSats),
@@ -388,7 +377,7 @@ class PaymentCoordinator(
             )
             return
         }
-        val draft = activeDraft ?: return
+        val draft = interaction.activeDraft ?: return
         mutableUiState.value = PaymentUiState.Loading()
         applyConfirmResult(engine.confirm(draft.payment.handle), draft)
     }
@@ -396,8 +385,7 @@ class PaymentCoordinator(
     private suspend fun applyConfirmResult(result: ConfirmPaymentResult, draft: ActiveDraft) {
         when (result) {
             is ConfirmPaymentResult.Submitted -> {
-                activeDraft = null
-                activeAttemptId = result.activity.attemptId
+                interaction.beginAttempt(result.activity.attemptId)
                 sessionAttemptIds += result.activity.attemptId
                 draft.targetContext?.let { hubContexts[result.activity.attemptId] = it }
                 refreshSessionTransactions(engine.activity.value)
@@ -411,7 +399,7 @@ class PaymentCoordinator(
                             draft.payment.amountSats.toMsats(),
                             draft.paymentQuote
                         )
-                activeDraft = draft.copy(confirmationAmount = confirmationAmount)
+                interaction.prepareDraft(draft.copy(confirmationAmount = confirmationAmount))
                 mutableUiState.value =
                     PaymentUiState.Confirm(confirmationAmount)
             }
@@ -431,21 +419,17 @@ class PaymentCoordinator(
     }
 
     private suspend fun dismissManualAmount() {
-        manualRequest?.payment?.handle?.let { engine.cancel(it) }
-        manualRequest = null
+        interaction.manualRequest?.payment?.handle?.let { engine.cancel(it) }
         finishPaymentInteraction()
     }
 
     private suspend fun dismissConfirmation() {
-        pendingLnurlReview?.let { review ->
+        interaction.pendingLnurlReview?.let { review ->
             engine.cancel(review.request.payment.handle)
-            pendingLnurlReview = null
-            manualRequest = null
             finishPaymentInteraction()
             return
         }
-        activeDraft?.payment?.handle?.let { engine.cancel(it) }
-        activeDraft = null
+        interaction.activeDraft?.payment?.handle?.let { engine.cancel(it) }
         finishPaymentInteraction()
     }
 
@@ -469,7 +453,7 @@ class PaymentCoordinator(
 
     private suspend fun submitManualAmount() {
         val entryState = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
-        val request = manualRequest ?: return
+        val request = interaction.manualRequest ?: return
         val enteredAmount = manualAmount.enteredAmount() ?: return
         mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
         val paymentQuote = currencyManager.quote(enteredAmount)
@@ -561,15 +545,16 @@ class PaymentCoordinator(
         }
         val display = request.lnurlPayDisplay ?: return
         val confirmationAmount = confirmationAmount(amountSats.toMsats(), paymentQuote)
-        pendingLnurlReview =
-            PendingLnurlReview(request, amountSats, paymentQuote)
+        interaction.reviewLnurl(PendingLnurlReview(request, amountSats, paymentQuote))
         mutableUiState.value = PaymentUiState.Confirm(confirmationAmount, display)
     }
 
     private fun handleActivityUpdate(activity: List<PaymentActivity>) {
         refreshSessionTransactions(activity)
         activity.forEach(::updateTerminalHubState)
-        val active = activeAttemptId?.let { id -> activity.firstOrNull { it.attemptId == id } }
+        val active = interaction.activeAttemptId?.let { id ->
+            activity.firstOrNull { it.attemptId == id }
+        }
         if (active != null) {
             when (active.outcome) {
                 PaymentOutcome.COMPLETED,
@@ -583,7 +568,7 @@ class PaymentCoordinator(
     }
 
     private fun showActivity(activity: PaymentActivity, wasAlreadyPaid: Boolean = false) {
-        visibleActivity = VisibleActivity(activity, wasAlreadyPaid)
+        interaction.showActivity(VisibleActivity(activity, wasAlreadyPaid))
         pendingPresentationJob?.cancel()
         when (activity.outcome) {
             PaymentOutcome.COMPLETED -> {
@@ -622,7 +607,7 @@ class PaymentCoordinator(
                     scope.launch {
                         delay(PENDING_PRESENTATION_TIMEOUT_MS)
                         if (
-                            activeAttemptId == activity.attemptId &&
+                            interaction.activeAttemptId == activity.attemptId &&
                             mutableUiState.value is PaymentUiState.Loading
                         ) {
                             mutableUiState.value = PaymentUiState.Active
@@ -831,25 +816,21 @@ class PaymentCoordinator(
     }
 
     private fun clearTransientPaymentState() {
-        activeDraft = null
-        manualRequest = null
-        pendingLnurlReview = null
-        activeAttemptId = null
-        visibleActivity = null
+        interaction.reset()
     }
 
     private fun showError(error: PaymentUiError, keepVisibleActivity: Boolean = false) {
-        if (!keepVisibleActivity) visibleActivity = null
+        if (!keepVisibleActivity) interaction.clearVisibleActivity()
         mutableUiState.value = PaymentUiState.Error(error)
     }
 
     private fun refreshCurrencyDependentPresentation() {
-        manualRequest?.let { request ->
+        interaction.manualRequest?.let { request ->
             if (mutableUiState.value is PaymentUiState.EnterAmount) {
                 showManualAmount(request, clearInput = false)
             }
         }
-        visibleActivity?.let { visible ->
+        interaction.visibleActivity?.let { visible ->
             when (mutableUiState.value) {
                 is PaymentUiState.Success,
                 is PaymentUiState.Error -> showActivity(
@@ -886,34 +867,6 @@ class PaymentCoordinator(
             primaryIsEstimate = preferredAmount.currency is DisplayCurrency.Fiat
         )
     }
-
-    private data class ActiveDraft(
-        val payment: PreparedPayment,
-        val targetContext: HubTargetContext?,
-        val paymentQuote: PaymentAmountQuote?,
-        val confirmationAmount: PaymentConfirmationAmount?
-    )
-
-    private data class ManualRequest(
-        val payment: AmountRequiredPayment,
-        val targetContext: HubTargetContext?,
-        val lnurlPayDisplay: LnurlPayDisplay?
-    )
-
-    private data class PendingLnurlReview(
-        val request: ManualRequest,
-        val amountSats: Satoshi,
-        val paymentQuote: PaymentAmountQuote?
-    )
-
-    private data class VisibleActivity(val activity: PaymentActivity, val wasAlreadyPaid: Boolean)
-
-    /** App-owned link between a Spark attempt and the hub target it was started from. */
-    private data class HubTargetContext(
-        val targetId: HubItemId?,
-        val address: LightningAddress,
-        val isPreset: Boolean
-    )
 }
 
 private fun PaymentRejection.toPaymentUiError(): PaymentUiError = when (this) {
