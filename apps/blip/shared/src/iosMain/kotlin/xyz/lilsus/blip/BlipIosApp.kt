@@ -76,14 +76,15 @@ object BlipIosApp {
             canvasLayout = runtime.canvasLayout,
             host = runtime.paymentHub,
             languageChanges = runtime.languageRepository.preference,
-            currencyCodes = runtime.currencyPreferences.code
+            currencyCodes = runtime.currencyPreferences.code,
+            contacts = runtime.paymentHubContacts
         )
     }
 
     private val nativeContactsController: BlipNativeContactsController by lazy {
         BlipNativeContactsController(
             blinkWallet = runtime.blinkWallet,
-            paymentHub = runtime.paymentHubRepository,
+            contactsRepository = runtime.contactsRepository,
             languageChanges = runtime.languageRepository.preference
         )
     }

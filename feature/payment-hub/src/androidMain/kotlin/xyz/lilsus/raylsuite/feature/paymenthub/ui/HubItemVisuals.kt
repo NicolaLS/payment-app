@@ -1,10 +1,10 @@
 package xyz.lilsus.raylsuite.feature.paymenthub.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CardGiftcard
@@ -25,15 +25,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
 import xyz.lilsus.raylsuite.feature.paymenthub.HubAccent
 import xyz.lilsus.raylsuite.feature.paymenthub.HubIcon
+import xyz.lilsus.raylsuite.feature.paymenthub.R
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubAmountLine
 import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemDetail
 import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubMark
 
 fun HubIcon.vector(): ImageVector = when (this) {
     HubIcon.Person -> Icons.Filled.Person
@@ -83,55 +91,98 @@ fun HubAccent.contentColor(): Color {
 
 private fun Color.luminance(): Float = 0.2126f * red + 0.7152f * green + 0.0722f * blue
 
-/** Round glyph with the item icon (or the first title letter) on its accent. */
+/**
+ * The square mark a tile or row leads with. A saved person is filled; a service is outlined, which
+ * is the whole difference the hub draws between the two.
+ */
 @Composable
-fun HubItemGlyph(item: HubItemRenderModel, modifier: Modifier = Modifier, size: Dp = 44.dp) {
-    HubGlyph(
-        icon = item.icon,
-        accent = item.accent,
-        fallbackText = item.title.take(1).uppercase(),
-        modifier = modifier,
-        size = size
-    )
-}
-
-@Composable
-fun HubGlyph(
-    icon: HubIcon?,
-    accent: HubAccent?,
-    fallbackText: String,
+fun HubMarkView(
+    mark: HubMark,
     modifier: Modifier = Modifier,
-    size: Dp = 44.dp
+    size: Dp = 40.dp,
+    outlined: Boolean = false
 ) {
-    val container = accent?.containerColor() ?: MaterialTheme.colorScheme.surfaceContainerHighest
-    val content = accent?.contentColor() ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val shape = markShape(size)
+    val container =
+        when {
+            outlined -> Color.Transparent
+            mark.accent != null -> mark.accent.containerColor()
+            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+        }
+    val content =
+        when {
+            mark.accent != null -> mark.accent.contentColor()
+            outlined -> MaterialTheme.colorScheme.onSurface
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+        }
     Box(
         modifier =
             modifier
                 .size(size)
-                .background(container, CircleShape),
+                .background(container, shape)
+                .then(
+                    if (outlined) {
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+                    } else {
+                        Modifier
+                    }
+                ),
         contentAlignment = Alignment.Center
     ) {
-        if (icon != null) {
+        if (mark.icon != null) {
             Icon(
-                imageVector = icon.vector(),
+                imageVector = mark.icon.vector(),
                 contentDescription = null,
                 tint = content,
                 modifier = Modifier.size(size * 0.5f)
             )
         } else {
             Text(
-                text = fallbackText,
+                text = mark.initials,
                 color = content,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                style =
+                    MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = (size.value * 0.42f).sp
+                    )
             )
         }
     }
 }
 
-/** Formatted preset amount, or `null` for ask-every-time targets and groups. */
+/** Outlined mark for a catalogue service, which is never itself a saved target. */
 @Composable
-fun HubItemRenderModel.amountBadge(): String? {
-    val amount = (detail as? HubItemDetail.Target)?.presetAmount ?: return null
-    return rememberAmountFormatter().format(amount)
+fun HubServiceMark(initials: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+    HubMarkView(mark = HubMark(initials), modifier = modifier, size = size, outlined = true)
+}
+
+@Composable
+private fun markShape(size: Dp): Shape =
+    if (size >= 44.dp) MaterialTheme.shapes.small else MaterialTheme.shapes.extraSmall
+
+/** The bottom line of a tile: what tapping it will do. */
+@Composable
+fun HubAmountLine.amountText(): String = when (this) {
+    HubAmountLine.AskEachTime -> stringResource(R.string.hub_amount_ask)
+    is HubAmountLine.Preset -> rememberAmountFormatter().format(amount)
+}
+
+@Composable
+fun HubAmountLine.amountColor(): Color = when (this) {
+    HubAmountLine.AskEachTime -> MaterialTheme.colorScheme.onSurfaceVariant
+    is HubAmountLine.Preset -> MaterialTheme.colorScheme.onSurface
+}
+
+@Composable
+fun HubItemRenderModel.subtitle(): String = when (val detail = detail) {
+    is HubItemDetail.Target -> detail.address
+
+    is HubItemDetail.Group ->
+        pluralStringResource(
+            R.plurals.hub_group_member_count,
+            detail.memberCount,
+            detail.memberCount
+        )
 }

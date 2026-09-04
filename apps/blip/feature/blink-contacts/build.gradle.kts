@@ -1,5 +1,6 @@
 plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -11,8 +12,10 @@ kotlin {
         commonMain.dependencies {
             api(project(":blip:integration:blink"))
             api(project(":blip:ui"))
-            api(project(":feature:payment-hub"))
+            api(project(":core:model"))
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.multiplatform.settings)
             implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
@@ -24,6 +27,12 @@ kotlin {
         }
         iosMain.dependencies {
             implementation(project(":core:ui"))
+        }
+        commonTest.dependencies {
+            implementation(project(":feature:payment-hub"))
+            implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.multiplatform.settings.test)
         }
     }
 }

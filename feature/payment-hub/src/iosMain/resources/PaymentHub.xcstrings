@@ -1,1047 +1,1208 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "hub_accent_amber" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bernstein"
+  "sourceLanguage": "en",
+  "strings": {
+    "hub_accent_amber": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bernstein"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Amber"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amber"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ámbar"
-          }
-        }
-      }
-    },
-    "hub_accent_blue" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blau"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blue"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azul"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ámbar"
           }
         }
       }
     },
-    "hub_accent_green" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grün"
+    "hub_accent_blue": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blau"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Green"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blue"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verde"
-          }
-        }
-      }
-    },
-    "hub_accent_orange" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orange"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Orange"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Naranja"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Azul"
           }
         }
       }
     },
-    "hub_accent_pink" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rosa"
+    "hub_accent_green": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grün"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pink"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Green"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rosa"
-          }
-        }
-      }
-    },
-    "hub_accent_purple" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lila"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Purple"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Morado"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verde"
           }
         }
       }
     },
-    "hub_accent_slate" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schiefer"
+    "hub_accent_orange": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orange"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Slate"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Orange"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grafito"
-          }
-        }
-      }
-    },
-    "hub_accent_teal" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Petrol"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Teal"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Turquesa"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naranja"
           }
         }
       }
     },
-    "hub_action_add" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hinzufügen"
+    "hub_accent_pink": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rosa"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pink"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir"
-          }
-        }
-      }
-    },
-    "hub_action_move_down" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach unten"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move down"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bajar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rosa"
           }
         }
       }
     },
-    "hub_action_move_up" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach oben"
+    "hub_accent_purple": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lila"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move up"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purple"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Subir"
-          }
-        }
-      }
-    },
-    "hub_action_pin" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "An Start anheften"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pin to home"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fijar en inicio"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morado"
           }
         }
       }
     },
-    "hub_action_remove" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entfernen"
+    "hub_accent_slate": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schiefer"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slate"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quitar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grafito"
           }
         }
       }
     },
-    "hub_action_unpin" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Von Start lösen"
+    "hub_accent_teal": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Petrol"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unpin from home"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teal"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quitar de inicio"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turquesa"
           }
         }
       }
     },
-    "hub_appearance_accent" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Farbe"
+    "hub_action_add": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinzufügen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Color"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Color"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir"
           }
         }
       }
     },
-    "hub_appearance_icon" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Symbol"
+    "hub_action_move_down": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach unten"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Icon"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move down"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Icono"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bajar"
           }
         }
       }
     },
-    "hub_appearance_none" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine"
+    "hub_action_move_up": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach oben"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "None"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move up"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ninguno"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subir"
           }
         }
       }
     },
-    "hub_canvas_add" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kacheln hinzufügen"
+    "hub_action_remove": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add tiles"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir mosaicos"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar"
           }
         }
       }
     },
-    "hub_canvas_add_all_placed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Ziele und Gruppen sind bereits platziert."
+    "hub_amount_ask": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betrag eingeben"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Every target and group is already placed."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter amount"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todos los destinos y grupos ya están colocados."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introducir importe"
           }
         }
       }
     },
-    "hub_canvas_add_title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zu deinem Hub hinzufügen"
+    "hub_amount_ask_each_time": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jedes Mal fragen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to your hub"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask each time"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir a tu centro"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar cada vez"
           }
         }
       }
     },
-    "hub_canvas_arrange" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anordnen"
+    "hub_amount_other": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anderer"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arrange"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Organizar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otro"
           }
         }
       }
     },
-    "hub_canvas_compact" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kompakt anzeigen"
+    "hub_appearance_accent": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Farbe"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Make compact"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hacer compacto"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color"
           }
         }
       }
     },
-    "hub_canvas_done" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fertig"
+    "hub_appearance_icon": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icon"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Listo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icono"
           }
         }
       }
     },
-    "hub_canvas_empty_body" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ordne die Ziele und Gruppen an, die du griffbereit haben möchtest."
+    "hub_appearance_none": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arrange the targets and groups you want at hand."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Organiza los destinos y grupos que quieras tener a mano."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguno"
           }
         }
       }
     },
-    "hub_canvas_move_earlier" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach vorne"
+    "hub_canvas_add_target": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Hub hinzufügen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move earlier"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to Hub"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mover antes"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir al hub"
           }
         }
       }
     },
-    "hub_canvas_move_later" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach hinten"
+    "hub_canvas_configure": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ einrichten"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move later"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure %1$@"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mover después"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar %1$@"
           }
         }
       }
     },
-    "hub_canvas_open_group" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gruppe %1$@ öffnen"
+    "hub_canvas_done": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fertig"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open group %1$@"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Abrir grupo %1$@"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo"
           }
         }
       }
     },
-    "hub_canvas_pay" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ bezahlen"
+    "hub_canvas_edit": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bearbeiten"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pay %1$@"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pagar a %1$@"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar"
           }
         }
       }
     },
-    "hub_canvas_remove" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kachel entfernen"
+    "hub_canvas_move": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verschieben"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove tile"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quitar mosaico"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover"
           }
         }
       }
     },
-    "hub_canvas_reset" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anordnung löschen"
+    "hub_canvas_move_item": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ verschieben"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear arrangement"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move %1$@"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Borrar organización"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover %1$@"
           }
         }
       }
     },
-    "hub_canvas_wide" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Breit anzeigen"
+    "hub_canvas_message_removed": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus deinem Hub entfernt."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Make wide"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removed from your hub."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hacer ancho"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitado de tu hub."
           }
         }
       }
     },
-    "hub_editor_delete" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Löschen"
+    "hub_canvas_open_group": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ öffnen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open %1$@"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir %1$@"
           }
         }
       }
     },
-    "hub_editor_save" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speichern"
+    "hub_canvas_pay": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ bezahlen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pay %1$@"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagar a %1$@"
           }
         }
       }
     },
-    "hub_error_enter_amount" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib einen Betrag ein."
+    "hub_canvas_remove": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ entfernen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter an amount."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %1$@"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Introduce un importe."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar %1$@"
           }
         }
       }
     },
-    "hub_error_enter_title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib einen Namen ein."
+    "hub_canvas_remove_body": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies entfernt den Eintrag nur aus deinem Hub. Gespeicherte Kontakte bleiben unverändert."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter a name."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This only removes it from your Hub. Saved contacts stay unchanged."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Introduce un nombre."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto solo quita el elemento de tu hub. Los contactos guardados no cambiarán."
           }
         }
       }
     },
-    "hub_error_invalid_address" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gib eine gültige Lightning-Adresse ein."
+    "hub_canvas_remove_cancel": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbrechen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter a valid Lightning address."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Introduce una dirección Lightning válida."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
           }
         }
       }
     },
-    "hub_error_whole_amount" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verwende für diese Währung eine ganze Zahl."
+    "hub_canvas_remove_confirm": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use a whole number for this currency."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Usa un número entero para esta moneda."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar"
           }
         }
       }
     },
-    "hub_group_available_all_added" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Ziele sind in dieser Gruppe."
+    "hub_canvas_remove_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ entfernen?"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All targets are in this group."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove %1$@?"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todos los destinos están en este grupo."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quitar %1$@?"
           }
         }
       }
     },
-    "hub_group_available_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ziele hinzufügen"
+    "hub_canvas_resize": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Größe von %1$@ ändern"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add targets"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resize %1$@"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir destinos"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar el tamaño de %1$@"
           }
         }
       }
     },
-    "hub_group_available_none" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erstelle zuerst ein Ziel."
+    "hub_configure_add": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Hub hinzufügen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create a target first."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to hub"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Crea primero un destino."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir al hub"
           }
         }
       }
     },
-    "hub_group_editor_edit" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gruppe bearbeiten"
+    "hub_configure_delete": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus dem Hub entfernen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit group"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from Hub"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Editar grupo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar del hub"
           }
         }
       }
     },
-    "hub_group_editor_new" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neue Gruppe"
+    "hub_configure_save": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New group"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuevo grupo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar"
           }
         }
       }
     },
-    "hub_group_empty" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diese Gruppe hat noch keine Ziele."
+    "hub_configure_size": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Größe im Hub"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This group has no targets yet."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Size on the hub"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Este grupo todavía no tiene destinos."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño en el hub"
           }
         }
       }
     },
-    "hub_group_member_count" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld Mitglied"
+    "hub_configure_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configure"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar"
+          }
+        }
+      }
+    },
+    "hub_editor_delete": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar"
+          }
+        }
+      }
+    },
+    "hub_editor_save": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar"
+          }
+        }
+      }
+    },
+    "hub_error_enter_amount": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib einen Betrag ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter an amount."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introduce un importe."
+          }
+        }
+      }
+    },
+    "hub_error_enter_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib einen Namen ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a name."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introduce un nombre."
+          }
+        }
+      }
+    },
+    "hub_error_invalid_address": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gib eine gültige Lightning-Adresse ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a valid Lightning address."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introduce una dirección Lightning válida."
+          }
+        }
+      }
+    },
+    "hub_error_whole_amount": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verwende für diese Währung eine ganze Zahl."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a whole number for this currency."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa un número entero para esta moneda."
+          }
+        }
+      }
+    },
+    "hub_group_available_all_added": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Hub-Einträge sind in dieser Gruppe."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All Hub items are in this group."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos los elementos del hub están en este grupo."
+          }
+        }
+      }
+    },
+    "hub_group_available_label": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hub-Einträge hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Hub items"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir elementos del hub"
+          }
+        }
+      }
+    },
+    "hub_group_available_none": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge zuerst einen Hub-Eintrag hinzu."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a Hub item first."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade primero un elemento al hub."
+          }
+        }
+      }
+    },
+    "hub_group_default_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Gruppe"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New group"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo grupo"
+          }
+        }
+      }
+    },
+    "hub_group_editor_edit": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppe bearbeiten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit group"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar grupo"
+          }
+        }
+      }
+    },
+    "hub_group_editor_new": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Gruppe"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New group"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuevo grupo"
+          }
+        }
+      }
+    },
+    "hub_group_member_count": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld Mitglied"
                 }
               },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld Mitglieder"
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld Mitglieder"
                 }
               }
             }
           }
         },
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld member"
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld member"
                 }
               },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld members"
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld members"
                 }
               }
             }
           }
         },
-        "es" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld miembro"
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld miembro"
                 }
               },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%1$lld miembros"
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld miembros"
                 }
               }
             }
@@ -1049,1133 +1210,1192 @@
         }
       }
     },
-    "hub_group_members_empty" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Noch keine Mitglieder. Füge unten Ziele hinzu."
+    "hub_group_members_empty": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Mitglieder. Füge unten Hub-Einträge hinzu."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No members yet. Add targets below."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No members yet. Add Hub items below."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todavía no hay miembros. Añade destinos abajo."
-          }
-        }
-      }
-    },
-    "hub_group_members_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mitglieder"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Members"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Miembros"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todavía no hay miembros. Añade elementos del hub abajo."
           }
         }
       }
     },
-    "hub_group_name_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gruppenname"
+    "hub_group_members_label": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitglieder"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Group name"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Members"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre del grupo"
-          }
-        }
-      }
-    },
-    "hub_group_pick_member" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wähle, wen du bezahlen möchtest"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose who to pay"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elige a quién pagar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Miembros"
           }
         }
       }
     },
-    "hub_icon_bolt" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blitz"
+    "hub_group_name_label": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppenname"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lightning"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group name"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rayo"
-          }
-        }
-      }
-    },
-    "hub_icon_coffee" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kaffee"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Coffee"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Café"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre del grupo"
           }
         }
       }
     },
-    "hub_icon_gift" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geschenk"
+    "hub_icon_bolt": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blitz"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gift"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lightning"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Regalo"
-          }
-        }
-      }
-    },
-    "hub_icon_group" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gruppe"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Group"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grupo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rayo"
           }
         }
       }
     },
-    "hub_icon_heart" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Herz"
+    "hub_icon_coffee": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaffee"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Heart"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coffee"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Corazón"
-          }
-        }
-      }
-    },
-    "hub_icon_home" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuhause"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Home"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inicio"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Café"
           }
         }
       }
     },
-    "hub_icon_person" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Person"
+    "hub_icon_gift": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geschenk"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Person"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gift"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Persona"
-          }
-        }
-      }
-    },
-    "hub_icon_restaurant" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restaurant"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restaurant"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restaurante"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regalo"
           }
         }
       }
     },
-    "hub_icon_star" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stern"
+    "hub_icon_group": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gruppe"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Star"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estrella"
-          }
-        }
-      }
-    },
-    "hub_icon_store" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geschäft"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Store"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tienda"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grupo"
           }
         }
       }
     },
-    "hub_icon_wallet" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wallet"
+    "hub_icon_heart": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herz"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wallet"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heart"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Billetera"
-          }
-        }
-      }
-    },
-    "hub_icon_work" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arbeit"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Work"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trabajo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corazón"
           }
         }
       }
     },
-    "hub_keyboard_done" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fertig"
+    "hub_icon_home": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuhause"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Listo"
-          }
-        }
-      }
-    },
-    "hub_library_add" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hinzufügen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Añadir"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicio"
           }
         }
       }
     },
-    "hub_library_add_group" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neue Gruppe"
+    "hub_icon_person": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New group"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Person"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuevo grupo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Persona"
           }
         }
       }
     },
-    "hub_library_add_target" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neues Ziel"
+    "hub_icon_restaurant": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurant"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New target"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurant"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuevo destino"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurante"
           }
         }
       }
     },
-    "hub_library_arrange_pins" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Angeheftete Einträge anordnen"
+    "hub_icon_star": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stern"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arrange pinned items"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Star"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ordenar elementos fijados"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estrella"
           }
         }
       }
     },
-    "hub_library_done" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anordnen beenden"
+    "hub_icon_store": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geschäft"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done arranging"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Store"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Terminar de ordenar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tienda"
           }
         }
       }
     },
-    "hub_library_empty_body" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speichere Personen und Orte, die du oft bezahlst. Angeheftete Ziele erscheinen auf deinem Startbildschirm."
+    "hub_icon_wallet": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save the people and places you pay often. Pinned targets appear on your home screen."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallet"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guarda las personas y lugares a los que pagas a menudo. Los destinos fijados aparecen en tu pantalla de inicio."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Billetera"
           }
         }
       }
     },
-    "hub_library_empty_title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Noch keine Zahlungsziele"
+    "hub_icon_work": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arbeit"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No payment targets yet"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Work"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todavía no hay destinos de pago"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trabajo"
           }
         }
       }
     },
-    "hub_library_no_matches" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine passenden Ziele oder Gruppen"
+    "hub_new_add_manually": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manuell hinzufügen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No matching targets or groups"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add manually"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No hay destinos ni grupos coincidentes"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir manualmente"
           }
         }
       }
     },
-    "hub_library_search" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ziele und Gruppen suchen"
+    "hub_new_back": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search targets and groups"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Buscar destinos y grupos"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atrás"
           }
         }
       }
     },
-    "hub_library_section_groups" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gruppen"
+    "hub_new_contacts_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakt auswählen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Groups"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a contact"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grupos"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un contacto"
           }
         }
       }
     },
-    "hub_library_section_pinned" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Angeheftet"
+    "hub_new_edit_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hub-Eintrag bearbeiten"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pinned"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit Hub item"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fijados"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar elemento del hub"
           }
         }
       }
     },
-    "hub_library_section_recent" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuletzt verwendet"
+    "hub_new_no_contacts": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine gespeicherten Kontakte. Füge einen manuell hinzu."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recent"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No saved contacts yet. Add one manually."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recientes"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todavía no hay contactos guardados. Añade uno manualmente."
           }
         }
       }
     },
-    "hub_library_section_targets" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Ziele"
+    "hub_new_no_matches": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine passenden Kontakte"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All targets"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No matching contacts"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Todos los destinos"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay contactos que coincidan"
           }
         }
       }
     },
-    "hub_library_title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zahlungs-Hub"
+    "hub_new_search": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontakte suchen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payment hub"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search contacts"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Centro de pagos"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar contactos"
           }
         }
       }
     },
-    "hub_pin_description" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Angeheftete Einträge erscheinen in deinem Start-Layout."
+    "hub_new_section_people": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pinned items appear in your home layout."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Los elementos fijados aparecen en tu diseño de inicio."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personas"
           }
         }
       }
     },
-    "hub_pin_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auf Start anzeigen"
+    "hub_new_more": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show on home"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostrar en inicio"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más"
           }
         }
       }
     },
-    "hub_save_prompt_body" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speichere %1$@, um beim nächsten Mal schneller zu bezahlen."
+    "hub_new_services_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dienst auswählen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save %1$@ to pay again faster."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a service"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guarda %1$@ para pagar más rápido la próxima vez."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un servicio"
           }
         }
       }
     },
-    "hub_save_prompt_not_now" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nicht jetzt"
+    "hub_new_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Hub hinzufügen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not now"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to Hub"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ahora no"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir al hub"
           }
         }
       }
     },
-    "hub_save_prompt_save" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Speichern"
+    "hub_save_prompt_body": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichere %1$@, um beim nächsten Mal schneller zu bezahlen."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Save"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save %1$@ to pay again faster."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Guardar"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda %1$@ para pagar más rápido la próxima vez."
           }
         }
       }
     },
-    "hub_save_prompt_title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zum Zahlungs-Hub hinzufügen?"
+    "hub_save_prompt_not_now": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht jetzt"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to payment hub?"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not now"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "¿Añadir al centro de pagos?"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora no"
           }
         }
       }
     },
-    "hub_target_address_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lightning-Adresse"
+    "hub_save_prompt_save": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lightning address"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dirección Lightning"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar"
           }
         }
       }
     },
-    "hub_target_amount_fiat_hint" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zum Zahlungszeitpunkt wird der aktuelle Wechselkurs verwendet, sodass der Empfänger Bitcoin im Wert dieses %1$@-Betrags erhält."
+    "hub_save_prompt_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Zahlungs-Hub hinzufügen?"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "At payment time the current exchange rate is used, so the recipient receives bitcoin worth this %1$@ amount."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to payment hub?"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "En el momento del pago se usa el tipo de cambio actual para que el destinatario reciba bitcoin por el valor de este importe en %1$@."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Añadir al centro de pagos?"
           }
         }
       }
     },
-    "hub_target_amount_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Betrag"
+    "hub_service_coming_soon_body": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ direkt aus deiner Wallet zu bezahlen ist in Arbeit. Wir sagen dir Bescheid, sobald es funktioniert."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Amount"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paying %1$@ straight from your wallet is on the way. We will tell you as soon as it works."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importe"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pagar %1$@ directamente desde tu billetera está en camino. Te avisaremos en cuanto funcione."
           }
         }
       }
     },
-    "hub_target_amount_mode_ask" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jedes Mal fragen"
+    "hub_service_coming_soon_confirm": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles klar"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ask every time"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Got it"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preguntar cada vez"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entendido"
           }
         }
       }
     },
-    "hub_target_amount_mode_preset" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fester Betrag"
+    "hub_service_coming_soon_title": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ kommt bald"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Preset amount"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ is coming soon"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importe fijo"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ llegará pronto"
           }
         }
       }
     },
-    "hub_target_comment_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zahlungskommentar (optional)"
+    "hub_service_kind_esim": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "eSIM-Daten"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Payment comment (optional)"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "eSIM data"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Comentario del pago (opcional)"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datos eSIM"
           }
         }
       }
     },
-    "hub_target_currency_content_description" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Währung ändern, derzeit %1$@"
+    "hub_service_kind_mobile": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mobilfunk"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change currency, currently %1$@"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mobile"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cambiar moneda, actualmente %1$@"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Móvil"
           }
         }
       }
     },
-    "hub_target_editor_edit" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ziel bearbeiten"
+    "hub_service_kind_other": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonstiges"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit target"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Editar destino"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otros"
           }
         }
       }
     },
-    "hub_target_editor_new" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neues Ziel"
+    "hub_service_option_count": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld Option"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld Optionen"
+                }
+              }
+            }
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New target"
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld option"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld options"
+                }
+              }
+            }
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nuevo destino"
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld opción"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld opciones"
+                }
+              }
+            }
           }
         }
       }
     },
-    "hub_target_groups_empty" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erstelle eine Gruppe, um Ziele zu ordnen."
+    "hub_service_subtitle": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Create a group to organize targets."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Crea un grupo para organizar destinos."
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
           }
         }
       }
     },
-    "hub_target_groups_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gruppen"
+    "hub_size_hint_large": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine hohe Kachel. Eine Gruppe dieser Größe zeigt ihre Mitglieder immer."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Groups"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A tall tile. A group this size always shows its members."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grupos"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una tarjeta alta. Un grupo de este tamaño siempre muestra sus miembros."
           }
         }
       }
     },
-    "hub_target_name_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
+    "hub_size_hint_small": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine einzelne Kachel. Zwei davon passen in eine Reihe."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Name"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A single tile. Two of these fit in one row."
           }
         },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre"
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una sola tarjeta. Dos de estas caben en una fila."
+          }
+        }
+      }
+    },
+    "hub_size_hint_wide": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Kachel über die volle Breite, mit Platz für die Adresse."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A full-width tile with room for the address."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una tarjeta de ancho completo, con sitio para la dirección."
+          }
+        }
+      }
+    },
+    "hub_size_large": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groß"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Large"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grande"
+          }
+        }
+      }
+    },
+    "hub_size_small": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klein"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Small"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pequeña"
+          }
+        }
+      }
+    },
+    "hub_size_wide": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Breit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wide"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ancha"
+          }
+        }
+      }
+    },
+    "hub_target_address_label": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lightning-Adresse"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lightning address"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dirección Lightning"
+          }
+        }
+      }
+    },
+    "hub_target_amount_fiat_hint": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Zahlungszeitpunkt wird der aktuelle Wechselkurs verwendet, sodass der Empfänger Bitcoin im Wert dieses %1$@-Betrags erhält."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At payment time the current exchange rate is used, so the recipient receives bitcoin worth this %1$@ amount."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el momento del pago se usa el tipo de cambio actual para que el destinatario reciba bitcoin por el valor de este importe en %1$@."
+          }
+        }
+      }
+    },
+    "hub_target_amount_label": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betrag"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amount"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importe"
+          }
+        }
+      }
+    },
+    "hub_target_comment_label": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zahlungskommentar (optional)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment comment (optional)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comentario del pago (opcional)"
+          }
+        }
+      }
+    },
+    "hub_target_currency_content_description": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Währung ändern, derzeit %1$@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change currency, currently %1$@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar moneda, actualmente %1$@"
+          }
+        }
+      }
+    },
+    "hub_target_name_label": {
+      "extractionState": "stale",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

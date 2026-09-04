@@ -17,14 +17,11 @@ import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHub
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 import xyz.lilsus.raylsuite.feature.paymenthub.platformCurrentTimeMillis
-import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
-import xyz.lilsus.raylsuite.feature.paymenthub.render.PaymentHubRenderState
-import xyz.lilsus.raylsuite.feature.paymenthub.render.toRenderState
 
 /**
- * Shared hub host logic: projects the hub into render state, owns group expansion and the
- * post-payment save prompt, and emits [DirectTargetPaymentIntent] when a target is chosen.
- * Each app maps that intent into its own provider-native payment flow.
+ * Shared hub host logic: owns the post-payment save prompt and emits [DirectTargetPaymentIntent]
+ * when a target is chosen. Each app maps that intent into its own provider-native payment flow.
+ * Arrangement and grouping belong to the canvas, not here.
  */
 class PaymentHubController(
     private val repository: PaymentHubRepository,
@@ -43,28 +40,13 @@ class PaymentHubController(
 
     init {
         scope.launch {
-            repository.hub.collectLatest { updated ->
-                hub = updated
-                val render = updated.toRenderState()
-                mutableState.update { current ->
-                    current.copy(
-                        render = render,
-                        groupSheet = current.groupSheet?.let { sheet ->
-                            groupSheet(sheet.group.id, render)
-                        }
-                    )
-                }
-            }
+            repository.hub.collectLatest { updated -> hub = updated }
         }
     }
 
     fun dispatch(intent: PaymentHubIntent) {
         when (intent) {
             is PaymentHubIntent.SelectItem -> selectItem(intent.id)
-
-            is PaymentHubIntent.OpenGroup -> openGroup(intent.id)
-
-            PaymentHubIntent.DismissGroup -> mutableState.update { it.copy(groupSheet = null) }
 
             PaymentHubIntent.OpenScanner -> mutableState.update { it.copy(scannerRequested = true) }
 
@@ -99,38 +81,19 @@ class PaymentHubController(
     }
 
     fun resetSession() {
-        mutableState.update {
-            it.copy(groupSheet = null, savePrompt = null, scannerRequested = false)
-        }
+        mutableState.update { it.copy(savePrompt = null, scannerRequested = false) }
     }
 
     private fun selectItem(id: HubItemId) {
-        val target = hub.target(id)
-        if (target != null) {
-            mutableState.update { it.copy(groupSheet = null, scannerRequested = false) }
-            mutablePaymentRequests.tryEmit(
-                DirectTargetPaymentIntent(
-                    targetId = target.id,
-                    address = target.address,
-                    amountRule = target.amountRule,
-                    comment = target.comment
-                )
+        val target = hub.target(id) ?: return
+        mutableState.update { it.copy(scannerRequested = false) }
+        mutablePaymentRequests.tryEmit(
+            DirectTargetPaymentIntent(
+                targetId = target.id,
+                address = target.address,
+                amountRule = target.amountRule,
+                comment = target.comment
             )
-            return
-        }
-        if (hub.group(id) != null) openGroup(id)
-    }
-
-    private fun openGroup(id: HubItemId) {
-        val sheet = groupSheet(id, mutableState.value.render) ?: return
-        mutableState.update { it.copy(groupSheet = sheet) }
-    }
-
-    private fun groupSheet(groupId: HubItemId, render: PaymentHubRenderState): HubGroupSheet? {
-        val group = render.item(groupId)?.takeIf { it.isGroup } ?: return null
-        return HubGroupSheet(
-            group = group,
-            members = hub.members(groupId).mapNotNull { render.item(it.id) }
         )
     }
 
@@ -150,27 +113,18 @@ class PaymentHubController(
 }
 
 data class PaymentHubHostState(
-    val render: PaymentHubRenderState = PaymentHubRenderState(),
-    val groupSheet: HubGroupSheet? = null,
     val savePrompt: HubSavePrompt? = null,
     /** A lens asked for the host scanner surface to be shown prominently. */
     val scannerRequested: Boolean = false
 ) {
     val hasModalContent: Boolean
-        get() = groupSheet != null || savePrompt != null
+        get() = savePrompt != null
 }
-
-/** An expanded group. The user chooses exactly one member; there is no batch payment. */
-data class HubGroupSheet(val group: HubItemRenderModel, val members: List<HubItemRenderModel>)
 
 data class HubSavePrompt(val address: LightningAddress, val title: String)
 
 sealed interface PaymentHubIntent {
     data class SelectItem(val id: HubItemId) : PaymentHubIntent
-
-    data class OpenGroup(val id: HubItemId) : PaymentHubIntent
-
-    data object DismissGroup : PaymentHubIntent
 
     data object OpenScanner : PaymentHubIntent
 

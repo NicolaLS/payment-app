@@ -25,6 +25,13 @@ fun nativeString(resource: NativeStringResource, argument: String): String =
         NSString.create(string = argument)
     )
 
+fun nativeString(resource: NativeStringResource, first: String, second: String): String =
+    NSString.localizedStringWithFormat(
+        resource.localizedFormat(),
+        NSString.create(string = first),
+        NSString.create(string = second)
+    )
+
 fun nativeString(resource: NativeStringResource, argument: Int): String =
     NSString.localizedStringWithFormat(resource.localizedFormat(), argument.toLong())
 

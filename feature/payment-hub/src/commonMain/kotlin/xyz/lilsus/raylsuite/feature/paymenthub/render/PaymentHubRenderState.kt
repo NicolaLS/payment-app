@@ -5,7 +5,6 @@ import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.feature.paymenthub.DirectPaymentTarget
 import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetAmountRule
-import xyz.lilsus.raylsuite.feature.paymenthub.HubAccent
 import xyz.lilsus.raylsuite.feature.paymenthub.HubIcon
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHub
@@ -19,10 +18,8 @@ import xyz.lilsus.raylsuite.feature.paymenthub.PaymentTargetGroup
 data class HubItemRenderModel(
     val id: HubItemId,
     val title: String,
+    val mark: HubMark,
     val detail: HubItemDetail,
-    val icon: HubIcon? = null,
-    val accent: HubAccent? = null,
-    val pinned: Boolean = false,
     val lastUsedAtMs: Long? = null,
     /** False for a group without any existing member; selecting it does nothing useful. */
     val enabled: Boolean = true
@@ -33,15 +30,13 @@ data class HubItemRenderModel(
 
 @Immutable
 sealed interface HubItemDetail {
-    data class Target(val address: String, val presetAmount: DisplayAmount?) : HubItemDetail
+    data class Target(val address: String, val amountLine: HubAmountLine) : HubItemDetail
 
     data class Group(val memberCount: Int) : HubItemDetail
 }
 
 @Immutable
 data class PaymentHubRenderState(
-    /** User-owned manual order. Never reordered automatically. */
-    val pinnedItems: List<HubItemRenderModel> = emptyList(),
     /** Direct targets by most recent successful use. */
     val recentItems: List<HubItemRenderModel> = emptyList(),
     /** Every group followed by every target, each in stable alphabetical order. */
@@ -50,13 +45,15 @@ data class PaymentHubRenderState(
     val isEmpty: Boolean
         get() = allItems.isEmpty()
 
+    val targets: List<HubItemRenderModel>
+        get() = allItems.filterNot { it.isGroup }
+
     fun item(id: HubItemId): HubItemRenderModel? = allItems.firstOrNull { it.id == id }
 }
 
 fun PaymentHub.toRenderState(recentLimit: Int = DEFAULT_RECENT_LIMIT): PaymentHubRenderState {
-    val targetModels = targets.associate { it.id to it.toRenderModel(isPinned(it.id)) }
+    val targetModels = targets.associate { it.id to it.toRenderModel() }
     val groupModels = groups.associate { it.id to it.toRenderModel(this) }
-    val pinned = pinnedItemIds.mapNotNull { targetModels[it] ?: groupModels[it] }
     val recent =
         targets
             .filter { it.stats.lastSuccessfulPaymentAtMs != null }
@@ -66,45 +63,48 @@ fun PaymentHub.toRenderState(recentLimit: Int = DEFAULT_RECENT_LIMIT): PaymentHu
     val all =
         groupModels.values.sortedBy { it.title.lowercase() } +
             targetModels.values.sortedBy { it.title.lowercase() }
-    return PaymentHubRenderState(
-        pinnedItems = pinned,
-        recentItems = recent,
-        allItems = all
-    )
+    return PaymentHubRenderState(recentItems = recent, allItems = all)
 }
 
-private fun DirectPaymentTarget.toRenderModel(pinned: Boolean): HubItemRenderModel =
-    HubItemRenderModel(
-        id = id,
-        title = title,
-        detail =
-            HubItemDetail.Target(
-                address = address.full,
-                presetAmount =
-                    (amountRule as? DirectTargetAmountRule.Preset)?.amount?.let { amount ->
-                        DisplayAmount(
-                            minor = amount.minor,
-                            currency = CurrencyCatalog.infoFor(
-                                amount.normalizedCurrencyCode
-                            ).currency
-                        )
-                    }
-            ),
-        icon = appearance.icon,
-        accent = appearance.accent,
-        pinned = pinned,
-        lastUsedAtMs = stats.lastSuccessfulPaymentAtMs
-    )
+internal fun DirectPaymentTarget.amountLine(): HubAmountLine = when (val rule = amountRule) {
+    DirectTargetAmountRule.AskEveryTime -> HubAmountLine.AskEachTime
+
+    is DirectTargetAmountRule.Preset ->
+        HubAmountLine.Preset(
+            DisplayAmount(
+                minor = rule.amount.minor,
+                currency =
+                    CurrencyCatalog.infoFor(rule.amount.normalizedCurrencyCode).currency
+            )
+        )
+}
+
+internal fun DirectPaymentTarget.mark(): HubMark = HubMark(
+    initials = hubInitials(title),
+    icon = appearance.icon,
+    accent = appearance.accent
+)
+
+private fun DirectPaymentTarget.toRenderModel(): HubItemRenderModel = HubItemRenderModel(
+    id = id,
+    title = title,
+    mark = mark(),
+    detail = HubItemDetail.Target(address = address.full, amountLine = amountLine()),
+    lastUsedAtMs = stats.lastSuccessfulPaymentAtMs
+)
 
 private fun PaymentTargetGroup.toRenderModel(hub: PaymentHub): HubItemRenderModel {
     val memberCount = hub.members(id).size
     return HubItemRenderModel(
         id = id,
         title = title,
+        mark =
+            HubMark(
+                initials = hubInitials(title),
+                icon = appearance.icon ?: HubIcon.Group,
+                accent = appearance.accent
+            ),
         detail = HubItemDetail.Group(memberCount = memberCount),
-        icon = appearance.icon ?: HubIcon.Group,
-        accent = appearance.accent,
-        pinned = hub.isPinned(id),
         enabled = memberCount > 0
     )
 }

@@ -1,4 +1,4 @@
-package xyz.lilsus.raylsuite.feature.paymenthub.library
+package xyz.lilsus.raylsuite.feature.paymenthub.group
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -41,8 +41,6 @@ class GroupEditorViewModel(
 
     fun selectAccent(accent: HubAccent?) = update { it.copy(accent = accent) }
 
-    fun setPinned(pinned: Boolean) = update { it.copy(pinned = pinned) }
-
     fun addMember(id: HubItemId) = update { state ->
         if (state.memberIds.contains(id) || state.candidates.none { it.id == id }) {
             state
@@ -75,8 +73,7 @@ class GroupEditorViewModel(
             GroupDraft(
                 title = state.title,
                 memberIds = state.memberIds,
-                appearance = HubItemAppearance(icon = state.icon, accent = state.accent),
-                pinned = state.pinned
+                appearance = HubItemAppearance(icon = state.icon, accent = state.accent)
             )
         scope.launch {
             val saved =
@@ -121,7 +118,6 @@ class GroupEditorViewModel(
                 title = group.title,
                 icon = group.appearance.icon,
                 accent = group.appearance.accent,
-                pinned = hub.isPinned(group.id),
                 memberIds = hub.members(group.id).map { it.id },
                 candidates = candidates
             )
@@ -134,7 +130,6 @@ data class GroupEditorState(
     val title: String = "",
     val icon: HubIcon? = null,
     val accent: HubAccent? = null,
-    val pinned: Boolean = false,
     val memberIds: List<HubItemId> = emptyList(),
     /** Every direct target, alphabetically. */
     val candidates: List<HubMemberOption> = emptyList(),
@@ -160,6 +155,10 @@ data class HubMemberOption(
 
 enum class GroupEditorError {
     EnterTitle
+}
+
+sealed interface HubEditorEvent {
+    data object Closed : HubEditorEvent
 }
 
 private fun DirectPaymentTarget.toMemberOption(): HubMemberOption = HubMemberOption(

@@ -49,7 +49,6 @@ class DefaultPaymentHubRepository(
             created = target
             hub
                 .copy(targets = hub.targets + target)
-                .withPinned(target.id, validated.pinned)
                 .withMembership(target.id, validated.groupIds)
         }
         return created
@@ -75,7 +74,6 @@ class DefaultPaymentHubRepository(
             updated = replacement
             hub
                 .copy(targets = hub.targets.map { if (it.id == id) replacement else it })
-                .withPinned(id, validated.pinned)
                 .withMembership(id, validated.groupIds)
         }
         return updated
@@ -88,8 +86,7 @@ class DefaultPaymentHubRepository(
                 groups =
                     hub.groups.map { group ->
                         group.copy(memberIds = group.memberIds.filterNot { it == id })
-                    },
-                pinnedItemIds = hub.pinnedItemIds.filterNot { it == id }
+                    }
             )
         }
     }
@@ -106,7 +103,7 @@ class DefaultPaymentHubRepository(
                     appearance = draft.appearance
                 )
             created = group
-            hub.copy(groups = hub.groups + group).withPinned(group.id, draft.pinned)
+            hub.copy(groups = hub.groups + group)
         }
         return created
     }
@@ -123,33 +120,14 @@ class DefaultPaymentHubRepository(
                     appearance = draft.appearance
                 )
             updated = replacement
-            hub
-                .copy(groups = hub.groups.map { if (it.id == id) replacement else it })
-                .withPinned(id, draft.pinned)
+            hub.copy(groups = hub.groups.map { if (it.id == id) replacement else it })
         }
         return updated
     }
 
     override suspend fun deleteGroup(id: HubItemId) {
         mutate { hub ->
-            hub.copy(
-                groups = hub.groups.filterNot { it.id == id },
-                pinnedItemIds = hub.pinnedItemIds.filterNot { it == id }
-            )
-        }
-    }
-
-    override suspend fun setPinned(id: HubItemId, pinned: Boolean) {
-        mutate { hub ->
-            if (!hub.contains(id)) hub else hub.withPinned(id, pinned)
-        }
-    }
-
-    override suspend fun reorderPinned(orderedIds: List<HubItemId>) {
-        mutate { hub ->
-            val current = hub.pinnedItemIds
-            val reordered = orderedIds.filter { it in current }.distinct()
-            hub.copy(pinnedItemIds = reordered + current.filterNot { it in reordered })
+            hub.copy(groups = hub.groups.filterNot { it.id == id })
         }
     }
 
@@ -224,12 +202,6 @@ class DefaultPaymentHubRepository(
     }
 }
 
-private fun PaymentHub.withPinned(id: HubItemId, pinned: Boolean): PaymentHub = when {
-    pinned && id !in pinnedItemIds -> copy(pinnedItemIds = pinnedItemIds + id)
-    !pinned && id in pinnedItemIds -> copy(pinnedItemIds = pinnedItemIds.filterNot { it == id })
-    else -> this
-}
-
 private fun PaymentHub.withMembership(targetId: HubItemId, groupIds: Set<HubItemId>): PaymentHub =
     copy(
         groups =
@@ -262,8 +234,7 @@ internal expect fun platformCurrentTimeMillis(): Long
 private data class HubDocument(
     val schemaVersion: Int,
     val targets: List<TargetRecord> = emptyList(),
-    val groups: List<GroupRecord> = emptyList(),
-    val pinnedItemIds: List<String> = emptyList()
+    val groups: List<GroupRecord> = emptyList()
 )
 
 @Serializable
@@ -339,8 +310,7 @@ private fun PaymentHub.toDocument(): HubDocument = HubDocument(
                 icon = group.appearance.icon?.storedValue,
                 accent = group.appearance.accent?.storedValue
             )
-        },
-    pinnedItemIds = pinnedItemIds.map(HubItemId::value)
+        }
 )
 
 private fun HubDocument.toDomain(): PaymentHub = PaymentHub(
@@ -396,8 +366,7 @@ private fun HubDocument.toDomain(): PaymentHub = PaymentHub(
                         accent = HubAccent.fromStoredValue(record.accent)
                     )
             )
-        },
-    pinnedItemIds = pinnedItemIds.map(::HubItemId)
+        }
 ).normalized()
 
 private const val AMOUNT_RULE_ASK = "ask"

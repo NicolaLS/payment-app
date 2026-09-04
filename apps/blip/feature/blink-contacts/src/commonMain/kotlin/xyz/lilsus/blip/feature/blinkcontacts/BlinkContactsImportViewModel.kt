@@ -19,15 +19,10 @@ import xyz.lilsus.blip.integration.blink.BlinkContact
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.blip.ui.BlinkUiError
 import xyz.lilsus.raylsuite.core.model.LightningAddress
-import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetAmountRule
-import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetDraft
-import xyz.lilsus.raylsuite.feature.paymenthub.HubIcon
-import xyz.lilsus.raylsuite.feature.paymenthub.HubItemAppearance
-import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 
 class BlinkContactsImportViewModel(
     private val blinkWallet: BlinkWallet,
-    private val paymentHub: PaymentHubRepository,
+    private val contactsRepository: BlinkContactsRepository,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -59,7 +54,7 @@ class BlinkContactsImportViewModel(
             }
             try {
                 val existingAddressKeys =
-                    paymentHub.hub.value.targets
+                    contactsRepository.contacts.value
                         .map { it.address.importKey() }
                         .toSet()
                 val items =
@@ -158,14 +153,7 @@ class BlinkContactsImportViewModel(
                     val address =
                         LightningAddress.parse(item.address)
                             ?: error("Invalid contact address")
-                    paymentHub.createTarget(
-                        DirectTargetDraft(
-                            title = item.alias ?: address.username,
-                            address = address,
-                            amountRule = DirectTargetAmountRule.AskEveryTime,
-                            appearance = HubItemAppearance(icon = HubIcon.Person)
-                        )
-                    ) ?: error("Invalid contact address")
+                    contactsRepository.saveContact(address, item.alias)
                 }
                 val importedIds = selectedItems.map(BlinkContactImportItem::id).toSet()
                 mutableUiState.update {

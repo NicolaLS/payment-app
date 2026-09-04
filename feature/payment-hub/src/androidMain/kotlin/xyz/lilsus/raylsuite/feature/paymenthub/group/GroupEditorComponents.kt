@@ -1,4 +1,4 @@
-package xyz.lilsus.raylsuite.feature.paymenthub.library
+package xyz.lilsus.raylsuite.feature.paymenthub.group
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -6,22 +6,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -34,7 +29,8 @@ import androidx.compose.ui.unit.dp
 import xyz.lilsus.raylsuite.feature.paymenthub.HubAccent
 import xyz.lilsus.raylsuite.feature.paymenthub.HubIcon
 import xyz.lilsus.raylsuite.feature.paymenthub.R
-import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubGlyph
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubMark
+import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubMarkView
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.containerColor
 import xyz.lilsus.raylsuite.feature.paymenthub.ui.contentColor
 
@@ -75,7 +71,7 @@ internal fun AppearancePickers(
                 onClick = { onIconSelected(null) },
                 label = noneLabel
             ) {
-                HubGlyph(icon = null, accent = accent, fallbackText = previewText, size = 44.dp)
+                HubMarkView(mark = HubMark(previewText, null, accent), size = 44.dp)
             }
         }
         items(HubIcon.entries, key = { it.storedValue }) { option ->
@@ -84,7 +80,7 @@ internal fun AppearancePickers(
                 onClick = { onIconSelected(option) },
                 label = option.storedValue
             ) {
-                HubGlyph(icon = option, accent = accent, fallbackText = previewText, size = 44.dp)
+                HubMarkView(mark = HubMark(previewText, option, accent), size = 44.dp)
             }
         }
     }
@@ -164,33 +160,6 @@ private fun AccentSwatch(
                 modifier = Modifier.size(20.dp)
             )
         }
-    }
-}
-
-@Composable
-internal fun PinToggleRow(pinned: Boolean, onPinnedChange: (Boolean) -> Unit) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .toggleable(value = pinned, role = Role.Switch, onValueChange = onPinnedChange),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(
-                text = stringResource(R.string.hub_pin_label),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = stringResource(R.string.hub_pin_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Switch(checked = pinned, onCheckedChange = null)
     }
 }
 

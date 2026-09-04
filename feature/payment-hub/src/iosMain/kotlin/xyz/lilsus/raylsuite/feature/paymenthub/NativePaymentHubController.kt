@@ -7,163 +7,214 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
+import xyz.lilsus.raylsuite.core.ui.format.AmountFormatter
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
 import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
 import xyz.lilsus.raylsuite.core.ui.resources.nativePluralString
 import xyz.lilsus.raylsuite.core.ui.resources.nativeString
 import xyz.lilsus.raylsuite.feature.paymenthub.canvas.CanvasLayoutRepository
 import xyz.lilsus.raylsuite.feature.paymenthub.canvas.CanvasTileSize
+import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubCanvasMessage
+import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubCanvasUiState
+import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubCanvasViewModel
+import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubGrid
+import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubGridSpan
+import xyz.lilsus.raylsuite.feature.paymenthub.canvas.gridRowCount
+import xyz.lilsus.raylsuite.feature.paymenthub.canvas.packHubGrid
+import xyz.lilsus.raylsuite.feature.paymenthub.create.HubAmountChoice
+import xyz.lilsus.raylsuite.feature.paymenthub.create.HubContact
+import xyz.lilsus.raylsuite.feature.paymenthub.create.HubService
+import xyz.lilsus.raylsuite.feature.paymenthub.create.HubServiceKind
+import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetConfigureState
+import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetError
+import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetEvent
+import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetUiState
+import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetView
+import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetViewModel
+import xyz.lilsus.raylsuite.feature.paymenthub.group.GroupEditorError
+import xyz.lilsus.raylsuite.feature.paymenthub.group.GroupEditorState
+import xyz.lilsus.raylsuite.feature.paymenthub.group.GroupEditorViewModel
+import xyz.lilsus.raylsuite.feature.paymenthub.group.HubEditorEvent
+import xyz.lilsus.raylsuite.feature.paymenthub.group.HubMemberOption
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubIntent
-import xyz.lilsus.raylsuite.feature.paymenthub.library.DirectTargetEditorState
-import xyz.lilsus.raylsuite.feature.paymenthub.library.DirectTargetEditorViewModel
-import xyz.lilsus.raylsuite.feature.paymenthub.library.GroupEditorError
-import xyz.lilsus.raylsuite.feature.paymenthub.library.GroupEditorState
-import xyz.lilsus.raylsuite.feature.paymenthub.library.GroupEditorViewModel
-import xyz.lilsus.raylsuite.feature.paymenthub.library.HubEditorEvent
-import xyz.lilsus.raylsuite.feature.paymenthub.library.PaymentHubLibraryUiState
-import xyz.lilsus.raylsuite.feature.paymenthub.library.PaymentHubLibraryViewModel
-import xyz.lilsus.raylsuite.feature.paymenthub.library.TargetAmountMode
-import xyz.lilsus.raylsuite.feature.paymenthub.library.TargetEditorError
-import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemDetail
-import xyz.lilsus.raylsuite.feature.paymenthub.render.HubItemRenderModel
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubAmountLine
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubMark
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubTileRenderModel
+import xyz.lilsus.raylsuite.feature.paymenthub.render.allowedTileSizes
+import xyz.lilsus.raylsuite.feature.paymenthub.render.hubInitials
 
 data class NativePaymentHubSnapshot(
     val destination: String,
     val text: NativePaymentHubCopy,
-    val canvasTiles: List<NativePaymentHubTile>,
-    val placeableItems: List<NativePaymentHubItem>,
-    val library: NativePaymentHubLibrary,
-    val targetEditor: NativePaymentHubTargetEditor?,
-    val groupEditor: NativePaymentHubGroupEditor?,
-    val groupSheet: NativePaymentHubGroupSheet?
+    val canvas: NativeHubCanvas,
+    val newTarget: NativeNewTarget?,
+    val groupEditor: NativeHubGroupEditor?
 )
 
-data class NativePaymentHubCopy(
+data class NativeHubMark(val initials: String, val symbol: String?, val accent: String?)
+
+data class NativeHubCanvas(
+    val tiles: List<NativeHubTile>,
+    val gridRows: Int,
+    /** Placement of the add-target tile. */
+    val addTargetColumn: Int,
+    val addTargetRow: Int,
+    val showsAddTarget: Boolean,
+    val editing: Boolean,
+    val hasItems: Boolean,
+    val message: String?
+)
+
+/** The tile whose position a dragged tile will take when released. */
+data class NativeHubDropTarget(val id: String)
+
+/** One placed tile. The grid packing happens in Kotlin so both platforms lay out identically. */
+data class NativeHubTile(
+    val id: String,
+    val label: String,
+    val mark: NativeHubMark,
+    val subtitle: String?,
+    val amountLine: String?,
+    val column: Int,
+    val row: Int,
+    val columns: Int,
+    val rows: Int,
+    val isContainer: Boolean,
+    val memberCount: String,
+    val showsMembers: Boolean,
+    val expandable: Boolean,
+    val members: List<NativeHubTileMember>,
+    val sizes: List<NativeHubSizeOption>,
+    val accessibilityLabel: String,
+    val removeTitle: String,
+    val removeBody: String
+)
+
+data class NativeHubTileMember(
+    val id: String,
+    val label: String,
+    val mark: NativeHubMark,
+    val amountLine: String
+)
+
+data class NativeNewTarget(
+    val view: String,
     val title: String,
-    val arrange: String,
-    val done: String,
-    val addTiles: String,
-    val reset: String,
-    val emptyTitle: String,
-    val emptyBody: String,
-    val emptyCanvasBody: String,
-    val addSheetTitle: String,
-    val allTilesPlaced: String,
-    val makeWide: String,
-    val makeCompact: String,
-    val removeTile: String,
-    val moveEarlier: String,
-    val moveLater: String,
-    val search: String,
-    val noMatches: String,
-    val add: String,
-    val addTarget: String,
-    val addGroup: String,
-    val arrangePins: String,
-    val doneArrangingPins: String,
-    val pinnedSection: String,
-    val groupsSection: String,
-    val recentSection: String,
-    val targetsSection: String,
-    val pin: String,
-    val unpin: String,
-    val moveUp: String,
-    val moveDown: String,
-    val groupPickerTitle: String,
-    val emptyGroup: String,
-    val newTarget: String,
-    val editTarget: String,
-    val targetName: String,
-    val targetAddress: String,
-    val amount: String,
-    val askEveryTime: String,
-    val presetAmount: String,
+    val featuredServices: List<NativeHubService>,
+    val contacts: List<NativeHubContact>,
+    val services: List<NativeHubService>,
+    val query: String,
+    val hasContacts: Boolean,
+    val comingSoon: NativeHubComingSoon?,
+    val configure: NativeHubConfigure?
+)
+
+data class NativeHubContact(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val mark: NativeHubMark
+)
+
+data class NativeHubService(
+    val id: String,
+    val name: String,
+    val mark: String,
+    val subtitle: String
+)
+
+data class NativeHubComingSoon(val title: String, val body: String)
+
+data class NativeHubConfigure(
+    val isNew: Boolean,
+    val title: String,
+    val address: String,
     val comment: String,
-    val icon: String,
-    val accent: String,
-    val none: String,
-    val iconOptions: List<NativePaymentHubAppearanceOption>,
-    val accentOptions: List<NativePaymentHubAppearanceOption>,
-    val pinLabel: String,
-    val pinDescription: String,
-    val targetGroups: String,
-    val targetGroupsEmpty: String,
-    val save: String,
-    val delete: String,
-    val newGroup: String,
-    val editGroup: String,
-    val groupName: String,
-    val members: String,
-    val membersEmpty: String,
-    val availableTargets: String,
-    val noAvailableTargets: String,
-    val allTargetsAdded: String,
-    val addMember: String,
-    val removeMember: String
+    val amountChips: List<NativeHubAmountChip>,
+    val showsCustomAmount: Boolean,
+    val customAmount: String,
+    val currencyCode: String,
+    val currencyCodes: List<String>,
+    val fiatHint: String?,
+    val sizes: List<NativeHubSizeOption>,
+    val sizeHint: String,
+    val submitTitle: String,
+    val error: String?
+)
+
+data class NativeHubAmountChip(val id: String, val label: String, val selected: Boolean)
+
+data class NativeHubSizeOption(
+    val id: String,
+    val label: String,
+    val columns: Int,
+    val rows: Int,
+    val selected: Boolean
+)
+
+data class NativeHubGroupEditor(
+    val isNew: Boolean,
+    val title: String,
+    val icon: String?,
+    val accent: String?,
+    val members: List<NativeHubContact>,
+    val available: List<NativeHubContact>,
+    val error: String?
 )
 
 data class NativePaymentHubAppearanceOption(val id: String, val title: String)
 
-data class NativePaymentHubItem(
-    val id: String,
-    val title: String,
-    val subtitle: String,
-    val amount: String?,
-    val icon: String?,
-    val accent: String?,
-    val isGroup: Boolean,
-    val pinned: Boolean,
-    val enabled: Boolean
-)
-
-data class NativePaymentHubTile(val item: NativePaymentHubItem, val size: String, val index: Int)
-
-data class NativePaymentHubLibrary(
-    val isEmpty: Boolean,
-    val arrangingPins: Boolean,
-    val pinned: List<NativePaymentHubItem>,
-    val groups: List<NativePaymentHubItem>,
-    val recent: List<NativePaymentHubItem>,
-    val targets: List<NativePaymentHubItem>
-)
-
-data class NativePaymentHubSelection(val id: String, val title: String, val selected: Boolean)
-
-data class NativePaymentHubTargetEditor(
-    val isNew: Boolean,
-    val title: String,
-    val address: String,
-    val amountMode: String,
-    val amount: String,
-    val currencyCode: String,
-    val currencyCodes: List<String>,
-    val fiatHint: String?,
-    val comment: String,
-    val icon: String?,
-    val accent: String?,
-    val pinned: Boolean,
-    val groups: List<NativePaymentHubSelection>,
-    val error: String?
-)
-
-data class NativePaymentHubGroupEditor(
-    val isNew: Boolean,
-    val title: String,
-    val icon: String?,
-    val accent: String?,
-    val pinned: Boolean,
-    val members: List<NativePaymentHubItem>,
-    val available: List<NativePaymentHubItem>,
-    val error: String?
-)
-
-data class NativePaymentHubGroupSheet(
-    val group: NativePaymentHubItem,
-    val members: List<NativePaymentHubItem>
+/** Static copy the SwiftUI hub renders. Kotlin resolves the app's String Catalog. */
+data class NativePaymentHubCopy(
+    val edit: String,
+    val done: String,
+    val move: String,
+    val addTarget: String,
+    val removeConfirm: String,
+    val removeCancel: String,
+    val newTargetTitle: String,
+    val editTargetTitle: String,
+    val back: String,
+    val sectionPeople: String,
+    val more: String,
+    val contactsTitle: String,
+    val servicesTitle: String,
+    val addManually: String,
+    val search: String,
+    val noContacts: String,
+    val noMatches: String,
+    val comingSoonConfirm: String,
+    val configureTitle: String,
+    val nameLabel: String,
+    val addressLabel: String,
+    val amountLabel: String,
+    val commentLabel: String,
+    val sizeLabel: String,
+    val deleteTarget: String,
+    val groupEditorNew: String,
+    val groupEditorEdit: String,
+    val groupNameLabel: String,
+    val groupMembersLabel: String,
+    val groupMembersEmpty: String,
+    val groupAvailableLabel: String,
+    val groupAvailableNone: String,
+    val groupAvailableAllAdded: String,
+    val appearanceIcon: String,
+    val appearanceAccent: String,
+    val appearanceNone: String,
+    val iconOptions: List<NativePaymentHubAppearanceOption>,
+    val accentOptions: List<NativePaymentHubAppearanceOption>,
+    val moveUp: String,
+    val moveDown: String,
+    val addMember: String,
+    val removeMember: String,
+    val save: String,
+    val delete: String
 )
 
 /** Native iOS Hub boundary. Repository policy stays in Kotlin; SwiftUI owns all presentation. */
@@ -172,21 +223,27 @@ class NativePaymentHubController(
     private val canvasLayout: CanvasLayoutRepository,
     private val host: PaymentHubController,
     private val languageChanges: Flow<*>,
-    currencyCodes: Flow<String>
+    currencyCodes: Flow<String>,
+    private val contacts: Flow<List<HubContact>> = emptyFlow()
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val snapshot = MutableStateFlow<NativePaymentHubSnapshot?>(null)
     private val destination = MutableStateFlow(DESTINATION_CANVAS)
-    private val library = PaymentHubLibraryViewModel(repository)
+    private var preferredCurrencyCode = CurrencyCatalog.DEFAULT_CODE
+
+    private val canvas =
+        HubCanvasViewModel(
+            repository = repository,
+            layoutRepository = canvasLayout
+        )
 
     private var text: NativePaymentHubCopy? = null
-    private var targetEditor: DirectTargetEditorViewModel? = null
-    private var targetEditorState: DirectTargetEditorState? = null
-    private var targetEditorJobs: List<Job> = emptyList()
+    private var newTarget: NewTargetViewModel? = null
+    private var newTargetState: NewTargetUiState? = null
+    private var newTargetJobs: List<Job> = emptyList()
     private var groupEditor: GroupEditorViewModel? = null
     private var groupEditorState: GroupEditorState? = null
     private var groupEditorJobs: List<Job> = emptyList()
-    private var preferredCurrencyCode = CurrencyCatalog.DEFAULT_CODE
 
     init {
         scope.launch {
@@ -195,13 +252,9 @@ class NativePaymentHubController(
                 publish()
             }
         }
-        observe(host.state)
-        observe(canvasLayout.layout)
-        observe(library.uiState)
+        observe(canvas.uiState)
         observe(destination)
-        scope.launch {
-            currencyCodes.collect { preferredCurrencyCode = it }
-        }
+        scope.launch { currencyCodes.collect { preferredCurrencyCode = it } }
     }
 
     fun observe(onChange: (NativePaymentHubSnapshot) -> Unit): () -> Unit {
@@ -209,102 +262,116 @@ class NativePaymentHubController(
         return { job.cancel() }
     }
 
-    fun openLibrary() {
-        destination.value = DESTINATION_LIBRARY
+    // ── Canvas ───────────────────────────────────────────────────────────────
+
+    fun payTile(id: String) {
+        hubItemId(id)?.let { host.dispatch(PaymentHubIntent.SelectItem(it)) }
     }
 
-    fun closeLibrary() {
+    fun expandTile(id: String) {
+        hubItemId(id)?.let(canvas::toggleExpanded)
+    }
+
+    fun startEditing() = canvas.startEditing()
+
+    fun stopEditing() = canvas.stopEditing()
+
+    fun resizeTile(id: String, size: String) {
+        hubItemId(id)?.let { canvas.resize(it, CanvasTileSize.fromStoredValue(size)) }
+    }
+
+    fun removeTile(id: String) {
+        hubItemId(id)?.let(canvas::delete)
+    }
+
+    /** Resolves the tile whose position a dragged tile will take when released. */
+    fun resolveDrop(
+        draggedId: String,
+        x: Double,
+        y: Double,
+        columnWidth: Double,
+        rowHeight: Double,
+        gap: Double
+    ): NativeHubDropTarget? {
+        val tiles = snapshot.value?.canvas?.tiles ?: return null
+        tiles.forEach { tile ->
+            if (tile.id == draggedId) return@forEach
+            val left = (columnWidth + gap) * tile.column
+            val top = (rowHeight + gap) * tile.row
+            val width = columnWidth * tile.columns + gap * (tile.columns - 1)
+            val height = rowHeight * tile.rows + gap * (tile.rows - 1)
+            if (x < left || x > left + width || y < top || y > top + height) return@forEach
+            return NativeHubDropTarget(id = tile.id)
+        }
+        return null
+    }
+
+    fun moveTile(id: String, onto: String) {
+        val dragged = hubItemId(id) ?: return
+        val target = hubItemId(onto) ?: return
+        canvas.move(dragged, target)
+    }
+
+    // ── Composing a target ───────────────────────────────────────────────────
+
+    fun openNewTarget() = openNewTarget(null)
+
+    /** Opens the tile's own settings: the target editor, or the group editor for a container. */
+    fun editTile(id: String) {
+        val itemId = hubItemId(id) ?: return
+        if (itemId.isGroupId()) openGroupEditor(id) else openNewTarget(itemId)
+    }
+
+    fun closeNewTarget() {
         clearEditors()
         destination.value = DESTINATION_CANVAS
     }
 
-    fun selectCanvasItem(id: String) {
-        hubItemId(id)?.let { host.dispatch(PaymentHubIntent.SelectItem(it)) }
+    fun stepBack() {
+        if (newTarget?.back() != true) closeNewTarget()
     }
 
-    fun dismissGroup() {
-        host.dispatch(PaymentHubIntent.DismissGroup)
+    fun openContacts() = newTarget?.openContacts() ?: Unit
+
+    fun openServices() = newTarget?.openServices() ?: Unit
+
+    fun selectContact(id: String) {
+        newTarget?.selectContact(id)
     }
 
-    fun selectGroupMember(id: String) {
-        hubItemId(id)?.let { host.dispatch(PaymentHubIntent.SelectItem(it)) }
+    fun addManually() = newTarget?.addManually() ?: Unit
+
+    fun selectService(id: String) = newTarget?.selectService(id) ?: Unit
+
+    fun dismissComingSoon() = newTarget?.dismissComingSoon() ?: Unit
+
+    fun updateQuery(value: String) = newTarget?.updateQuery(value) ?: Unit
+
+    fun updateTargetTitle(value: String) = newTarget?.updateTitle(value) ?: Unit
+
+    fun updateTargetAddress(value: String) = newTarget?.updateAddress(value) ?: Unit
+
+    fun updateTargetComment(value: String) = newTarget?.updateComment(value) ?: Unit
+
+    fun selectAmountChip(id: String) {
+        val model = newTarget ?: return
+        val state = newTargetState?.configure ?: return
+        model.selectAmount(state.choiceFor(id) ?: return)
     }
 
-    fun addTile(id: String) {
-        val itemId = hubItemId(id) ?: return
-        scope.launch { canvasLayout.update { it.place(itemId) } }
+    fun updateCustomAmount(value: String) = newTarget?.updateCustomAmount(value) ?: Unit
+
+    fun selectCurrency(code: String) = newTarget?.selectCurrency(code) ?: Unit
+
+    fun selectSize(id: String) {
+        newTarget?.selectSize(CanvasTileSize.fromStoredValue(id))
     }
 
-    fun removeTile(id: String) {
-        val itemId = hubItemId(id) ?: return
-        scope.launch { canvasLayout.update { it.remove(itemId) } }
-    }
+    fun submitTarget() = newTarget?.submit() ?: Unit
 
-    fun resizeTile(id: String) {
-        val itemId = hubItemId(id) ?: return
-        scope.launch {
-            canvasLayout.update { layout ->
-                val tile = layout.tiles.firstOrNull { it.id == itemId } ?: return@update layout
-                val size =
-                    if (tile.size == CanvasTileSize.Wide) {
-                        CanvasTileSize.Compact
-                    } else {
-                        CanvasTileSize.Wide
-                    }
-                layout.resize(itemId, size)
-            }
-        }
-    }
+    fun deleteTarget() = newTarget?.delete() ?: Unit
 
-    fun moveTile(index: Int, offset: Int) {
-        scope.launch { canvasLayout.update { it.move(index, offset) } }
-    }
-
-    fun resetCanvas() {
-        scope.launch { canvasLayout.reset() }
-    }
-
-    fun updateSearch(query: String) {
-        library.updateSearch(query)
-    }
-
-    fun toggleArrangePins() {
-        library.toggleArrangePins()
-    }
-
-    fun setPinned(id: String, pinned: Boolean) {
-        hubItemId(id)?.let { library.setPinned(it, pinned) }
-    }
-
-    fun movePinned(id: String, offset: Int) {
-        hubItemId(id)?.let { library.movePinned(it, offset) }
-    }
-
-    fun openTargetEditor(id: String?) {
-        clearEditors()
-        val viewModel =
-            DirectTargetEditorViewModel(
-                repository = repository,
-                targetId = id?.let(::hubItemId),
-                defaultCurrencyCode = preferredCurrencyCode
-            )
-        targetEditor = viewModel
-        targetEditorJobs =
-            listOf(
-                scope.launch {
-                    viewModel.uiState.collect {
-                        targetEditorState = it
-                        publish()
-                    }
-                },
-                scope.launch {
-                    viewModel.events.collect { event ->
-                        if (event == HubEditorEvent.Closed) closeEditor()
-                    }
-                }
-            )
-        destination.value = DESTINATION_TARGET_EDITOR
-    }
+    // ── Group editor ─────────────────────────────────────────────────────────
 
     fun openGroupEditor(id: String?) {
         clearEditors()
@@ -320,71 +387,14 @@ class NativePaymentHubController(
                 },
                 scope.launch {
                     viewModel.events.collect { event ->
-                        if (event == HubEditorEvent.Closed) closeEditor()
+                        if (event == HubEditorEvent.Closed) closeNewTarget()
                     }
                 }
             )
         destination.value = DESTINATION_GROUP_EDITOR
     }
 
-    fun closeEditor() {
-        clearEditors()
-        destination.value = DESTINATION_LIBRARY
-    }
-
-    fun updateTargetTitle(value: String) {
-        targetEditor?.updateTitle(value)
-    }
-
-    fun updateTargetAddress(value: String) {
-        targetEditor?.updateAddress(value)
-    }
-
-    fun updateTargetAmountMode(value: String) {
-        targetEditor?.selectAmountMode(
-            if (value == AMOUNT_PRESET) TargetAmountMode.Preset else TargetAmountMode.AskEveryTime
-        )
-    }
-
-    fun updateTargetAmount(value: String) {
-        targetEditor?.updateAmount(value)
-    }
-
-    fun updateTargetCurrency(value: String) {
-        targetEditor?.selectCurrency(value)
-    }
-
-    fun updateTargetComment(value: String) {
-        targetEditor?.updateComment(value)
-    }
-
-    fun updateTargetIcon(value: String?) {
-        targetEditor?.selectIcon(HubIcon.fromStoredValue(value))
-    }
-
-    fun updateTargetAccent(value: String?) {
-        targetEditor?.selectAccent(HubAccent.fromStoredValue(value))
-    }
-
-    fun updateTargetPinned(value: Boolean) {
-        targetEditor?.setPinned(value)
-    }
-
-    fun toggleTargetGroup(id: String) {
-        hubItemId(id)?.let { targetEditor?.toggleGroup(it) }
-    }
-
-    fun saveTarget() {
-        targetEditor?.save()
-    }
-
-    fun deleteTarget() {
-        targetEditor?.delete()
-    }
-
-    fun updateGroupTitle(value: String) {
-        groupEditor?.updateTitle(value)
-    }
+    fun updateGroupTitle(value: String) = groupEditor?.updateTitle(value) ?: Unit
 
     fun updateGroupIcon(value: String?) {
         groupEditor?.selectIcon(HubIcon.fromStoredValue(value))
@@ -392,10 +402,6 @@ class NativePaymentHubController(
 
     fun updateGroupAccent(value: String?) {
         groupEditor?.selectAccent(HubAccent.fromStoredValue(value))
-    }
-
-    fun updateGroupPinned(value: Boolean) {
-        groupEditor?.setPinned(value)
     }
 
     fun addGroupMember(id: String) {
@@ -410,185 +416,298 @@ class NativePaymentHubController(
         hubItemId(id)?.let { groupEditor?.moveMember(it, offset) }
     }
 
-    fun saveGroup() {
-        groupEditor?.save()
-    }
+    fun saveGroup() = groupEditor?.save() ?: Unit
 
-    fun deleteGroup() {
-        groupEditor?.delete()
-    }
+    fun deleteGroup() = groupEditor?.delete() ?: Unit
 
     fun clear() {
         clearEditors()
-        library.clear()
+        canvas.clear()
         scope.cancel()
+    }
+
+    private fun openNewTarget(editTargetId: HubItemId?) {
+        clearEditors()
+        val viewModel =
+            NewTargetViewModel(
+                repository = repository,
+                layoutRepository = canvasLayout,
+                defaultCurrencyCode = { preferredCurrencyCode },
+                contacts = contacts,
+                editTargetId = editTargetId
+            )
+        newTarget = viewModel
+        newTargetJobs =
+            listOf(
+                scope.launch {
+                    viewModel.uiState.collect {
+                        newTargetState = it
+                        publish()
+                    }
+                },
+                scope.launch {
+                    viewModel.events.collect { event ->
+                        if (event == NewTargetEvent.Finished) closeNewTarget()
+                    }
+                }
+            )
+        destination.value = DESTINATION_NEW_TARGET
     }
 
     private fun <T> observe(flow: Flow<T>) {
         scope.launch { flow.collect { publish() } }
     }
 
-    private suspend fun publish() {
+    private fun publish() {
         val labels = text ?: return
-        val render = host.state.value.render
-        val layout = canvasLayout.layout.value.normalized(render.allItems.map { it.id }.toSet())
-        val items = render.allItems.associate { it.id to it.toNativeItem() }
-        val libraryState = library.uiState.value
+        val formatter = currentAmountFormatter()
         snapshot.value =
             NativePaymentHubSnapshot(
                 destination = destination.value,
                 text = labels,
-                canvasTiles =
-                    layout.tiles.mapIndexedNotNull { index, tile ->
-                        items[tile.id]?.let {
-                            NativePaymentHubTile(it, tile.size.storedValue, index)
-                        }
-                    },
-                placeableItems =
-                    render.allItems
-                        .filterNot { it.id in layout.placedItemIds }
-                        .map { items.getValue(it.id) },
-                library = libraryState.toNativeLibrary(),
-                targetEditor = targetEditorState?.toNativeEditor(),
-                groupEditor = groupEditorState?.toNativeEditor(),
-                groupSheet =
-                    host.state.value.groupSheet?.let { sheet ->
-                        NativePaymentHubGroupSheet(
-                            group = sheet.group.toNativeItem(),
-                            members = sheet.members.map { it.toNativeItem() }
-                        )
-                    }
+                canvas = canvas.uiState.value.toNative(formatter),
+                newTarget =
+                    newTargetState
+                        ?.takeIf { destination.value == DESTINATION_NEW_TARGET }
+                        ?.toNative(labels, formatter),
+                groupEditor =
+                    groupEditorState
+                        ?.takeIf { destination.value == DESTINATION_GROUP_EDITOR }
+                        ?.toNative()
             )
     }
 
-    private suspend fun HubItemRenderModel.toNativeItem(): NativePaymentHubItem {
-        val target = detail as? HubItemDetail.Target
-        val group = detail as? HubItemDetail.Group
-        return NativePaymentHubItem(
-            id = id.value,
-            title = title,
-            subtitle =
-                target?.address
-                    ?: group?.let {
-                        nativePluralString(
-                            NativeStringResource(
-                                table = "PaymentHub",
-                                key = "hub_group_member_count"
+    private fun HubCanvasUiState.toNative(formatter: AmountFormatter): NativeHubCanvas {
+        // The add-target tile joins the packing so both platforms place it identically.
+        val entries: List<HubTileRenderModel?> = tiles + null
+        val placements =
+            packHubGrid(entries) { entry ->
+                entry?.let { HubGridSpan(it.columns, it.rows) } ?: HubGridSpan(1, 1)
+            }
+        val addTarget = placements.firstOrNull { it.value == null }
+        return NativeHubCanvas(
+            tiles =
+                placements.mapNotNull { placement ->
+                    val tile = placement.value ?: return@mapNotNull null
+                    val sizes = allowedTileSizes(tile.isContainer, tile.memberCount)
+                    NativeHubTile(
+                        id = tile.id.value,
+                        label = tile.label,
+                        mark = tile.mark.toNative(),
+                        subtitle = tile.subtitle,
+                        amountLine = tile.amountLine?.toNative(formatter),
+                        column = placement.column,
+                        row = placement.row,
+                        columns = placement.columns,
+                        rows = placement.rows,
+                        isContainer = tile.isContainer,
+                        memberCount =
+                            nativePluralString(
+                                resource("hub_group_member_count"),
+                                tile.memberCount
                             ),
-                            it.memberCount
-                        )
-                    }.orEmpty(),
-            amount = target?.presetAmount?.let { currentAmountFormatter().format(it) },
-            icon = icon?.storedValue,
-            accent = accent?.storedValue,
-            isGroup = isGroup,
-            pinned = pinned,
-            enabled = enabled
+                        showsMembers = tile.showsMembers,
+                        expandable = tile.expandable,
+                        members =
+                            tile.members.map { member ->
+                                NativeHubTileMember(
+                                    id = member.id.value,
+                                    label = member.label,
+                                    mark = member.mark.toNative(),
+                                    amountLine = member.amountLine.toNative(formatter)
+                                )
+                            },
+                        sizes =
+                            sizes.map { size ->
+                                NativeHubSizeOption(
+                                    id = size.storedValue,
+                                    label = string(size.labelKey()),
+                                    columns = size.columns,
+                                    rows = size.rows,
+                                    selected = size == tile.storedSize
+                                )
+                            },
+                        accessibilityLabel =
+                            nativeString(
+                                resource(
+                                    when {
+                                        editing -> "hub_canvas_move_item"
+                                        tile.isContainer -> "hub_canvas_open_group"
+                                        else -> "hub_canvas_pay"
+                                    }
+                                ),
+                                tile.label
+                            ),
+                        removeTitle =
+                            nativeString(resource("hub_canvas_remove_title"), tile.label),
+                        removeBody = nativeString(resource("hub_canvas_remove_body"))
+                    )
+                },
+            gridRows = placements.gridRowCount(),
+            addTargetColumn = addTarget?.column ?: 0,
+            addTargetRow = addTarget?.row ?: 0,
+            showsAddTarget = addTarget != null,
+            editing = editing,
+            hasItems = hasItems,
+            message = message?.let { nativeString(resource(it.key())) }
         )
     }
 
-    private suspend fun PaymentHubLibraryUiState.toNativeLibrary() = NativePaymentHubLibrary(
-        isEmpty = isEmpty,
-        arrangingPins = arrangingPins,
-        pinned = pinned.map { it.toNativeItem() },
-        groups = groups.map { it.toNativeItem() },
-        recent = recent.map { it.toNativeItem() },
-        targets = targets.map { it.toNativeItem() }
+    private fun NewTargetUiState.toNative(
+        labels: NativePaymentHubCopy,
+        formatter: AmountFormatter
+    ): NativeNewTarget = NativeNewTarget(
+        view =
+            when (view) {
+                NewTargetView.Launchpad -> VIEW_LAUNCHPAD
+                NewTargetView.Contacts -> VIEW_CONTACTS
+                NewTargetView.Services -> VIEW_SERVICES
+                NewTargetView.Configure -> VIEW_CONFIGURE
+            },
+        title =
+            if (configure?.isEditing == true) labels.editTargetTitle else labels.newTargetTitle,
+        featuredServices = featuredServices.map { it.toNative() },
+        contacts = matchingContacts.map { it.toNativeContact() },
+        services = services.map { it.toNative() },
+        query = query,
+        hasContacts = contacts.isNotEmpty(),
+        comingSoon =
+            comingSoonService?.let { service ->
+                NativeHubComingSoon(
+                    title =
+                        nativeString(resource("hub_service_coming_soon_title"), service.name),
+                    body = nativeString(resource("hub_service_coming_soon_body"), service.name)
+                )
+            },
+        configure = configure?.toNative(labels, formatter)
     )
 
-    private suspend fun DirectTargetEditorState.toNativeEditor(): NativePaymentHubTargetEditor =
-        NativePaymentHubTargetEditor(
-            isNew = isNew,
-            title = title,
-            address = address,
-            amountMode = if (amountMode == TargetAmountMode.Preset) AMOUNT_PRESET else AMOUNT_ASK,
-            amount = amount,
-            currencyCode = currencyCode,
-            currencyCodes = CurrencyCatalog.supportedCodes,
-            fiatHint =
-                nativeString(
-                    NativeStringResource(table = "PaymentHub", key = "hub_target_amount_fiat_hint"),
-                    currencyCode
+    private fun NewTargetConfigureState.toNative(
+        labels: NativePaymentHubCopy,
+        formatter: AmountFormatter
+    ): NativeHubConfigure = NativeHubConfigure(
+        isNew = isNew,
+        title = title,
+        address = address,
+        comment = comment,
+        amountChips = amountChips(formatter),
+        showsCustomAmount = amount == HubAmountChoice.Custom,
+        customAmount = customAmount,
+        currencyCode = currencyCode,
+        currencyCodes = CurrencyCatalog.supportedCodes,
+        fiatHint =
+            if (showsFiatHint) {
+                nativeString(resource("hub_target_amount_fiat_hint"), currencyCode)
+            } else {
+                null
+            },
+        sizes =
+            sizeOptions.map { option ->
+                NativeHubSizeOption(
+                    id = option.storedValue,
+                    label = nativeString(resource(option.labelKey())),
+                    columns = option.columns,
+                    rows = option.rows,
+                    selected = option == size
                 )
-                    .takeIf {
-                        currency.currency is xyz.lilsus.raylsuite.core.model.DisplayCurrency.Fiat
-                    },
-            comment = comment,
-            icon = icon?.storedValue,
-            accent = accent?.storedValue,
-            pinned = pinned,
-            groups =
-                groups.map {
-                    NativePaymentHubSelection(it.id.value, it.title, it.id in groupIds)
-                },
-            error =
-                when (error) {
-                    TargetEditorError.EnterTitle -> nativeString(
-                        NativeStringResource(table = "PaymentHub", key = "hub_error_enter_title")
-                    )
+            },
+        sizeHint = nativeString(resource(size.hintKey())),
+        submitTitle =
+            nativeString(
+                resource(if (isNew) "hub_configure_add" else "hub_configure_save")
+            ),
+        error = error?.let { nativeString(resource(it.key())) }
+    )
 
-                    TargetEditorError.InvalidAddress ->
-                        nativeString(
-                            NativeStringResource(
-                                table = "PaymentHub",
-                                key = "hub_error_invalid_address"
-                            )
-                        )
-
-                    TargetEditorError.EnterAmount -> nativeString(
-                        NativeStringResource(table = "PaymentHub", key = "hub_error_enter_amount")
-                    )
-
-                    TargetEditorError.WholeAmountRequired ->
-                        nativeString(
-                            NativeStringResource(
-                                table = "PaymentHub",
-                                key = "hub_error_whole_amount"
-                            )
-                        )
-
-                    null -> null
-                }
+    private fun NewTargetConfigureState.amountChips(
+        formatter: AmountFormatter
+    ): List<NativeHubAmountChip> = buildList {
+        add(
+            NativeHubAmountChip(
+                id = CHIP_ASK,
+                label = nativeString(resource("hub_amount_ask_each_time")),
+                selected = amount == HubAmountChoice.AskEachTime
+            )
         )
-
-    private suspend fun GroupEditorState.toNativeEditor(): NativePaymentHubGroupEditor =
-        NativePaymentHubGroupEditor(
-            isNew = isNew,
-            title = title,
-            icon = icon?.storedValue,
-            accent = accent?.storedValue,
-            pinned = pinned,
-            members = members.map { it.toNativeItem() },
-            available = available.map { it.toNativeItem() },
-            error =
-                when (error) {
-                    GroupEditorError.EnterTitle -> nativeString(
-                        NativeStringResource(table = "PaymentHub", key = "hub_error_enter_title")
-                    )
-
-                    null -> null
-                }
+        quickAmounts.forEachIndexed { index, quick ->
+            add(
+                NativeHubAmountChip(
+                    id = "$CHIP_QUICK$index",
+                    label = formatter.format(quick),
+                    selected = amount == HubAmountChoice.Quick(quick)
+                )
+            )
+        }
+        add(
+            NativeHubAmountChip(
+                id = CHIP_CUSTOM,
+                label = nativeString(resource("hub_amount_other")),
+                selected = amount == HubAmountChoice.Custom
+            )
         )
+    }
 
-    private fun xyz.lilsus.raylsuite.feature.paymenthub.library.HubMemberOption.toNativeItem() =
-        NativePaymentHubItem(
-            id = id.value,
-            title = title,
-            subtitle = address,
-            amount = null,
-            icon = icon?.storedValue,
-            accent = accent?.storedValue,
-            isGroup = false,
-            pinned = false,
-            enabled = true
-        )
+    private fun NewTargetConfigureState.choiceFor(id: String): HubAmountChoice? = when {
+        id == CHIP_ASK -> HubAmountChoice.AskEachTime
+
+        id == CHIP_CUSTOM -> HubAmountChoice.Custom
+
+        id.startsWith(CHIP_QUICK) ->
+            id.removePrefix(CHIP_QUICK).toIntOrNull()
+                ?.let(quickAmounts::getOrNull)
+                ?.let(HubAmountChoice::Quick)
+
+        else -> null
+    }
+
+    private fun GroupEditorState.toNative(): NativeHubGroupEditor = NativeHubGroupEditor(
+        isNew = isNew,
+        title = title,
+        icon = (icon ?: HubIcon.Group).storedValue,
+        accent = accent?.storedValue,
+        members = members.map { it.toNativeContact() },
+        available = available.map { it.toNativeContact() },
+        error =
+            when (error) {
+                GroupEditorError.EnterTitle ->
+                    nativeString(resource("hub_error_enter_title"))
+
+                null -> null
+            }
+    )
+
+    private fun HubContact.toNativeContact(): NativeHubContact = NativeHubContact(
+        id = id,
+        title = title,
+        subtitle = address.full,
+        mark = mark.toNative()
+    )
+
+    private fun HubMemberOption.toNativeContact(): NativeHubContact = NativeHubContact(
+        id = id.value,
+        title = title,
+        subtitle = address,
+        mark = NativeHubMark(hubInitials(title), icon?.storedValue, accent?.storedValue)
+    )
+
+    private fun HubService.toNative(): NativeHubService = NativeHubService(
+        id = id,
+        name = name,
+        mark = mark,
+        subtitle =
+            nativeString(
+                resource("hub_service_subtitle"),
+                nativeString(resource(kind.key())),
+                nativePluralString(resource("hub_service_option_count"), optionCount)
+            )
+    )
 
     private fun clearEditors() {
-        targetEditorJobs.forEach(Job::cancel)
-        targetEditorJobs = emptyList()
-        targetEditor?.clear()
-        targetEditor = null
-        targetEditorState = null
+        newTargetJobs.forEach(Job::cancel)
+        newTargetJobs = emptyList()
+        newTarget?.clear()
+        newTarget = null
+        newTargetState = null
         groupEditorJobs.forEach(Job::cancel)
         groupEditorJobs = emptyList()
         groupEditor?.clear()
@@ -597,244 +716,121 @@ class NativePaymentHubController(
     }
 }
 
+private fun HubMark.toNative(): NativeHubMark =
+    NativeHubMark(initials, icon?.storedValue, accent?.storedValue)
+
+private fun HubAmountLine.toNative(formatter: AmountFormatter): String = when (this) {
+    HubAmountLine.AskEachTime -> nativeString(resource("hub_amount_ask"))
+    is HubAmountLine.Preset -> formatter.format(amount)
+}
+
+private fun CanvasTileSize.labelKey(): String = when (this) {
+    CanvasTileSize.Small -> "hub_size_small"
+    CanvasTileSize.Wide -> "hub_size_wide"
+    CanvasTileSize.Large -> "hub_size_large"
+}
+
+private fun CanvasTileSize.hintKey(): String = when (this) {
+    CanvasTileSize.Small -> "hub_size_hint_small"
+    CanvasTileSize.Wide -> "hub_size_hint_wide"
+    CanvasTileSize.Large -> "hub_size_hint_large"
+}
+
+private fun HubCanvasMessage.key(): String = when (this) {
+    HubCanvasMessage.Deleted -> "hub_canvas_message_removed"
+}
+
+private fun NewTargetError.key(): String = when (this) {
+    NewTargetError.EnterName -> "hub_error_enter_title"
+    NewTargetError.InvalidAddress -> "hub_error_invalid_address"
+    NewTargetError.EnterAmount -> "hub_error_enter_amount"
+    NewTargetError.WholeAmountRequired -> "hub_error_whole_amount"
+}
+
+private fun HubServiceKind.key(): String = when (this) {
+    HubServiceKind.Mobile -> "hub_service_kind_mobile"
+    HubServiceKind.EsimData -> "hub_service_kind_esim"
+    HubServiceKind.Other -> "hub_service_kind_other"
+}
+
 private fun hubItemId(value: String): HubItemId? =
     value.trim().takeIf(String::isNotEmpty)?.let(::HubItemId)
 
-private suspend fun loadCopy() = NativePaymentHubCopy(
-    title = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_library_title")),
-    arrange = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_arrange")),
-    done = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_done")),
-    addTiles = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_add")),
-    reset = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_reset")),
-    emptyTitle = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_empty_title")
-    ),
-    emptyBody = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_empty_body")
-    ),
-    emptyCanvasBody = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_canvas_empty_body")
-    ),
-    addSheetTitle = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_canvas_add_title")
-    ),
-    allTilesPlaced = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_canvas_add_all_placed")
-    ),
-    makeWide = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_canvas_wide")),
-    makeCompact = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_canvas_compact")
-    ),
-    removeTile = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_canvas_remove")
-    ),
-    moveEarlier = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_canvas_move_earlier")
-    ),
-    moveLater = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_canvas_move_later")
-    ),
-    search = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_library_search")),
-    noMatches = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_no_matches")
-    ),
-    add = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_library_add")),
-    addTarget = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_add_target")
-    ),
-    addGroup = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_add_group")
-    ),
-    arrangePins = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_arrange_pins")
-    ),
-    doneArrangingPins = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_done")
-    ),
-    pinnedSection = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_section_pinned")
-    ),
-    groupsSection = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_section_groups")
-    ),
-    recentSection = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_section_recent")
-    ),
-    targetsSection = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_library_section_targets")
-    ),
-    pin = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_pin")),
-    unpin = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_unpin")),
-    moveUp = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_move_up")),
-    moveDown = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_action_move_down")
-    ),
-    groupPickerTitle = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_pick_member")
-    ),
-    emptyGroup = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_group_empty")),
-    newTarget = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_editor_new")
-    ),
-    editTarget = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_editor_edit")
-    ),
-    targetName = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_name_label")
-    ),
-    targetAddress = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_address_label")
-    ),
-    amount = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_amount_label")
-    ),
-    askEveryTime = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_amount_mode_ask")
-    ),
-    presetAmount = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_amount_mode_preset")
-    ),
-    comment = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_comment_label")
-    ),
-    icon = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_appearance_icon")),
-    accent = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_appearance_accent")
-    ),
-    none = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_appearance_none")),
+private fun resource(key: String) = NativeStringResource(table = "PaymentHub", key = key)
+
+private fun string(key: String) = nativeString(resource(key))
+
+private fun loadCopy() = NativePaymentHubCopy(
+    edit = string("hub_canvas_edit"),
+    done = string("hub_canvas_done"),
+    move = string("hub_canvas_move"),
+    addTarget = string("hub_canvas_add_target"),
+    removeConfirm = string("hub_canvas_remove_confirm"),
+    removeCancel = string("hub_canvas_remove_cancel"),
+    newTargetTitle = string("hub_new_title"),
+    editTargetTitle = string("hub_new_edit_title"),
+    back = string("hub_new_back"),
+    sectionPeople = string("hub_new_section_people"),
+    more = string("hub_new_more"),
+    contactsTitle = string("hub_new_contacts_title"),
+    servicesTitle = string("hub_new_services_title"),
+    addManually = string("hub_new_add_manually"),
+    search = string("hub_new_search"),
+    noContacts = string("hub_new_no_contacts"),
+    noMatches = string("hub_new_no_matches"),
+    comingSoonConfirm = string("hub_service_coming_soon_confirm"),
+    configureTitle = string("hub_configure_title"),
+    nameLabel = string("hub_target_name_label"),
+    addressLabel = string("hub_target_address_label"),
+    amountLabel = string("hub_target_amount_label"),
+    commentLabel = string("hub_target_comment_label"),
+    sizeLabel = string("hub_configure_size"),
+    deleteTarget = string("hub_configure_delete"),
+    groupEditorNew = string("hub_group_editor_new"),
+    groupEditorEdit = string("hub_group_editor_edit"),
+    groupNameLabel = string("hub_group_name_label"),
+    groupMembersLabel = string("hub_group_members_label"),
+    groupMembersEmpty = string("hub_group_members_empty"),
+    groupAvailableLabel = string("hub_group_available_label"),
+    groupAvailableNone = string("hub_group_available_none"),
+    groupAvailableAllAdded = string("hub_group_available_all_added"),
+    appearanceIcon = string("hub_appearance_icon"),
+    appearanceAccent = string("hub_appearance_accent"),
+    appearanceNone = string("hub_appearance_none"),
     iconOptions =
-        listOf(
-            NativePaymentHubAppearanceOption(
-                "person",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_person"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "group",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_group"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "store",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_store"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "restaurant",
-                nativeString(
-                    NativeStringResource(table = "PaymentHub", key = "hub_icon_restaurant")
-                )
-            ),
-            NativePaymentHubAppearanceOption(
-                "coffee",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_coffee"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "gift",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_gift"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "heart",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_heart"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "star",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_star"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "bolt",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_bolt"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "home",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_home"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "wallet",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_wallet"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "work",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_icon_work"))
-            )
-        ),
+        HubIcon.entries.map {
+            NativePaymentHubAppearanceOption(it.storedValue, string("hub_icon_${it.storedValue}"))
+        },
     accentOptions =
-        listOf(
+        HubAccent.entries.map {
             NativePaymentHubAppearanceOption(
-                "orange",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_orange"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "blue",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_blue"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "green",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_green"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "purple",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_purple"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "pink",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_pink"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "teal",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_teal"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "amber",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_amber"))
-            ),
-            NativePaymentHubAppearanceOption(
-                "slate",
-                nativeString(NativeStringResource(table = "PaymentHub", key = "hub_accent_slate"))
+                it.storedValue,
+                string("hub_accent_${it.storedValue}")
             )
-        ),
-    pinLabel = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_pin_label")),
-    pinDescription = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_pin_description")
-    ),
-    targetGroups = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_groups_label")
-    ),
-    targetGroupsEmpty = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_target_groups_empty")
-    ),
-    save = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_editor_save")),
-    delete = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_editor_delete")),
-    newGroup = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_editor_new")
-    ),
-    editGroup = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_editor_edit")
-    ),
-    groupName = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_name_label")
-    ),
-    members = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_members_label")
-    ),
-    membersEmpty = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_members_empty")
-    ),
-    availableTargets = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_available_label")
-    ),
-    noAvailableTargets = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_available_none")
-    ),
-    allTargetsAdded = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_group_available_all_added")
-    ),
-    addMember = nativeString(NativeStringResource(table = "PaymentHub", key = "hub_action_add")),
-    removeMember = nativeString(
-        NativeStringResource(table = "PaymentHub", key = "hub_action_remove")
-    )
+        },
+    moveUp = string("hub_action_move_up"),
+    moveDown = string("hub_action_move_down"),
+    addMember = string("hub_action_add"),
+    removeMember = string("hub_action_remove"),
+    save = string("hub_editor_save"),
+    delete = string("hub_editor_delete")
 )
 
 private const val DESTINATION_CANVAS = "canvas"
-private const val DESTINATION_LIBRARY = "library"
-private const val DESTINATION_TARGET_EDITOR = "targetEditor"
+private const val DESTINATION_NEW_TARGET = "newTarget"
 private const val DESTINATION_GROUP_EDITOR = "groupEditor"
-private const val AMOUNT_ASK = "ask"
-private const val AMOUNT_PRESET = "preset"
+private const val VIEW_LAUNCHPAD = "launchpad"
+private const val VIEW_CONTACTS = "contacts"
+private const val VIEW_SERVICES = "services"
+private const val VIEW_CONFIGURE = "configure"
+private const val CHIP_ASK = "ask"
+private const val CHIP_CUSTOM = "custom"
+private const val CHIP_QUICK = "quick:"
+
+/** Grid geometry the SwiftUI canvas lays out with. */
+object NativeHubGrid {
+    val columns = HubGrid.COLUMNS
+    val rowHeight = HubGrid.ROW_HEIGHT.toDouble()
+    val gap = HubGrid.GAP.toDouble()
+    val gutter = HubGrid.GUTTER.toDouble()
+}

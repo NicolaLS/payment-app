@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportEvent
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
 import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
+import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsRepository
 import xyz.lilsus.blip.feature.onboarding.R
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletEvent
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletScreen
@@ -28,7 +29,6 @@ import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingFeaturePage
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
-import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 
 @Serializable
 sealed interface BlipOnboardingDestination {
@@ -58,7 +58,7 @@ fun NavGraphBuilder.blipOnboarding(
     navController: NavController,
     blinkWallet: BlinkWallet,
     onboardingViewModel: OnboardingViewModel,
-    paymentHub: PaymentHubRepository,
+    contactsRepository: BlinkContactsRepository,
     onFinished: () -> Unit
 ) {
     composable<BlipOnboardingDestination.Welcome> {
@@ -144,7 +144,7 @@ fun NavGraphBuilder.blipOnboarding(
     composable<BlipOnboardingDestination.BlinkContactsImport> {
         OnboardingBlinkContactsImportDestination(
             blinkWallet = blinkWallet,
-            paymentHub = paymentHub,
+            contactsRepository = contactsRepository,
             onFinished = onFinished
         )
     }
@@ -182,14 +182,14 @@ private fun AddWalletDestination(
 @Composable
 private fun OnboardingBlinkContactsImportDestination(
     blinkWallet: BlinkWallet,
-    paymentHub: PaymentHubRepository,
+    contactsRepository: BlinkContactsRepository,
     onFinished: () -> Unit
 ) {
     val viewModel =
-        remember(blinkWallet, paymentHub) {
+        remember(blinkWallet, contactsRepository) {
             BlinkContactsImportViewModel(
                 blinkWallet = blinkWallet,
-                paymentHub = paymentHub
+                contactsRepository = contactsRepository
             )
         }
     val state by viewModel.uiState.collectAsStateWithLifecycle()

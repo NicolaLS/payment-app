@@ -31,8 +31,7 @@ class DefaultPaymentHubRepositoryTest {
                     DirectTargetDraft(
                         title = "Pay Alice",
                         address = alice,
-                        amountRule = DirectTargetAmountRule.AskEveryTime,
-                        pinned = true
+                        amountRule = DirectTargetAmountRule.AskEveryTime
                     )
                 )
             )
@@ -52,14 +51,13 @@ class DefaultPaymentHubRepositoryTest {
                 repository.createGroup(
                     GroupDraft(
                         title = "Favorite Friends",
-                        memberIds = listOf(tipAlice.id, payAlice.id, HubItemId("group:other"), payAlice.id),
-                        pinned = true
+                        memberIds =
+                            listOf(tipAlice.id, payAlice.id, HubItemId("group:other"), payAlice.id)
                     )
                 )
             )
 
         val hub = repository.hub.value
-        assertEquals(listOf(payAlice.id, friends.id), hub.pinnedItemIds)
         assertEquals(listOf(tipAlice.id, payAlice.id), assertNotNull(hub.group(friends.id)).memberIds)
         assertEquals("thanks", assertNotNull(hub.target(tipAlice.id)).comment)
         assertEquals(
@@ -72,7 +70,6 @@ class DefaultPaymentHubRepositoryTest {
         assertNull(afterDelete.target(payAlice.id))
         assertNotNull(afterDelete.target(tipAlice.id))
         assertEquals(listOf(tipAlice.id), assertNotNull(afterDelete.group(friends.id)).memberIds)
-        assertEquals(listOf(friends.id), afterDelete.pinnedItemIds)
 
         repository.deleteGroup(friends.id)
         assertNotNull(repository.hub.value.target(tipAlice.id))
@@ -83,7 +80,7 @@ class DefaultPaymentHubRepositoryTest {
     }
 
     @Test
-    fun editingUpdatesPinAndMembershipWithoutChangingIdentity() = runTest {
+    fun editingUpdatesMembershipWithoutChangingIdentity() = runTest {
         val repository = repository(MapSettings())
         val target =
             assertNotNull(
@@ -102,7 +99,6 @@ class DefaultPaymentHubRepositoryTest {
                         title = "Tip Alice",
                         address = alice,
                         amountRule = DirectTargetAmountRule.Preset(StoredAmount(2_000, "SAT")),
-                        pinned = true,
                         groupIds = setOf(group.id)
                     )
                 )
@@ -110,7 +106,6 @@ class DefaultPaymentHubRepositoryTest {
         assertEquals(target.id, updated.id)
         assertEquals(HubItemStats(1, 5_000L), updated.stats)
         val hub = repository.hub.value
-        assertEquals(listOf(target.id), hub.pinnedItemIds)
         assertEquals(listOf(target.id), assertNotNull(hub.group(group.id)).memberIds)
 
         repository.updateTarget(
@@ -119,21 +114,8 @@ class DefaultPaymentHubRepositoryTest {
         )
         val reverted = repository.hub.value
         assertEquals(DirectTargetAmountRule.AskEveryTime, assertNotNull(reverted.target(target.id)).amountRule)
-        assertTrue(reverted.pinnedItemIds.isEmpty())
         assertTrue(assertNotNull(reverted.group(group.id)).memberIds.isEmpty())
         assertEquals(1, reverted.targets.size)
-    }
-
-    @Test
-    fun reorderPinnedKeepsUnknownAndMissingIdsSafe() = runTest {
-        val repository = repository(MapSettings())
-        val a = assertNotNull(repository.createTarget(DirectTargetDraft("A", alice, DirectTargetAmountRule.AskEveryTime, pinned = true)))
-        val b = assertNotNull(repository.createTarget(DirectTargetDraft("B", alice, DirectTargetAmountRule.AskEveryTime, pinned = true)))
-        val c = assertNotNull(repository.createTarget(DirectTargetDraft("C", alice, DirectTargetAmountRule.AskEveryTime, pinned = true)))
-
-        repository.reorderPinned(listOf(c.id, HubItemId("target:missing"), a.id))
-
-        assertEquals(listOf(c.id, a.id, b.id), repository.hub.value.pinnedItemIds)
     }
 
     @Test

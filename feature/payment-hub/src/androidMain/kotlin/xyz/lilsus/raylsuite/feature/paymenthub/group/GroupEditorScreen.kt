@@ -1,4 +1,4 @@
-package xyz.lilsus.raylsuite.feature.paymenthub.library
+package xyz.lilsus.raylsuite.feature.paymenthub.group
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,7 +42,9 @@ import xyz.lilsus.raylsuite.feature.paymenthub.HubIcon
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymenthub.R
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubTestTags
-import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubGlyph
+import xyz.lilsus.raylsuite.feature.paymenthub.render.HubMark
+import xyz.lilsus.raylsuite.feature.paymenthub.render.hubInitials
+import xyz.lilsus.raylsuite.feature.paymenthub.ui.HubMarkView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +54,6 @@ fun GroupEditorScreen(
     onTitleChange: (String) -> Unit,
     onIconChange: (HubIcon?) -> Unit,
     onAccentChange: (HubAccent?) -> Unit,
-    onPinnedChange: (Boolean) -> Unit,
     onAddMember: (HubItemId) -> Unit,
     onRemoveMember: (HubItemId) -> Unit,
     onMoveMember: (HubItemId, Int) -> Unit,
@@ -108,7 +109,6 @@ fun GroupEditorScreen(
                 onIconSelected = onIconChange,
                 onAccentSelected = onAccentChange
             )
-            PinToggleRow(pinned = state.pinned, onPinnedChange = onPinnedChange)
             EditorSectionTitle(stringResource(R.string.hub_group_members_label))
             if (state.members.isEmpty()) {
                 Text(
@@ -200,10 +200,8 @@ private fun MemberRow(
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit
 ) {
     AppListRow(minHeight = 56.dp) {
-        HubGlyph(
-            icon = member.icon,
-            accent = member.accent,
-            fallbackText = member.title.take(1).uppercase(),
+        HubMarkView(
+            mark = HubMark(hubInitials(member.title), member.icon, member.accent),
             size = 36.dp
         )
         Column(modifier = Modifier.weight(1f)) {

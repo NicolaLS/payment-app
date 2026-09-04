@@ -150,16 +150,16 @@ internal fun BlipTabContent(
     }
 }
 
-/** The hub with Blip's own Blink contact import pushed on top of the library. */
+/** The hub, with Blip's own Blink contact import offered where a contact is chosen. */
 @Composable
 private fun BlipHubTab(runtime: BlipRuntime, currencyCode: String) {
     var importing by rememberSaveable { mutableStateOf(false) }
     if (importing) {
         val viewModel =
-            remember(runtime.blinkWallet, runtime.paymentHubRepository) {
+            remember(runtime.blinkWallet, runtime.contactsRepository) {
                 BlinkContactsImportViewModel(
                     blinkWallet = runtime.blinkWallet,
-                    paymentHub = runtime.paymentHubRepository
+                    contactsRepository = runtime.contactsRepository
                 )
             }
         val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -184,7 +184,8 @@ private fun BlipHubTab(runtime: BlipRuntime, currencyCode: String) {
             canvasLayout = runtime.canvasLayout,
             controller = runtime.paymentHub,
             preferredCurrencyCode = { currencyCode },
-            libraryActions = {
+            contacts = runtime.paymentHubContacts,
+            importButton = {
                 BlinkContactsImportButton(onClick = { importing = true })
             }
         )

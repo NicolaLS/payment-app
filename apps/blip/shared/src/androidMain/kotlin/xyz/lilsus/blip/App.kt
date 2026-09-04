@@ -60,7 +60,7 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
                 navController = navController,
                 blinkWallet = runtime.blinkWallet,
                 onboardingViewModel = runtime.onboardingViewModel,
-                paymentHub = runtime.paymentHubRepository,
+                contactsRepository = runtime.contactsRepository,
                 onFinished = {
                     navController.navigate(BlipDestination.Home) {
                         popUpTo(navController.graph.id) { inclusive = true }

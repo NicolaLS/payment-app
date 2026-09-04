@@ -1,4 +1,4 @@
-package xyz.lilsus.raylsuite.feature.paymenthub.library
+package xyz.lilsus.raylsuite.feature.paymenthub.create
 
 /** Digit/decimal-only editing of a minor-unit amount for a currency with [fractionDigits]. */
 internal fun String.cleanAmountInput(fractionDigits: Int): String {

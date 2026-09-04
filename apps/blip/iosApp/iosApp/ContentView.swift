@@ -44,7 +44,7 @@ private let blipShellAdapter = NativeShellAdapter(
         AnyView(
             NativePaymentHubView(
                 controller: BlipIosApp.shared.hubController(),
-                additionalLibraryContent: AnyView(
+                importButton: AnyView(
                     BlipContactsImportLink(
                         controller: BlipIosApp.shared.contactsController()
                     )

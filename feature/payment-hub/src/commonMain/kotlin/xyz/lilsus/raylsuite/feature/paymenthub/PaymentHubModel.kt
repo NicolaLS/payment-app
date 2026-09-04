@@ -93,13 +93,11 @@ data class HubItemStats(
 )
 
 /**
- * The canonical, non-sensitive hub document: direct targets, groups with membership, and the
- * common pinned order. Pins may reference targets and groups.
+ * The canonical, non-sensitive hub document: direct targets and groups with their membership.
  */
 data class PaymentHub(
     val targets: List<DirectPaymentTarget> = emptyList(),
-    val groups: List<PaymentTargetGroup> = emptyList(),
-    val pinnedItemIds: List<HubItemId> = emptyList()
+    val groups: List<PaymentTargetGroup> = emptyList()
 ) {
     val isEmpty: Boolean
         get() = targets.isEmpty() && groups.isEmpty()
@@ -107,10 +105,6 @@ data class PaymentHub(
     fun target(id: HubItemId): DirectPaymentTarget? = targets.firstOrNull { it.id == id }
 
     fun group(id: HubItemId): PaymentTargetGroup? = groups.firstOrNull { it.id == id }
-
-    fun contains(id: HubItemId): Boolean = target(id) != null || group(id) != null
-
-    fun isPinned(id: HubItemId): Boolean = id in pinnedItemIds
 
     /** Members of [groupId] that still exist, in explicit group order. */
     fun members(groupId: HubItemId): List<DirectPaymentTarget> =
@@ -121,8 +115,8 @@ data class PaymentHub(
         groups.filter { targetId in it.memberIds }
 
     /**
-     * Drops dangling pins and members, duplicate IDs, and group members that are not direct
-     * targets. Lenses never see inconsistent data.
+     * Drops dangling members, duplicate IDs, and group members that are not direct targets.
+     * Lenses never see inconsistent data.
      */
     fun normalized(): PaymentHub {
         val uniqueTargets = targets.distinctBy { it.id }
@@ -134,13 +128,7 @@ data class PaymentHub(
                 .map { group ->
                     group.copy(memberIds = group.memberIds.filter { it in targetIds }.distinct())
                 }
-        val groupIds = uniqueGroups.mapTo(mutableSetOf()) { it.id }
-        return PaymentHub(
-            targets = uniqueTargets,
-            groups = uniqueGroups,
-            pinnedItemIds =
-                pinnedItemIds.filter { it in targetIds || it in groupIds }.distinct()
-        )
+        return PaymentHub(targets = uniqueTargets, groups = uniqueGroups)
     }
 }
 
