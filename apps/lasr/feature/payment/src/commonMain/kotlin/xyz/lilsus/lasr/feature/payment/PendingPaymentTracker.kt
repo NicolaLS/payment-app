@@ -33,7 +33,10 @@ internal class PendingPaymentTracker(
 ) {
     private val records =
         MutableStateFlow(
-            store.load().associateBy(PendingRecord::id)
+            // Resolved payments belong only to the process-local Recent session.
+            store.load()
+                .filter { it.status.isUnresolved() }
+                .associateBy(PendingRecord::id)
         )
     private val visibilityJobs = mutableMapOf<String, Job>()
     private val reconciliationJobs = mutableMapOf<String, Job>()
@@ -364,7 +367,8 @@ internal class PendingPaymentTracker(
     }
 
     private fun persistRecords() {
-        store.save(records.value.values)
+        // Interrupted attempts still need restart recovery and duplicate-payment protection.
+        store.save(records.value.values.filter { it.status.isUnresolved() })
     }
 
     private fun recordsForDisplay(): List<PendingRecord> {

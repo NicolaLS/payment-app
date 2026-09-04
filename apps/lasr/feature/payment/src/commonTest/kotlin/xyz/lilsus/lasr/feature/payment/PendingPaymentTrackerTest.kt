@@ -180,20 +180,29 @@ class PendingPaymentTrackerTest {
             replacementId,
             NwcPayOutcome.WalletRejected("DENIED", "rejected")
         )
+
+        assertNull(tracker.findGuardingByDynamicSourceKey(sourceKey))
+
+        val retried = tracker.retry(replacementId)
+
+        assertEquals(replacementId, retried?.id)
+        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+
+        tracker.applyPayOutcome(
+            replacementId,
+            NwcPayOutcome.WalletRejected("DENIED", "rejected")
+        )
         tracker.close()
 
         val restored = tracker(settings = settings)
 
+        assertNull(restored.get(replacementId))
         assertNull(restored.findGuardingByDynamicSourceKey(sourceKey))
-
-        val retried = restored.retry(replacementId)
-
-        assertEquals(replacementId, retried?.id)
-        assertEquals(replacementId, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        assertNull(restored.retry(replacementId))
     }
 
     @Test
-    fun interruptedAttemptIsReconciledAndCompletedGuardSurvivesProcessRestart() = runTest {
+    fun interruptedAttemptIsReconciledButCompletedResultDoesNotSurviveAnotherRestart() = runTest {
         val settings = MapSettings()
         val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example/restart")
         val original = tracker(settings = settings)
@@ -222,13 +231,16 @@ class PendingPaymentTrackerTest {
         assertEquals(paymentHash, reconciledHash)
         assertEquals(PendingStatus.Succeeded, restored.get(id)?.status)
         assertEquals(id, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        assertTrue(PendingPaymentStore(settings).load().isEmpty())
+        // Simulate a resolved record written by the previous storage policy.
+        PendingPaymentStore(settings).save(listOf(requireNotNull(restored.get(id))))
         restored.close()
 
         val completed = tracker(settings = settings)
 
-        assertEquals(PendingStatus.Succeeded, completed.get(id)?.status)
-        assertNull(completed.get(id)?.preimage)
-        assertEquals(id, completed.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        assertNull(completed.get(id))
+        assertTrue(completed.displayItems.value.isEmpty())
+        assertNull(completed.findGuardingByDynamicSourceKey(sourceKey))
     }
 
     @Test

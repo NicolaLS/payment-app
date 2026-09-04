@@ -150,19 +150,28 @@ class PendingPaymentTrackerTest {
         assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
 
         tracker.markFailure(replacementId, PaymentUiError.Unexpected("rejected"))
+
+        assertNull(tracker.findGuardingByDynamicSourceKey(sourceKey))
+
+        tracker.markSending(replacementId)
+
+        assertEquals(replacementId, tracker.findGuardingByDynamicSourceKey(sourceKey)?.id)
+
+        tracker.markFailure(replacementId, PaymentUiError.Unexpected("rejected"))
         tracker.close()
 
         val restored = tracker(settings = settings)
 
+        assertNull(restored.get(replacementId))
         assertNull(restored.findGuardingByDynamicSourceKey(sourceKey))
 
         restored.markSending(replacementId)
 
-        assertEquals(replacementId, restored.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        assertNull(restored.findGuardingByDynamicSourceKey(sourceKey))
     }
 
     @Test
-    fun interruptedAttemptAndCompletedGuardSurviveProcessRestart() = runTest {
+    fun interruptedAttemptSurvivesRestartButCompletedResultDoesNot() = runTest {
         val settings = MapSettings()
         val sourceKey = DynamicPaymentSourceKey("lnurl:https://pay.example/restart")
         val original = tracker(settings = settings)
@@ -192,13 +201,16 @@ class PendingPaymentTrackerTest {
             feeMsats = 1,
             preimage = "must-not-be-persisted"
         )
+        assertTrue(PendingPaymentStore(settings).load().isEmpty())
+        // Simulate a resolved record written by the previous storage policy.
+        PendingPaymentStore(settings).save(listOf(requireNotNull(restored.get(id))))
         restored.close()
 
         val completed = tracker(settings = settings)
 
-        assertEquals(PendingStatus.Success, completed.get(id)?.status)
-        assertNull(completed.get(id)?.preimage)
-        assertEquals(id, completed.findGuardingByDynamicSourceKey(sourceKey)?.id)
+        assertNull(completed.get(id))
+        assertTrue(completed.displayItems.value.isEmpty())
+        assertNull(completed.findGuardingByDynamicSourceKey(sourceKey))
     }
 
     @Test
