@@ -20,7 +20,6 @@ import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import xyz.lilsus.lasr.feature.onboarding.R
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletScreen
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletViewModel
@@ -129,7 +128,11 @@ fun NavGraphBuilder.lasrOnboarding(
             totalSteps = ONBOARDING_STEP_COUNT,
             onAgreementChanged = onboardingViewModel::setAgreement,
             onContinue = {
-                navController.navigate(LasrOnboardingDestination.WalletInstructions)
+                if (nwcWallet.connection.value == null) {
+                    navController.navigate(LasrOnboardingDestination.WalletInstructions)
+                } else {
+                    onWalletConnected()
+                }
             },
             onBack = navController::navigateUp
         )
@@ -139,7 +142,11 @@ fun NavGraphBuilder.lasrOnboarding(
             stepIndex = OnboardingStep.WalletInstructions.index,
             totalSteps = ONBOARDING_STEP_COUNT,
             onConnectWallet = {
-                navController.navigate(LasrOnboardingDestination.AddWallet)
+                if (nwcWallet.connection.value == null) {
+                    navController.navigate(LasrOnboardingDestination.AddWallet)
+                } else {
+                    onWalletConnected()
+                }
             },
             onBack = navController::navigateUp
         )
@@ -165,10 +172,17 @@ fun NavGraphBuilder.lasrOnboarding(
             nwcWallet = nwcWallet,
             onConnected = {
                 connectionDraft.clear()
-                if (route.fromSettings) {
-                    navController.popBackStack()
-                } else {
-                    onWalletConnected()
+                when (
+                    lasrWalletConnectionOutcome(
+                        fromSettings = route.fromSettings,
+                        hasAgreed = onboardingViewModel.uiState.value.hasAgreed
+                    )
+                ) {
+                    LasrWalletConnectionOutcome.ResumeOnboarding ->
+                        navController.popBackStack()
+
+                    LasrWalletConnectionOutcome.CompleteOnboarding,
+                    LasrWalletConnectionOutcome.FinishSettings -> onWalletConnected()
                 }
             },
             onCancelled = {

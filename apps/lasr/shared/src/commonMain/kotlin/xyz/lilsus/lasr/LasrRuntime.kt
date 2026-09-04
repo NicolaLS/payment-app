@@ -64,6 +64,7 @@ internal class LasrRuntime(
             scope = scope,
             isNetworkAvailable = networkConnectivity::isNetworkAvailable
         )
+    val onboardingState = LasrOnboardingState(appSettings)
 
     private val lnurlPayClient = KtorLnurlPayClient(networkConnectivity)
     val paymentCoordinator =
@@ -113,19 +114,32 @@ internal class LasrRuntime(
         paymentCoordinator.resetSession()
     }
 
+    fun completeOnboarding() {
+        onboardingState.complete()
+    }
+
     private fun routeDeepLink(uri: String) {
         val scheme = uri.substringBefore(":", missingDelimiterValue = "")
         if (scheme.equals(NWC_SCHEME, ignoreCase = true)) {
             connectionDraft.set(normalizeNwcUri(uri))
-            if (nwcWallet.connection.value == null) {
-                mutableOnboardingWalletFlow.value = true
-            } else {
-                mutableSettingsWalletFlow.value = true
-                tabState.select(xyz.lilsus.raylsuite.feature.appshell.AppTab.Settings)
+            when (onboardingState.nwcDeepLinkTarget()) {
+                LasrNwcDeepLinkTarget.Onboarding -> {
+                    mutableOnboardingWalletFlow.value = true
+                }
+
+                LasrNwcDeepLinkTarget.Settings -> {
+                    mutableSettingsWalletFlow.value = true
+                    tabState.select(xyz.lilsus.raylsuite.feature.appshell.AppTab.Settings)
+                }
             }
             return
         }
-        if (!isPaymentScheme(scheme) || nwcWallet.connection.value == null) return
+        if (
+            !isPaymentScheme(scheme) ||
+            !onboardingState.canHandlePaymentDeepLink(nwcWallet.connection.value != null)
+        ) {
+            return
+        }
 
         tabState.requestScan()
         paymentCoordinator.dispatch(PaymentIntent.DeepLinkReceived(uri))

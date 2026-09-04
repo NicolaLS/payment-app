@@ -39,25 +39,19 @@ import xyz.lilsus.raylsuite.feature.walletmanagement.WalletManagementScreen
 
 internal fun NavGraphBuilder.lasrHome(
     runtime: LasrRuntime,
-    performanceDiagnostics: PerformanceDiagnostics?,
-    onRemoveWallet: () -> Unit
+    performanceDiagnostics: PerformanceDiagnostics?
 ) {
     composable<LasrDestination.Home> {
         LasrTabs(
             runtime = runtime,
-            performanceDiagnostics = performanceDiagnostics,
-            onRemoveWallet = onRemoveWallet
+            performanceDiagnostics = performanceDiagnostics
         )
     }
 }
 
 /** The Android tab shell. iOS renders [LasrTabContent] inside a native `TabView` instead. */
 @Composable
-private fun LasrTabs(
-    runtime: LasrRuntime,
-    performanceDiagnostics: PerformanceDiagnostics?,
-    onRemoveWallet: () -> Unit
-) {
+private fun LasrTabs(runtime: LasrRuntime, performanceDiagnostics: PerformanceDiagnostics?) {
     val tabState = runtime.tabState
     val selectedTab by tabState.selectedTab.collectAsStateWithLifecycle()
     val flowState = rememberPaymentFlowState(runtime.paymentCoordinator)
@@ -70,8 +64,7 @@ private fun LasrTabs(
         LasrTabContent(
             runtime = runtime,
             tab = tab,
-            performanceDiagnostics = performanceDiagnostics,
-            onRemoveWallet = onRemoveWallet
+            performanceDiagnostics = performanceDiagnostics
         )
     }
 }
@@ -81,8 +74,7 @@ private fun LasrTabs(
 internal fun LasrTabContent(
     runtime: LasrRuntime,
     tab: AppTab,
-    performanceDiagnostics: PerformanceDiagnostics?,
-    onRemoveWallet: () -> Unit
+    performanceDiagnostics: PerformanceDiagnostics?
 ) {
     val coordinator = runtime.paymentCoordinator
     val tabState = runtime.tabState
@@ -128,7 +120,6 @@ internal fun LasrTabContent(
             LasrSettingsTab(
                 runtime = runtime,
                 performanceDiagnostics = performanceDiagnostics,
-                onRemoveWallet = onRemoveWallet,
                 onDonate = { amountSats ->
                     tabState.requestScan()
                     coordinator.dispatch(
@@ -146,7 +137,6 @@ internal fun LasrTabContent(
 private fun LasrSettingsTab(
     runtime: LasrRuntime,
     performanceDiagnostics: PerformanceDiagnostics?,
-    onRemoveWallet: () -> Unit,
     onDonate: (Long) -> Unit
 ) {
     var destination by rememberSaveable { mutableStateOf(LasrSettingsDestination.Root) }
@@ -202,8 +192,7 @@ private fun LasrSettingsTab(
                 onBack = { destination = LasrSettingsDestination.Root },
                 onAddWallet = { runtime.requestSettingsWalletFlow() },
                 onRemoveWallet = {
-                    destination = LasrSettingsDestination.Root
-                    onRemoveWallet()
+                    runtime.resetPaymentSession()
                     scope.launch { runtime.nwcWallet.disconnect() }
                 },
                 onWalletDetails = { destination = LasrSettingsDestination.WalletDetails }
@@ -244,7 +233,7 @@ private fun LasrWalletFlow(runtime: LasrRuntime, onFinished: () -> Unit) {
     LaunchedEffect(navController, pendingDraft) {
         if (pendingDraft != null) {
             navController.navigate(
-                LasrOnboardingDestination.ConfirmWallet(fromSettings = false)
+                LasrOnboardingDestination.ConfirmWallet(fromSettings = true)
             ) {
                 launchSingleTop = true
             }

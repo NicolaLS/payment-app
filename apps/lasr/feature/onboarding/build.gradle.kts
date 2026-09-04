@@ -26,5 +26,8 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.navigation.compose)
         }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+        }
     }
 }

@@ -43,10 +43,10 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
     val navController = rememberNavController()
     val startDestination =
         remember(runtime) {
-            if (runtime.nwcWallet.connection.value == null) {
-                LasrOnboardingDestination.Welcome
-            } else {
+            if (runtime.onboardingState.completed.value) {
                 LasrDestination.Home
+            } else {
+                LasrOnboardingDestination.Welcome
             }
         }
 
@@ -74,6 +74,7 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
                 onboardingViewModel = runtime.onboardingViewModel,
                 connectionDraft = runtime.connectionDraft,
                 onWalletConnected = {
+                    runtime.completeOnboarding()
                     navController.navigate(LasrDestination.Home) {
                         popUpTo(navController.graph.id) { inclusive = true }
                         launchSingleTop = true
@@ -82,14 +83,7 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
             )
             lasrHome(
                 runtime = runtime,
-                performanceDiagnostics = performanceDiagnostics,
-                onRemoveWallet = {
-                    runtime.resetPaymentSession()
-                    navController.navigate(LasrOnboardingDestination.Welcome) {
-                        popUpTo(navController.graph.id) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
+                performanceDiagnostics = performanceDiagnostics
             )
         }
     }

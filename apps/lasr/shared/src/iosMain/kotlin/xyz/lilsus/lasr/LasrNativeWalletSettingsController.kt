@@ -82,6 +82,7 @@ class LasrNativeWalletSettingsController internal constructor(
         scope.launch {
             publishSnapshot()
             try {
+                runtime.resetPaymentSession()
                 runtime.nwcWallet.disconnect()
             } finally {
                 isWorking = false

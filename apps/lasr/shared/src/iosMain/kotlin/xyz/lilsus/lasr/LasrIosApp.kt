@@ -79,13 +79,13 @@ object LasrIosApp {
         LasrNativeWalletSettingsController(runtime, nativeOnboardingController)
     }
 
-    /** `true` once a wallet is connected, which is when the tab bar replaces onboarding. */
-    fun isOnboarded(): Boolean = runtime.nwcWallet.connection.value != null
+    /** `true` once onboarding is complete, independently of the current wallet connection. */
+    fun isOnboarded(): Boolean = runtime.onboardingState.completed.value
 
     fun observeOnboarded(onChange: (Boolean) -> Unit): () -> Unit {
         val job =
             observerScope.launch {
-                runtime.nwcWallet.connection.collect { onChange(it != null) }
+                runtime.onboardingState.completed.collect(onChange)
             }
         return { job.cancel() }
     }

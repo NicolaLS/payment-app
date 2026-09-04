@@ -7,7 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import xyz.lilsus.lasr.feature.onboarding.LasrWalletConnectionOutcome
 import xyz.lilsus.lasr.feature.onboarding.NativeLasrOnboardingPage
+import xyz.lilsus.lasr.feature.onboarding.lasrWalletConnectionOutcome
 import xyz.lilsus.lasr.feature.onboarding.nativeLasrOnboardingText
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletViewModel
@@ -142,11 +144,24 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
                     is ConnectNwcWalletEvent.Success -> {
                         confirmationPresented = false
                         runtime.connectionDraft.clear()
-                        if (settingsFlow) {
-                            settingsFlow = false
-                            runtime.walletFlowHandled()
+                        when (
+                            lasrWalletConnectionOutcome(
+                                fromSettings = settingsFlow,
+                                hasAgreed = runtime.onboardingViewModel.uiState.value.hasAgreed
+                            )
+                        ) {
+                            LasrWalletConnectionOutcome.ResumeOnboarding -> Unit
+
+                            LasrWalletConnectionOutcome.CompleteOnboarding ->
+                                runtime.completeOnboarding()
+
+                            LasrWalletConnectionOutcome.FinishSettings -> {
+                                settingsFlow = false
+                                runtime.walletFlowHandled()
+                            }
                         }
                         stopScanner()
+                        publishSnapshot()
                     }
 
                     ConnectNwcWalletEvent.Cancelled -> {
@@ -207,10 +222,22 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
     }
 
     fun continueAgreement() {
-        if (runtime.onboardingViewModel.uiState.value.hasAgreed) moveTo(STEP_INSTRUCTIONS)
+        if (!runtime.onboardingViewModel.uiState.value.hasAgreed) return
+
+        if (runtime.nwcWallet.connection.value == null) {
+            moveTo(STEP_INSTRUCTIONS)
+        } else {
+            runtime.completeOnboarding()
+        }
     }
 
-    fun showWalletConnection() = moveTo(STEP_WALLET)
+    fun showWalletConnection() {
+        if (runtime.nwcWallet.connection.value == null) {
+            moveTo(STEP_WALLET)
+        } else {
+            runtime.completeOnboarding()
+        }
+    }
 
     fun updateUri(uri: String) {
         addWallet.updateUri(uri)
@@ -299,7 +326,6 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
 
     private fun beginConfirmation(uri: String) {
         runtime.connectionDraft.set(uri)
-        currentStep = STEP_WALLET
         confirmationPresented = true
         stopScanner()
         connectWallet.load(uri)
