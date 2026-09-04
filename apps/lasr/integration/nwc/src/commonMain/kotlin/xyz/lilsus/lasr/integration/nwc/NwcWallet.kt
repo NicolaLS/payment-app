@@ -1,6 +1,5 @@
 package xyz.lilsus.lasr.integration.nwc
 
-import com.russhwolf.settings.Settings
 import io.github.nicolals.nostr.nip47.model.NwcEncryption
 import io.github.nicolals.nwc.Amount
 import io.github.nicolals.nwc.LookupInvoiceParams
@@ -29,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import xyz.lilsus.raylsuite.core.network.createWebSocketHttpClient
+import xyz.lilsus.raylsuite.core.settings.SecureStringStore
 
 data class NwcWalletConnection(
     val alias: String?,
@@ -314,7 +314,7 @@ class NwcWallet internal constructor(
 }
 
 fun createNwcWallet(
-    secureSettings: Settings,
+    secureSettings: SecureStringStore,
     scope: CoroutineScope,
     isNetworkAvailable: () -> Boolean
 ): NwcWallet {
@@ -329,7 +329,7 @@ fun createNwcWallet(
 }
 
 fun createNwcWallet(
-    secureSettings: Settings,
+    secureSettings: SecureStringStore,
     scope: CoroutineScope,
     httpClient: HttpClient,
     isNetworkAvailable: () -> Boolean

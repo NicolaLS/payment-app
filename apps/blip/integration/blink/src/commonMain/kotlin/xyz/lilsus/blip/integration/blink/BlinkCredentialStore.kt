@@ -1,8 +1,8 @@
 package xyz.lilsus.blip.integration.blink
 
-import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import xyz.lilsus.raylsuite.core.settings.SecureStringStore
 
 internal data class BlinkCredentials(
     val apiKey: String,
@@ -10,7 +10,7 @@ internal data class BlinkCredentials(
 )
 
 internal class BlinkCredentialStore(
-    private val settings: Settings,
+    private val settings: SecureStringStore,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) {
     fun read(): BlinkCredentials? {

@@ -12,6 +12,7 @@ import xyz.lilsus.blip.feature.payment.PaymentDeepLinkEvents
 import xyz.lilsus.blip.feature.payment.PaymentUiState
 import xyz.lilsus.blip.integration.blink.createBlinkWallet
 import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
+import xyz.lilsus.raylsuite.core.settings.SecureStringStore
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.appshell.AppTabState
 import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
@@ -28,7 +29,7 @@ import xyz.lilsus.raylsuite.integration.lnurl.KtorLnurlPayClient
 
 internal class BlipRuntime(
     appSettings: Settings,
-    secureSettings: Settings,
+    secureSettings: SecureStringStore,
     haptics: HapticFeedbackManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)

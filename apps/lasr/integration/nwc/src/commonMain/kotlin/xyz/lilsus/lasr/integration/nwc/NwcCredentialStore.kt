@@ -1,8 +1,8 @@
 package xyz.lilsus.lasr.integration.nwc
 
-import com.russhwolf.settings.Settings
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import xyz.lilsus.raylsuite.core.settings.SecureStringStore
 
 internal data class NwcCredentials(
     val connectionUri: String,
@@ -10,7 +10,10 @@ internal data class NwcCredentials(
     val metadata: NwcWalletMetadata
 )
 
-internal class NwcCredentialStore(private val settings: Settings, private val json: Json = Json) {
+internal class NwcCredentialStore(
+    private val settings: SecureStringStore,
+    private val json: Json = Json
+) {
     fun read(): NwcCredentials? {
         val encoded = settings.getStringOrNull(CREDENTIALS_KEY) ?: return null
         return runCatching {

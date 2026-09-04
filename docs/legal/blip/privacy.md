@@ -1,6 +1,6 @@
 # Blip Privacy Policy
 
-Last updated: August 31, 2026
+Last updated: September 4, 2026
 
 Blip is an open-source client for connecting to a Blink wallet. The Blip
 maintainer does not operate an account service, payment processor, analytics
@@ -9,11 +9,13 @@ service, or application backend for Blip.
 ## Data stored on your device
 
 Blip stores the Blink API key you provide in app-scoped encrypted storage. It
-also stores app preferences, contacts, and payment shortcuts locally. Wallet
-credentials are excluded from Android cloud backup and device transfer.
+also stores app preferences, contacts, and payment shortcuts locally. Blip does
+not include its local data in Android cloud backup or device transfer.
 
-Removing the wallet deletes its stored credential. Uninstalling Blip deletes
-the app's local data, subject to the operating system's normal behavior.
+Removing the wallet deletes its stored credential. Compatible app updates and
+operating-system offload or archive features retain local data. Deleting Blip
+resets its local data; after reinstallation it rejects any wallet credential
+that may have survived outside the app container.
 
 ## Network requests
 

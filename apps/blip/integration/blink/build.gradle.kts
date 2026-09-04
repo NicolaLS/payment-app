@@ -11,17 +11,16 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(project(":core:settings"))
             implementation(libs.apollo.runtime)
             implementation(libs.bitcoin.kmp)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.lightning.kmp.core)
-            implementation(libs.multiplatform.settings)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
-            implementation(libs.multiplatform.settings.test)
         }
     }
 }

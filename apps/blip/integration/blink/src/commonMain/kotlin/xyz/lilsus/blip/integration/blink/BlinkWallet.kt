@@ -1,10 +1,10 @@
 package xyz.lilsus.blip.integration.blink
 
-import com.russhwolf.settings.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withTimeoutOrNull
+import xyz.lilsus.raylsuite.core.settings.SecureStringStore
 
 data object BlinkWalletConnection
 
@@ -216,12 +216,14 @@ class BlinkWallet internal constructor(
         ?: throw BlinkConnectionException(BlinkConnectionError.MissingConnection)
 }
 
-fun createBlinkWallet(secureSettings: Settings, isNetworkAvailable: () -> Boolean): BlinkWallet =
-    BlinkWallet(
-        apiClient = BlinkApiClient(),
-        credentialStore = BlinkCredentialStore(secureSettings),
-        isNetworkAvailable = isNetworkAvailable
-    )
+fun createBlinkWallet(
+    secureSettings: SecureStringStore,
+    isNetworkAvailable: () -> Boolean
+): BlinkWallet = BlinkWallet(
+    apiClient = BlinkApiClient(),
+    credentialStore = BlinkCredentialStore(secureSettings),
+    isNetworkAvailable = isNetworkAvailable
+)
 
 private fun Long.toSatsRoundedUp(): Long = (this + 999L) / 1_000L
 

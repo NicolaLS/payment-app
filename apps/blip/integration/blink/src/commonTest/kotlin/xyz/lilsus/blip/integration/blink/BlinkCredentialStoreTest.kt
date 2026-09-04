@@ -1,6 +1,5 @@
 package xyz.lilsus.blip.integration.blink
 
-import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -8,7 +7,7 @@ import kotlin.test.assertNull
 class BlinkCredentialStoreTest {
     @Test
     fun storesAndClearsOneCredentialSet() {
-        val store = BlinkCredentialStore(MapSettings())
+        val store = BlinkCredentialStore(TestSecureStringStore())
         val credentials =
             BlinkCredentials(
                 apiKey = "blink_test",

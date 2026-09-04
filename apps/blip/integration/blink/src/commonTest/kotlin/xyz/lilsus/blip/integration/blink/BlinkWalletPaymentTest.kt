@@ -2,7 +2,6 @@ package xyz.lilsus.blip.integration.blink
 
 import com.apollographql.apollo.api.ApolloRequest
 import com.apollographql.apollo.api.ApolloResponse
-import com.russhwolf.settings.MapSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -16,7 +15,7 @@ import xyz.lilsus.blip.integration.blink.graphql.LnNoAmountUsdInvoicePaymentSend
 class BlinkWalletPaymentTest {
     @Test
     fun connectSeedsTheServerDefaultByWalletIdentity() = runBlocking {
-        val store = BlinkCredentialStore(MapSettings())
+        val store = BlinkCredentialStore(TestSecureStringStore())
         val wallet =
             BlinkWallet(
                 apiClient =
@@ -109,7 +108,7 @@ class BlinkWalletPaymentTest {
         val wallet =
             BlinkWallet(
                 apiClient = client,
-                credentialStore = BlinkCredentialStore(MapSettings()),
+                credentialStore = BlinkCredentialStore(TestSecureStringStore()),
                 isNetworkAvailable = { true }
             )
 
@@ -242,14 +241,15 @@ class BlinkWalletPaymentTest {
         isNetworkAvailable = { true }
     )
 
-    private fun credentialStore(wallet: BlinkFundingWallet): BlinkCredentialStore = BlinkCredentialStore(MapSettings()).also { store ->
-        store.save(
-            BlinkCredentials(
-                apiKey = "test-api-key",
-                selectedFundingWallet = wallet
+    private fun credentialStore(wallet: BlinkFundingWallet): BlinkCredentialStore =
+        BlinkCredentialStore(TestSecureStringStore()).also { store ->
+            store.save(
+                BlinkCredentials(
+                    apiKey = "test-api-key",
+                    selectedFundingWallet = wallet
+                )
             )
-        )
-    }
+        }
 
     private fun createClient(handler: (ApolloRequest<*>) -> ApolloResponse<*>): BlinkApiClient = BlinkApiClient(
         createBlinkApolloTestClient(BlinkApolloTestTransport(handler))

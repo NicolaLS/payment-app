@@ -15,6 +15,7 @@ import xyz.lilsus.lasr.feature.payment.PaymentCoordinator
 import xyz.lilsus.lasr.feature.payment.PaymentUiState
 import xyz.lilsus.lasr.integration.nwc.createNwcWallet
 import xyz.lilsus.raylsuite.core.network.createNetworkConnectivity
+import xyz.lilsus.raylsuite.core.settings.SecureStringStore
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.platform.createAppLifecycleObserver
 import xyz.lilsus.raylsuite.feature.appshell.AppTabState
@@ -32,7 +33,7 @@ import xyz.lilsus.raylsuite.integration.lnurl.KtorLnurlPayClient
 
 internal class LasrRuntime(
     appSettings: Settings,
-    secureSettings: Settings,
+    secureSettings: SecureStringStore,
     haptics: HapticFeedbackManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)

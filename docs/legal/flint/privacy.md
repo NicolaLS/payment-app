@@ -1,6 +1,6 @@
 # Flint Privacy Policy
 
-Last updated: August 31, 2026
+Last updated: September 4, 2026
 
 Flint is an open-source client for a self-custodial Spark wallet. The Flint
 maintainer does not operate an account service, payment processor, analytics
@@ -10,11 +10,13 @@ service, or application backend for Flint.
 
 Flint stores the wallet recovery phrase and related credential material in
 app-scoped encrypted storage. It also stores wallet data, app preferences,
-contacts, and payment shortcuts locally. Wallet credentials are excluded from
-Android cloud backup and device transfer.
+contacts, and payment shortcuts locally. Flint does not include its local data
+in Android cloud backup or device transfer.
 
-Removing the wallet deletes its stored credential. Uninstalling Flint deletes
-the app's local data, subject to the operating system's normal behavior.
+Removing the wallet deletes its stored credential. Compatible app updates and
+operating-system offload or archive features retain local data. Deleting Flint
+resets its local data; after reinstallation it rejects any wallet credential
+that may have survived outside the app container.
 
 ## Network requests
 

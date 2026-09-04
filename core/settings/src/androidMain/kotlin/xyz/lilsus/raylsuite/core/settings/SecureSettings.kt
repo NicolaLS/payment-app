@@ -16,7 +16,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 @Composable
-fun rememberSecureSettings(storageName: String): Settings {
+fun rememberSecureSettings(storageName: String): SecureStringStore {
     require(storageName.isNotBlank()) { "Secure storage name cannot be blank" }
     val context = LocalContext.current.applicationContext
     return remember(context, storageName) {
@@ -37,17 +37,22 @@ fun rememberSecureSettings(storageName: String): Settings {
 private class EncryptedStringSettings(
     private val delegate: Settings,
     private val keyAlias: String
-) : Settings by delegate {
+) : SecureStringStore {
     override fun putString(key: String, value: String) {
         delegate.putString(key, encrypt(value, keyAlias))
     }
 
-    override fun getString(key: String, defaultValue: String): String =
-        getStringOrNull(key) ?: defaultValue
-
     override fun getStringOrNull(key: String): String? {
         val encrypted = delegate.getStringOrNull(key) ?: return null
         return runCatching { decrypt(encrypted, keyAlias) }.getOrNull()
+    }
+
+    override fun remove(key: String) {
+        delegate.remove(key)
+    }
+
+    override fun clear() {
+        delegate.clear()
     }
 }
 

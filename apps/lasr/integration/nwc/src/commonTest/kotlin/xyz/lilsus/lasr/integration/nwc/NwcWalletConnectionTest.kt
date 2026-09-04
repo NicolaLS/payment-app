@@ -1,6 +1,5 @@
 package xyz.lilsus.lasr.integration.nwc
 
-import com.russhwolf.settings.MapSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import kotlin.test.Test
@@ -12,8 +11,7 @@ import kotlinx.coroutines.test.runTest
 class NwcWalletConnectionTest {
     @Test
     fun connectionMissingEitherRequiredMethodCannotBeSaved() = runTest {
-        val settings = MapSettings()
-        val store = NwcCredentialStore(settings)
+        val store = NwcCredentialStore(TestSecureStringStore())
         val wallet =
             NwcWallet(
                 credentialStore = store,
