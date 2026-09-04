@@ -11,13 +11,18 @@ class PaymentConfirmationPolicy(private val preferencesRepository: PaymentPrefer
         require(amountMsats >= 0) { "amountMsats must be non-negative" }
 
         val preferences = preferencesRepository.current()
-        if (isPresetTarget && preferences.confirmPresetPayments) return true
-        if (isManualEntry && !preferences.confirmManualEntry) return false
+        if (isPresetTarget) return true
 
         val amountSats = amountMsats / MSATS_PER_SAT
         return when (preferences.confirmationMode) {
             PaymentConfirmationMode.Always -> true
-            PaymentConfirmationMode.Above -> amountSats >= preferences.thresholdSats
+
+            PaymentConfirmationMode.Above ->
+                if (isManualEntry && !preferences.confirmManualEntry) {
+                    false
+                } else {
+                    amountSats >= preferences.thresholdSats
+                }
         }
     }
 

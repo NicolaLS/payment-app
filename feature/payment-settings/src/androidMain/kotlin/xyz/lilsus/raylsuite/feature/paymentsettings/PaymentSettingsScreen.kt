@@ -50,7 +50,6 @@ fun PaymentSettingsScreen(
     onModeSelected: (PaymentConfirmationMode) -> Unit,
     onThresholdChanged: (Long) -> Unit,
     onConfirmManualEntryChanged: (Boolean) -> Unit,
-    onConfirmPresetPaymentsChanged: (Boolean) -> Unit,
     onShowLnurlPayDetailsChanged: (Boolean) -> Unit,
     onOfferToSaveNewTargetsChanged: (Boolean) -> Unit,
     onVibrateOnScanChanged: (Boolean) -> Unit,
@@ -113,12 +112,6 @@ fun PaymentSettingsScreen(
                 )
             }
             SettingsSection(title = stringResource(R.string.settings_payments_hub_title)) {
-                SettingsToggle(
-                    label = stringResource(R.string.settings_payments_confirm_presets),
-                    checked = state.confirmPresetPayments,
-                    onCheckedChange = onConfirmPresetPaymentsChanged,
-                    modifier = Modifier.testTag(PaymentSettingsTestTags.CONFIRM_PRESETS)
-                )
                 SettingsToggle(
                     label = stringResource(R.string.settings_payments_offer_save_targets),
                     checked = state.offerToSaveNewTargets,
@@ -300,6 +293,5 @@ object PaymentSettingsTestTags {
     const val MODE_ABOVE = "payment_settings_mode_above"
     const val CONFIRM_MANUAL_ENTRY = "payment_settings_confirm_manual_entry"
     const val LNURL_PAY_DETAILS = "payment_settings_lnurl_pay_details"
-    const val CONFIRM_PRESETS = "payment_settings_confirm_presets"
     const val OFFER_TO_SAVE_TARGETS = "payment_settings_offer_to_save_targets"
 }

@@ -345,13 +345,6 @@ private struct NativePaymentSettingsView: View {
     private var hubSection: some View {
         Section(snapshot.text.paymentHubTitle) {
             Toggle(
-                snapshot.text.paymentConfirmPresets,
-                isOn: Binding(
-                    get: { payment.confirmPresetPayments },
-                    set: controller.setConfirmPresetPayments
-                )
-            )
-            Toggle(
                 snapshot.text.paymentOfferSaveTargets,
                 isOn: Binding(
                     get: { payment.offerToSaveNewTargets },

@@ -42,7 +42,6 @@ class PaymentSettingsViewModel(
                         confirmationMode = preferences.confirmationMode,
                         thresholdSats = preferences.thresholdSats,
                         confirmManualEntry = preferences.confirmManualEntry,
-                        confirmPresetPayments = preferences.confirmPresetPayments,
                         offerToSaveNewTargets = preferences.offerToSaveNewTargets,
                         showLnurlPayDetails = preferences.showLnurlPayDetails,
                         vibrateOnScan = preferences.vibrateOnScan,
@@ -71,12 +70,6 @@ class PaymentSettingsViewModel(
     fun setConfirmManualEntry(enabled: Boolean) {
         scope.launch {
             paymentPreferences.setConfirmManualEntry(enabled)
-        }
-    }
-
-    fun setConfirmPresetPayments(enabled: Boolean) {
-        scope.launch {
-            paymentPreferences.setConfirmPresetPayments(enabled)
         }
     }
 
@@ -140,7 +133,6 @@ data class PaymentSettingsUiState(
     val confirmationMode: PaymentConfirmationMode = PaymentPreferences().confirmationMode,
     val thresholdSats: Long = PaymentPreferences.DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val confirmManualEntry: Boolean = PaymentPreferences().confirmManualEntry,
-    val confirmPresetPayments: Boolean = PaymentPreferences().confirmPresetPayments,
     val offerToSaveNewTargets: Boolean = PaymentPreferences().offerToSaveNewTargets,
     val showLnurlPayDetails: Boolean = PaymentPreferences().showLnurlPayDetails,
     val vibrateOnScan: Boolean = PaymentPreferences().vibrateOnScan,

@@ -11,6 +11,5 @@
     <string name="settings_payments_haptics_scan">Vibrieren, wenn ein Code erkannt wird</string>
     <string name="settings_payments_haptics_payment">Vibrieren bei erfolgreicher Zahlung</string>
     <string name="settings_payments_hub_title">Zahlungs-Hub</string>
-    <string name="settings_payments_confirm_presets">Feste Beträge immer bestätigen</string>
     <string name="settings_payments_offer_save_targets">Nach dem Bezahlen anbieten, neue Adressen zu speichern</string>
 </resources>

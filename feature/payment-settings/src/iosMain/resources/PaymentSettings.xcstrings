@@ -70,29 +70,6 @@
         }
       }
     },
-    "settings_payments_confirm_presets" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Feste Beträge immer bestätigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Always confirm preset amounts"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Confirmar siempre importes fijos"
-          }
-        }
-      }
-    },
     "settings_payments_confirm_threshold" : {
       "extractionState" : "stale",
       "localizations" : {

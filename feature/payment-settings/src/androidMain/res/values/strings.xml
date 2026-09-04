@@ -11,6 +11,5 @@
     <string name="settings_payments_haptics_scan">Vibrate when a code is recognized</string>
     <string name="settings_payments_haptics_payment">Vibrate on successful payment</string>
     <string name="settings_payments_hub_title">Payment hub</string>
-    <string name="settings_payments_confirm_presets">Always confirm preset amounts</string>
     <string name="settings_payments_offer_save_targets">Offer to save new addresses after paying</string>
 </resources>

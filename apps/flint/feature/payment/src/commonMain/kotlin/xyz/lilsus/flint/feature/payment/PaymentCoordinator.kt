@@ -109,7 +109,6 @@ class PaymentCoordinator(
     private var activeLinkId: String? = null
     private var vibrateOnScan = true
     private var vibrateOnPayment = true
-    private var confirmPresetPayments = false
     private var offerToSaveNewTargets = true
     private var pendingPresentationJob: Job? = null
 
@@ -118,7 +117,6 @@ class PaymentCoordinator(
             paymentPreferences.preferences.collectLatest { preferences ->
                 vibrateOnScan = preferences.vibrateOnScan
                 vibrateOnPayment = preferences.vibrateOnPayment
-                confirmPresetPayments = preferences.confirmPresetPayments
                 offerToSaveNewTargets = preferences.offerToSaveNewTargets
                 engine.updateConfirmationPolicy(preferences.toFlintConfirmationPolicy())
             }
@@ -342,11 +340,12 @@ class PaymentCoordinator(
             showError(PaymentUiError.InvalidInvoice("Quoted amount does not match payment"))
             return
         }
-        // The Spark engine policy knows nothing about hub targets; preset confirmation is
-        // decided here so all three apps honor the same preference.
-        val requiresConfirmation =
-            payment.requiresConfirmation ||
-                (targetContext?.isPreset == true && confirmPresetPayments)
+        // The Spark engine policy knows nothing about hub targets. Preset amounts always
+        // require review because their resolved amount can depend on an exchange rate.
+        val requiresConfirmation = requiresPreparedPaymentConfirmation(
+            engineRequiresConfirmation = payment.requiresConfirmation,
+            isPresetTarget = targetContext?.isPreset == true
+        )
         val confirmationAmount =
             if (requiresConfirmation) {
                 confirmationAmount(payment.amountSats.toMsats(), paymentQuote)
@@ -904,6 +903,11 @@ private fun PaymentPreferences.toFlintConfirmationPolicy(): PaymentConfirmationP
         feeThresholdSats = Satoshi.nonNegative(Long.MAX_VALUE),
         showLnurlPayDetails = showLnurlPayDetails
     )
+
+internal fun requiresPreparedPaymentConfirmation(
+    engineRequiresConfirmation: Boolean,
+    isPresetTarget: Boolean
+): Boolean = engineRequiresConfirmation || isPresetTarget
 
 private fun LnurlPayReviewDetails.toDisplay(): LnurlPayDisplay? = LnurlPayDisplay.fromUntrusted(
     domain = domain,

@@ -20,8 +20,6 @@ interface PaymentPreferencesRepository {
 
     suspend fun setConfirmManualEntry(enabled: Boolean)
 
-    suspend fun setConfirmPresetPayments(enabled: Boolean)
-
     suspend fun setOfferToSaveNewTargets(enabled: Boolean)
 
     suspend fun setShowLnurlPayDetails(enabled: Boolean)
@@ -41,38 +39,68 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
     override suspend fun current(): PaymentPreferences = state.value
 
     override suspend fun setConfirmationMode(mode: PaymentConfirmationMode) {
-        update { it.copy(confirmationMode = mode) }
+        update(
+            transform = { it.copy(confirmationMode = mode) },
+            persist = { preferences ->
+                settings.putString(
+                    KEY_CONFIRM_MODE,
+                    when (preferences.confirmationMode) {
+                        PaymentConfirmationMode.Always -> MODE_ALWAYS
+                        PaymentConfirmationMode.Above -> MODE_ABOVE
+                    }
+                )
+            }
+        )
     }
 
     override suspend fun setConfirmationThreshold(thresholdSats: Long) {
-        update { it.copy(thresholdSats = thresholdSats) }
+        update(
+            transform = { it.copy(thresholdSats = thresholdSats) },
+            persist = { settings.putLong(KEY_CONFIRM_THRESHOLD_SATS, it.thresholdSats) }
+        )
     }
 
     override suspend fun setConfirmManualEntry(enabled: Boolean) {
-        update { it.copy(confirmManualEntry = enabled) }
-    }
-
-    override suspend fun setConfirmPresetPayments(enabled: Boolean) {
-        update { it.copy(confirmPresetPayments = enabled) }
+        update(
+            transform = { it.copy(confirmManualEntry = enabled) },
+            persist = { settings.putBoolean(KEY_CONFIRM_MANUAL_ENTRY, it.confirmManualEntry) }
+        )
     }
 
     override suspend fun setOfferToSaveNewTargets(enabled: Boolean) {
-        update { it.copy(offerToSaveNewTargets = enabled) }
+        update(
+            transform = { it.copy(offerToSaveNewTargets = enabled) },
+            persist = {
+                settings.putBoolean(KEY_OFFER_TO_SAVE_NEW_TARGETS, it.offerToSaveNewTargets)
+            }
+        )
     }
 
     override suspend fun setShowLnurlPayDetails(enabled: Boolean) {
-        update { it.copy(showLnurlPayDetails = enabled) }
+        update(
+            transform = { it.copy(showLnurlPayDetails = enabled) },
+            persist = { settings.putBoolean(KEY_SHOW_LNURL_PAY_DETAILS, it.showLnurlPayDetails) }
+        )
     }
 
     override suspend fun setVibrateOnScan(enabled: Boolean) {
-        update { it.copy(vibrateOnScan = enabled) }
+        update(
+            transform = { it.copy(vibrateOnScan = enabled) },
+            persist = { settings.putBoolean(KEY_VIBRATE_SCAN, it.vibrateOnScan) }
+        )
     }
 
     override suspend fun setVibrateOnPayment(enabled: Boolean) {
-        update { it.copy(vibrateOnPayment = enabled) }
+        update(
+            transform = { it.copy(vibrateOnPayment = enabled) },
+            persist = { settings.putBoolean(KEY_VIBRATE_PAYMENT, it.vibrateOnPayment) }
+        )
     }
 
-    private suspend fun update(transform: (PaymentPreferences) -> PaymentPreferences) {
+    private suspend fun update(
+        transform: (PaymentPreferences) -> PaymentPreferences,
+        persist: (PaymentPreferences) -> Unit
+    ) {
         mutationMutex.withLock {
             val current = state.value
             val updated = transform(current).normalise()
@@ -98,7 +126,6 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
             confirmationMode = confirmationMode,
             thresholdSats = thresholdSats,
             confirmManualEntry = settings.getBoolean(KEY_CONFIRM_MANUAL_ENTRY, false),
-            confirmPresetPayments = settings.getBoolean(KEY_CONFIRM_PRESET_PAYMENTS, false),
             offerToSaveNewTargets = settings.getBoolean(KEY_OFFER_TO_SAVE_NEW_TARGETS, true),
             showLnurlPayDetails = settings.getBoolean(KEY_SHOW_LNURL_PAY_DETAILS, false),
             vibrateOnScan = settings.getBoolean(KEY_VIBRATE_SCAN, true),
@@ -106,28 +133,10 @@ class DefaultPaymentPreferencesRepository(private val settings: Settings) :
         ).normalise()
     }
 
-    private fun persist(preferences: PaymentPreferences) {
-        settings.putString(
-            KEY_CONFIRM_MODE,
-            when (preferences.confirmationMode) {
-                PaymentConfirmationMode.Always -> MODE_ALWAYS
-                PaymentConfirmationMode.Above -> MODE_ABOVE
-            }
-        )
-        settings.putLong(KEY_CONFIRM_THRESHOLD_SATS, preferences.thresholdSats)
-        settings.putBoolean(KEY_CONFIRM_MANUAL_ENTRY, preferences.confirmManualEntry)
-        settings.putBoolean(KEY_CONFIRM_PRESET_PAYMENTS, preferences.confirmPresetPayments)
-        settings.putBoolean(KEY_OFFER_TO_SAVE_NEW_TARGETS, preferences.offerToSaveNewTargets)
-        settings.putBoolean(KEY_SHOW_LNURL_PAY_DETAILS, preferences.showLnurlPayDetails)
-        settings.putBoolean(KEY_VIBRATE_SCAN, preferences.vibrateOnScan)
-        settings.putBoolean(KEY_VIBRATE_PAYMENT, preferences.vibrateOnPayment)
-    }
-
     private companion object {
         const val KEY_CONFIRM_MODE = "payments.confirmationMode"
         const val KEY_CONFIRM_THRESHOLD_SATS = "payments.confirmationThresholdSats"
         const val KEY_CONFIRM_MANUAL_ENTRY = "payments.confirmManualEntry"
-        const val KEY_CONFIRM_PRESET_PAYMENTS = "payments.confirmPresetPayments"
         const val KEY_OFFER_TO_SAVE_NEW_TARGETS = "payments.offerToSaveNewTargets"
         const val KEY_SHOW_LNURL_PAY_DETAILS = "payments.showLnurlPayDetails"
         const val KEY_VIBRATE_SCAN = "payments.vibrateOnScan"

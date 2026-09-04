@@ -9,8 +9,6 @@ data class PaymentPreferences(
     val confirmationMode: PaymentConfirmationMode = PaymentConfirmationMode.Above,
     val thresholdSats: Long = DEFAULT_CONFIRMATION_THRESHOLD_SATS,
     val confirmManualEntry: Boolean = false,
-    /** Always confirm payments started from a preset-amount hub target. */
-    val confirmPresetPayments: Boolean = false,
     /** Offer to add an unknown Lightning Address to the payment hub after a successful payment. */
     val offerToSaveNewTargets: Boolean = true,
     val showLnurlPayDetails: Boolean = false,

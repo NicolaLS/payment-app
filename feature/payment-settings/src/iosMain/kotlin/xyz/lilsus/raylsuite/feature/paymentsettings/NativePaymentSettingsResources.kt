@@ -53,13 +53,6 @@ suspend fun nativePaymentSettingsStrings(): Map<String, String> = mapOf(
         nativeString(
             NativeStringResource(table = "PaymentSettings", key = "settings_payments_hub_title")
         ),
-    "confirmPresets" to
-        nativeString(
-            NativeStringResource(
-                table = "PaymentSettings",
-                key = "settings_payments_confirm_presets"
-            )
-        ),
     "offerSaveTargets" to
         nativeString(
             NativeStringResource(

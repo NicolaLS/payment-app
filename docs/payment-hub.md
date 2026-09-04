@@ -33,8 +33,8 @@ quoting, min/max and comment validation, confirmation policy, provider payment, 
 The Hub never receives a wallet interface or provider failure type.
 
 After terminal success, the app reports the target ID through `recordSuccessfulPayment`. It may
-offer to save an address paid outside the Hub. `PaymentPreferences.confirmPresetPayments` is
-honored by each app's own coordinator.
+offer to save an address paid outside the Hub. Each app's coordinator always presents confirmation
+for a preset amount because resolving a fiat preset can depend on a fresh exchange rate.
 
 ## Extending the Hub
 

@@ -39,7 +39,6 @@ data class NativePaymentSettingsSnapshot(
     val thresholdSteps: List<Long>,
     val thresholdEquivalent: NativeSettingsAmount?,
     val confirmManualEntry: Boolean,
-    val confirmPresetPayments: Boolean,
     val offerToSaveNewTargets: Boolean,
     val showLnurlPayDetails: Boolean,
     val vibrateOnScan: Boolean,
@@ -64,7 +63,6 @@ data class NativeSettingsText(
     val paymentLnurlTitle: String,
     val paymentLnurlDescription: String,
     val paymentHubTitle: String,
-    val paymentConfirmPresets: String,
     val paymentOfferSaveTargets: String,
     val paymentHapticsTitle: String,
     val paymentHapticsScan: String,
@@ -144,7 +142,6 @@ class NativeSettingsController(
                                         )
                                     },
                                 confirmManualEntry = paymentState.confirmManualEntry,
-                                confirmPresetPayments = paymentState.confirmPresetPayments,
                                 offerToSaveNewTargets = paymentState.offerToSaveNewTargets,
                                 showLnurlPayDetails = paymentState.showLnurlPayDetails,
                                 vibrateOnScan = paymentState.vibrateOnScan,
@@ -193,10 +190,6 @@ class NativeSettingsController(
 
     fun setConfirmManualEntry(enabled: Boolean) {
         payment.setConfirmManualEntry(enabled)
-    }
-
-    fun setConfirmPresetPayments(enabled: Boolean) {
-        payment.setConfirmPresetPayments(enabled)
     }
 
     fun setOfferToSaveNewTargets(enabled: Boolean) {
@@ -362,7 +355,6 @@ private suspend fun loadResources(
                 paymentLnurlTitle = paymentStrings.getValue("lnurlTitle"),
                 paymentLnurlDescription = paymentStrings.getValue("lnurlDescription"),
                 paymentHubTitle = paymentStrings.getValue("hubTitle"),
-                paymentConfirmPresets = paymentStrings.getValue("confirmPresets"),
                 paymentOfferSaveTargets = paymentStrings.getValue("offerSaveTargets"),
                 paymentHapticsTitle = paymentStrings.getValue("hapticsTitle"),
                 paymentHapticsScan = paymentStrings.getValue("hapticsScan"),
