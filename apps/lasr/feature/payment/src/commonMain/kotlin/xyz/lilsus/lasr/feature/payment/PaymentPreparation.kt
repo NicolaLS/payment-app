@@ -12,7 +12,6 @@ import xyz.lilsus.raylsuite.core.payment.LnurlInvoiceResolver
 import xyz.lilsus.raylsuite.core.payment.LnurlPayClient
 import xyz.lilsus.raylsuite.core.payment.LnurlPayParams
 import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
-import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
@@ -30,8 +29,6 @@ internal class PaymentPreparation(lnurlPayClient: LnurlPayClient) {
     private val lnurlInvoiceResolver = LnurlInvoiceResolver(lnurlPayClient)
 
     var manualEntryContext: ManualEntryContext? = null
-    var pendingPayment: PendingPayment? = null
-    var pendingLnurlReview: PendingLnurlReview? = null
 
     suspend fun resolveLnurlInvoice(
         session: LnurlSession,
@@ -46,8 +43,6 @@ internal class PaymentPreparation(lnurlPayClient: LnurlPayClient) {
 
     fun reset(currencyState: CurrencyState) {
         manualEntryContext = null
-        pendingPayment = null
-        pendingLnurlReview = null
         manualAmount.reset(
             ManualAmountConfig(
                 info = currencyState.info,
@@ -57,22 +52,6 @@ internal class PaymentPreparation(lnurlPayClient: LnurlPayClient) {
         )
     }
 }
-
-internal data class PendingPayment(
-    val invoice: Bolt11Invoice,
-    val amountOverrideMsats: Long?,
-    val origin: PendingOrigin,
-    val dynamicSourceKey: DynamicPaymentSourceKey?,
-    val targetContext: HubTargetContext?,
-    val replacesDynamicGuardId: String?
-)
-
-internal data class PendingLnurlReview(
-    val session: LnurlSession,
-    val amountMsats: Long,
-    val isManualEntry: Boolean,
-    val paymentQuote: PaymentAmountQuote? = null
-)
 
 internal data class LnurlSession(
     val params: LnurlPayParams,

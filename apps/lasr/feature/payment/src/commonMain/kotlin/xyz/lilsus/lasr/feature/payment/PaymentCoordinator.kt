@@ -1,79 +1,91 @@
 package xyz.lilsus.lasr.feature.payment
 
 import com.russhwolf.settings.Settings
-import fr.acinq.lightning.payment.Bolt11Invoice
-import fr.acinq.lightning.utils.currentTimestampSeconds
-import fr.acinq.lightning.utils.msat
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import xyz.lilsus.lasr.integration.nwc.NwcPayOutcome
 import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
-import xyz.lilsus.raylsuite.core.model.CurrencyInfo
-import xyz.lilsus.raylsuite.core.model.DisplayAmount
-import xyz.lilsus.raylsuite.core.model.DisplayCurrency
-import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.payment.BitcoinPriceProvider
-import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
-import xyz.lilsus.raylsuite.core.payment.LightningInputParser
-import xyz.lilsus.raylsuite.core.payment.LnurlError
-import xyz.lilsus.raylsuite.core.payment.LnurlInvoiceResolution
-import xyz.lilsus.raylsuite.core.payment.LnurlInvoiceResolutionError
 import xyz.lilsus.raylsuite.core.payment.LnurlPayClient
-import xyz.lilsus.raylsuite.core.payment.LnurlPayParams
-import xyz.lilsus.raylsuite.core.payment.LnurlResult
-import xyz.lilsus.raylsuite.core.payment.lightningAddressDynamicPaymentSourceKey
-import xyz.lilsus.raylsuite.core.payment.lnurlDynamicPaymentSourceKey
-import xyz.lilsus.raylsuite.core.payment.roundToFullSatoshis
 import xyz.lilsus.raylsuite.core.ui.platform.HapticFeedbackManager
 import xyz.lilsus.raylsuite.feature.currencysettings.CurrencyPreferences
-import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyManagerError
-import xyz.lilsus.raylsuite.feature.paymentcurrency.CurrencyState
-import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentCurrencyManager
-import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetAmountRule
-import xyz.lilsus.raylsuite.feature.paymenthub.host.DirectTargetPaymentIntent
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentConfirmationPolicy
 import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
-import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
-import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
-import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
-import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
-import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 
 class PaymentCoordinator(
-    private val nwcWallet: NwcWallet,
-    private val lnurlPayClient: LnurlPayClient,
+    nwcWallet: NwcWallet,
+    lnurlPayClient: LnurlPayClient,
     bitcoinPriceProvider: BitcoinPriceProvider,
-    private val currencyPreferences: CurrencyPreferences,
-    private val paymentPreferences: PaymentPreferencesRepository,
-    private val paymentHub: PaymentHubController,
-    private val haptics: HapticFeedbackManager,
-    private val showEstimatedFeeHint: Boolean = false,
+    currencyPreferences: CurrencyPreferences,
+    paymentPreferences: PaymentPreferencesRepository,
+    paymentHub: PaymentHubController,
+    haptics: HapticFeedbackManager,
+    showEstimatedFeeHint: Boolean = false,
     paymentAttemptSettings: Settings,
     coroutineContext: CoroutineContext = Dispatchers.Main
 ) {
+    private val flow =
+        LasrPaymentFlow(
+            nwcWallet = nwcWallet,
+            lnurlPayClient = lnurlPayClient,
+            bitcoinPriceProvider = bitcoinPriceProvider,
+            currencyPreferences = currencyPreferences,
+            paymentPreferences = paymentPreferences,
+            paymentHub = paymentHub,
+            haptics = haptics,
+            showEstimatedFeeHint = showEstimatedFeeHint,
+            paymentAttemptSettings = paymentAttemptSettings,
+            coroutineContext = coroutineContext
+        )
+
+    val uiState: StateFlow<PaymentUiState> = flow.uiState
+    val events: SharedFlow<PaymentEvent> = flow.events
+    val sessionTransactions: StateFlow<List<SessionTransactionItem>> =
+        flow.sessionTransactions
+    val transactionDetailNavigationTarget: StateFlow<String?> =
+        flow.transactionDetailNavigationTarget
+    val newSessionTransactionCount: StateFlow<Int> =
+        flow.newSessionTransactionCount
+
+    fun dispatch(intent: PaymentIntent) {
+        flow.dispatch(intent)
+    }
+
+    fun clear() {
+        flow.clear()
+    }
+
+    fun resetSession() {
+        flow.resetSession()
+    }
+}
+
+private class LasrPaymentFlow(
+    nwcWallet: NwcWallet,
+    lnurlPayClient: LnurlPayClient,
+    bitcoinPriceProvider: BitcoinPriceProvider,
+    currencyPreferences: CurrencyPreferences,
+    paymentPreferences: PaymentPreferencesRepository,
+    private val paymentHub: PaymentHubController,
+    private val haptics: HapticFeedbackManager,
+    showEstimatedFeeHint: Boolean,
+    paymentAttemptSettings: Settings,
+    coroutineContext: CoroutineContext
+) {
     private val scope = CoroutineScope(SupervisorJob() + coroutineContext)
     private val currencyManager = PaymentCurrencyManager(bitcoinPriceProvider, scope)
-    private val confirmationPolicy = PaymentConfirmationPolicy(paymentPreferences)
-    private val preparation = PaymentPreparation(lnurlPayClient)
-    private val sessionState = PaymentSessionState(preparation)
-    private val inputParser = preparation.inputParser
-    private val manualAmount = preparation.manualAmount
+    private val presentation = PaymentPresentationPhase(currencyManager)
     private val pendingTracker =
         PendingPaymentTracker(
             lookupInvoice = nwcWallet::lookupInvoice,
@@ -83,72 +95,70 @@ class PaymentCoordinator(
             showEstimatedFeeHint = showEstimatedFeeHint,
             store = PendingPaymentStore(paymentAttemptSettings)
         )
-    private val hubContexts = mutableMapOf<String, HubTargetContext>()
+    private val sessionTasks = PaymentTaskRegistry(scope)
+    private var runtimePreferences = PaymentRuntimePreferences()
+    private val confirmation =
+        PaymentConfirmationPhase(
+            currencyManager = currencyManager,
+            confirmationPolicy = PaymentConfirmationPolicy(paymentPreferences),
+            presentation = presentation
+        )
+    private val admission =
+        PaymentAdmissionPhase(
+            lnurlPayClient = lnurlPayClient,
+            currencyManager = currencyManager,
+            pendingTracker = pendingTracker,
+            presentation = presentation,
+            confirmationIsIdle = { confirmation.isIdle },
+            showLnurlPayDetails = { runtimePreferences.showLnurlPayDetails },
+            notifyScanSuccess = ::notifyScanSuccess
+        )
+    private val reconciliation =
+        PaymentReconciliationPhase(
+            pendingTracker = pendingTracker,
+            presentation = presentation,
+            paymentHub = paymentHub,
+            haptics = haptics,
+            showEstimatedFeeHint = showEstimatedFeeHint,
+            vibrateOnPayment = { runtimePreferences.vibrateOnPayment },
+            offerToSaveNewTargets = { runtimePreferences.offerToSaveNewTargets }
+        )
+    private val execution =
+        NwcPaymentExecutionPhase(
+            nwcWallet = nwcWallet,
+            scope = scope,
+            pendingTracker = pendingTracker,
+            presentation = presentation,
+            onAttemptRegistered = reconciliation::registerAttempt
+        )
 
-    private val mutableUiState = sessionState.uiState
-    val uiState: StateFlow<PaymentUiState> = mutableUiState.asStateFlow()
-
-    private val mutableEvents = MutableSharedFlow<PaymentEvent>(extraBufferCapacity = 8)
-    val events: SharedFlow<PaymentEvent> = mutableEvents.asSharedFlow()
-
-    val sessionTransactions: StateFlow<List<SessionTransactionItem>> = pendingTracker.displayItems
-
-    private val mutableTransactionDetailNavigationTarget =
-        sessionState.transactionDetailNavigationTarget
+    val uiState: StateFlow<PaymentUiState> = presentation.uiState
+    val events: SharedFlow<PaymentEvent> = presentation.events
+    val sessionTransactions: StateFlow<List<SessionTransactionItem>> =
+        pendingTracker.displayItems
     val transactionDetailNavigationTarget: StateFlow<String?> =
-        mutableTransactionDetailNavigationTarget.asStateFlow()
-
-    private val mutableNewSessionTransactionCount = sessionState.newSessionTransactionCount
+        presentation.transactionDetailNavigationTarget
     val newSessionTransactionCount: StateFlow<Int> =
-        mutableNewSessionTransactionCount.asStateFlow()
-
-    private var manualEntryContext: ManualEntryContext?
-        get() = preparation.manualEntryContext
-        set(value) {
-            preparation.manualEntryContext = value
-        }
-    private var pendingPayment: PendingPayment?
-        get() = preparation.pendingPayment
-        set(value) {
-            preparation.pendingPayment = value
-        }
-    private var pendingLnurlReview: PendingLnurlReview?
-        get() = preparation.pendingLnurlReview
-        set(value) {
-            preparation.pendingLnurlReview = value
-        }
-    private var pendingRetry: PendingRetryChoice?
-        get() = sessionState.pendingRetry
-        set(value) {
-            sessionState.pendingRetry = value
-        }
-    private var lastPaymentResult: CompletedPayment?
-        get() = sessionState.lastPaymentResult
-        set(value) {
-            sessionState.lastPaymentResult = value
-        }
-    private var vibrateOnScan = true
-    private var vibrateOnPayment = true
-    private var showLnurlPayDetails = false
-    private var offerToSaveNewTargets = true
-    private val paymentJobs = sessionState.paymentJobs
-    private var paymentAdmissionInProgress: Boolean
-        get() = sessionState.paymentAdmissionInProgress
-        set(value) {
-            sessionState.paymentAdmissionInProgress = value
-        }
+        presentation.newSessionTransactionCount
 
     init {
         scope.launch {
             paymentPreferences.preferences.collectLatest { preferences ->
-                vibrateOnScan = preferences.vibrateOnScan
-                vibrateOnPayment = preferences.vibrateOnPayment
-                showLnurlPayDetails = preferences.showLnurlPayDetails
-                offerToSaveNewTargets = preferences.offerToSaveNewTargets
+                runtimePreferences =
+                    PaymentRuntimePreferences(
+                        vibrateOnScan = preferences.vibrateOnScan,
+                        vibrateOnPayment = preferences.vibrateOnPayment,
+                        showLnurlPayDetails = preferences.showLnurlPayDetails,
+                        offerToSaveNewTargets = preferences.offerToSaveNewTargets
+                    )
             }
         }
         scope.launch {
-            paymentHub.paymentRequests.collect(::payTarget)
+            paymentHub.paymentRequests.collect { intent ->
+                launchSessionTask { token ->
+                    handleAdmissionResult(admission.payTarget(intent, token), token)
+                }
+            }
         }
         scope.launch {
             currencyPreferences.code.collectLatest { code ->
@@ -157,12 +167,14 @@ class PaymentCoordinator(
         }
         scope.launch {
             currencyManager.state.collectLatest {
-                refreshAllDisplays()
+                admission.refreshManualAmountState()
+                presentation.refreshResult()
+                pendingTracker.refreshDisplayItems()
             }
         }
         scope.launch {
             currencyManager.errors.collect { error ->
-                mutableEvents.tryEmit(PaymentEvent.ShowError(error.toPaymentUiError()))
+                presentation.presentError(error.toPaymentUiError())
             }
         }
         scope.launch {
@@ -170,8 +182,8 @@ class PaymentCoordinator(
         }
         scope.launch {
             pendingTracker.displayItems.collect { items ->
-                sessionState.updateSessionTransactionIds(
-                    items.map(SessionTransactionItem::id)
+                presentation.updateSessionTransactionIds(
+                    items.mapTo(mutableSetOf(), SessionTransactionItem::id)
                 )
             }
         }
@@ -181,1139 +193,209 @@ class PaymentCoordinator(
     }
 
     fun dispatch(intent: PaymentIntent) {
-        scope.launch { handleIntent(intent) }
+        launchSessionTask { token ->
+            handleIntent(intent, token)
+        }
     }
 
     fun clear() {
-        paymentAdmissionInProgress = false
-        val jobs = paymentJobs.values.toList()
-        paymentJobs.clear()
-        jobs.forEach(Job::cancel)
+        sessionTasks.reset()
+        execution.reset()
         pendingTracker.close()
         scope.cancel()
     }
 
     fun resetSession() {
-        sessionState.reset(currencyManager.state.value)
+        sessionTasks.reset()
+        execution.reset()
+        admission.reset(currencyManager.state.value)
+        confirmation.reset()
+        reconciliation.reset()
+        presentation.reset()
         pendingTracker.resetSession()
-        hubContexts.clear()
         paymentHub.resetSession()
     }
 
-    private suspend fun handleIntent(intent: PaymentIntent) {
+    private suspend fun handleIntent(intent: PaymentIntent, token: PaymentTaskToken) {
+        token.ensureCurrent()
         when (intent) {
-            PaymentIntent.DismissResult -> dismissResult()
+            PaymentIntent.DismissResult -> presentation.dismissResult()
 
             is PaymentIntent.TransactionDetailNavigationHandled ->
-                transactionDetailNavigationHandled(intent.id)
+                presentation.onTransactionDetailNavigationHandled(intent.id)
 
-            PaymentIntent.SessionTransactionsOpened -> sessionTransactionsOpened()
+            PaymentIntent.SessionTransactionsOpened ->
+                reconciliation.sessionTransactionsOpened()
 
             is PaymentIntent.QrCodeScanned ->
-                handlePaymentInput(intent.rawValue, PaymentRequestSource.Camera)
+                handleAdmissionResult(
+                    admission.handlePaymentInput(
+                        rawInput = intent.rawValue,
+                        source = PaymentRequestSource.Camera,
+                        token = token
+                    ),
+                    token
+                )
 
             is PaymentIntent.DeepLinkReceived ->
-                handlePaymentInput(intent.rawValue, PaymentRequestSource.DeepLink)
+                handleAdmissionResult(
+                    admission.handlePaymentInput(
+                        rawInput = intent.rawValue,
+                        source = PaymentRequestSource.DeepLink,
+                        token = token
+                    ),
+                    token
+                )
 
-            PaymentIntent.ManualAmountDismiss -> dismissManualAmount()
+            PaymentIntent.ManualAmountDismiss -> admission.dismissManualAmount()
 
-            PaymentIntent.ManualAmountSubmit -> submitManualAmount()
+            PaymentIntent.ManualAmountSubmit ->
+                handleAdmissionResult(admission.submitManualAmount(token), token)
 
-            is PaymentIntent.ManualAmountKeyPress -> updateManualAmount(intent.key)
+            is PaymentIntent.ManualAmountKeyPress ->
+                admission.updateManualAmount(intent.key)
 
-            is PaymentIntent.ManualAmountPreset -> presetManualAmount(intent.amount)
+            is PaymentIntent.ManualAmountPreset ->
+                admission.presetManualAmount(intent.amount)
 
-            PaymentIntent.ConfirmPaymentDismiss -> dismissConfirmation()
+            PaymentIntent.ConfirmPaymentDismiss ->
+                handleConfirmationDismissal(confirmation.dismiss())
 
-            PaymentIntent.ConfirmPaymentSubmit -> submitConfirmation()
+            PaymentIntent.ConfirmPaymentSubmit ->
+                handleConfirmationResult(confirmation.submit(), token)
 
-            PaymentIntent.PendingRetryCreateNewInvoice -> createNewPendingInvoice()
+            PaymentIntent.PendingRetryCreateNewInvoice -> {
+                val choice = reconciliation.takeNewInvoiceChoice()
+                if (choice != null) {
+                    handleAdmissionResult(
+                        admission.continueDynamicPayment(
+                            recordId = choice.recordId,
+                            continuation = choice.continuation,
+                            token = token
+                        ),
+                        token
+                    )
+                }
+            }
 
-            PaymentIntent.PendingRetryRetryPrevious -> retryPendingPayment()
+            PaymentIntent.PendingRetryRetryPrevious ->
+                reconciliation.takePendingRetryRecord()?.let(execution::retry)
 
-            PaymentIntent.PendingRetryViewPending -> viewPendingPayment()
+            PaymentIntent.PendingRetryViewPending ->
+                reconciliation.viewPendingPayment()
 
-            PaymentIntent.PendingRetryDismiss -> dismissPendingRetry()
+            PaymentIntent.PendingRetryDismiss ->
+                reconciliation.dismissPendingRetry()
 
-            is PaymentIntent.RetryTransaction -> retryPayment(intent.id)
+            is PaymentIntent.RetryTransaction ->
+                reconciliation.retryRecord(intent.id)?.let(execution::retry)
 
-            is PaymentIntent.StartDonation -> startDonation(intent.amountSats, intent.address)
+            is PaymentIntent.StartDonation ->
+                handleAdmissionResult(
+                    admission.startDonation(
+                        amountSats = intent.amountSats,
+                        address = intent.address,
+                        token = token
+                    ),
+                    token
+                )
 
             is PaymentIntent.RawInputSubmitted ->
-                handlePaymentInput(intent.rawValue, PaymentRequestSource.Camera)
-        }
-    }
-
-    private suspend fun handlePaymentInput(rawInput: String, source: PaymentRequestSource) {
-        if (paymentAdmissionInProgress || mutableUiState.value != PaymentUiState.Active) return
-        manualEntryContext = null
-
-        val parseResult =
-            if (source == PaymentRequestSource.DeepLink) {
-                inputParser.parseDeepLink(rawInput)
-            } else {
-                inputParser.parse(rawInput)
-            }
-        when (val result = parseResult) {
-            is LightningInputParser.ParseResult.Failure -> handleParseFailure(result.reason)
-
-            is LightningInputParser.ParseResult.Success ->
-                when (val target = result.target) {
-                    is LightningInputParser.Target.Bolt11 -> {
-                        pendingTracker.findLatestByPaymentHash(
-                            target.invoice.paymentHash.toHex()
-                        )
-                            ?.let { existing ->
-                                requestTransactionDetailNavigation(existing.id)
-                                return
-                            }
-                        if (rejectExpiredInvoice(target.invoice)) return
-                        notifyScanSuccess()
-                        processBoltInvoice(target.invoice, source)
-                    }
-
-                    is LightningInputParser.Target.Lnurl -> {
-                        val sourceKey = lnurlDynamicPaymentSourceKey(target.endpoint)
-                        val existing =
-                            pendingTracker.findGuardingByDynamicSourceKey(sourceKey)
-                        if (existing != null) {
-                            showPendingRetryPrompt(
-                                record = existing,
-                                continuation =
-                                    PendingRetryContinuation.Lnurl(
-                                        endpoint = target.endpoint,
-                                        sourceKey = sourceKey,
-                                        paymentSource = source
-                                    )
-                            )
-                            return
-                        }
-                        notifyScanSuccess()
-                        fetchLnurl(target.endpoint, source, sourceKey)
-                    }
-
-                    is LightningInputParser.Target.LightningAddressTarget -> {
-                        val sourceKey = lightningAddressDynamicPaymentSourceKey(target.address)
-                        val targetContext =
-                            HubTargetContext(
-                                targetId = null,
-                                address = target.address,
-                                isPreset = false
-                            )
-                        val existing =
-                            pendingTracker.findGuardingByDynamicSourceKey(sourceKey)
-                        if (existing != null) {
-                            showPendingRetryPrompt(
-                                record = existing,
-                                continuation =
-                                    PendingRetryContinuation.LightningAddress(
-                                        address = target.address,
-                                        sourceKey = sourceKey,
-                                        paymentSource = source,
-                                        targetContext = targetContext
-                                    )
-                            )
-                            return
-                        }
-                        notifyScanSuccess()
-                        resolveLightningAddress(
-                            address = target.address,
-                            paymentSource = source,
-                            sourceKey = sourceKey,
-                            targetContext = targetContext
-                        )
-                    }
-
-                    else -> Unit
-                }
-        }
-    }
-
-    private fun handleParseFailure(reason: LightningInputParser.FailureReason) {
-        when (reason) {
-            LightningInputParser.FailureReason.BitcoinAddress ->
-                mutableEvents.tryEmit(
-                    PaymentEvent.ShowToast(PaymentToastMessage.BitcoinAddressNotSupported)
-                )
-
-            LightningInputParser.FailureReason.Bolt12 ->
-                mutableEvents.tryEmit(
-                    PaymentEvent.ShowToast(PaymentToastMessage.Bolt12NotSupported)
-                )
-
-            LightningInputParser.FailureReason.UnsupportedLnurl ->
-                mutableEvents.tryEmit(
-                    PaymentEvent.ShowToast(PaymentToastMessage.LnurlRequestNotSupported)
-                )
-
-            LightningInputParser.FailureReason.InvalidLnurl ->
-                emitError(PaymentUiError.InvalidInvoice("Invalid LNURL request"))
-
-            LightningInputParser.FailureReason.UnsupportedDeepLink ->
-                mutableEvents.tryEmit(
-                    PaymentEvent.ShowToast(PaymentToastMessage.PaymentLinkNotSupported)
-                )
-
-            is LightningInputParser.FailureReason.InvalidInvoice ->
-                emitError(PaymentUiError.InvalidInvoice(reason.reason))
-
-            LightningInputParser.FailureReason.Empty,
-            LightningInputParser.FailureReason.Unrecognized -> Unit
-        }
-    }
-
-    private fun processBoltInvoice(invoice: Bolt11Invoice, source: PaymentRequestSource) {
-        val entry =
-            manualAmount.reset(
-                ManualAmountConfig(
-                    info = currencyManager.state.value.info,
-                    exchangeRate = currencyManager.state.value.exchangeRate
-                ),
-                clearInput = true
-            )
-        if (invoice.amount == null) {
-            manualEntryContext = ManualEntryContext.Bolt(invoice, source)
-            mutableUiState.value = PaymentUiState.EnterAmount(entry)
-        } else {
-            requestPayment(
-                invoice = invoice,
-                amountOverrideMsats = null,
-                origin = PendingOrigin.Invoice,
-                source = source
-            )
-        }
-    }
-
-    private fun fetchLnurl(
-        endpoint: String,
-        paymentSource: PaymentRequestSource,
-        sourceKey: DynamicPaymentSourceKey?,
-        replacesDynamicGuardId: String? = null
-    ) {
-        mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
-        scope.launch {
-            when (val result = lnurlPayClient.fetchPayParams(endpoint)) {
-                is LnurlResult.Success ->
-                    handleLnurlParams(
-                        params = result.data,
-                        paymentSource = paymentSource,
-                        sourceKey = sourceKey,
-                        replacesDynamicGuardId = replacesDynamicGuardId
-                    )
-
-                is LnurlResult.Error -> emitError(result.error.toPaymentUiError())
-            }
-        }
-    }
-
-    private fun resolveLightningAddress(
-        address: LightningAddress,
-        paymentSource: PaymentRequestSource,
-        sourceKey: DynamicPaymentSourceKey?,
-        targetContext: HubTargetContext? = null,
-        presetQuote: PaymentAmountQuote? = null,
-        targetComment: String? = null,
-        replacesDynamicGuardId: String? = null
-    ) {
-        mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
-        scope.launch {
-            when (val result = lnurlPayClient.fetchPayParams(address)) {
-                is LnurlResult.Success ->
-                    handleLnurlParams(
-                        params = result.data,
-                        paymentSource = paymentSource,
-                        sourceKey = sourceKey,
-                        targetContext = targetContext,
-                        presetQuote = presetQuote,
-                        targetComment = targetComment,
-                        replacesDynamicGuardId = replacesDynamicGuardId
-                    )
-
-                is LnurlResult.Error -> emitError(result.error.toPaymentUiError())
-            }
-        }
-    }
-
-    private fun resolveTargetPayment(
-        address: LightningAddress,
-        context: HubTargetContext,
-        paymentQuote: PaymentAmountQuote?,
-        comment: String?
-    ) {
-        val sourceKey = lightningAddressDynamicPaymentSourceKey(address)
-        val existing = pendingTracker.findGuardingByDynamicSourceKey(sourceKey)
-        if (existing != null) {
-            showPendingRetryPrompt(
-                record = existing,
-                continuation =
-                    PendingRetryContinuation.LightningAddress(
-                        address = address,
-                        sourceKey = sourceKey,
-                        paymentSource = PaymentRequestSource.Camera,
-                        targetContext = context,
-                        presetQuote = paymentQuote,
-                        targetComment = comment
-                    )
-            )
-            return
-        }
-        notifyScanSuccess()
-        resolveLightningAddress(
-            address = address,
-            paymentSource = PaymentRequestSource.Camera,
-            sourceKey = sourceKey,
-            targetContext = context,
-            presetQuote = paymentQuote,
-            targetComment = comment
-        )
-    }
-
-    /** Maps a hub selection into this app's own resolution, quoting, and confirmation flow. */
-    private fun payTarget(intent: DirectTargetPaymentIntent) {
-        val preset = (intent.amountRule as? DirectTargetAmountRule.Preset)?.amount
-        val context =
-            HubTargetContext(
-                targetId = intent.targetId,
-                address = intent.address,
-                isPreset = preset != null
-            )
-        if (preset == null) {
-            resolveTargetPayment(intent.address, context, null, intent.comment)
-            return
-        }
-        scope.launch {
-            val paymentQuote = currencyManager.quoteStoredAmount(preset)
-            if (paymentQuote == null) {
-                val info = CurrencyCatalog.infoFor(preset.normalizedCurrencyCode)
-                emitError(
-                    if (info.currency is DisplayCurrency.Fiat) {
-                        PaymentUiError.ExchangeRateUnavailable(info.code)
-                    } else {
-                        PaymentUiError.InvalidInvoice("Preset amount could not be converted")
-                    }
-                )
-                return@launch
-            }
-            resolveTargetPayment(
-                intent.address,
-                context,
-                paymentQuote,
-                intent.comment
-            )
-        }
-    }
-
-    private suspend fun handleLnurlParams(
-        params: LnurlPayParams,
-        paymentSource: PaymentRequestSource,
-        forceManualEntry: Boolean = false,
-        prefillMsats: Long? = null,
-        inputCurrencyOverride: CurrencyInfo? = null,
-        sourceKey: DynamicPaymentSourceKey? = null,
-        targetContext: HubTargetContext? = null,
-        presetQuote: PaymentAmountQuote? = null,
-        targetComment: String? = null,
-        replacesDynamicGuardId: String? = null
-    ) {
-        if (params.minSendable <= 0 || params.maxSendable < params.minSendable) {
-            emitError(PaymentUiError.InvalidInvoice("LNURL amount range is invalid"))
-            return
-        }
-        val lnurlPayDisplay =
-            if (showLnurlPayDetails) {
-                LnurlPayDisplay.fromUntrusted(
-                    domain = params.domain,
-                    description = params.metadata.plainText,
-                    imagePngBase64 = params.metadata.imagePng,
-                    imageJpegBase64 = params.metadata.imageJpeg
-                ) ?: run {
-                    emitError(PaymentUiError.InvalidInvoice("LNURL payment details are invalid"))
-                    return
-                }
-            } else {
-                null
-            }
-        val session =
-            LnurlSession(
-                params = params,
-                display = lnurlPayDisplay,
-                sourceKey = sourceKey,
-                paymentSource = paymentSource,
-                targetContext = targetContext,
-                comment = targetComment,
-                replacesDynamicGuardId = replacesDynamicGuardId
-            )
-        val currencyState = currencyManager.state.value
-        val inputInfo = inputCurrencyOverride ?: currencyState.info
-        val manualCurrencyState =
-            CurrencyState(
-                info = inputInfo,
-                exchangeRate =
-                    currencyState.exchangeRate.takeIf {
-                        inputInfo.code.equals(currencyState.info.code, ignoreCase = true)
-                    }
-            )
-
-        if (
-            inputInfo.currency is DisplayCurrency.Fiat &&
-            inputInfo.code.equals(currencyState.info.code, ignoreCase = true)
-        ) {
-            currencyManager.ensureExchangeRateIfNeeded(inputInfo)
-        }
-
-        presetQuote?.let { paymentQuote ->
-            val roundedAmount = paymentQuote.amountMsats
-            if (
-                roundedAmount < params.minSendable ||
-                roundedAmount > params.maxSendable
-            ) {
-                emitError(
-                    PaymentUiError.InvalidInvoice(
-                        "Preset amount is outside the allowed range"
-                    )
-                )
-                return
-            }
-            if (session.display != null) {
-                reviewLnurlPayment(
-                    session,
-                    roundedAmount,
-                    isManualEntry = false,
-                    paymentQuote = paymentQuote
-                )
-            } else {
-                payLnurlInvoice(
-                    session,
-                    roundedAmount,
-                    isManualEntry = false,
-                    paymentQuote = paymentQuote
-                )
-            }
-            return
-        }
-
-        if (!forceManualEntry && params.minSendable == params.maxSendable) {
-            if (session.display != null) {
-                reviewLnurlPayment(session, params.minSendable, isManualEntry = false)
-            } else {
-                payLnurlInvoice(session, params.minSendable, isManualEntry = false)
-            }
-            return
-        }
-
-        manualEntryContext = ManualEntryContext.Lnurl(session, inputInfo)
-        val config =
-            ManualAmountConfig(
-                info = manualCurrencyState.info,
-                exchangeRate = manualCurrencyState.exchangeRate,
-                min =
-                    currencyManager.convertMsatsToDisplay(
-                        params.minSendable,
-                        manualCurrencyState
+                handleAdmissionResult(
+                    admission.handlePaymentInput(
+                        rawInput = intent.rawValue,
+                        source = PaymentRequestSource.Camera,
+                        token = token
                     ),
-                max =
-                    currencyManager.convertMsatsToDisplay(
-                        params.maxSendable,
-                        manualCurrencyState
-                    ),
-                minMsats = params.minSendable,
-                maxMsats = params.maxSendable
-            )
-        val baseEntry = manualAmount.reset(config, clearInput = true)
-        val entry =
-            prefillMsats
-                ?.coerceIn(params.minSendable, params.maxSendable)
-                ?.let { amount ->
-                    manualAmount.presetAmount(
-                        currencyManager.convertMsatsToDisplay(amount, manualCurrencyState)
-                    )
-                } ?: baseEntry
-        mutableUiState.value = PaymentUiState.EnterAmount(entry, session.display)
-    }
-
-    private suspend fun reviewLnurlPayment(
-        session: LnurlSession,
-        amountMsats: Long,
-        isManualEntry: Boolean,
-        paymentQuote: PaymentAmountQuote? = null
-    ) {
-        val display = session.display ?: return
-        val roundedAmount = roundToFullSatoshis(amountMsats)
-        val confirmationAmount = confirmationAmount(roundedAmount, paymentQuote)
-        pendingLnurlReview =
-            PendingLnurlReview(
-                session = session,
-                amountMsats = roundedAmount,
-                isManualEntry = isManualEntry,
-                paymentQuote = paymentQuote
-            )
-        mutableUiState.value =
-            PaymentUiState.Confirm(
-                amount = confirmationAmount,
-                lnurlPayDisplay = display
-            )
-    }
-
-    private fun payLnurlInvoice(
-        session: LnurlSession,
-        amountMsats: Long,
-        isManualEntry: Boolean,
-        paymentQuote: PaymentAmountQuote? = null
-    ) {
-        mutableUiState.value = PaymentUiState.Loading()
-        scope.launch {
-            when (val result = preparation.resolveLnurlInvoice(session, amountMsats)) {
-                is LnurlInvoiceResolution.Success ->
-                    handleLnurlInvoice(
-                        session = session,
-                        amountMsats = result.amountMsats,
-                        invoice = result.invoice,
-                        isManualEntry = isManualEntry,
-                        paymentQuote = paymentQuote
-                    )
-
-                is LnurlInvoiceResolution.Failure -> {
-                    manualEntryContext = null
-                    emitError(result.error.toPaymentUiError())
-                }
-            }
+                    token
+                )
         }
     }
 
-    private fun handleLnurlInvoice(
-        session: LnurlSession,
-        amountMsats: Long,
-        invoice: Bolt11Invoice,
-        isManualEntry: Boolean,
-        paymentQuote: PaymentAmountQuote?
-    ) {
-        pendingTracker.findLatestByPaymentHash(invoice.paymentHash.toHex())?.let { existing ->
-            manualEntryContext = null
-            mutableUiState.value = PaymentUiState.Active
-            requestTransactionDetailNavigation(existing.id)
-            return
-        }
+    private suspend fun handleAdmissionResult(result: AdmissionResult, token: PaymentTaskToken) {
+        token.ensureCurrent()
+        when (result) {
+            AdmissionResult.Presented -> Unit
 
-        requestPayment(
-            invoice = invoice,
-            amountOverrideMsats = null,
-            origin =
-                if (isManualEntry) {
-                    PendingOrigin.LnurlManual
-                } else {
-                    PendingOrigin.LnurlFixed
-                },
-            source = session.paymentSource,
-            dynamicSourceKey = session.sourceKey,
-            targetContext = session.targetContext,
-            replacesDynamicGuardId = session.replacesDynamicGuardId,
-            lnurlAuthorized = session.display != null,
-            paymentQuote = paymentQuote
-        )
-    }
-
-    private fun rejectExpiredInvoice(invoice: Bolt11Invoice): Boolean {
-        if (!invoice.isExpired(currentTimestampSeconds())) return false
-        manualEntryContext = null
-        emitError(PaymentUiError.InvalidInvoice("Invoice has expired"))
-        return true
-    }
-
-    private fun updateManualAmount(key: ManualAmountKey) {
-        val state = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
-        manualEntryContext ?: return
-        mutableUiState.value =
-            PaymentUiState.EnterAmount(
-                manualAmount.handleKeyPress(key),
-                state.lnurlPayDisplay
-            )
-    }
-
-    private fun presetManualAmount(amount: DisplayAmount) {
-        val state = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
-        manualEntryContext ?: return
-        mutableUiState.value =
-            PaymentUiState.EnterAmount(
-                manualAmount.presetAmount(amount),
-                state.lnurlPayDisplay
-            )
-    }
-
-    private suspend fun submitManualAmount() {
-        val entryState = mutableUiState.value as? PaymentUiState.EnterAmount ?: return
-        val context = manualEntryContext ?: return
-        val enteredAmount = manualAmount.enteredAmount() ?: return
-        mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
-        val paymentQuote = currencyManager.quote(enteredAmount)
-        if (paymentQuote == null) {
-            mutableUiState.value = entryState
-            val error = when (val currency = enteredAmount.currency) {
-                is DisplayCurrency.Fiat ->
-                    PaymentUiError.ExchangeRateUnavailable(currency.iso4217)
-
-                else -> PaymentUiError.InvalidInvoice("Amount could not be converted")
-            }
-            mutableEvents.tryEmit(PaymentEvent.ShowError(error))
-            return
-        }
-
-        when (context) {
-            is ManualEntryContext.Bolt ->
-                requestPayment(
-                    invoice = context.invoice,
-                    amountOverrideMsats = paymentQuote.amountMsats,
-                    origin = PendingOrigin.ManualEntry,
-                    source = context.source,
-                    paymentQuote = paymentQuote
+            is AdmissionResult.Payment ->
+                handleConfirmationResult(
+                    confirmation.requestPayment(result.payment, token),
+                    token
                 )
 
-            is ManualEntryContext.Lnurl -> {
-                val roundedAmount = paymentQuote.amountMsats
-                if (
-                    roundedAmount < context.session.params.minSendable ||
-                    roundedAmount > context.session.params.maxSendable
-                ) {
-                    mutableUiState.value = entryState
-                    mutableEvents.tryEmit(
-                        PaymentEvent.ShowError(
-                            PaymentUiError.InvalidInvoice("Amount is outside the allowed range")
-                        )
-                    )
-                    return
-                }
-                payLnurlInvoice(
-                    context.session,
-                    roundedAmount,
-                    isManualEntry = true,
-                    paymentQuote = paymentQuote
+            is AdmissionResult.LnurlReview ->
+                handleConfirmationResult(
+                    confirmation.reviewLnurlPayment(result.review, token),
+                    token
                 )
-            }
+
+            is AdmissionResult.PendingClarification ->
+                reconciliation.showPendingRetryPrompt(
+                    record = result.record,
+                    continuation = result.continuation
+                )
         }
     }
 
-    private fun dismissManualAmount() {
-        manualAmount.reset()
-        manualEntryContext = null
-        mutableUiState.value = PaymentUiState.Active
-    }
-
-    private fun dismissConfirmation() {
-        pendingLnurlReview?.let { review ->
-            pendingLnurlReview = null
-            mutableUiState.value =
-                if (review.isManualEntry) {
-                    PaymentUiState.EnterAmount(manualAmount.current(), review.session.display)
-                } else {
-                    PaymentUiState.Active
-                }
-            return
-        }
-        val pending = pendingPayment ?: return
-        pendingPayment = null
-        mutableUiState.value =
-            when (pending.origin) {
-                PendingOrigin.Invoice,
-                PendingOrigin.LnurlFixed -> PaymentUiState.Active
-
-                PendingOrigin.ManualEntry,
-                PendingOrigin.LnurlManual ->
-                    PaymentUiState.EnterAmount(manualAmount.current())
-            }
-    }
-
-    private fun submitConfirmation() {
-        pendingLnurlReview?.let { review ->
-            pendingLnurlReview = null
-            payLnurlInvoice(
-                review.session,
-                review.amountMsats,
-                review.isManualEntry,
-                review.paymentQuote
-            )
-            return
-        }
-        val pending = pendingPayment ?: return
-        pendingPayment = null
-        startPayment(
-            invoice = pending.invoice,
-            amountOverrideMsats = pending.amountOverrideMsats,
-            origin = pending.origin,
-            dynamicSourceKey = pending.dynamicSourceKey,
-            targetContext = pending.targetContext,
-            replacesDynamicGuardId = pending.replacesDynamicGuardId
-        )
-    }
-
-    private fun requestPayment(
-        invoice: Bolt11Invoice,
-        amountOverrideMsats: Long?,
-        origin: PendingOrigin,
-        source: PaymentRequestSource,
-        dynamicSourceKey: DynamicPaymentSourceKey? = null,
-        targetContext: HubTargetContext? = null,
-        replacesDynamicGuardId: String? = null,
-        lnurlAuthorized: Boolean = false,
-        paymentQuote: PaymentAmountQuote? = null
+    private suspend fun handleConfirmationResult(
+        result: ConfirmationResult,
+        token: PaymentTaskToken
     ) {
-        if (paymentAdmissionInProgress) return
-        paymentAdmissionInProgress = true
-        scope.launch {
-            try {
-                val amountMsats = amountOverrideMsats ?: invoice.amount?.msat
-                if (paymentQuote != null && paymentQuote.amountMsats != amountMsats) {
-                    emitError(PaymentUiError.InvalidInvoice("Quoted amount does not match invoice"))
-                    return@launch
-                }
-                val isManualEntry =
-                    origin == PendingOrigin.ManualEntry || origin == PendingOrigin.LnurlManual
-                val requiresConfirmation =
-                    !lnurlAuthorized &&
-                        (
-                            source == PaymentRequestSource.DeepLink ||
-                                (
-                                    amountMsats != null &&
-                                        confirmationPolicy.shouldConfirm(
-                                            amountMsats = amountMsats,
-                                            isManualEntry = isManualEntry,
-                                            isPresetTarget = targetContext?.isPreset == true
-                                        )
-                                    )
-                            )
-                if (requiresConfirmation) {
-                    val display = confirmationAmount(amountMsats ?: 0L, paymentQuote)
-                    pendingPayment =
-                        PendingPayment(
-                            invoice = invoice,
-                            amountOverrideMsats = amountOverrideMsats,
-                            origin = origin,
-                            dynamicSourceKey = dynamicSourceKey,
-                            targetContext = targetContext,
-                            replacesDynamicGuardId = replacesDynamicGuardId
-                        )
-                    mutableUiState.value = PaymentUiState.Confirm(display)
-                } else {
-                    startPayment(
-                        invoice,
-                        amountOverrideMsats,
-                        origin,
-                        dynamicSourceKey,
-                        targetContext,
-                        replacesDynamicGuardId
-                    )
-                }
-            } catch (cause: CancellationException) {
-                throw cause
-            } catch (cause: Throwable) {
-                emitError(cause.toPaymentUiError())
-            } finally {
-                paymentAdmissionInProgress = false
-            }
+        token.ensureCurrent()
+        when (result) {
+            ConfirmationResult.Presented -> Unit
+
+            is ConfirmationResult.Execute ->
+                execution.start(result.payment)
+
+            is ConfirmationResult.ResolveLnurl ->
+                handleAdmissionResult(
+                    admission.resolveApprovedLnurl(result.approval, token),
+                    token
+                )
         }
     }
 
-    private fun startPayment(
-        invoice: Bolt11Invoice,
-        amountOverrideMsats: Long?,
-        origin: PendingOrigin,
-        dynamicSourceKey: DynamicPaymentSourceKey?,
-        targetContext: HubTargetContext?,
-        replacesDynamicGuardId: String? = null
-    ) {
-        mutableUiState.value = PaymentUiState.Loading()
-        val amountMsats = amountOverrideMsats ?: invoice.amount?.msat ?: 0L
-        val pendingId =
-            pendingTracker.register(
-                summary = invoice,
-                amountMsats = amountMsats,
-                amountOverrideMsats = amountOverrideMsats,
-                origin = origin,
-                dynamicSourceKey = dynamicSourceKey,
-                replacesDynamicGuardId = replacesDynamicGuardId
-            )
-        targetContext?.let { hubContexts[pendingId] = it }
-        paymentJobs.remove(pendingId)?.cancel()
-        val job =
-            scope.launch {
-                try {
-                    val outcome =
-                        nwcWallet.payInvoice(
-                            invoice = invoice.write(),
-                            amountMsats = amountOverrideMsats,
-                            timeoutMs = PAY_RESPONSE_TIMEOUT_MS
-                        )
-                    pendingTracker.applyPayOutcome(pendingId, outcome)
-                } catch (cause: CancellationException) {
-                    throw cause
-                } catch (cause: Throwable) {
-                    pendingTracker.applyPayOutcome(
-                        pendingId,
-                        NwcPayOutcome.Uncertain(cause.message)
-                    )
-                }
-            }
-        job.invokeOnCompletion {
-            if (paymentJobs[pendingId] === job) {
-                paymentJobs.remove(pendingId)
-            }
+    private fun handleConfirmationDismissal(dismissal: ConfirmationDismissal) {
+        when (dismissal) {
+            ConfirmationDismissal.None -> Unit
+
+            ConfirmationDismissal.Active -> presentation.showActive()
+
+            ConfirmationDismissal.ManualAmount -> admission.restoreManualAmount()
+
+            ConfirmationDismissal.LnurlManualAmount ->
+                admission.restoreLnurlManualAmount()
         }
-        paymentJobs[pendingId] = job
     }
 
     private fun handlePendingEvent(event: PendingEvent) {
-        when (event) {
-            is PendingEvent.BecameVisible -> {
-                clearPaymentSessionState()
-                if (mutableUiState.value is PaymentUiState.Loading) {
-                    mutableUiState.value = PaymentUiState.Active
-                }
-            }
+        admission.clearPaymentState(currencyManager.state.value)
+        confirmation.reset()
+        reconciliation.handlePendingEvent(event)
+    }
 
-            is PendingEvent.Settled -> {
-                clearPaymentSessionState()
-                reportPaymentSuccess(event.id, event.paidMsats)
-                if (vibrateOnPayment) haptics.notifyPaymentSuccess()
-                if (!event.wasVisible && mutableUiState.value is PaymentUiState.Loading) {
-                    showPaymentSuccess(
-                        CompletedPayment(
-                            amountMsats = event.paidMsats,
-                            feeMsats = event.feeMsats,
-                            showEstimatedFeeHint = showEstimatedFeeHint,
-                            wasAlreadyPaid = false,
-                            preimage = event.preimage
-                        )
-                    )
-                    sessionState.showTransactionDetail(event.id)
-                }
-            }
-
-            is PendingEvent.Failed -> {
-                clearPaymentSessionState()
-                hubContexts.remove(event.id)
-                if (pendingRetry?.recordId == event.id) {
-                    pendingRetry = null
-                    mutableUiState.value = PaymentUiState.Active
-                }
-                if (!event.wasVisible && mutableUiState.value is PaymentUiState.Loading) {
-                    showPaymentError(event.error, emitEvent = true)
-                    sessionState.showTransactionDetail(event.id)
-                }
-            }
-
-            is PendingEvent.OutcomeUnknown -> {
-                clearPaymentSessionState()
-                hubContexts.remove(event.id)
+    private fun launchSessionTask(block: suspend (PaymentTaskToken) -> Unit) {
+        sessionTasks.launch { token ->
+            try {
+                block(token)
+            } catch (cause: CancellationException) {
+                throw cause
+            } catch (cause: Throwable) {
+                token.ensureCurrent()
+                presentation.presentError(cause.toPaymentUiError())
             }
         }
-    }
-
-    private fun startDonation(amountSats: Long, address: LightningAddress) {
-        if (amountSats <= 0) return
-        mutableUiState.value = PaymentUiState.Loading(LoadingKind.Resolving)
-        scope.launch {
-            when (val result = lnurlPayClient.fetchPayParams(address)) {
-                is LnurlResult.Success ->
-                    handleLnurlParams(
-                        params = result.data,
-                        paymentSource = PaymentRequestSource.Camera,
-                        forceManualEntry = true,
-                        prefillMsats = amountSats * MSATS_PER_SAT,
-                        inputCurrencyOverride =
-                            CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE),
-                        sourceKey = lightningAddressDynamicPaymentSourceKey(address)
-                    )
-
-                is LnurlResult.Error -> emitError(result.error.toPaymentUiError())
-            }
-        }
-    }
-
-    private fun createNewPendingInvoice() {
-        val choice = pendingRetry ?: return
-        val continuation = choice.continuation
-        pendingRetry = null
-        notifyScanSuccess()
-        when (continuation) {
-            is PendingRetryContinuation.Lnurl ->
-                fetchLnurl(
-                    continuation.endpoint,
-                    continuation.paymentSource,
-                    continuation.sourceKey,
-                    replacesDynamicGuardId = choice.recordId
-                )
-
-            is PendingRetryContinuation.LightningAddress ->
-                resolveLightningAddress(
-                    continuation.address,
-                    continuation.paymentSource,
-                    continuation.sourceKey,
-                    continuation.targetContext,
-                    continuation.presetQuote,
-                    continuation.targetComment,
-                    replacesDynamicGuardId = choice.recordId
-                )
-        }
-    }
-
-    private fun retryPendingPayment() {
-        val id = pendingRetry?.recordId ?: return
-        pendingRetry = null
-        retryPayment(id)
-    }
-
-    private fun retryPayment(id: String) {
-        val current = pendingTracker.get(id) ?: return
-        if (rejectExpiredInvoice(current.summary)) return
-        val record = pendingTracker.retry(id) ?: return
-        mutableUiState.value = PaymentUiState.Loading()
-        paymentJobs.remove(id)?.cancel()
-        paymentJobs[id] =
-            scope.launch {
-                try {
-                    val outcome =
-                        nwcWallet.payInvoice(
-                            invoice = record.summary.write(),
-                            amountMsats = record.amountOverrideMsats,
-                            timeoutMs = PAY_RESPONSE_TIMEOUT_MS
-                        )
-                    pendingTracker.applyPayOutcome(id, outcome)
-                } catch (cause: CancellationException) {
-                    throw cause
-                } catch (cause: Throwable) {
-                    pendingTracker.applyPayOutcome(
-                        id,
-                        NwcPayOutcome.Uncertain(cause.message)
-                    )
-                }
-            }
-    }
-
-    private fun viewPendingPayment() {
-        val id = pendingRetry?.recordId ?: return
-        pendingRetry = null
-        requestTransactionDetailNavigation(id)
-    }
-
-    private fun dismissPendingRetry() {
-        pendingRetry = null
-        mutableUiState.value = PaymentUiState.Active
-    }
-
-    private fun showPendingRetryPrompt(
-        record: PendingRecord,
-        continuation: PendingRetryContinuation
-    ) {
-        pendingTracker.focus(record.id)
-        pendingRetry = PendingRetryChoice(record.id, continuation)
-        mutableUiState.value = PaymentUiState.PendingRetry(record.id)
-    }
-
-    private fun sessionTransactionsOpened() {
-        sessionState.onSessionTransactionsOpened(
-            pendingTracker.displayItems.value.map(SessionTransactionItem::id)
-        )
-    }
-
-    private fun requestTransactionDetailNavigation(id: String) {
-        if (pendingTracker.get(id) == null) return
-        pendingTracker.focus(id)
-        sessionState.requestTransactionDetailNavigation(id)
-    }
-
-    private fun transactionDetailNavigationHandled(id: String) {
-        sessionState.onTransactionDetailNavigationHandled(id)
-    }
-
-    private fun dismissResult() {
-        sessionState.dismissResult()
-    }
-
-    private fun reportPaymentSuccess(pendingId: String, paidMsats: Long) {
-        val context = hubContexts.remove(pendingId) ?: return
-        if (paidMsats <= 0L) return
-        val targetId = context.targetId
-        if (targetId != null) {
-            paymentHub.recordSuccessfulPayment(targetId)
-        } else if (offerToSaveNewTargets) {
-            paymentHub.offerSave(context.address)
-        }
-    }
-
-    private fun emitError(error: PaymentUiError) {
-        mutableUiState.value = PaymentUiState.Error(error)
-        mutableEvents.tryEmit(PaymentEvent.ShowError(error))
-    }
-
-    private fun showPaymentSuccess(payment: CompletedPayment) {
-        lastPaymentResult = payment
-        mutableUiState.value = payment.toUiState(currencyManager.state.value)
-    }
-
-    private fun showPaymentError(error: PaymentUiError, emitEvent: Boolean) {
-        lastPaymentResult = null
-        mutableUiState.value = PaymentUiState.Error(error)
-        if (emitEvent) {
-            mutableEvents.tryEmit(PaymentEvent.ShowError(error))
-        }
-    }
-
-    private fun shouldShowDirectPaymentResult(recordVisible: Boolean): Boolean =
-        mutableUiState.value is PaymentUiState.Loading && !recordVisible
-
-    private fun refreshAllDisplays() {
-        refreshManualAmountState(preserveInput = manualEntryContext != null)
-        refreshResultState()
-        pendingTracker.refreshDisplayItems()
-    }
-
-    private fun refreshManualAmountState(preserveInput: Boolean) {
-        val currencyState = currencyManager.state.value
-        val manualInfo =
-            when (val context = manualEntryContext) {
-                is ManualEntryContext.Lnurl -> context.inputInfo
-                else -> currencyState.info
-            }
-        val manualCurrencyState =
-            CurrencyState(
-                info = manualInfo,
-                exchangeRate =
-                    currencyState.exchangeRate.takeIf {
-                        manualInfo.code.equals(currencyState.info.code, ignoreCase = true)
-                    }
-            )
-        val config =
-            when (val context = manualEntryContext) {
-                is ManualEntryContext.Lnurl ->
-                    ManualAmountConfig(
-                        info = manualCurrencyState.info,
-                        exchangeRate = manualCurrencyState.exchangeRate,
-                        min =
-                            currencyManager.convertMsatsToDisplay(
-                                context.session.params.minSendable,
-                                manualCurrencyState
-                            ),
-                        max =
-                            currencyManager.convertMsatsToDisplay(
-                                context.session.params.maxSendable,
-                                manualCurrencyState
-                            ),
-                        minMsats = context.session.params.minSendable,
-                        maxMsats = context.session.params.maxSendable
-                    )
-
-                else ->
-                    ManualAmountConfig(
-                        info = manualCurrencyState.info,
-                        exchangeRate = manualCurrencyState.exchangeRate
-                    )
-            }
-        val entry = manualAmount.reset(config, clearInput = !preserveInput)
-        if (mutableUiState.value is PaymentUiState.EnterAmount) {
-            val display = (manualEntryContext as? ManualEntryContext.Lnurl)?.session?.display
-            mutableUiState.value = PaymentUiState.EnterAmount(entry, display)
-        }
-    }
-
-    private fun refreshResultState() {
-        when (mutableUiState.value) {
-            is PaymentUiState.Success -> {
-                val payment = lastPaymentResult ?: return
-                mutableUiState.value = payment.toUiState(currencyManager.state.value)
-            }
-
-            else -> Unit
-        }
-    }
-
-    private suspend fun confirmationAmount(
-        amountMsats: Long,
-        paymentQuote: PaymentAmountQuote?
-    ): PaymentConfirmationAmount {
-        val exactSats = DisplayAmount(amountMsats / MSATS_PER_SAT, DisplayCurrency.Satoshi)
-        paymentQuote?.let { quote ->
-            return PaymentConfirmationAmount(
-                primary = quote.requestedAmount,
-                exactSats = exactSats.takeIf {
-                    quote.requestedAmount.currency is DisplayCurrency.Fiat
-                }
-            )
-        }
-        val preferredAmount = currencyManager.convertMsatsToFreshDisplay(amountMsats)
-        return PaymentConfirmationAmount(
-            primary = preferredAmount,
-            exactSats = exactSats.takeIf { preferredAmount.currency is DisplayCurrency.Fiat },
-            primaryIsEstimate = preferredAmount.currency is DisplayCurrency.Fiat
-        )
-    }
-
-    private fun clearPaymentSessionState() {
-        preparation.reset(currencyManager.state.value)
     }
 
     private fun notifyScanSuccess() {
-        if (vibrateOnScan) haptics.notifyScanSuccess()
+        if (runtimePreferences.vibrateOnScan) haptics.notifyScanSuccess()
     }
-
-    private fun CompletedPayment.toUiState(currencyState: CurrencyState): PaymentUiState.Success =
-        PaymentUiState.Success(
-            amountPaid = currencyManager.convertMsatsToDisplay(amountMsats, currencyState),
-            feePaid = currencyManager.convertMsatsToDisplay(feeMsats, currencyState),
-            showEstimatedFeeHint = showEstimatedFeeHint,
-            wasAlreadyPaid = wasAlreadyPaid,
-            preimage = preimage
-        )
 }
 
-internal sealed interface PendingRetryContinuation {
-    data class Lnurl(
-        val endpoint: String,
-        val sourceKey: DynamicPaymentSourceKey,
-        val paymentSource: PaymentRequestSource
-    ) : PendingRetryContinuation
-
-    data class LightningAddress(
-        val address: xyz.lilsus.raylsuite.core.model.LightningAddress,
-        val sourceKey: DynamicPaymentSourceKey,
-        val paymentSource: PaymentRequestSource,
-        val targetContext: HubTargetContext? = null,
-        val presetQuote: PaymentAmountQuote? = null,
-        val targetComment: String? = null
-    ) : PendingRetryContinuation
-}
-
-private fun Throwable.toPaymentUiError(): PaymentUiError = PaymentUiError.Unexpected(message)
-
-private fun CurrencyManagerError.toPaymentUiError(): PaymentUiError = when (this) {
-    is CurrencyManagerError.ExchangeRateUnavailable ->
-        PaymentUiError.ExchangeRateUnavailable(currencyCode)
-}
-
-private fun LnurlError.toPaymentUiError(): PaymentUiError = when (this) {
-    LnurlError.NetworkUnavailable ->
-        PaymentUiError.Nwc(NwcPaymentError.NetworkUnavailable)
-
-    is LnurlError.Protocol -> PaymentUiError.Lnurl(reason)
-
-    is LnurlError.Unexpected -> PaymentUiError.Lnurl(detail)
-}
-
-private fun LnurlInvoiceResolutionError.toPaymentUiError(): PaymentUiError = when (this) {
-    is LnurlInvoiceResolutionError.Client -> error.toPaymentUiError()
-
-    LnurlInvoiceResolutionError.CommentRejected ->
-        PaymentUiError.InvalidInvoice("Description is too long for this address")
-
-    LnurlInvoiceResolutionError.MalformedInvoice ->
-        PaymentUiError.InvalidInvoice("Failed to parse BOLT11 invoice")
-
-    LnurlInvoiceResolutionError.ExpiredInvoice ->
-        PaymentUiError.InvalidInvoice("Invoice has expired")
-
-    is LnurlInvoiceResolutionError.AmountMismatch ->
-        PaymentUiError.InvalidInvoice("LNURL invoice amount does not match")
-
-    LnurlInvoiceResolutionError.MetadataMismatch ->
-        PaymentUiError.InvalidInvoice("LNURL invoice metadata mismatch")
-}
-
-private const val MSATS_PER_SAT = 1_000L
-private const val PAY_RESPONSE_TIMEOUT_MS = 15_000L
+private data class PaymentRuntimePreferences(
+    val vibrateOnScan: Boolean = true,
+    val vibrateOnPayment: Boolean = true,
+    val showLnurlPayDetails: Boolean = false,
+    val offerToSaveNewTargets: Boolean = true
+)
