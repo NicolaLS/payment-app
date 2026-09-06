@@ -1,20 +1,27 @@
+> **Default app: Rayl.** Connect one Blink or NWC wallet. Blip, Lasr, and Flint
+> remain purpose-built alternatives. All four apps are prerelease. See
+> [the Rayl handoff](docs/rayl-app.md) for scope and provider ownership.
+
 # Rayl Suite
 
-Rayl Suite contains three independent Kotlin Multiplatform Lightning clients and
+Rayl Suite contains four independent Kotlin Multiplatform Lightning clients and
 the provider-neutral modules they share:
 
+- **Rayl** connects to one Blink or NWC wallet, chosen during setup.
 - **Blip** connects to one Blink wallet with an API key.
 - **Flint** opens one Spark wallet from its recovery phrase.
 - **Lasr** connects to one wallet through Nostr Wallet Connect.
 
-Neither app chooses providers at runtime or migrates data from the former
-combined reference application.
+Blip, Flint, and Lasr retain their single-provider focus. All products are
+prerelease; no migration or cross-app data transfer is implemented.
 
 ## Project layout
 
-- `apps/blip`: Blip composition, Blink features, and Blink integration
-- `apps/flint`: Flint composition, Spark features, and Spark integration
-- `apps/lasr`: Lasr composition, NWC features, and NWC integration
+- `apps/rayl`: unified Rayl composition and wallet selection
+- `apps/blip`: Blip product composition
+- `apps/flint`: Flint product composition
+- `apps/lasr`: Lasr product composition
+- `providers/blink`, `providers/nwc`, `providers/spark`: independent provider implementations
 - `core/*`: provider-neutral models, platform services, and UI primitives
 - `feature/*`: reusable provider-neutral user stories
 - `integration/*`: shared external-service adapters
@@ -25,6 +32,7 @@ combined reference application.
 Use JDK 21 and the root Gradle wrapper.
 
 ```shell
+./gradlew :rayl:androidApp:assembleDebug
 ./gradlew :blip:androidApp:assembleDebug
 ./gradlew :flint:androidApp:assembleDebug
 ./gradlew :lasr:androidApp:assembleDebug
@@ -44,13 +52,14 @@ To exercise a production-signed, R8-processed build on a connected device:
 Release signing needs the `RAYL_UPLOAD_*` and `RAYL_APP_SIGNING_*` variables
 from `.envrc.example`. See [docs/release.md](docs/release.md).
 
-For iOS, open either app's `iosApp.xcodeproj`, or validate the Kotlin Release
-frameworks directly:
+For iOS, open the chosen app’s `iosApp.xcodeproj`, or validate a Kotlin Debug
+simulator framework directly:
 
 ```shell
-./gradlew :blip:shared:linkReleaseFrameworkIosArm64
-./gradlew :flint:shared:linkReleaseFrameworkIosArm64
-./gradlew :lasr:shared:linkReleaseFrameworkIosArm64
+./gradlew :rayl:shared:linkDebugFrameworkIosSimulatorArm64
+./gradlew :blip:shared:linkDebugFrameworkIosSimulatorArm64
+./gradlew :flint:shared:linkDebugFrameworkIosSimulatorArm64
+./gradlew :lasr:shared:linkDebugFrameworkIosSimulatorArm64
 ```
 
 See [release](docs/release.md), [E2E](docs/e2e.md),

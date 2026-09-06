@@ -22,11 +22,11 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":flint:application"))
-            implementation(project(":flint:feature:onboarding"))
-            implementation(project(":flint:feature:payment"))
-            implementation(project(":flint:feature:wallet-connection"))
-            implementation(project(":flint:integration:wallet"))
+            implementation(project(":providers:spark:application"))
+            implementation(project(":providers:spark:feature:onboarding"))
+            implementation(project(":providers:spark:feature:payment"))
+            implementation(project(":providers:spark:feature:wallet-connection"))
+            implementation(project(":providers:spark:integration:wallet"))
             implementation(project(":core:model"))
             implementation(project(":core:settings"))
             implementation(project(":core:ui"))

@@ -207,6 +207,98 @@
           }
         }
       }
+    },
+    "wallet_removal_failed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Verbindung konnte nicht vollständig entfernt werden. Versuche es erneut, bevor du eine andere Wallet verbindest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connection could not be completely removed. Try removing it again before connecting another wallet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo eliminar la conexión por completo. Intenta eliminarla de nuevo antes de conectar otra billetera."
+          }
+        }
+      }
+    },
+    "wallet_removal_payment_active" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Zahlung wird gesendet. Warte auf die Antwort, bevor du die Wallet entfernst oder wechselst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A payment is being submitted. Wait for the response before removing or changing your wallet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se está enviando un pago. Espera la respuesta antes de eliminar o cambiar tu billetera."
+          }
+        }
+      }
+    },
+    "wallet_removal_payment_warning" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Entfernen werden die lokalen Zahlungsdaten dieser Verbindung gelöscht. Prüfe bei ausstehenden Zahlungen oder unbekanntem Ergebnis zuerst die ursprüngliche Wallet. Das Entfernen storniert keine Zahlung. Kontakte, Einstellungen und Hub-Verknüpfungen bleiben erhalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Removing this connection erases its local payment records. If a payment is pending or its outcome is unknown, check the original wallet before trying again. Removing the connection does not cancel a payment. Your contacts, preferences and Hub shortcuts are kept."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al eliminar esta conexión se borran sus registros locales de pagos. Si hay un pago pendiente o de resultado desconocido, revisa la billetera original antes de intentarlo de nuevo. Eliminar la conexión no cancela un pago. Se conservan tus contactos, preferencias y accesos del Hub."
+          }
+        }
+      }
+    },
+    "wallet_removal_retry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intentar de nuevo"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

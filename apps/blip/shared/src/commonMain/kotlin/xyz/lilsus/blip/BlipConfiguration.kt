@@ -13,3 +13,11 @@ internal val BLIP_LEGAL_LINKS =
             "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/blip/terms.md",
         sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite"
     )
+
+internal val BLIP_EXPERIENCE = BlinkExperienceConfiguration(
+    appName = "Blip",
+    preferencesName = BLIP_PREFERENCES,
+    walletPreferencesName = "blip_connection",
+    credentialsName = BLIP_CREDENTIALS,
+    legalLinks = BLIP_LEGAL_LINKS
+)

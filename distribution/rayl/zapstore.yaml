@@ -1,0 +1,16 @@
+# Draft metadata. Add the suite publisher and review the exact candidate before publishing.
+repository: https://github.com/NicolaLS/rayl-suite
+name: Rayl
+summary: Lightning payments tailored to your Blink or NWC wallet
+description: |
+  Connect one Blink or Nostr Wallet Connect wallet and pay Lightning invoices,
+  Lightning addresses, and LNURLs. Rayl keeps the experience tailored to your
+  connected wallet, with QR scanning and local payment shortcuts.
+tags:
+  - bitcoin
+  - lightning
+  - finance
+license: MIT
+icon: icon.png
+match: '^rayl-[0-9]+\.[0-9]+\.[0-9]+-universal\.apk$'
+release_filter: '^rayl-v[0-9]+\.[0-9]+\.[0-9]+$'

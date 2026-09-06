@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: scripts/release-android <blip|flint|lasr> <version> [--skip-checks]" >&2
+    echo "Usage: scripts/release-android <blip|flint|lasr|rayl> <version> [--skip-checks]" >&2
 }
 
 die() {
@@ -20,8 +20,8 @@ version="$2"
 shift 2
 
 case "$app" in
-    blip|flint|lasr) ;;
-    *) die "app must be blip, flint, or lasr" ;;
+    blip|flint|lasr|rayl) ;;
+    *) die "app must be blip, flint, lasr, or rayl" ;;
 esac
 
 skip_checks=false

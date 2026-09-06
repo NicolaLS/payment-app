@@ -8,4 +8,8 @@
     <string name="settings_manage_wallet_remove_confirmation_title">Wallet entfernen?</string>
     <string name="settings_manage_wallet_remove_confirmation_body">Du musst erneut eine Wallet verbinden, bevor du Zahlungen senden kannst.</string>
     <string name="settings_manage_wallet_cancel">Abbrechen</string>
+    <string name="wallet_removal_payment_warning">Beim Entfernen werden die lokalen Zahlungsdaten dieser Verbindung gelöscht. Prüfe bei ausstehenden Zahlungen oder unbekanntem Ergebnis zuerst die ursprüngliche Wallet. Das Entfernen storniert keine Zahlung. Kontakte, Einstellungen und Hub-Verknüpfungen bleiben erhalten.</string>
+    <string name="wallet_removal_payment_active">Eine Zahlung wird gesendet. Warte auf die Antwort, bevor du die Wallet entfernst oder wechselst.</string>
+    <string name="wallet_removal_failed">Die Verbindung konnte nicht vollständig entfernt werden. Versuche es erneut, bevor du eine andere Wallet verbindest.</string>
+    <string name="wallet_removal_retry">Erneut versuchen</string>
 </resources>

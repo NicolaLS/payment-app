@@ -13,3 +13,11 @@ internal val LASR_LEGAL_LINKS =
             "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/lasr/terms.md",
         sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite"
     )
+
+internal val LASR_EXPERIENCE = NwcExperienceConfiguration(
+    appName = "Lasr",
+    preferencesName = LASR_PREFERENCES,
+    walletPreferencesName = "lasr_connection",
+    credentialsName = LASR_CREDENTIALS,
+    legalLinks = LASR_LEGAL_LINKS
+)

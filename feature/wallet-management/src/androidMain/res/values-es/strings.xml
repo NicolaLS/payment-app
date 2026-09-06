@@ -8,4 +8,8 @@
     <string name="settings_manage_wallet_remove_confirmation_title">¿Eliminar la billetera?</string>
     <string name="settings_manage_wallet_remove_confirmation_body">Tendrás que volver a conectar una billetera antes de poder enviar pagos.</string>
     <string name="settings_manage_wallet_cancel">Cancelar</string>
+    <string name="wallet_removal_payment_warning">Al eliminar esta conexión se borran sus registros locales de pagos. Si hay un pago pendiente o de resultado desconocido, revisa la billetera original antes de intentarlo de nuevo. Eliminar la conexión no cancela un pago. Se conservan tus contactos, preferencias y accesos del Hub.</string>
+    <string name="wallet_removal_payment_active">Se está enviando un pago. Espera la respuesta antes de eliminar o cambiar tu billetera.</string>
+    <string name="wallet_removal_failed">No se pudo eliminar la conexión por completo. Intenta eliminarla de nuevo antes de conectar otra billetera.</string>
+    <string name="wallet_removal_retry">Intentar de nuevo</string>
 </resources>

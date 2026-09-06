@@ -33,6 +33,8 @@ class KtorLnurlPayClient(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) : LnurlPayClient {
+    fun close() = client.close()
+
     override suspend fun fetchPayParams(endpoint: String): LnurlResult<LnurlPayParams> =
         withContext(dispatcher) {
             val url = endpoint.trim()

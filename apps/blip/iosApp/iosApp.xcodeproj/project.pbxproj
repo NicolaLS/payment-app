@@ -55,10 +55,10 @@
 
 /* Begin PBXFileReference section */
 		3E2F28A87C1CC1A08DDA1A6F /* Blip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Blip.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A61E00000000000000000001 /* blink_dashboard_email.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_email.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_email.png; sourceTree = "<group>"; };
-		A61E00000000000000000002 /* blink_dashboard_api_keys.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_api_keys.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_api_keys.png; sourceTree = "<group>"; };
-		A61E00000000000000000003 /* blink_dashboard_key_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_key_settings.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_key_settings.png; sourceTree = "<group>"; };
-		A61E00000000000000000004 /* blink_dashboard_copy_key.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_copy_key.png; path = ../feature/onboarding/src/iosMain/resources/assets/blink_dashboard_copy_key.png; sourceTree = "<group>"; };
+		A61E00000000000000000001 /* blink_dashboard_email.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_email.png; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/assets/blink_dashboard_email.png; sourceTree = "<group>"; };
+		A61E00000000000000000002 /* blink_dashboard_api_keys.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_api_keys.png; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/assets/blink_dashboard_api_keys.png; sourceTree = "<group>"; };
+		A61E00000000000000000003 /* blink_dashboard_key_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_key_settings.png; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/assets/blink_dashboard_key_settings.png; sourceTree = "<group>"; };
+		A61E00000000000000000004 /* blink_dashboard_copy_key.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_copy_key.png; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/assets/blink_dashboard_copy_key.png; sourceTree = "<group>"; };
 		C10000000000000000000001 /* CoreUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CoreUI.xcstrings; path = ../../../core/ui/src/iosMain/resources/CoreUI.xcstrings; sourceTree = "<group>"; };
 		C10000000000000000000002 /* AppShell.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = AppShell.xcstrings; path = "../../../feature/app-shell/src/iosMain/resources/AppShell.xcstrings"; sourceTree = "<group>"; };
 		C10000000000000000000003 /* CurrencySettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = CurrencySettings.xcstrings; path = "../../../feature/currency-settings/src/iosMain/resources/CurrencySettings.xcstrings"; sourceTree = "<group>"; };
@@ -69,13 +69,13 @@
 		C10000000000000000000008 /* PaymentUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentUI.xcstrings; path = "../../../feature/payment-ui/src/iosMain/resources/PaymentUI.xcstrings"; sourceTree = "<group>"; };
 		C10000000000000000000009 /* Settings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Settings.xcstrings; path = ../../../feature/settings/src/iosMain/resources/Settings.xcstrings; sourceTree = "<group>"; };
 		C1000000000000000000000A /* WalletManagement.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = WalletManagement.xcstrings; path = "../../../feature/wallet-management/src/iosMain/resources/WalletManagement.xcstrings"; sourceTree = "<group>"; };
-		C1000000000000000000000B /* BlipContacts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipContacts.xcstrings; path = "../feature/blink-contacts/src/iosMain/resources/BlipContacts.xcstrings"; sourceTree = "<group>"; };
-		C1000000000000000000000C /* BlipOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipOnboarding.xcstrings; path = ../feature/onboarding/src/iosMain/resources/BlipOnboarding.xcstrings; sourceTree = "<group>"; };
-		C1000000000000000000000D /* BlipPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipPayment.xcstrings; path = ../feature/payment/src/iosMain/resources/BlipPayment.xcstrings; sourceTree = "<group>"; };
-		C1000000000000000000000E /* BlipWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletConnection.xcstrings; path = "../feature/wallet-connection/src/iosMain/resources/BlipWalletConnection.xcstrings"; sourceTree = "<group>"; };
-		C1000000000000000000000F /* BlipWalletSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletSettings.xcstrings; path = "../feature/wallet-settings/src/iosMain/resources/BlipWalletSettings.xcstrings"; sourceTree = "<group>"; };
+		C1000000000000000000000B /* BlipContacts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipContacts.xcstrings; path = "../../../providers/blink/feature/blink-contacts/src/iosMain/resources/BlipContacts.xcstrings"; sourceTree = "<group>"; };
+		C1000000000000000000000C /* BlipOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipOnboarding.xcstrings; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/BlipOnboarding.xcstrings; sourceTree = "<group>"; };
+		C1000000000000000000000D /* BlipPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipPayment.xcstrings; path = ../../../providers/blink/feature/payment/src/iosMain/resources/BlipPayment.xcstrings; sourceTree = "<group>"; };
+		C1000000000000000000000E /* BlipWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletConnection.xcstrings; path = "../../../providers/blink/feature/wallet-connection/src/iosMain/resources/BlipWalletConnection.xcstrings"; sourceTree = "<group>"; };
+		C1000000000000000000000F /* BlipWalletSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletSettings.xcstrings; path = "../../../providers/blink/feature/wallet-settings/src/iosMain/resources/BlipWalletSettings.xcstrings"; sourceTree = "<group>"; };
 		C10000000000000000000010 /* BlipApp.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipApp.xcstrings; path = ../shared/src/iosMain/resources/BlipApp.xcstrings; sourceTree = "<group>"; };
-		C10000000000000000000011 /* BlipUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipUI.xcstrings; path = ../ui/src/iosMain/resources/BlipUI.xcstrings; sourceTree = "<group>"; };
+		C10000000000000000000011 /* BlipUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipUI.xcstrings; path = ../../../providers/blink/ui/src/iosMain/resources/BlipUI.xcstrings; sourceTree = "<group>"; };
 		D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		E2E000000000000000000001 /* Blip E2E.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Blip E2E.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -104,6 +104,12 @@
 			path = Configuration;
 			sourceTree = "<group>";
 		};
+		8AB20B57D09014CBC9805679 /* Blink Experience Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Blink Experience Swift";
+			path = ../../../providers/blink/experience/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
 		D90BDCC58B0B3EAC96B0EEB8 /* iosApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -121,7 +127,7 @@
 		F21E00000000000000000001 /* App Shell Swift */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			name = "App Shell Swift";
-			path = ../../../feature/app-shell/src/iosMain/swift;
+			path = "../../../feature/app-shell/src/iosMain/swift";
 			sourceTree = "<group>";
 		};
 		F21E00000000000000000002 /* Settings Swift */ = {
@@ -133,13 +139,13 @@
 		F21E00000000000000000003 /* Payment UI Swift */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			name = "Payment UI Swift";
-			path = ../../../feature/payment-ui/src/iosMain/swift;
+			path = "../../../feature/payment-ui/src/iosMain/swift";
 			sourceTree = "<group>";
 		};
 		F21E00000000000000000004 /* Payment Hub Swift */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			name = "Payment Hub Swift";
-			path = ../../../feature/payment-hub/src/iosMain/swift;
+			path = "../../../feature/payment-hub/src/iosMain/swift";
 			sourceTree = "<group>";
 		};
 		F21E00000000000000000005 /* Onboarding Swift */ = {
@@ -151,7 +157,7 @@
 		F21E00000000000000000006 /* Wallet Management Swift */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			name = "Wallet Management Swift";
-			path = ../../../feature/wallet-management/src/iosMain/swift;
+			path = "../../../feature/wallet-management/src/iosMain/swift";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -206,6 +212,7 @@
 				A61E00000000000000000004 /* blink_dashboard_copy_key.png */,
 				D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */,
 				6672ACEE09FDB18D319237F0 /* Configuration */,
+				8AB20B57D09014CBC9805679 /* Blink Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				E2E000000000000000000002 /* iosAppE2E */,
 				E073F01B7BAFD6FD252567F6 /* Products */,
@@ -238,6 +245,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				8AB20B57D09014CBC9805679 /* Blink Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				F21E00000000000000000001 /* App Shell Swift */,
 				F21E00000000000000000002 /* Settings Swift */,
@@ -267,6 +275,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				8AB20B57D09014CBC9805679 /* Blink Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				E2E000000000000000000002 /* iosAppE2E */,
 				F21E00000000000000000001 /* App Shell Swift */,

@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Rayl</string>
+    <string name="welcome_title">Bienvenido a Rayl</string>
+    <string name="welcome_body">Pagos rápidos, adaptados a tu billetera.</string>
+    <string name="get_started">Comenzar</string>
+    <string name="choose_wallet">Conecta tu billetera</string>
+    <string name="choose_body">Elige cómo conectarte. Rayl usa una billetera a la vez.</string>
+    <string name="blink_title">Blink</string>
+    <string name="blink_body">Conecta tu cuenta de Blink con una clave API.</string>
+    <string name="nwc_title">Nostr Wallet Connect</string>
+    <string name="nwc_body">Conecta una billetera compatible con su enlace de conexión NWC.</string>
+    <string name="choose_another">Elegir otra billetera</string>
+    <string name="connection_exists">Elimina tu billetera actual en Ajustes antes de conectar otra.</string>
+    <string name="connect_to_pay">Conecta tu billetera y vuelve a abrir la solicitud de pago.</string>
+    <string name="close">Cerrar</string>
+</resources>

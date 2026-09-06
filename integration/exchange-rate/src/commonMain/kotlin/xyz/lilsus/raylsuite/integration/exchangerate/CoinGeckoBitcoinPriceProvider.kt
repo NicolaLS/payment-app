@@ -20,6 +20,8 @@ class CoinGeckoBitcoinPriceProvider(
     private val client: HttpClient = createHttpClient(),
     private val clock: () -> Long = ::platformCurrentTimeMillis
 ) : BitcoinPriceProvider {
+    fun close() = client.close()
+
     private val cacheMutex = Mutex()
     private val cache = mutableMapOf<String, CachedPrice>()
 

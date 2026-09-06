@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [blip, flint, lasr]
+        app: [blip, flint, lasr, rayl]
     steps:
       - name: Checkout
         uses: actions/checkout@v6

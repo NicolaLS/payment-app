@@ -11,7 +11,11 @@ kotlin {
         commonMain.dependencies {
             // The Compose compiler plugin runs for this module's Android renderers.
             implementation(libs.compose.runtime)
-            implementation(libs.multiplatform.settings)
+            api(libs.multiplatform.settings)
+        }
+        commonTest.dependencies {
+            implementation(libs.kotlin.test)
+            implementation(libs.multiplatform.settings.test)
         }
         androidMain.dependencies {
             implementation(libs.compose.ui)

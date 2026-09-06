@@ -1,5 +1,5 @@
 This mono-repo contains a single gradle-root with multiple modules and
-three Kotlin Multiplatform (KMP) apps for both Android and IOS. KMP shares
+four Kotlin Multiplatform (KMP) apps for both Android and IOS. KMP shares
 behavior and presentation state; the user interface is native on each platform.
 Android renders with Android-owned Jetpack Compose and iOS renders with
 SwiftUI/UIKit. The apps still share most UI/UX, but as one renderer per platform
@@ -23,6 +23,13 @@ rather than one Compose renderer for both.
 
 ## Products and identity
 
+- Rayl is the default unified product, initially supporting Blink and NWC with
+  exactly one connection at a time. Its Android application ID and iOS bundle
+  ID are `com.nicolasusca.rayl`; Android adds `.dev` and `.e2e`, and iOS E2E adds
+  `.e2e`. Its Kotlin/Android namespace is `xyz.lilsus.rayl`.
+- All apps are prerelease. Do not introduce migrations, compatibility wrappers,
+  old-storage readers, credential imports, or cross-app synchronization.
+
 - Blip is the Blink-only product. Its Android application ID is
   `xyz.lilsus.blip`, with `.dev` and `.e2e` suffixes. Its iOS bundle ID is
   `com.nicolasusca.blip`, with an `.e2e` suffix for the E2E target.
@@ -33,13 +40,22 @@ rather than one Compose renderer for both.
 - The Gradle root project is `rayl-suite`.
 - Reusable Kotlin namespaces start with `xyz.lilsus.raylsuite`.
 
-Blip, Flint, and Lasr are independent, single-provider products. Do not add
-provider selection or cross-provider abstractions merely to remove duplication.
-Provider-specific credentials, lifecycles, errors, repositories, and payment
-orchestration belong to the owning app. Move code to a root `core/*`,
-`feature/*`, or `integration/*` module only when its semantics and policy are
-provider-neutral and it has genuine consumers in multiple apps without
-provider branches. Duplication alone is not a reason to share code.
+Blip, Flint, and Lasr remain independent, single-provider products. Rayl
+composes Blink and NWC experiences without combining their payment behavior.
+Spark is structurally provider-owned but is not a Rayl dependency in v1.
+
+Provider-specific credentials, lifecycles, errors, repositories, payment
+orchestration, and presentation projections belong to `providers/<provider>`.
+A provider's implementation is consumed directly by its purpose-built app and
+Rayl where supported. Product identity, storage names, legal links, top-level
+selection, and platform entry points remain app-owned. Existing Kotlin package
+names may be retained when moving ownership; do not add compatibility aliases.
+
+Only provider-neutral semantics and policy belong in root `core/*`, `feature/*`,
+or `integration/*` modules. Duplication across providers is accepted. Sharing one
+provider's implementation across products does not require making it neutral or
+introducing a universal wallet contract. The sharing rules below govern
+cross-provider abstractions, not direct reuse of the same provider experience.
 
 ## IMPORTANT: native UI boundary
 
@@ -56,7 +72,7 @@ migration state.
   so files added inside it require no per-file project edit. Register a new
   renderer directory once per consuming target, and keep adjacent resources on
   their explicit bundle-resource path. A shared SwiftUI file is one file consumed
-  by all three products; never copy it into an app.
+  by all consuming products; never copy it into an app.
 - Navigation, tab bars, sheets, dialogs, alerts, lists, forms, pickers, toggles,
   keyboard handling, insets, permissions, and system pickers belong to the
   platform.
@@ -149,7 +165,7 @@ entire component app-owned only when the variation contains substantial
 business decisions, drives provider behavior, or cannot be expressed as a
 small presentation-only input.
 
-### Keep app behavior app-owned
+### Keep provider behavior provider-owned
 
 Do not share code when doing so requires any of the following solely to
 reconcile the apps:
@@ -209,19 +225,26 @@ for evidence from real shared evolution.
   State and snapshots live in `commonMain`, the Android Compose renderer in
   `androidMain`, and the SwiftUI renderer plus its Kotlin controller in
   `iosMain`.
-- `apps/<app>/feature/*`: app-owned or provider-specific user stories.
-- `apps/<app>/integration/*`: provider SDK, network, credential, database, and
-  repository implementations.
-- `apps/<app>/ui`, where present: reusable UI and localized error presentation
-  specific to that app or provider.
+- `providers/<provider>/feature/*`: provider-owned user stories and presentation.
+- `providers/<provider>/integration/*`: that provider's SDK, credentials, database,
+  network, and repository implementation.
+- `providers/<provider>/experience`: reusable native experience composition and
+  provider-specific controllers, with app-supplied identity and storage scopes.
+- `providers/spark/application`: Spark's existing application contracts; do not
+  impose them on Blink or NWC for symmetry.
+- `providers/<provider>/ui`: provider-specific localized presentation.
+- `apps/<app>/feature/*`, when needed: product-specific features such as selection.
 - `integration/*`: external adapters reused by multiple apps without
   wallet-provider behavior.
 - App `shared` modules are composition roots for navigation, dependency
   assembly, legal links, and app identity; keep business rules out of them.
 
-No app may depend on another app's modules. Root shared modules must not depend
-on app-owned modules or acquire wallet-provider behavior. Shared UI primitives
-belong in `core:ui`; app- and feature-specific UI remains with its owner.
+No app may depend on another app. Providers may depend only on their own modules
+and provider-neutral modules, never apps or another provider. Provider-neutral
+modules must not depend on providers or apps. Blip consumes Blink, Lasr consumes
+NWC, Flint consumes Spark, and Rayl consumes Blink and NWC. Enforce these rules
+in `verifyModuleDependencies`; do not allow Spark transitively into Rayl.
+Shared UI primitives belong in `core:ui`; feature presentation stays with its owner.
 
 Platform source sets carry the renderers, so keep Compose UI Gradle dependencies
 in `androidMain`. A module whose renderer is Android-only still applies the
@@ -233,7 +256,7 @@ only semantic localization keys and already-localized presentation snapshots.
 
 ### App-internal dependency direction
 
-App-owned features may depend directly on their own provider integration when
+Provider-owned features may depend directly on their own provider integration when
 their implementation and public contract genuinely use provider-native types.
 This is the expected direction for Blip's Blink features and Lasr's NWC
 features. Do not introduce app-internal provider interfaces, adapters, or
@@ -255,7 +278,7 @@ can meaningfully vary; never replicate the pattern in other apps for symmetry.
 
 Android `R` types and iOS native resource handles stay in their owning platform
 source sets and must not leak into model or repository APIs. Blink contact
-import remains Blip-only.
+import remains Blink-only and is available in Blip and Rayl’s Blink experience.
 
 ## Resources, persistence, and sensitive data
 
@@ -281,8 +304,8 @@ import remains Blip-only.
 - Every iOS and iPadOS target has a minimum deployment version of 18.5. Keep
   normal and E2E targets aligned.
 - Never edit generated resource accessors or generated build output.
-- Do not add fallback decoders, migration paths, or import behavior for the
-  retired combined app unless the user explicitly requests a migration task.
+- Do not add fallback decoders, migration paths, old-storage readers, or import
+  behavior for any prerelease app unless explicitly requested.
 - Never commit or log wallet credentials, NWC URIs, API keys, signing material,
   payment preimages, or other sensitive wallet data.
 
@@ -344,7 +367,7 @@ the code they changed.
 Release procedure details live in `docs/release.md`; the safeguards below are
 non-negotiable.
 
-- Blip, Flint, and Lasr share the suite upload identity and app-signing
+- Rayl, Blip, Flint, and Lasr share the suite upload identity and app-signing
   identity. Both identities are locally managed and their secrets remain
   outside Git.
 - Direct Android distribution uses a locally signed universal APK built from

@@ -55,10 +55,10 @@
 		C30000000000000000000008 /* PaymentUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentUI.xcstrings; path = ../../../feature/payment-ui/src/iosMain/resources/PaymentUI.xcstrings; sourceTree = "<group>"; };
 		C30000000000000000000009 /* Settings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Settings.xcstrings; path = ../../../feature/settings/src/iosMain/resources/Settings.xcstrings; sourceTree = "<group>"; };
 		C3000000000000000000000A /* WalletManagement.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = WalletManagement.xcstrings; path = ../../../feature/wallet-management/src/iosMain/resources/WalletManagement.xcstrings; sourceTree = "<group>"; };
-		C3000000000000000000000B /* LasrOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrOnboarding.xcstrings; path = ../feature/onboarding/src/iosMain/resources/LasrOnboarding.xcstrings; sourceTree = "<group>"; };
-		C3000000000000000000000C /* LasrPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrPayment.xcstrings; path = ../feature/payment/src/iosMain/resources/LasrPayment.xcstrings; sourceTree = "<group>"; };
-		C3000000000000000000000D /* LasrWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrWalletConnection.xcstrings; path = ../feature/wallet-connection/src/iosMain/resources/LasrWalletConnection.xcstrings; sourceTree = "<group>"; };
-		C3000000000000000000000E /* LasrWalletDetails.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrWalletDetails.xcstrings; path = ../feature/wallet-details/src/iosMain/resources/LasrWalletDetails.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000B /* LasrOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrOnboarding.xcstrings; path = ../../../providers/nwc/feature/onboarding/src/iosMain/resources/LasrOnboarding.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000C /* LasrPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrPayment.xcstrings; path = ../../../providers/nwc/feature/payment/src/iosMain/resources/LasrPayment.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000D /* LasrWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrWalletConnection.xcstrings; path = ../../../providers/nwc/feature/wallet-connection/src/iosMain/resources/LasrWalletConnection.xcstrings; sourceTree = "<group>"; };
+		C3000000000000000000000E /* LasrWalletDetails.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrWalletDetails.xcstrings; path = ../../../providers/nwc/feature/wallet-details/src/iosMain/resources/LasrWalletDetails.xcstrings; sourceTree = "<group>"; };
 		C3000000000000000000000F /* LasrApp.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = LasrApp.xcstrings; path = ../shared/src/iosMain/resources/LasrApp.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -136,6 +136,7 @@
 			path = ../../../feature/wallet-management/src/iosMain/swift;
 			sourceTree = "<group>";
 		};
+		ABC5659E4400D0CC657B53E3 /* Nwc Experience Swift */ = {isa = PBXFileSystemSynchronizedRootGroup; name = "Nwc Experience Swift"; path = ../../../providers/nwc/experience/src/iosMain/swift; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -182,6 +183,7 @@
 				F22E00000000000000000006 /* Wallet Management Swift */,
 				D8D428B62EEF0BAA007EDED8 /* PrivacyInfo.xcprivacy */,
 				6672ACEE09FDB18D319237F0 /* Configuration */,
+				ABC5659E4400D0CC657B53E3 /* Nwc Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				E2E000000000000000000002 /* iosAppE2E */,
 				E073F01B7BAFD6FD252567F6 /* Products */,
@@ -214,6 +216,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				ABC5659E4400D0CC657B53E3 /* Nwc Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				F22E00000000000000000001 /* App Shell Swift */,
 				F22E00000000000000000002 /* Settings Swift */,
@@ -243,6 +246,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				ABC5659E4400D0CC657B53E3 /* Nwc Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				E2E000000000000000000002 /* iosAppE2E */,
 				F22E00000000000000000001 /* App Shell Swift */,

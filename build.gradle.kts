@@ -22,7 +22,7 @@ plugins {
 }
 
 val ktlintCliVersion = libs.versions.ktlintCli
-val appProjectNames = setOf("blip", "flint", "lasr")
+val appProjectNames = setOf("blip", "flint", "lasr", "rayl")
 val nativeLocalizationLocales = listOf("en", "de", "es")
 val androidOnlyLocalizationModules = setOf("feature/theme-settings")
 val appleOnlyLocalizationModules = emptySet<String>()
@@ -210,9 +210,19 @@ fun String.appOwner(): String? = removePrefix(":")
     .substringBefore(":")
     .takeIf(appProjectNames::contains)
 
+fun String.providerOwner(): String? =
+    takeIf { it.startsWith(":providers:") }?.removePrefix(":providers:")?.substringBefore(":")
+
+val allowedAppProviders = mapOf(
+    "blip" to setOf("blink"),
+    "lasr" to setOf("nwc"),
+    "flint" to setOf("spark"),
+    "rayl" to setOf("blink", "nwc")
+)
+
 val verifyModuleDependencies = tasks.register("verifyModuleDependencies") {
     group = "verification"
-    description = "Rejects root-to-app and cross-app project dependencies."
+    description = "Enforces app, provider, and provider-neutral project ownership."
 
     doLast {
         val violations =
@@ -224,7 +234,21 @@ val verifyModuleDependencies = tasks.register("verifyModuleDependencies") {
                         .mapNotNull { dependency ->
                             val targetPath = dependency.path
                             val targetOwner = targetPath.appOwner()
+                            val sourceProvider = source.path.providerOwner()
+                            val targetProvider = targetPath.providerOwner()
                             when {
+                                targetProvider != null && sourceOwner == null &&
+                                    sourceProvider == null ->
+                                    "${source.path} -> $targetPath (neutral module depends on a provider)"
+
+                                targetProvider != null && sourceProvider != null &&
+                                    sourceProvider != targetProvider ->
+                                    "${source.path} -> $targetPath (cross-provider dependency)"
+
+                                targetProvider != null && sourceOwner != null &&
+                                    targetProvider !in allowedAppProviders.getValue(sourceOwner) ->
+                                    "${source.path} -> $targetPath (provider is not included in this product)"
+
                                 sourceOwner == null && targetOwner != null ->
                                     "${source.path} -> $targetPath (root module depends on an app)"
 

@@ -56,41 +56,52 @@ fun includeApp(name: String, modules: List<String>) {
         }
 }
 
-includeApp(
-    name = "blip",
-    modules =
-        listOf(
-            "feature:onboarding",
-            "feature:payment",
-            "feature:blink-contacts",
-            "feature:wallet-connection",
-            "feature:wallet-settings",
-            "integration:blink",
-            "ui",
-            "benchmark"
-        )
+includeApp("blip", listOf("benchmark"))
+includeApp("flint", emptyList())
+includeApp("lasr", emptyList())
+includeApp("rayl", emptyList())
+
+fun includeProvider(name: String, modules: List<String>) {
+    modules.forEach { module ->
+        val path = ":providers:$name:$module"
+        include(path)
+        project(path).projectDir = file("providers/$name/${module.replace(':', '/')}")
+    }
+}
+
+includeProvider(
+    "blink",
+    listOf(
+        "experience",
+        "feature:blink-contacts",
+        "feature:onboarding",
+        "feature:payment",
+        "feature:wallet-connection",
+        "feature:wallet-settings",
+        "integration:blink",
+        "ui"
+    )
 )
-includeApp(
-    name = "flint",
-    modules =
-        listOf(
-            "application",
-            "feature:onboarding",
-            "feature:payment",
-            "feature:wallet-connection",
-            "integration:wallet"
-        )
+includeProvider(
+    "nwc",
+    listOf(
+        "experience",
+        "feature:onboarding",
+        "feature:payment",
+        "feature:wallet-connection",
+        "feature:wallet-details",
+        "integration:nwc"
+    )
 )
-includeApp(
-    name = "lasr",
-    modules =
-        listOf(
-            "feature:onboarding",
-            "feature:payment",
-            "feature:wallet-connection",
-            "feature:wallet-details",
-            "integration:nwc"
-        )
+includeProvider(
+    "spark",
+    listOf(
+        "application",
+        "feature:onboarding",
+        "feature:payment",
+        "feature:wallet-connection",
+        "integration:wallet"
+    )
 )
 
 include(":core:model")

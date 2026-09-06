@@ -16,3 +16,7 @@ Before public release:
 4. Have the account owner review the privacy and financial-feature answers.
 5. Record the Play app-signing certificate SHA-256 and artifact SHA-256 in the
    copy of `RELEASE_EVIDENCE_TEMPLATE.md`.
+
+Rayl’s draft metadata lives in `distribution/rayl`. Its distribution application
+and bundle identifier is `com.nicolasusca.rayl`. No candidate has been published
+as part of adding this app.

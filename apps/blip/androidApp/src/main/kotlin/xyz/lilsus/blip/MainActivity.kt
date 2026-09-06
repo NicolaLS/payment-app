@@ -23,7 +23,7 @@ open class MainActivity : AppCompatActivity() {
         setContent {
             App(performanceDiagnostics = performanceDiagnostics)
         }
-        deliverPaymentLink(intent)
+        if (savedInstanceState == null) deliverPaymentLink(intent)
 
         orientationPolicy.startListening()
     }
@@ -41,7 +41,10 @@ open class MainActivity : AppCompatActivity() {
 
     private fun deliverPaymentLink(intent: Intent?) {
         if (intent?.action != Intent.ACTION_VIEW) return
-        intent.dataString
+        val uri = intent.dataString
+        // A consumed request must not follow the activity into another wallet session.
+        intent.data = null
+        uri
             ?.takeIf { it.length <= MAX_PAYMENT_LINK_LENGTH }
             ?.let(BlipDeepLinks::emit)
     }

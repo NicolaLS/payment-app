@@ -1,12 +1,12 @@
 # Release process
 
-Blip, Flint, and Lasr start at version `1.0.0`/build code `1`. Use app-qualified
-tags such as `blip-v1.0.0`, `flint-v1.0.0`, and `lasr-v1.0.0`; use `-rc.N`
+Rayl, Blip, Flint, and Lasr start at version `1.0.0`/build code `1`. Use app-qualified
+tags such as `rayl-v1.0.0`, `blip-v1.0.0`, `flint-v1.0.0`, and `lasr-v1.0.0`; use `-rc.N`
 while validating candidates.
 
 ## Signing model
 
-Blip, Flint, and Lasr share one locally managed app-signing key and one locally
+Rayl, Blip, Flint, and Lasr share one locally managed app-signing key and one locally
 managed, resettable Play upload key. A copy of the app-signing key is
 transferred to Play App Signing during enrollment, so Play can sign store
 deliveries with the same identity that signs artifacts built here.

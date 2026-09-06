@@ -36,7 +36,7 @@ class FlintIosApp(host: FlintAppHost) {
     private val runtime =
         FlintRuntime(
             host = host,
-            appSettings = createAppSettings(FLINT_PREFERENCES),
+            appSettings = createAppSettings(),
             haptics = createHapticFeedbackManager()
         )
 
