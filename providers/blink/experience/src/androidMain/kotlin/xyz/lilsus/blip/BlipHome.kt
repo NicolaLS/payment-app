@@ -115,7 +115,10 @@ internal fun BlipTabContent(
                     savePrompt = hubState.savePrompt,
                     onIntent = coordinator::dispatch,
                     onHubIntent = runtime.paymentHub::dispatch,
-                    onOpenTransaction = null,
+                    onOpenTransaction = { id ->
+                        tabState.selectTransaction(id)
+                        showingRecent = true
+                    },
                     onOpenRecent = { showingRecent = true }
                 )
             }

@@ -68,7 +68,7 @@ fun PaymentScanScreen(
     savePrompt: HubSavePrompt?,
     onIntent: (PaymentIntent) -> Unit,
     onHubIntent: (PaymentHubIntent) -> Unit,
-    onOpenTransaction: ((String) -> Unit)?,
+    onOpenTransaction: (String) -> Unit,
     modifier: Modifier = Modifier,
     isActive: Boolean = true,
     onOpenRecent: (() -> Unit)? = null
@@ -140,7 +140,7 @@ fun PaymentScanScreen(
 
     LaunchedEffect(state.transactionDetailNavigationTarget) {
         state.transactionDetailNavigationTarget?.let { id ->
-            onOpenTransaction?.invoke(id)
+            onOpenTransaction(id)
             onIntent(PaymentIntent.TransactionDetailNavigationHandled(id))
         }
     }
@@ -329,7 +329,7 @@ fun PaymentScanScreen(
                     retryTransaction?.reference?.previousPaymentSituation
                         ?: PreviousPaymentSituation.InProgress
                 ),
-            canViewPreviousPayment = onOpenTransaction != null,
+            canViewPreviousPayment = true,
             onDecision = { decision ->
                 when (decision) {
                     RepeatPaymentDecision.RetryPreviousInvoice ->
@@ -338,11 +338,8 @@ fun PaymentScanScreen(
                     RepeatPaymentDecision.CreateAdditionalPayment ->
                         onIntent(PaymentIntent.PendingRetryCreateNewInvoice)
 
-                    RepeatPaymentDecision.ViewPreviousPayment -> {
-                        if (onOpenTransaction != null) {
-                            onIntent(PaymentIntent.PendingRetryViewPending)
-                        }
-                    }
+                    RepeatPaymentDecision.ViewPreviousPayment ->
+                        onIntent(PaymentIntent.PendingRetryViewPending)
 
                     RepeatPaymentDecision.Dismiss ->
                         onIntent(PaymentIntent.PendingRetryDismiss)

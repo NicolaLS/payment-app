@@ -24,6 +24,7 @@ import xyz.lilsus.raylsuite.feature.appshell.nativeColorSchemeValue
 import xyz.lilsus.raylsuite.feature.paymenthub.NativePaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentui.NativePaymentRecentController
 import xyz.lilsus.raylsuite.feature.paymentui.NativePaymentScanController
+import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.localizedMessage
 import xyz.lilsus.raylsuite.feature.settings.NativeSettingsController
 import xyz.lilsus.raylsuite.feature.settings.nativeSettingsAppVersionName
@@ -272,7 +273,6 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
             NativePaymentScanController(
                 onPaymentIntent = runtime.paymentCoordinator::dispatch,
                 onHubIntent = runtime.paymentHub::dispatch,
-                canOpenPreviousPayment = false,
                 // Blip has no Recent tab, so Scan owns the way into this session's payments.
                 offersRecentEntryPoint = true
             )
@@ -317,6 +317,16 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
                         is PaymentEvent.ShowToast -> event.message.localizedMessage()
                     }
                 controller.emitMessage(message)
+            }
+        }
+        observerScope.launch {
+            runtime.paymentCoordinator.transactionDetailNavigationTarget.collect { id ->
+                if (id == null) return@collect
+                runtime.tabState.selectTransaction(id)
+                runtime.tabState.requestScan()
+                runtime.paymentCoordinator.dispatch(
+                    PaymentIntent.TransactionDetailNavigationHandled(id)
+                )
             }
         }
         return controller

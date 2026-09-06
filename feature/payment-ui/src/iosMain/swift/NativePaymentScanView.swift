@@ -52,16 +52,25 @@ private extension Int {
 private final class NativePaymentScanModel: ObservableObject {
     @Published private(set) var snapshot: NativePaymentScanSnapshot?
     @Published var message: String?
+    @Published private(set) var recentTransactionId: String?
 
     let controller: NativePaymentScanController
     private var cancels: [() -> Void] = []
     private var messageDismissTask: Task<Void, Never>?
 
-    init(controller: NativePaymentScanController) {
+    init(
+        controller: NativePaymentScanController,
+        recentController: NativePaymentRecentController?
+    ) {
         self.controller = controller
         cancels.append(controller.observe { [weak self] snapshot in
             self?.snapshot = snapshot
         })
+        if let recentController {
+            cancels.append(recentController.observe { [weak self] snapshot in
+                self?.recentTransactionId = snapshot.selectedDetail?.id
+            })
+        }
         cancels.append(controller.observeMessages { [weak self] message in
             guard let self else { return }
             messageDismissTask?.cancel()
@@ -96,7 +105,10 @@ struct NativePaymentScanView: View {
         controller: NativePaymentScanController,
         recentController: NativePaymentRecentController? = nil
     ) {
-        _model = StateObject(wrappedValue: NativePaymentScanModel(controller: controller))
+        _model = StateObject(wrappedValue: NativePaymentScanModel(
+            controller: controller,
+            recentController: recentController
+        ))
         self.recentController = recentController
     }
 
@@ -140,7 +152,9 @@ struct NativePaymentScanView: View {
         }
         // A sheet gives Recent its own presentation context, so it keeps the navigation stack it
         // already uses as a tab root instead of nesting one inside Scan's.
-        .sheet(isPresented: $showsRecent) {
+        .sheet(isPresented: $showsRecent, onDismiss: {
+            recentController?.closeDetail()
+        }) {
             if let recentController {
                 NativePaymentRecentView(
                     controller: recentController,
@@ -154,8 +168,15 @@ struct NativePaymentScanView: View {
         .onDisappear {
             model.controller.setActive(active: false)
         }
-        .onChange(of: scenePhase) { _, phase in
-            model.controller.setActive(active: isSelected && phase == .active)
+        .onChange(of: model.recentTransactionId, initial: true) { _, id in
+            if id != nil { showsRecent = true }
+            updateActivity()
+        }
+        .onChange(of: showsRecent) { _, _ in
+            updateActivity()
+        }
+        .onChange(of: scenePhase) { _, _ in
+            updateActivity()
         }
         .onChange(of: isSelected) { _, _ in
             updateActivity()
@@ -203,7 +224,11 @@ struct NativePaymentScanView: View {
     }
 
     private func updateActivity() {
-        model.controller.setActive(active: isSelected && scenePhase == .active)
+        // Clear the previous selection before rearming the camera for another scan of that QR.
+        model.controller.setActive(
+            active: isSelected && scenePhase == .active && !showsRecent
+                && model.recentTransactionId == nil
+        )
     }
 }
 
