@@ -1,12 +1,8 @@
 # Performance monitoring
 
-The suite has three deliberately small layers of performance feedback:
-
-1. `./gradlew perfCheck` gives repeatable before/after feedback while developing.
-2. The **Android performance** GitHub Actions workflow keeps a directional CI
-   history and can attach a report to selected pull requests.
-3. Android vitals, Xcode Organizer, and optional Android Firebase Performance
-   Monitoring show what shipping versions do across real devices.
+Use local benchmarks, pull-request reports, Android system traces, and iOS
+signposts to investigate performance changes. This guide documents the tools,
+marker meanings, and telemetry behavior contributors need to preserve.
 
 None of these measurements include payment amounts, destinations, invoices,
 wallet credentials, NWC URIs, scanned QR values, or camera images.
@@ -106,35 +102,7 @@ Typical interpretations:
 QR detection is not a repeatable benchmark without controlled QR size,
 distance, light, and device position.
 
-## Shipping-version monitoring
-
-### Store dashboards
-
-These require no extra app SDK and should be checked first after every release:
-
-- **Android:** Play Console > Android vitals. Compare the new version with the
-  previous one for startup, slow/frozen rendering, crashes, ANRs, battery, and
-  device-specific outliers. Android vitals is based on data users allow Google
-  Play to collect; Google's [Android vitals guide](https://developer.android.com/topic/performance/vitals)
-  describes the available signals and alerts.
-- **iOS:** Xcode > Window > Organizer > Metrics. Compare versions for launch,
-  responsiveness, memory, disk writes, and energy. Apple's
-  [shipping-app performance guide](https://developer.apple.com/documentation/xcode/improving-your-app-s-performance)
-  describes the version and device breakdowns.
-
-These dashboards cover store-distributed installs. Direct APK installs do not
-appear in Android vitals, which is why the optional Firebase layer is useful.
-
-Firebase is limited to Android here because it has a widely used native SDK,
-hosted aggregation, release/version filters, and the custom duration traces this
-workflow needs. Adding it to the KMP/iOS graph would create more build and SDK
-maintenance while Xcode Organizer already supplies the most useful iOS release
-signals. Sentry is the better next addition if crash diagnosis becomes the goal;
-Datadog is better suited to a larger paid RUM/observability program; and raw
-OpenTelemetry still requires operating a collector and backend. None is simpler
-for this narrowly scoped performance need today.
-
-### Optional Android camera telemetry
+## Optional Android camera telemetry
 
 Android builds support Firebase Performance Monitoring, but collection is
 disabled in the manifest and remains off until a person explicitly enables
@@ -158,49 +126,7 @@ URL, error message, or free-form string to a performance trace.
 Disabling the setting stops future collection. The preference is local to the
 app and defaults to off after a fresh install.
 
-## One-time Firebase setup
-
-The code is complete without Firebase credentials: apps still build and the
-setting stays hidden. To activate Android field monitoring:
-
-1. Create one Firebase project for the suite. Do not enable Google Analytics;
-   Performance Monitoring does not require it.
-2. In that project, register Android clients matching every variant that the
-   repository builds: each product's base package plus `.dev` and `.e2e`, and
-   Blip's `.benchmark` package.
-3. Download a `google-services.json` containing those clients into each app
-   module:
-   `apps/blip/androidApp/`, `apps/flint/androidApp/`, and
-   `apps/lasr/androidApp/`.
-4. Review and commit the files so local, CI, and release builds use the same
-   project. Firebase documents these files as containing unique but
-   [non-secret identifiers](https://firebase.google.com/docs/android/google-services-plugin-and-file).
-5. Build and install a Debug app. The Performance diagnostics setting should
-   now appear. Enable it, exercise startup and the scanner, then check Firebase
-   Console > Performance > **Custom traces**. Initial data can take several
-   hours to appear.
-6. Grant Firebase Console access only to maintainers who need it and review
-   access periodically. Keep production and ad-hoc experiments in the same
-   documented project unless data isolation provides a concrete benefit.
-
-Before activating Firebase in a published build, confirm that the app's linked
-privacy policy contains the performance-diagnostics disclosure and that the
-store privacy declarations match it.
-
-## Release routine
-
-For every candidate:
-
-1. Run `./gradlew perfCheck` on the usual device for performance-sensitive
-   changes, or add the `performance` PR label and inspect the CI summary.
-2. Verify the Firebase configuration is present for Android and collection is
-   still opt-in; never enable collection by default in the console or manifest.
-3. After staged rollout begins, compare Android vitals and Xcode Organizer by
-   app version. Check Firebase camera and startup distributions after enough
-   opted-in samples exist.
-4. Investigate a signal with a local system trace or signpost capture. Do not
-   optimize from one aggregate or emulator result alone.
-
-Preserve marker meanings over time so release comparisons remain useful. Add a
-new marker only when it isolates an actionable stage and can be represented by
-a fixed, non-sensitive name.
+Preserve marker meanings over time so comparisons remain useful. Add a new
+marker only when it isolates an actionable stage and has a fixed, non-sensitive
+name. Apps build without Firebase configuration; collection controls remain
+hidden when configuration is absent.

@@ -1,138 +1,96 @@
-# Introduce the unified Rayl app
+# Rayl architecture and behavior
 
-Owner-approved implementation handoff · 5 September 2026 · MOB-39
+Rayl is the suite's default Android/iOS product. It connects to exactly one Blink
+or Nostr Wallet Connect wallet at a time. Blip, Lasr, and Flint remain independent
+single-provider products. Spark is not a Rayl dependency.
 
-## Product decision
+All apps are prerelease. They do not import another app's credentials, preferences,
+databases, or installation state.
 
-Rayl is a fourth, independent Android/iOS product and the suite’s default
-recommendation. Blip (Blink), Lasr (NWC), and Flint (Spark) remain available as
-purpose-built apps. All are prerelease: no migration, backward compatibility,
-credential transfer, cross-app synchronization, or old-storage readers belong
-in this work.
+## Provider ownership
 
-Rayl v1 supports Blink and Nostr Wallet Connect. It stores exactly one wallet
-connection. Supporting multiple saved connections is a possible future feature,
-not a reason to add account registries or universal wallet interfaces now.
-Spark ownership is restructured now, but its SDK and features are excluded from
-Rayl’s dependencies. Cashu, Ark, and other integrations are out of scope.
+| Modules | Behavior | Consumers |
+| --- | --- | --- |
+| `providers/blink` | Blink integration, features, localized UI, native experience | Blip and Rayl |
+| `providers/nwc` | NWC integration, features, native experience | Lasr and Rayl |
+| `providers/spark` | Spark application contracts, integration, features | Flint |
+| `apps/*` | Identity, storage scopes, legal links, entry points, composition | Owning app |
+| Root `core/*`, `feature/*`, `integration/*` | Provider-neutral values and reusable implementation | Applicable consumers |
 
-## Existing features and onboarding
+Each provider owns payment validation, authorization, errors, retry decisions,
+uncertain outcomes, and recovery. Rayl selects a concrete native experience; it
+does not combine providers into one payment state machine or universal wallet API.
+Apps do not depend on one another, providers do not depend on other providers or
+apps, and neutral modules do not depend on either. `verifyModuleDependencies`
+enforces these boundaries.
 
-Preserve each supported provider’s existing payment features, validation,
-authorization, errors, retry decisions, uncertain outcomes, and recovery.
-Blink retains funding-wallet selection, contact import, fee presentation, Scan,
-Hub, and Settings, with session payments opened from Scan. NWC retains its
-connection details, discovery checks, reconciliation, and Scan, Recent, Hub,
-Settings navigation. Do not combine their state machines to make their modules
-look alike.
+## Onboarding and navigation
 
-First use is Rayl welcome → wallet choice → provider-specific setup → Scan.
-Require a connection before showing the main tabs. Once connected, open directly
-into that experience. Other providers should not appear in ordinary payment
-use. Onboarding copy receives the product name; native platform renderers remain
-shared within each provider instead of being copied into Rayl.
+First use is welcome → wallet choice → provider setup → Scan. A connection is
+required before showing the main tabs. A connected app opens directly into its
+provider experience:
 
-App education and preference setup happen once per installation. After removing
-a wallet, Rayl returns to wallet choice, then opens only the selected provider's
-add/confirm wallet screens. Blip and Lasr open their own add-wallet screen directly.
-These connection flows reuse the native setup controls without onboarding progress,
-introductory steps, preference setup, or mandatory contact import. Cancelling in
-Rayl returns to wallet choice. Saved payment defaults remain visible in Settings.
+- Blink exposes Scan, Hub, and Settings, with session payments opened from Scan.
+  It retains funding-wallet selection, contact import, and fee presentation.
+- NWC exposes Scan, Recent, Hub, and Settings, with its own discovery, connection
+  details, and reconciliation behavior.
 
-The existing Payment Hub provides local shortcuts, groups, layout, and payment
-interactions. Preserve it. Its service catalogue is a placeholder. Backend APIs,
-service purchases, supplier invoices, fulfilment, order history, and purchase
-handoff contracts are not part of introducing Rayl.
+App education and preference setup happen once per installation. Removing a
+wallet returns Rayl to wallet choice; subsequent setup uses the selected
+provider's add/confirm controls without repeating general onboarding. Cancelling
+setup returns to wallet choice. Blip and Lasr return directly to their own
+provider setup. Saved payment defaults remain visible in Settings.
 
-## Removal, replacement, and continuity
+Payment Hub shortcuts, groups, and layout are local app features. Its service
+catalogue is a placeholder; the app does not implement service purchasing or
+fulfillment.
 
-Removing the current connection is the first step to changing wallets. Block
-removal during active payment submission. Pending or unknown outcomes do not
-block removal forever: require explicit acknowledgment that local payment
-records will be erased and the user must check the original wallet before
-trying again. Removal does not cancel or reverse a submitted payment.
+## Connection removal and input isolation
 
-Keep imported contacts, app onboarding completion, all general preferences
-(including auto-pay, theme, currency, and language), and local Hub shortcuts,
-groups, and layout. Imported contacts remain available to the Blink experience
-across connection changes. Erase wallet credentials, connection-specific settings,
-payment-session records, and queued inputs. Close provider resources and invalidate outstanding
-work before another connection can be mounted. Interrupted cleanup must finish
-after restart. A new connection must never restore the previous wallet’s
-payment attempts, even when the provider is the same.
+Remove the current connection before changing wallets. Removal is blocked during
+active payment submission. Pending or unknown outcomes require explicit
+acknowledgment that local payment records will be erased and the original wallet
+must be checked before retrying. Removal does not cancel or reverse a payment.
 
-Incomplete cleanup presents a blocking retry screen. No new connection or payment
-flow may start until erasure has completed and a fresh experience can be created.
+Keep imported contacts, onboarding completion, general preferences, and local Hub
+shortcuts/groups/layout. Imported Blink contacts remain available across
+connection changes. Erase credentials, connection-specific settings, payment
+session records, and queued input. Close provider resources and invalidate
+outstanding work before mounting another connection.
 
-Apply the active-submission guard and explicit warning to the reused Blink and
-NWC experiences in Blip and Lasr as well. Preserve Spark’s own removal semantics.
+Interrupted cleanup resumes after restart. Incomplete cleanup presents a blocking
+retry screen; a new connection/payment flow cannot start until cleanup finishes.
+Even another connection to the same provider cannot restore the previous wallet's
+payment attempts. Blink and NWC reuse their guards in Blip and Lasr; Spark retains
+its own removal semantics.
 
-Cancelling setup before connection returns to wallet choice. Connection links
-may preselect NWC but cannot silently replace a configured wallet. Payment
-requests route only to the connected experience; an unconfigured user must
-finish setup and reopen the payment request. Do not replay inputs across wallet
+Connection links may preselect NWC but cannot silently replace an existing wallet.
+Payment input routes only to the connected experience. An unconfigured user must
+complete setup and reopen the request. Never replay queued input across connection
 replacement.
 
-## Ownership and native boundaries
+## Native UI and storage
 
-- `providers/blink`: Blink features, integration, UI, and reusable experience;
-  consumed directly by Blip and Rayl.
-- `providers/nwc`: NWC features, integration, and reusable experience; consumed
-  directly by Lasr and Rayl.
-- `providers/spark`: Spark application contracts, integration, and features;
-  consumed by Flint only in v1.
-- `apps/*`: product identity, storage names, legal links, entry points, and
-  top-level navigation/dependency composition.
-- Root `core/*`, `feature/*`, `integration/*`: provider-neutral values,
-  utilities, presentation, and features.
+Shared Kotlin holds state and presentation snapshots. Android renders Compose
+from `androidMain`; iOS renders SwiftUI/UIKit from `iosMain/swift`. Each consuming
+Xcode target registers shared renderer directories once, with explicit resource
+catalog references. See [the native app shell](native-shell.md).
 
-Preserve useful module subdivisions. A complete wallet experience is an
-ownership boundary, not a requirement to create one monolithic feature module.
-Existing Kotlin namespaces may remain after moves. Do not leave forwarding
-wrappers or type aliases to preserve old module APIs.
+App roots assemble dependencies and navigation. Provider experiences consume
+shared presentation directly; provider decisions stay with their provider.
+Do not add forwarding wrappers, a shared payment coordinator, or provider flags
+to disguise different behavior.
 
-Apps must not depend on one another. Providers must not depend on apps or other
-providers. Neutral modules must not depend on providers. Enforce each product’s
-allowed providers in `verifyModuleDependencies`.
+Keep app-specific storage and separate named provider connection stores. Blink
+and NWC both use `payments.pendingAttempts.v1`, so they must never receive the
+same connection-settings instance. On iOS, general preferences use standard
+app-specific UserDefaults; erasable provider data uses the explicit named
+connection-settings factory.
 
-There is no universal wallet API, shared payment coordinator, provider error
-union, capability registry, or generic recovery policy. The shell chooses a
-concrete experience; it does not execute its payment state machine. Preserve
-existing shared render projections and optional presentation sections.
+## Identity and resources
 
-Kotlin common code holds state and snapshots. Android uses Compose in
-`androidMain`. iOS uses SwiftUI/UIKit in `iosMain/swift`, registered once per
-consuming Xcode target, with explicit resource catalog references. No Compose
-renderer on iOS and no duplicated shared Swift files.
-
-Use app-specific storage and distinct provider connection stores. Both Blink
-and NWC currently use `payments.pendingAttempts.v1`; never give them the same
-connection settings instance. Named connection stores must honor their storage name.
-On iOS, keep general app preferences in standard UserDefaults, their original
-app-specific store. Use an explicit named connection-settings factory only for
-erasable provider data. No relocation of existing app preferences, migration,
-fallback reader, or cross-app sharing is required.
-
-## Identity, delivery, and verification
-
-Rayl’s distribution identity is `com.nicolasusca.rayl` on both platforms.
-Its Kotlin/Android namespace is `xyz.lilsus.rayl`; the Gradle prefix is `:rayl`.
-Android adds `.dev` and `.e2e`, iOS E2E adds `.e2e`. Keep existing app identifiers
-and the `rayl-suite` root name. Maintain English, German, Spanish and iOS/iPadOS
-18.5 minimum deployment targets.
-
-Move provider ownership first, add native Rayl composition and selection next,
-then register native resources, app identity, CI, and distribution tooling.
-Public publishing, release builds, release tags, signing-certificate changes,
-and changes to the approved NWC dependency are separate owner-authorized work.
-
-Use affected-module ktlint, dependency-boundary verification, localization
-verification, and relevant Debug builds. Add only narrowly targeted unit tests
-for selection, removal guards, and isolation. Do not run broad suites, device
-tests, E2E flows, or configuration matrices.
-
-Owner QA covers both complete setup/payment journeys, same-provider replacement,
-active and uncertain payments, interrupted cleanup, link routing, retained Hub
-preferences, and independent operation of all four apps. Success is one Rayl
-installation with two purpose-built experiences and independently understandable
-provider implementations—not a universal payment engine.
+- Android application ID and iOS bundle ID: `com.nicolasusca.rayl`.
+- Kotlin/Android namespace: `xyz.lilsus.rayl`; Gradle prefix: `:rayl`.
+- Android variants add `.dev` and `.e2e`; iOS E2E adds `.e2e`.
+- Maintain English, German, and Spanish resources together.
+- iOS/iPadOS deployment target is at least 18.5 for normal and E2E targets.

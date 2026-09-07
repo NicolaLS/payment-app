@@ -1,6 +1,6 @@
 > **Default app: Rayl.** Connect one Blink or NWC wallet. Blip, Lasr, and Flint
 > remain purpose-built alternatives. All four apps are prerelease. See
-> [the Rayl handoff](docs/rayl-app.md) for scope and provider ownership.
+> [Rayl architecture and behavior](docs/rayl-app.md) for scope and provider ownership.
 
 # Rayl Suite
 
@@ -42,16 +42,6 @@ Use JDK 21 and the root Gradle wrapper.
 ./gradlew check
 ```
 
-To exercise a production-signed, R8-processed build on a connected device:
-
-```shell
-./gradlew :lasr:androidApp:printReleaseSigningConfig
-./gradlew :lasr:androidApp:installSignedRelease
-```
-
-Release signing needs the `RAYL_UPLOAD_*` and `RAYL_APP_SIGNING_*` variables
-from `.envrc.example`. See [docs/release.md](docs/release.md).
-
 For iOS, open the chosen app’s `iosApp.xcodeproj`, or validate a Kotlin Debug
 simulator framework directly:
 
@@ -62,7 +52,7 @@ simulator framework directly:
 ./gradlew :lasr:shared:linkDebugFrameworkIosSimulatorArm64
 ```
 
-See [release](docs/release.md), [E2E](docs/e2e.md),
-[performance monitoring](docs/performance-monitoring.md), the
-[payment hub](docs/payment-hub.md), the [native app shell](docs/native-shell.md),
-and the [extraction completion record](docs/MIGRATION_LEDGER.md).
+See [E2E build guidance](docs/e2e.md),
+[performance diagnostics](docs/performance-monitoring.md),
+[Rayl architecture and behavior](docs/rayl-app.md), and
+[the native app shell](docs/native-shell.md).

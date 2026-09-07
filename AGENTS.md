@@ -21,6 +21,16 @@ rather than one Compose renderer for both.
   requests when practical, and keep the Linear issue current as scope or status
   changes.
 
+## Documentation audience
+
+Keep repository documentation relevant to users and contributors: product
+behavior, architecture, setup, builds, tests, diagnostics, public legal text,
+and asset guidance. Owner release runbooks, account administration, launch
+checklists, release evidence, implementation handoffs, and historical work
+reports belong in the owner's private documentation workspace outside Git.
+Preserve current contributor contracts when extracting mixed-purpose documents.
+Do not add links to private machine-specific documentation from repository files.
+
 ## Products and identity
 
 - Rayl is the default unified product, initially supporting Blink and NWC with
@@ -364,8 +374,8 @@ the code they changed.
 
 ## Release invariants
 
-Release procedure details live in `docs/release.md`; the safeguards below are
-non-negotiable.
+Owner release procedures are maintained outside this repository. The safeguards
+below remain non-negotiable for repository changes.
 
 - Rayl, Blip, Flint, and Lasr share the suite upload identity and app-signing
   identity. Both identities are locally managed and their secrets remain

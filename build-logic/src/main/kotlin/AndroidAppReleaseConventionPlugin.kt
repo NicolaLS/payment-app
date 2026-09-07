@@ -197,7 +197,7 @@ private fun Task.requireSigningIdentities(
             missing.forEach { appendLine("  - $it") }
             appendLine()
             append("Copy .envrc.example to .envrc.local and load the passwords from a ")
-            append("secret manager, then re-run. See docs/release.md.")
+            append("secret manager, then re-run.")
         }
     )
 }

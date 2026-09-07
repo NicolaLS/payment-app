@@ -1,22 +1,17 @@
 # Distribution assets
 
-Each app owns its public metadata and master icon under `distribution/<app>/`.
-Store screenshots must be captured from the final Release candidates; do not
-reuse the removed legacy multi-wallet screenshots. A new app's public
-distribution directory must be reviewed and completed before its first public
-candidate is published.
+Each app's directory contains its public product metadata and master icon:
 
-Before public release:
+- `icon.png`: app artwork used by distribution channels.
+- `store-listing/en-US.md`, `de-DE.md`, `es-ES.md`: localized public store copy.
+- `zapstore.yaml`, where present: app metadata consumed by Zapstore tooling.
 
-1. Add the suite Zapstore publisher `pubkey` to every app's Zapstore
-   configuration.
-2. Capture current phone screenshots in English, German, and Spanish.
-3. Export each store's required screenshot sizes from those captures without
-   changing the represented UI.
-4. Have the account owner review the privacy and financial-feature answers.
-5. Record the Play app-signing certificate SHA-256 and artifact SHA-256 in the
-   copy of `RELEASE_EVIDENCE_TEMPLATE.md`.
+Keep names, capabilities, identifiers, screenshots, and legal links accurate for
+the owning app. Maintain English, German, and Spanish copy together. Screenshots
+must depict the current native UI; do not reuse retired multi-wallet screens.
 
-Rayl’s draft metadata lives in `distribution/rayl`. Its distribution application
-and bundle identifier is `com.nicolasusca.rayl`. No candidate has been published
-as part of adding this app.
+Rayl's distribution identifier is `com.nicolasusca.rayl`. Public privacy policies
+and terms live under [`docs/legal`](../docs/legal).
+
+`app-signing-certificate.sha256` is a build/distribution input verified by the APK
+tooling. Changes to signing identity require explicit owner review.

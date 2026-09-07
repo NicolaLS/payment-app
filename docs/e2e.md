@@ -19,16 +19,9 @@ extraction baseline is `d17dc43`; its harness originated in `ab2e872`). It targe
 `xyz.lilsus.papp.e2e` package and combines several providers, so it must not be copied unchanged
 into the independent products.
 
-Until a provider-neutral replacement harness exists, the release smoke pass on physical Android
-and iPhone devices covers each product's:
+There is currently no supported provider-neutral replacement harness. The build
+commands above produce E2E apps; they do not run an automated end-to-end suite.
 
-1. fresh onboarding and wallet connection;
-2. paste, camera, and deep-link payment input, including denied camera permission recovery;
-3. successful payment plus cancellation, provider error, and offline behavior;
-4. wallet removal and reconnection;
-5. visible tabs, Payment Hub targets/groups, settings, and light/dark appearance; and
-6. English, German, and Spanish presentation.
-
-Blink credentials, Flint recovery phrases and Breez API keys, and NWC URIs must come through
-private maintainer or store-review channels. Never commit them or expose them to pull-request
-workflows.
+Use private test credentials supplied outside the repository. Never commit Blink
+credentials, Flint recovery phrases or Breez API keys, or NWC URIs, and never
+expose them to pull-request workflows.
