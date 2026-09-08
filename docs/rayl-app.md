@@ -1,8 +1,9 @@
 # Rayl architecture and behavior
 
-Rayl is the suite's default Android/iOS product. It connects to exactly one Blink
-or Nostr Wallet Connect wallet at a time. Blip, Lasr, and Flint remain independent
-single-provider products. Spark is not a Rayl dependency.
+Rayl is the suite's default Android/iOS product. It connects to exactly one wallet
+at a time. Version 1.0 offers Blink only; NWC composition remains for future
+releases. Blip, Lasr, and Flint remain independent single-provider products.
+Spark is not a Rayl dependency.
 
 All apps are prerelease. They do not import another app's credentials, preferences,
 databases, or installation state.
@@ -12,7 +13,7 @@ databases, or installation state.
 | Modules | Behavior | Consumers |
 | --- | --- | --- |
 | `providers/blink` | Blink integration, features, localized UI, native experience | Blip and Rayl |
-| `providers/nwc` | NWC integration, features, native experience | Lasr and Rayl |
+| `providers/nwc` | NWC integration, features, native experience | Lasr; retained for future Rayl releases |
 | `providers/spark` | Spark application contracts, integration, features | Flint |
 | `apps/*` | Identity, storage scopes, legal links, entry points, composition | Owning app |
 | Root `core/*`, `feature/*`, `integration/*` | Provider-neutral values and reusable implementation | Applicable consumers |
@@ -32,8 +33,9 @@ provider experience:
 
 - Blink exposes Scan, Hub, and Settings, with session payments opened from Scan.
   It retains funding-wallet selection, contact import, and fee presentation.
-- NWC exposes Scan, Recent, Hub, and Settings, with its own discovery, connection
-  details, and reconciliation behavior.
+- The retained NWC experience exposes Scan, Recent, Hub, and Settings in Lasr,
+  with its own discovery, connection details, and reconciliation behavior. It
+  is unavailable in Rayl 1.0.
 
 App education and preference setup happen once per installation. Removing a
 wallet returns Rayl to wallet choice; subsequent setup uses the selected
@@ -80,7 +82,11 @@ Even another connection to the same provider cannot restore the previous wallet'
 payment attempts. Blink and NWC reuse their guards in Blip and Lasr; Spark retains
 its own removal semantics.
 
-Connection links may preselect NWC but cannot silently replace an existing wallet.
+Rayl 1.0 does not register NWC connection URLs and rejects directly delivered NWC
+links. `RAYL_AVAILABLE_WALLETS` controls both native choice lists and selection
+validation, including persisted selection. Enabling another provider requires a
+mobile release, its URL registrations, and corresponding product declarations.
+Provider implementations and separate connection stores remain in place.
 Payment input routes only to the connected experience. An unconfigured user must
 complete setup and reopen the request. Never replay queued input across connection
 replacement.

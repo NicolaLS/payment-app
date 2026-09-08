@@ -1,8 +1,8 @@
 # Rayl privacy notice
 
 Rayl is a prerelease payment app. It connects to one wallet at a time using
-Blink or Nostr Wallet Connect (NWC). Your chosen wallet service and, for NWC,
-its relays receive the requests needed to connect and make payments. LNURL
+Blink in version 1.0. Blink receives the requests needed to connect and make
+payments. LNURL
 recipients receive requests when you use Lightning addresses or LNURL links.
 Exchange-rate requests use the suite’s existing rate service. Rayl does not
 operate a payment-service backend or synchronize data between suite apps.

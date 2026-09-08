@@ -64,7 +64,9 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
         RaylDeepLinks.events.collect { uri ->
             val selected = selection.wallet.value
             if (uri.substringBefore(':').equals("nostr+walletconnect", true)) {
-                if (selected == null) {
+                if (RaylWallet.Nwc !in RAYL_AVAILABLE_WALLETS) {
+                    message = R.string.wallet_unavailable
+                } else if (selected == null) {
                     selection.choose(RaylWallet.Nwc)
                     LasrDeepLinks.emit(uri)
                 } else if (selected == RaylWallet.Nwc &&
@@ -143,11 +145,12 @@ fun App(performanceDiagnostics: PerformanceDiagnostics? = null) {
                                 Text(stringResource(R.string.get_started))
                             }
                         } else {
-                            WalletChoice(R.string.blink_title, R.string.blink_body) {
-                                selection.choose(RaylWallet.Blink)
-                            }
-                            WalletChoice(R.string.nwc_title, R.string.nwc_body) {
-                                selection.choose(RaylWallet.Nwc)
+                            RAYL_AVAILABLE_WALLETS.forEach { available ->
+                                val (title, body) = when (available) {
+                                    RaylWallet.Blink -> R.string.blink_title to R.string.blink_body
+                                    RaylWallet.Nwc -> R.string.nwc_title to R.string.nwc_body
+                                }
+                                WalletChoice(title, body) { selection.choose(available) }
                             }
                         }
                     }

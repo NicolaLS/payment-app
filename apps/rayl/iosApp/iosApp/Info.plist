@@ -19,13 +19,12 @@
 			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>nostr+walletconnect</string>
 				<string>lightning</string>
 				<string>lnurlp</string>
 			</array>
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Rayl uses the camera to scan Blink, Nostr Wallet Connect and Bitcoin Lightning QR codes.</string>
+	<string>Rayl uses the camera to scan Blink and Bitcoin Lightning QR codes.</string>
 </dict>
 </plist>
