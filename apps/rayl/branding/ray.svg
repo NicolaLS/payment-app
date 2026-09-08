@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="1024" height="1024" viewBox="0 0 1024 1024"
+     fill="none" color-interpolation="sRGB" role="img"
+     aria-labelledby="artwork-title artwork-description">
+  <title id="artwork-title">RAYL — RAY — square</title>
+  <desc id="artwork-description">Editable vector reconstruction of the selected RAYL concept. Native paths and linear/radial gradients; no raster images, fonts, or filters. Unmasked 1024-unit square source. Platform-specific asset preparation is still required.</desc>
+  <!--
+    RAYL editable vector study · v1 · 2026-09-08
+    Coordinate system: 1024 × 1024. Change width/height for output size;
+    retain the viewBox to preserve geometry and proportions.
+    This is a reconstruction, not an original vector export of the raster concept.
+    Named groups separate background, symbol and optional lighting.
+  -->
+  <defs>
+    <clipPath id="canvas-clip" clipPathUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="1024" height="1024" rx="0"/>
+    </clipPath>
+
+    <!-- Dark, cool-blue background. Edit these stops to change the canvas. -->
+    <linearGradient id="background-gradient" gradientUnits="userSpaceOnUse" x1="130" y1="0" x2="910" y2="1024">
+      <stop offset="0" stop-color="#101A28"/>
+      <stop offset="0.48" stop-color="#08121D"/>
+      <stop offset="1" stop-color="#040B12"/>
+    </linearGradient>
+    <radialGradient id="background-ambient" gradientUnits="userSpaceOnUse" cx="330" cy="155" r="805">
+      <stop offset="0" stop-color="#142640" stop-opacity="0.26"/>
+      <stop offset="0.65" stop-color="#0F213B" stop-opacity="0.09"/>
+      <stop offset="1" stop-color="#0F213B" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Presentation only; remove for production app assets. -->
+    <linearGradient id="presentation-border-gradient" gradientUnits="userSpaceOnUse" x1="100" y1="0" x2="870" y2="1024">
+      <stop offset="0" stop-color="#3A5278" stop-opacity="0.73"/>
+      <stop offset="0.6" stop-color="#243A58" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#294160" stop-opacity="0.38"/>
+    </linearGradient>
+
+    <!-- Upper R surface: broad cobalt-to-ice gradient. -->
+    <linearGradient id="ray-bowl-gradient" gradientUnits="userSpaceOnUse" x1="285" y1="322" x2="633" y2="603">
+      <stop offset="0" stop-color="#07163D"/>
+      <stop offset="0.2" stop-color="#0B2E83"/>
+      <stop offset="0.46" stop-color="#245DCC"/>
+      <stop offset="0.7" stop-color="#6CB2F3"/>
+      <stop offset="0.86" stop-color="#AFE0FB"/>
+      <stop offset="1" stop-color="#ECFAFF"/>
+    </linearGradient>
+    <!-- Small, editable reflection on the bowl, not a raster blur. -->
+    <radialGradient id="ray-bowl-reflection" gradientUnits="userSpaceOnUse" cx="605" cy="544" r="166">
+      <stop offset="0" stop-color="#F4FCFF" stop-opacity="0.68"/>
+      <stop offset="0.44" stop-color="#DDF4FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#DDF4FF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Gradient perpendicular to the beam's bright diagonal edge. -->
+    <linearGradient id="ray-beam-gradient" gradientUnits="userSpaceOnUse" x1="90" y1="590" x2="288" y2="800">
+      <stop offset="0" stop-color="#082254" stop-opacity="0"/>
+      <stop offset="0.36" stop-color="#0C338D" stop-opacity="0.06"/>
+      <stop offset="0.66" stop-color="#194EC2" stop-opacity="0.35"/>
+      <stop offset="0.88" stop-color="#377FDB" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#75BEF9"/>
+    </linearGradient>
+    <linearGradient id="ray-leg-gradient" gradientUnits="userSpaceOnUse" x1="212" y1="852" x2="596" y2="542">
+      <stop offset="0" stop-color="#061320"/>
+      <stop offset="0.34" stop-color="#09214A"/>
+      <stop offset="0.62" stop-color="#12366D"/>
+      <stop offset="0.85" stop-color="#2F69B6"/>
+      <stop offset="1" stop-color="#84BDF0"/>
+    </linearGradient>
+    <linearGradient id="ray-leg-shade" gradientUnits="userSpaceOnUse" x1="596" y1="542" x2="596" y2="1044">
+      <stop offset="0" stop-color="#031026" stop-opacity="0"/>
+      <stop offset="1" stop-color="#031026" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="ray-diagonal-highlight" gradientUnits="userSpaceOnUse" x1="84" y1="971" x2="596" y2="542">
+      <stop offset="0" stop-color="#4894E4" stop-opacity="0.02"/>
+      <stop offset="0.32" stop-color="#83D0FC" stop-opacity="0.2"/>
+      <stop offset="0.77" stop-color="#C6F0FF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#F3FDFF" stop-opacity="0.64"/>
+    </linearGradient>
+  </defs>
+  <g id="artwork" clip-path="url(#canvas-clip)">
+    <g id="background" inkscape:groupmode="layer" inkscape:label="01 · Background">
+      <rect id="background-base" x="0" y="0" width="1024" height="1024" fill="url(#background-gradient)"/>
+      <rect id="background-soft-light" x="0" y="0" width="1024" height="1024" fill="url(#background-ambient)"/>
+    </g>
+    <g id="ray-symbol" inkscape:groupmode="layer" inkscape:label="02 · RAY symbol">
+      <!-- Beam, leg and bowl are separate editable paths. -->
+      <path id="ray-light-beam" d="M 596 542 L -150 1167 L -150 492 Z" fill="url(#ray-beam-gradient)"/>
+      <path id="ray-leg" d="M 596 542 L 1000 1044 H -3 Z" fill="url(#ray-leg-gradient)"/>
+      <path id="ray-leg-shading" d="M 596 542 L 1000 1044 H -3 Z" fill="url(#ray-leg-shade)"/>
+      <path id="ray-bowl" d="M 312 306 H 596 C 662 306 714 357 714 423 C 714 489 662 542 596 542 L 294 795 V 324 Q 294 306 312 306 Z" fill="url(#ray-bowl-gradient)"/>
+      <path id="ray-bowl-light" d="M 312 306 H 596 C 662 306 714 357 714 423 C 714 489 662 542 596 542 L 294 795 V 324 Q 294 306 312 306 Z" fill="url(#ray-bowl-reflection)"/>
+    </g>
+    <g id="ray-light-accents" inkscape:groupmode="layer" inkscape:label="03 · Optional light accents">
+      <path id="ray-bright-diagonal" d="M 83 972 L 596 542" fill="none" stroke="url(#ray-diagonal-highlight)" stroke-width="2.2"/>
+    </g>
+  </g>
+</svg>
