@@ -10,19 +10,21 @@ native APIs.
 
 - `core:hub-api` contains serializable Kotlin wire types for Android, iOS, and JVM.
 - `integration:hub` contains the Ktor HTTP client and bounded response parsing.
-- `backend:hub` is a runnable JVM Ktor server. Its catalogue is initially empty.
-- `GET /hub/v1/widgets` returns `{"protocolVersion":1,"widgets":[]}`.
-- `POST /hub/v1/widgets/{widgetId}/content` returns `404` with
-  `{"code":"widget_not_found"}` because no remote widgets are published yet.
+- `backend:hub` is a runnable JVM Ktor server. Without supplier credentials its catalogue is empty.
+- `GET /hub/v1/widgets` discovers compatible definitions.
+- `POST /hub/v1/widgets/{widgetId}/content` resolves the selected native variant.
+- `PUT /hub/v1/orders/{orderId}` prepares one idempotent service order;
+  `GET` on the same path resumes its payment and delivery state.
 
-The client supports `metric/v1` definitions and typed metric content. A metric
-variant selects the compiled `metric` template and exactly one size: `small`,
-`wide`, or `large`. Different finished compositions have different variant IDs;
-the descriptor does not offer a second independent resizing decision.
+The client supports `metric/v1` and `service/v1`. A variant chooses a compiled
+native template and one size: `small`, `wide`, or `large`. Different finished
+compositions have different variant IDs.
 
-There are no live Bitcoin-price, SilentLink, Claro, Tigo, or other supplier
-integrations behind this endpoint. Example fixtures describe the wire format
-and are never loaded as catalogue entries by the server.
+The `feat/hub` experiment connects Claro El Salvador airtime and packages through
+the Bitrefill Personal API. Supplier catalog values are discovered at runtime;
+fixtures are never loaded into the live catalogue. See the
+[Claro experiment guide](claro-service-experiment.md) for setup, boundaries, and
+verification. Price and SilentLink integrations are not implemented.
 
 ## Local development
 
@@ -41,7 +43,7 @@ curl http://127.0.0.1:8080/hub/v1/widgets \
   -H 'X-Rayl-Version: 1.0.0' \
   -H 'X-Rayl-Build: 1' \
   -H 'X-Rayl-Platform: ios' \
-  -H 'X-Rayl-Hub-Contracts: metric/v1' \
+  -H 'X-Rayl-Hub-Contracts: metric/v1,service/v1' \
   -H 'Accept-Language: en'
 ```
 
@@ -54,7 +56,9 @@ The HTTP client accepts HTTPS, plus HTTP loopback development hosts `localhost`,
 `127.0.0.1`, `::1`, and Android emulator host alias `10.0.2.2`. Android and Apple
 transport policies still apply; use an HTTPS development endpoint unless the
 relevant Debug configuration explicitly permits local HTTP. Never weaken a
-Release transport policy to test this endpoint.
+Release transport policy to test this endpoint. Rayl Android Debug explicitly
+allows the loopback/emulator hosts; `scripts/build-hub-ios-debug.sh` supplies a
+temporary Debug-only plist for local iOS simulator verification.
 
 ## Request metadata
 
@@ -73,8 +77,8 @@ The server rejects missing metadata with `400` and
 `{"code":"client_metadata_required"}`. An empty supported-contract list is
 allowed. Metadata is not authentication and contains no device identifier.
 The client advertises the intersection of the supplied capabilities and its
-implemented contracts: currently at most `metric/v1`. Unknown capabilities are
-never advertised, and content requests are not sent when metric support is disabled.
+implemented contracts: `metric/v1` and `service/v1`. Unknown capabilities are
+never advertised; service order requests require service support.
 
 ## Four separate data boundaries
 
@@ -99,8 +103,10 @@ not imply an implemented phone-number normalization or validation standard.
 The HTTP client validates transport bounds (at most 16 configuration keys, valid
 key identifiers, and at most 256 characters per value). It does not retain a
 catalogue or revalidate a saved configuration against the newest field schema.
-A future content handler must validate fields and values on every request before
-looking up data. The current empty backend returns 404 without processing them.
+Content handlers validate transport inputs, and order preparation validates the
+current service revision, offer, recipient, and exact requested denomination.
+The initial service contract covers phone top-ups and packages; arbitrary
+supplier navigation, executable code, and other product families are not part of it.
 
 See [the metric catalogue fixture](api/payment-hub/catalog-metric.example.json)
 and [its schema](api/payment-hub/metric-catalog.schema.json). Identifiers use
@@ -115,9 +121,9 @@ and an ordered `widgets` array in one atomic document. Array order determines
 canvas arrangement; there is no separate remote layout document.
 
 A stored widget contains `id`, `definitionId`, `kind`, `variantId`, `columns`,
-`rows`, `capacity`, and optional `title`. Contacts widgets keep ordered
+`rows`, `capacity`, native `template`, and optional `title`. Contacts widgets keep ordered
 `contactIds`; a Shortcut references one saved payment recipe through `actionId`;
-remote metric instances keep their field values in `configuration`. The shape
+remote metric and service instances keep field values in `configuration`. The shape
 is illustrated in [the local instance fixture](api/payment-hub/local-instance.example.json).
 This is local persistence, not a server API or synchronization format.
 
@@ -139,6 +145,11 @@ and history. Deleting a contact asks for confirmation, removes its payment
 actions and Shortcuts, and prunes Contacts memberships; an empty Contacts widget
 is removed. The post-payment save prompt creates a contact and a single Contacts
 widget together. Blink import populates only the contact book.
+
+Service widgets do not reference contacts. Their saved phone belongs to the
+widget configuration. Orders survive widget removal and are recovered through a
+separate app-scoped encrypted journal. Favorites and Recents currently rank
+contact payment actions; service order history is not included in this experiment.
 
 ### Refreshed content
 
@@ -168,35 +179,50 @@ content must preserve its age; a failed refresh must not make old data appear
 fresh. Credentials for a future authorized balance lookup must not be placed in
 ordinary widget configuration or logged by request handlers.
 
-### Future service purchase
+### Service content and purchases
 
-Service purchasing is not implemented. The [service catalogue fixture](api/payment-hub/catalog-service.future.example.json)
-and [future schema](api/payment-hub/service-catalog.future.schema.json) are
-design examples. The current client skips `service/v1` and purchase actions.
+`service/v1` provides `service-topup` and `service-packages` native templates.
+Content contains the country/calling code, an opaque revision, and selectable
+offers. Offers have opaque IDs and supplier-provided labels/descriptions. Airtime
+has an exact fixed denomination or a minimum/maximum/step range. Named packages
+may have no monetary denomination; their payment cost comes from the quote.
+Amounts use integer minor-unit strings plus currency and fraction digits, never
+floating point. `amountMsat` is an integer count of Lightning millisatoshis.
 
-A future implementation must distinguish requested service denomination from
-the quoted payment price. It prepares an expiring order, returns an exact total
-and Lightning invoice, delegates payment to the selected wallet provider, and
-retrieves fulfillment status from the backend. Wallet settlement and supplier
-delivery are separate facts. Supplier adapters own fulfillment and recovery;
-widget descriptors do not own payment retries or wallet policy.
+The client generates an order UUID and a cryptographically random recovery
+credential, and persists both with the requested selection before sending PUT.
+The bearer credential authorizes access only to that order. It is stored using
+Android Keystore-backed encryption or Apple Keychain, separately from contacts,
+widgets, and wallet credentials, and scoped to the backend endpoint.
 
-The [future purchase exchange](api/payment-hub/purchase.future.example.json)
-illustrates exact minor-unit amounts, revision validation, idempotency, and
-anonymous order recovery. In that fixture, `"minor":"500","currency":"USD"`
-means $5.00, and the separate `amountMsat` is an integer count of millisatoshis.
-These integer strings must not be parsed through floating point. A future
-implementation must verify the invoice amount against the prepared quote and
-its expiry; the fixture does not implement currency conversion or assert a live
-exchange rate. These are not implemented endpoints. Anonymous order
-tokens are credentials; they need secure local storage. An app version or device
-identifier cannot authorize access to an order.
+The backend validates the current selection before submission, pins the chosen
+supplier, and writes a durable preparation marker before creating an unpaid
+Lightning invoice. Identical requests reuse the same order; changed requests
+cannot reuse its ID. An uncertain upstream creation never automatically creates
+another invoice. A lost request can resume using GET and, only when the server
+confirms that no order exists, repeat the identical PUT.
+
+The app validates the signed invoice, exact amount, and expiry, then presents the
+recipient, selected product, and Lightning price. Explicit Pay rechecks the order;
+a changed quote requires another review. Native presentation closes the service
+sheet before handing the invoice to the selected wallet's existing admission and
+confirmation flow. Provider execution and retry policy remain provider-owned.
+
+Payment and fulfillment are separate fields. The Hub checks the original order
+until the supplier reports delivery or an unresolved/terminal outcome. Closing
+the screen or removing the widget never cancels a purchase. No user account is
+required for order recovery. The experiment retains the latest order locally;
+backend records remain durable. Production order history, supplier failover,
+refund operations, and multi-instance coordination need further design.
+
+See the [experiment guide](claro-service-experiment.md) and
+[wire examples](api/payment-hub/) for the implemented exchange and its limits.
 
 ## Versions and unavailable content
 
-`protocolVersion` versions the wire envelope. `metric/v1` versions a supported
-native behavior contract. The definition's `revision` identifies catalogue
-changes. A service identity or future `claro-topup/v1` contract identifier is
+`protocolVersion` versions the wire envelope. `metric/v1` and `service/v1` version
+compiled native behavior contracts. The definition's `revision` identifies catalogue
+changes. A service identity or offer identifier is
 opaque to the client; it is not a route or a Kotlin class name. No catalogue
 caching revision or ETag is required by this initial server.
 
@@ -224,5 +250,5 @@ actions fit contracts already implemented and available for native app review.
 ```
 
 These focused checks exercise metadata, per-item compatibility, malformed/offline
-results, exact content identity/values, the empty endpoint, and unknown content.
-They do not validate supplier integrations or replace native device QA.
+results, exact values, catalog normalization, and order idempotency.
+Fixture checks do not replace authenticated catalog verification or native device QA.

@@ -1,0 +1,29 @@
+{
+  "protocolVersion": 1,
+  "widgetId": "service.claro-sv",
+  "variantId": "topup",
+  "contract": "service/v1",
+  "metric": null,
+  "service": {
+    "title": "Claro",
+    "country": "SV",
+    "callingCode": "+503",
+    "revision": "example-revision",
+    "offers": [
+      {
+        "id": "example-airtime",
+        "title": "Claro El Salvador",
+        "description": null,
+        "kind": "topup",
+        "amount": null,
+        "range": {
+          "minMinor": "800",
+          "maxMinor": "9900",
+          "stepMinor": "100",
+          "currency": "USD",
+          "fractionDigits": 2
+        }
+      }
+    ]
+  }
+}

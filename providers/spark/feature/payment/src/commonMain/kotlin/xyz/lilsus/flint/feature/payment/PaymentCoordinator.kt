@@ -114,6 +114,11 @@ class PaymentCoordinator(
 
     init {
         scope.launch {
+            paymentHub.serviceInvoiceRequests.collect { invoice ->
+                dispatch(PaymentIntent.DeepLinkReceived("lightning:$invoice"))
+            }
+        }
+        scope.launch {
             paymentPreferences.preferences.collectLatest { preferences ->
                 vibrateOnScan = preferences.vibrateOnScan
                 vibrateOnPayment = preferences.vibrateOnPayment

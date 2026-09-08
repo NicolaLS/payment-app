@@ -54,12 +54,14 @@ and removes its payment actions, dependent Shortcuts, and Contacts memberships;
 empty Contacts widgets are removed. Contacts, actions, and the ordered widget
 layout share one app-scoped document and are saved together.
 
-The optional backend catalogue is initially empty. Local widgets remain usable
-without a configured backend or network connection. The client understands a
-bounded native metric contract; service purchasing and supplier fulfillment are
-future work. See [Payment Hub widgets and backend contract](payment-hub-widgets.md)
+Local widgets remain usable without a configured backend or network connection.
+The optional backend supports bounded native metric and phone-service contracts.
+On the `feat/hub` experiment, configuring Bitrefill enables Claro El Salvador
+top-ups and packages, with explicit Lightning payment and separate delivery
+tracking. Without supplier credentials the catalogue stays empty. See the
+[Claro experiment](claro-service-experiment.md) for setup and current limits. See [Payment Hub widgets and backend contract](payment-hub-widgets.md)
 for setup, request metadata, and the distinction between definitions, local
-instances, refreshed content, and future purchases.
+instances, refreshed content, and service purchases.
 
 ## Connection removal and input isolation
 

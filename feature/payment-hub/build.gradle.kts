@@ -14,6 +14,8 @@ kotlin {
             api(project(":core:ui"))
             api(project(":integration:hub"))
             implementation(project(":core:network"))
+            implementation(project(":core:payment"))
+            api(project(":core:settings"))
             implementation(libs.compose.runtime)
             api(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)

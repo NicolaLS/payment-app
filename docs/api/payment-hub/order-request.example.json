@@ -1,0 +1,8 @@
+{
+  "widgetId": "service.claro-sv",
+  "variantId": "topup",
+  "revision": "example-revision",
+  "offerId": "example-airtime",
+  "phone": "+50300000000",
+  "amountMinor": "1000"
+}

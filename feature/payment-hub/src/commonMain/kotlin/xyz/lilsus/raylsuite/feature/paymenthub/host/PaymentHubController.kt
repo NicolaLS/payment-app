@@ -32,6 +32,14 @@ class PaymentHubController(
         MutableSharedFlow<DirectTargetPaymentIntent>(extraBufferCapacity = 4)
     val paymentRequests: SharedFlow<DirectTargetPaymentIntent> =
         mutablePaymentRequests.asSharedFlow()
+    private val mutableServiceInvoiceRequests = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val serviceInvoiceRequests: SharedFlow<String> = mutableServiceInvoiceRequests.asSharedFlow()
+
+    /** Explicit Pay intent after native service review; the provider owns invoice admission. */
+    fun payServiceInvoice(invoice: String) {
+        mutableState.update { it.copy(scannerRequested = true) }
+        mutableServiceInvoiceRequests.tryEmit(invoice)
+    }
 
     private val hub get() = repository.hub.value
     private var saving = false

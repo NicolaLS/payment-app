@@ -1,0 +1,49 @@
+{
+  "protocolVersion": 1,
+  "widgets": [
+    {
+      "id": "service.claro-sv",
+      "revision": "example-revision",
+      "contract": "service/v1",
+      "title": "Claro",
+      "description": "Prepaid mobile top-ups and packages",
+      "variants": [
+        {
+          "id": "topup",
+          "title": "Top-up",
+          "template": "service-topup",
+          "size": "small"
+        },
+        {
+          "id": "packages-row",
+          "title": "Packages row",
+          "template": "service-packages",
+          "size": "wide"
+        },
+        {
+          "id": "packages-card",
+          "title": "Packages card",
+          "template": "service-packages",
+          "size": "large"
+        }
+      ],
+      "fields": [
+        {
+          "id": "phone",
+          "label": "Phone number",
+          "type": "phone",
+          "required": true,
+          "maxLength": 16,
+          "options": []
+        }
+      ],
+      "actions": [
+        {
+          "id": "purchase",
+          "title": "Continue",
+          "kind": "purchase"
+        }
+      ]
+    }
+  ]
+}

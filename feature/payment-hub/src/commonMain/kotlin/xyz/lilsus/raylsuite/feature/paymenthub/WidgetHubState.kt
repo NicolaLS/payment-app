@@ -1,8 +1,9 @@
 package xyz.lilsus.raylsuite.feature.paymenthub
 
+import xyz.lilsus.raylsuite.core.hubapi.HubServiceContent
 import xyz.lilsus.raylsuite.core.model.StoredAmount
 
-enum class HubWidgetKind { Contacts, Shortcut, Favorites, Recents, Metric }
+enum class HubWidgetKind { Contacts, Shortcut, Favorites, Recents, Metric, Service }
 
 enum class HubWidgetScreen { Hub, Gallery, Variants, Configure }
 
@@ -11,7 +12,8 @@ data class HubWidgetVariant(
     val columns: Int,
     val rows: Int,
     val capacity: Int,
-    val title: String? = null
+    val title: String? = null,
+    val template: String? = null
 )
 
 /** Local definitions use platform-localized copy; remote definitions supply localized copy. */
@@ -59,7 +61,9 @@ data class HubWidgetTile(
     val people: List<HubWidgetPerson> = emptyList(),
     val metric: HubWidgetMetric? = null,
     val loading: Boolean = false,
-    val unavailable: Boolean = false
+    val unavailable: Boolean = false,
+    val service: HubServiceContent? = null,
+    val servicePhone: String = ""
 )
 
 data class HubWidgetEditor(
@@ -98,7 +102,10 @@ data class WidgetHubState(
     val catalogUnavailable: Boolean = false,
     val busy: Boolean = false,
     val contactSavedSerial: Int = 0,
-    val error: HubWidgetError? = null
+    val error: HubWidgetError? = null,
+    val purchase: HubServicePurchaseState? = null,
+    val hasServiceOrder: Boolean = false,
+    val servicePaymentReady: Boolean = false
 ) {
     val selectedDefinition: HubWidgetDefinition?
         get() = gallery.firstOrNull { it.id == editor?.definitionId }
@@ -118,3 +125,6 @@ object LocalHubWidgets {
         HubWidgetDefinition("local.recents", HubWidgetKind.Recents, listOf(Row, Card))
     )
 }
+
+internal val HubWidgetKind.isRemote: Boolean get() = this == HubWidgetKind.Metric ||
+    this == HubWidgetKind.Service

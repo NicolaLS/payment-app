@@ -2,6 +2,7 @@ package xyz.lilsus.raylsuite.feature.paymenthub
 
 import platform.Foundation.NSBundle
 import xyz.lilsus.raylsuite.core.hubapi.HubClientMetadata
+import xyz.lilsus.raylsuite.core.settings.createSecureSettings
 
 internal fun createHubRemoteSession(): HubRemoteSession {
     val bundle = NSBundle.mainBundle
@@ -14,6 +15,7 @@ internal fun createHubRemoteSession(): HubRemoteSession {
                 )?.toString() ?: "unknown",
             build = bundle.objectForInfoDictionaryKey("CFBundleVersion")?.toString() ?: "unknown",
             platform = "ios"
-        )
+        ),
+        createSecureSettings("${bundle.bundleIdentifier ?: "rayl-suite"}.hub.orders")
     )
 }

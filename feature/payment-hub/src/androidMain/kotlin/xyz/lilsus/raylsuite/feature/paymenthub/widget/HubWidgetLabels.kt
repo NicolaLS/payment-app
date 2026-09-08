@@ -16,6 +16,7 @@ internal fun HubWidgetKind.label(): String = stringResource(
         HubWidgetKind.Favorites -> R.string.hub_widget_favorites
         HubWidgetKind.Recents -> R.string.hub_widget_recents
         HubWidgetKind.Metric -> R.string.hub_widget_metric
+        HubWidgetKind.Service -> R.string.hub_service_title
     }
 )
 
@@ -29,11 +30,14 @@ internal fun HubWidgetDefinition.body(): String = description ?: when (kind) {
     HubWidgetKind.Favorites -> stringResource(R.string.hub_widget_favorites_body)
     HubWidgetKind.Recents -> stringResource(R.string.hub_widget_recents_body)
     HubWidgetKind.Metric -> ""
+    HubWidgetKind.Service -> stringResource(R.string.hub_service_body)
 }
 
 @Composable
 internal fun HubWidgetVariant.label(): String = stringResource(
     when {
+        template == "service-topup" -> R.string.hub_service_topup
+        template == "service-packages" -> R.string.hub_service_packages
         columns == 1 && rows == 1 -> R.string.hub_widget_single
         rows == 1 -> R.string.hub_widget_row
         else -> R.string.hub_widget_card
@@ -43,6 +47,8 @@ internal fun HubWidgetVariant.label(): String = stringResource(
 @Composable
 internal fun HubWidgetVariant.body(): String = stringResource(
     when {
+        template == "service-topup" -> R.string.hub_service_topup_body
+        template == "service-packages" -> R.string.hub_service_packages_body
         columns == 1 && rows == 1 -> R.string.hub_widget_single_body
         rows == 1 -> R.string.hub_widget_row_body
         else -> R.string.hub_widget_card_body

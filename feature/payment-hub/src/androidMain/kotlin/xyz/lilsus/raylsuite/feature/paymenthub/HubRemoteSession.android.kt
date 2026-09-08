@@ -3,6 +3,7 @@ package xyz.lilsus.raylsuite.feature.paymenthub
 import android.content.Context
 import android.os.Build
 import xyz.lilsus.raylsuite.core.hubapi.HubClientMetadata
+import xyz.lilsus.raylsuite.core.settings.createSecureSettings
 
 internal fun createHubRemoteSession(context: Context): HubRemoteSession {
     val app = context.applicationContext
@@ -16,6 +17,7 @@ internal fun createHubRemoteSession(context: Context): HubRemoteSession {
             version = info.versionName ?: "unknown",
             build = build.toString(),
             platform = "android"
-        )
+        ),
+        createSecureSettings(app, "${app.packageName}.hub.orders")
     )
 }

@@ -1,0 +1,27 @@
+{
+  "protocolVersion": 1,
+  "widgetId": "service.claro-sv",
+  "variantId": "packages-row",
+  "contract": "service/v1",
+  "metric": null,
+  "service": {
+    "title": "Claro",
+    "country": "SV",
+    "callingCode": "+503",
+    "revision": "example-revision",
+    "offers": [
+      {
+        "id": "example-package",
+        "title": "7 all included usa",
+        "description": null,
+        "kind": "package",
+        "amount": {
+          "minor": "700",
+          "currency": "USD",
+          "fractionDigits": 2
+        },
+        "range": null
+      }
+    ]
+  }
+}
