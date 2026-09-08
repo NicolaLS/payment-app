@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="1024" height="1024" viewBox="0 0 1024 1024"
+     fill="none" color-interpolation="sRGB" role="img"
+     aria-labelledby="artwork-title artwork-description">
+  <title id="artwork-title">RAYL — RAILS — square</title>
+  <desc id="artwork-description">Editable vector reconstruction of the selected RAYL concept. Native paths and linear/radial gradients; no raster images, fonts, or filters. Unmasked 1024-unit square source. Platform-specific asset preparation is still required.</desc>
+  <!--
+    RAYL editable vector study · v1 · 2026-09-08
+    Coordinate system: 1024 × 1024. Change width/height for output size;
+    retain the viewBox to preserve geometry and proportions.
+    This is a reconstruction, not an original vector export of the raster concept.
+    Named groups separate background, symbol and optional lighting.
+  -->
+  <defs>
+    <clipPath id="canvas-clip" clipPathUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="1024" height="1024" rx="0"/>
+    </clipPath>
+
+    <!-- Dark, cool-blue background. Edit these stops to change the canvas. -->
+    <linearGradient id="background-gradient" gradientUnits="userSpaceOnUse" x1="130" y1="0" x2="910" y2="1024">
+      <stop offset="0" stop-color="#101A28"/>
+      <stop offset="0.48" stop-color="#08121D"/>
+      <stop offset="1" stop-color="#040B12"/>
+    </linearGradient>
+    <radialGradient id="background-ambient" gradientUnits="userSpaceOnUse" cx="330" cy="155" r="805">
+      <stop offset="0" stop-color="#142640" stop-opacity="0.26"/>
+      <stop offset="0.65" stop-color="#0F213B" stop-opacity="0.09"/>
+      <stop offset="1" stop-color="#0F213B" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Presentation only; remove for production app assets. -->
+    <linearGradient id="presentation-border-gradient" gradientUnits="userSpaceOnUse" x1="100" y1="0" x2="870" y2="1024">
+      <stop offset="0" stop-color="#3A5278" stop-opacity="0.73"/>
+      <stop offset="0.6" stop-color="#243A58" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#294160" stop-opacity="0.38"/>
+    </linearGradient>
+
+    <!-- Four independent gradients: edit a rail without affecting its neighbors. -->
+    <linearGradient id="rail-1-gradient" gradientUnits="userSpaceOnUse" x1="690" y1="336" x2="-40" y2="748">
+      <stop offset="0" stop-color="#F0FBFF"/>
+      <stop offset="0.17" stop-color="#C2E9FF"/>
+      <stop offset="0.44" stop-color="#75B4F4"/>
+      <stop offset="0.72" stop-color="#3977CF"/>
+      <stop offset="1" stop-color="#183C7B"/>
+    </linearGradient>
+    <linearGradient id="rail-2-gradient" gradientUnits="userSpaceOnUse" x1="690" y1="336" x2="35" y2="1050">
+      <stop offset="0" stop-color="#F1FCFF"/>
+      <stop offset="0.18" stop-color="#C3EAFF"/>
+      <stop offset="0.41" stop-color="#6DADF0"/>
+      <stop offset="0.73" stop-color="#2A61B1"/>
+      <stop offset="1" stop-color="#103369"/>
+    </linearGradient>
+    <linearGradient id="rail-3-gradient" gradientUnits="userSpaceOnUse" x1="690" y1="336" x2="309" y2="1044">
+      <stop offset="0" stop-color="#F4FCFF"/>
+      <stop offset="0.19" stop-color="#C6EBFF"/>
+      <stop offset="0.48" stop-color="#84BEF9"/>
+      <stop offset="0.79" stop-color="#4E8EE1"/>
+      <stop offset="1" stop-color="#346AC0"/>
+    </linearGradient>
+    <linearGradient id="rail-4-gradient" gradientUnits="userSpaceOnUse" x1="690" y1="336" x2="613" y2="1044">
+      <stop offset="0" stop-color="#F7FDFF"/>
+      <stop offset="0.19" stop-color="#E0F5FF"/>
+      <stop offset="0.48" stop-color="#98CEFD"/>
+      <stop offset="0.77" stop-color="#609FEF"/>
+      <stop offset="1" stop-color="#75B4F9"/>
+    </linearGradient>
+    <!-- Cross-light makes each ray a luminous plane, using only standard gradients. -->
+    <linearGradient id="rail-2-cross-light" gradientUnits="userSpaceOnUse" x1="302" y1="684" x2="369" y2="747">
+      <stop offset="0" stop-color="#114591" stop-opacity="0.14"/>
+      <stop offset="0.63" stop-color="#114591" stop-opacity="0"/>
+      <stop offset="1" stop-color="#85CAFF" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="rail-3-cross-light" gradientUnits="userSpaceOnUse" x1="425" y1="733" x2="522" y2="787">
+      <stop offset="0" stop-color="#133B7B" stop-opacity="0.3"/>
+      <stop offset="0.61" stop-color="#518CDF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#C0EFFF" stop-opacity="0.44"/>
+    </linearGradient>
+    <linearGradient id="rail-4-cross-light" gradientUnits="userSpaceOnUse" x1="554" y1="980" x2="691" y2="997">
+      <stop offset="0" stop-color="#C8F3FF" stop-opacity="0.64"/>
+      <stop offset="0.41" stop-color="#71ADFB" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#3F7DD7" stop-opacity="0.06"/>
+    </linearGradient>
+    <!-- Glow is a native radial gradient: no embedded bitmap or SVG filter. -->
+    <radialGradient id="rails-tip-atmosphere" gradientUnits="userSpaceOnUse" cx="690" cy="336" r="242">
+      <stop offset="0" stop-color="#5EAFFF" stop-opacity="0.45"/>
+      <stop offset="0.17" stop-color="#3C8FF4" stop-opacity="0.23"/>
+      <stop offset="0.45" stop-color="#2569C3" stop-opacity="0.11"/>
+      <stop offset="1" stop-color="#17417C" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rails-gap-light" gradientUnits="userSpaceOnUse" cx="610" cy="491" r="545">
+      <stop offset="0" stop-color="#326BBC" stop-opacity="0.19"/>
+      <stop offset="0.53" stop-color="#1F4B8B" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#1F4B8B" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rails-tip-core" gradientUnits="userSpaceOnUse" cx="690" cy="336" r="44">
+      <stop offset="0" stop-color="#E3F8FF" stop-opacity="0.46"/>
+      <stop offset="0.2" stop-color="#BCE5FF" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#83C1FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g id="artwork" clip-path="url(#canvas-clip)">
+    <g id="background" inkscape:groupmode="layer" inkscape:label="01 · Background">
+      <rect id="background-base" x="0" y="0" width="1024" height="1024" fill="url(#background-gradient)"/>
+      <rect id="background-soft-light" x="0" y="0" width="1024" height="1024" fill="url(#background-ambient)"/>
+    </g>
+    <g id="rails-atmosphere" inkscape:groupmode="layer" inkscape:label="02 · Optional atmospheric light">
+      <rect id="rails-gap-glow" width="1024" height="1024" fill="url(#rails-gap-light)"/>
+      <circle id="rails-apex-glow" cx="690" cy="336" r="242" fill="url(#rails-tip-atmosphere)"/>
+    </g>
+    <g id="rails-symbol" inkscape:groupmode="layer" inkscape:label="03 · RAILS symbol">
+      <!-- All rail tips are M 690 336. Move them together to relocate the apex. -->
+      <g id="rail-1" inkscape:label="Rail 1">
+        <path id="rail-1-plane" d="M 690 336 L -70 634 L -70 829 Z" fill="url(#rail-1-gradient)"/>
+      </g>
+      <g id="rail-2" inkscape:label="Rail 2">
+        <path id="rail-2-plane" d="M 690 336 L -160 1044 L 94 1044 Z" fill="url(#rail-2-gradient)"/>
+        <path id="rail-2-highlight" d="M 690 336 L -160 1044 L 94 1044 Z" fill="url(#rail-2-cross-light)"/>
+      </g>
+      <g id="rail-3" inkscape:label="Rail 3">
+        <path id="rail-3-plane" d="M 690 336 L 237 1044 L 420 1044 Z" fill="url(#rail-3-gradient)"/>
+        <path id="rail-3-highlight" d="M 690 336 L 237 1044 L 420 1044 Z" fill="url(#rail-3-cross-light)"/>
+      </g>
+      <g id="rail-4" inkscape:label="Rail 4">
+        <path id="rail-4-plane" d="M 690 336 L 521 1044 L 669 1044 Z" fill="url(#rail-4-gradient)"/>
+        <path id="rail-4-highlight" d="M 690 336 L 521 1044 L 669 1044 Z" fill="url(#rail-4-cross-light)"/>
+      </g>
+    </g>
+    <g id="rails-light-accents" inkscape:groupmode="layer" inkscape:label="04 · Optional tip light">
+      <circle id="rails-tip-light" cx="690" cy="336" r="44" fill="url(#rails-tip-core)"/>
+    </g>
+  </g>
+</svg>
