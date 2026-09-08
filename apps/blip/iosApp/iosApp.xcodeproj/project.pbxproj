@@ -25,7 +25,6 @@
 		D10000000000000000000008 /* PaymentUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000008 /* PaymentUI.xcstrings */; };
 		D10000000000000000000009 /* Settings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000009 /* Settings.xcstrings */; };
 		D1000000000000000000000A /* WalletManagement.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000A /* WalletManagement.xcstrings */; };
-		D1000000000000000000000B /* BlipContacts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000B /* BlipContacts.xcstrings */; };
 		D1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000C /* BlipOnboarding.xcstrings */; };
 		D1000000000000000000000D /* BlipPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000D /* BlipPayment.xcstrings */; };
 		D1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000E /* BlipWalletConnection.xcstrings */; };
@@ -43,7 +42,6 @@
 		E10000000000000000000008 /* PaymentUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000008 /* PaymentUI.xcstrings */; };
 		E10000000000000000000009 /* Settings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000009 /* Settings.xcstrings */; };
 		E1000000000000000000000A /* WalletManagement.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000A /* WalletManagement.xcstrings */; };
-		E1000000000000000000000B /* BlipContacts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000B /* BlipContacts.xcstrings */; };
 		E1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000C /* BlipOnboarding.xcstrings */; };
 		E1000000000000000000000D /* BlipPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000D /* BlipPayment.xcstrings */; };
 		E1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C1000000000000000000000E /* BlipWalletConnection.xcstrings */; };
@@ -69,7 +67,6 @@
 		C10000000000000000000008 /* PaymentUI.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = PaymentUI.xcstrings; path = "../../../feature/payment-ui/src/iosMain/resources/PaymentUI.xcstrings"; sourceTree = "<group>"; };
 		C10000000000000000000009 /* Settings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = Settings.xcstrings; path = ../../../feature/settings/src/iosMain/resources/Settings.xcstrings; sourceTree = "<group>"; };
 		C1000000000000000000000A /* WalletManagement.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = WalletManagement.xcstrings; path = "../../../feature/wallet-management/src/iosMain/resources/WalletManagement.xcstrings"; sourceTree = "<group>"; };
-		C1000000000000000000000B /* BlipContacts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipContacts.xcstrings; path = "../../../providers/blink/feature/blink-contacts/src/iosMain/resources/BlipContacts.xcstrings"; sourceTree = "<group>"; };
 		C1000000000000000000000C /* BlipOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipOnboarding.xcstrings; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/BlipOnboarding.xcstrings; sourceTree = "<group>"; };
 		C1000000000000000000000D /* BlipPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipPayment.xcstrings; path = ../../../providers/blink/feature/payment/src/iosMain/resources/BlipPayment.xcstrings; sourceTree = "<group>"; };
 		C1000000000000000000000E /* BlipWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletConnection.xcstrings; path = "../../../providers/blink/feature/wallet-connection/src/iosMain/resources/BlipWalletConnection.xcstrings"; sourceTree = "<group>"; };
@@ -193,7 +190,6 @@
 				C10000000000000000000008 /* PaymentUI.xcstrings */,
 				C10000000000000000000009 /* Settings.xcstrings */,
 				C1000000000000000000000A /* WalletManagement.xcstrings */,
-				C1000000000000000000000B /* BlipContacts.xcstrings */,
 				C1000000000000000000000C /* BlipOnboarding.xcstrings */,
 				C1000000000000000000000D /* BlipPayment.xcstrings */,
 				C1000000000000000000000E /* BlipWalletConnection.xcstrings */,
@@ -347,7 +343,6 @@
 				D10000000000000000000008 /* PaymentUI.xcstrings in Resources */,
 				D10000000000000000000009 /* Settings.xcstrings in Resources */,
 				D1000000000000000000000A /* WalletManagement.xcstrings in Resources */,
-				D1000000000000000000000B /* BlipContacts.xcstrings in Resources */,
 				D1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */,
 				D1000000000000000000000D /* BlipPayment.xcstrings in Resources */,
 				D1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */,
@@ -376,7 +371,6 @@
 				E10000000000000000000008 /* PaymentUI.xcstrings in Resources */,
 				E10000000000000000000009 /* Settings.xcstrings in Resources */,
 				E1000000000000000000000A /* WalletManagement.xcstrings in Resources */,
-				E1000000000000000000000B /* BlipContacts.xcstrings in Resources */,
 				E1000000000000000000000C /* BlipOnboarding.xcstrings in Resources */,
 				E1000000000000000000000D /* BlipPayment.xcstrings in Resources */,
 				E1000000000000000000000E /* BlipWalletConnection.xcstrings in Resources */,

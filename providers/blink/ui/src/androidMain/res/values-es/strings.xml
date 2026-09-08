@@ -21,7 +21,4 @@
     <string name="error_blink_rate_limited">Demasiadas solicitudes. Espera un momento e intenta de nuevo.</string>
     <string name="error_blink_invalid_api_key">Clave API inválida o revocada. Crea una nueva clave para continuar.</string>
     <string name="result_paid_fee_blink_hint">Blink podría reembolsar parcialmente esta comisión.</string>
-    <string name="blink_contacts_title">Contactos de Blink</string>
-    <string name="blink_contacts_import_hint">Importa contactos guardados de Blink en Blip.</string>
-    <string name="blink_contacts_import">Importar contactos</string>
 </resources>

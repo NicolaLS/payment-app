@@ -37,8 +37,7 @@ fun PaymentHubTab(
     repository: PaymentHubRepository,
     controller: PaymentHubController,
     preferredCurrencyCode: () -> String,
-    modifier: Modifier = Modifier,
-    importButton: (@Composable () -> Unit)? = null
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val currentContext by rememberUpdatedState(context)
@@ -122,17 +121,9 @@ fun PaymentHubTab(
         val content = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
         when (state.screen) {
             HubWidgetScreen.Hub -> HubWidgetCanvas(state, viewModel, content)
-
             HubWidgetScreen.Gallery -> HubWidgetGallery(state, viewModel, content)
-
             HubWidgetScreen.Variants -> HubWidgetVariants(state, viewModel, content)
-
-            HubWidgetScreen.Configure -> HubWidgetEditorScreen(
-                state,
-                viewModel,
-                content,
-                importButton
-            )
+            HubWidgetScreen.Configure -> HubWidgetEditorScreen(state, viewModel, content)
         }
     }
     HubServicePurchaseSheet(state, viewModel)

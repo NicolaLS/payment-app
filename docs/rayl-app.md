@@ -32,7 +32,8 @@ required before showing the main tabs. A connected app opens directly into its
 provider experience:
 
 - Blink exposes Scan, Hub, and Settings, with session payments opened from Scan.
-  It retains funding-wallet selection, contact import, and fee presentation.
+  It retains funding-wallet selection, automatic contact import after connection,
+  and fee presentation.
 - The retained NWC experience exposes Scan, Recent, Hub, and Settings in Lasr,
   with its own discovery, connection details, and reconciliation behavior. It
   is unavailable in Rayl 1.0.
@@ -50,8 +51,9 @@ Hub payment actions. Widgets reference contacts and reusable payment actions;
 multiple widgets can show the same action without duplicating its history.
 
 The post-payment save prompt saves both the contact and a single Contacts
-widget. Blink contact import saves contacts without placing widgets. Removing a
-widget keeps its contacts and history. Deleting a contact asks for confirmation
+widget. A new Blink connection automatically imports valid Blink contacts
+without placing widgets or delaying successful onboarding. Removing a widget
+keeps its contacts and history. Deleting a contact asks for confirmation
 and removes its payment actions, dependent Shortcuts, and Contacts memberships;
 empty Contacts widgets are removed. Contacts, actions, and the ordered widget
 layout share one app-scoped document and are saved together.
