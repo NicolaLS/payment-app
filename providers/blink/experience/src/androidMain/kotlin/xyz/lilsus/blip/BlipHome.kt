@@ -26,11 +26,9 @@ import xyz.lilsus.blip.feature.walletsettings.BlinkWalletSettingsActions
 import xyz.lilsus.blip.feature.walletsettings.BlinkWalletSettingsViewModel
 import xyz.lilsus.blip.ui.R as BlipUiR
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
-import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
 import xyz.lilsus.raylsuite.feature.appshell.AppTabScaffold
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubTab
-import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentRecentScreen
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScanScreen
 import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
@@ -143,16 +141,7 @@ internal fun BlipTabContent(
             BlipSettingsTab(
                 runtime = runtime,
                 performanceDiagnostics = performanceDiagnostics,
-                onRemoveWallet = onRemoveWallet,
-                onDonate = { amountSats ->
-                    tabState.requestScan()
-                    coordinator.dispatch(
-                        PaymentIntent.StartDonation(
-                            amountSats = amountSats,
-                            address = BLIP_DONATION_ADDRESS
-                        )
-                    )
-                }
+                onRemoveWallet = onRemoveWallet
             )
     }
 }
@@ -210,8 +199,7 @@ private fun BlipHubTab(runtime: BlipRuntime, currencyCode: String) {
 private fun BlipSettingsTab(
     runtime: BlipRuntime,
     performanceDiagnostics: PerformanceDiagnostics?,
-    onRemoveWallet: () -> Unit,
-    onDonate: (Long) -> Unit
+    onRemoveWallet: () -> Unit
 ) {
     val isSubmitting by runtime.paymentCoordinator.isSubmitting.collectAsStateWithLifecycle()
     val removalMessage = stringResource(
@@ -247,16 +235,8 @@ private fun BlipSettingsTab(
                 onSelectFundingWallet = walletSettingsViewModel::selectFundingWallet,
                 onRemoveWallet = onRemoveWallet
             )
-        },
-        donationAppName = runtime.configuration.appName,
-        onDonate = onDonate
+        }
     )
 }
 
 private val BLIP_PRIMARY_TABS = listOf(AppTab.Scan, AppTab.Hub, AppTab.Settings)
-
-private val BLIP_DONATION_ADDRESS =
-    LightningAddress(
-        username = "lilsus",
-        domain = "blink.sv"
-    )

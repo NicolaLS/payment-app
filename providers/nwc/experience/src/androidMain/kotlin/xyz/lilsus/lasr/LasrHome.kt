@@ -23,11 +23,9 @@ import xyz.lilsus.lasr.feature.payment.rememberPaymentMessages
 import xyz.lilsus.lasr.feature.walletdetails.NwcWalletDetailsScreen
 import xyz.lilsus.lasr.integration.nwc.NwcWalletConnection
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
-import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
 import xyz.lilsus.raylsuite.feature.appshell.AppTabScaffold
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubTab
-import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentRecentScreen
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScanScreen
 import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
@@ -118,26 +116,13 @@ internal fun LasrTabContent(
         AppTab.Settings ->
             LasrSettingsTab(
                 runtime = runtime,
-                performanceDiagnostics = performanceDiagnostics,
-                onDonate = { amountSats ->
-                    tabState.requestScan()
-                    coordinator.dispatch(
-                        PaymentIntent.StartDonation(
-                            amountSats = amountSats,
-                            address = LASR_DONATION_ADDRESS
-                        )
-                    )
-                }
+                performanceDiagnostics = performanceDiagnostics
             )
     }
 }
 
 @Composable
-private fun LasrSettingsTab(
-    runtime: LasrRuntime,
-    performanceDiagnostics: PerformanceDiagnostics?,
-    onDonate: (Long) -> Unit
-) {
+private fun LasrSettingsTab(runtime: LasrRuntime, performanceDiagnostics: PerformanceDiagnostics?) {
     var removeConfirmation by rememberSaveable { mutableStateOf(false) }
     val isSubmitting by runtime.paymentCoordinator.isSubmitting.collectAsStateWithLifecycle()
     if (removeConfirmation) {
@@ -201,9 +186,7 @@ private fun LasrSettingsTab(
                                 destination = LasrSettingsDestination.WalletManagement
                             }
                         )
-                    ),
-                donationAppName = runtime.configuration.appName,
-                onDonate = onDonate
+                    )
             )
 
         LasrSettingsDestination.WalletManagement ->
@@ -297,9 +280,3 @@ private fun formatWalletSubtitle(connection: NwcWalletConnection): String {
         "${publicKey.take(6)}…${publicKey.takeLast(4)}"
     }
 }
-
-private val LASR_DONATION_ADDRESS =
-    LightningAddress(
-        username = "lilsus",
-        domain = "blink.sv"
-    )

@@ -54,7 +54,6 @@ import xyz.lilsus.raylsuite.feature.paymentsettings.PaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentConfirmationAmount
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
-import xyz.lilsus.raylsuite.feature.paymentui.PaymentToastMessage
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountConfig
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountController
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
@@ -232,9 +231,6 @@ class PaymentCoordinator(
             }
 
             is PaymentIntent.RetryTransaction -> retryTransaction(intent.id)
-
-            is PaymentIntent.StartDonation ->
-                startDonation(intent.amountSats, intent.address)
         }
     }
 
@@ -763,16 +759,6 @@ class PaymentCoordinator(
             }
             resolveTargetPayment(intent.address, context, paymentQuote)
         }
-    }
-
-    private suspend fun startDonation(amountSats: Long, address: LightningAddress) {
-        if (amountSats <= 0) return
-        handlePaymentInput(
-            rawInput = address.full,
-            origin = PaymentOrigin.DETECTED_CONTENT,
-            targetContext = null,
-            requestedAmountMsats = Satoshi.positive(amountSats).toMsats()
-        )
     }
 
     private suspend fun retryTransaction(id: String) {

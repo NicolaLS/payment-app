@@ -51,9 +51,7 @@ fun SettingsFlow(
     overviewBottomContent: (@Composable () -> Unit)? = null,
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList(),
-    performanceDiagnostics: PerformanceDiagnostics? = null,
-    donationAppName: String? = null,
-    onDonate: ((Long) -> Unit)? = null
+    performanceDiagnostics: PerformanceDiagnostics? = null
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.Overview) }
 
@@ -102,9 +100,7 @@ fun SettingsFlow(
                 overviewBottomContent = overviewBottomContent,
                 leadingEntries = leadingEntries,
                 trailingEntries = trailingEntries,
-                performanceDiagnostics = performanceDiagnostics,
-                donationAppName = donationAppName,
-                onDonate = onDonate
+                performanceDiagnostics = performanceDiagnostics
             )
         }
 
@@ -192,9 +188,7 @@ private fun SettingsOverview(
     overviewBottomContent: (@Composable () -> Unit)?,
     leadingEntries: List<SettingsEntry>,
     trailingEntries: List<SettingsEntry>,
-    performanceDiagnostics: PerformanceDiagnostics?,
-    donationAppName: String?,
-    onDonate: ((Long) -> Unit)?
+    performanceDiagnostics: PerformanceDiagnostics?
 ) {
     val performanceDiagnosticsEnabled =
         performanceDiagnostics?.sharingEnabled?.collectAsStateWithLifecycle()?.value
@@ -223,9 +217,7 @@ private fun SettingsOverview(
         onPerformanceDiagnosticsChanged =
             performanceDiagnostics?.let { diagnostics ->
                 diagnostics::setSharingEnabled
-            },
-        donationAppName = donationAppName,
-        onDonate = onDonate
+            }
     )
 }
 
