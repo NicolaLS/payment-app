@@ -139,7 +139,8 @@ Removing a widget needs no confirmation and preserves contacts, payment actions,
 and history. Deleting a contact asks for confirmation, removes its payment
 actions and Shortcuts, and prunes Contacts memberships; an empty Contacts widget
 is removed. The post-payment save prompt creates a contact and a single Contacts
-widget together. Blink import populates only the contact book.
+widget together. Automatic import after a new Blink connection populates only
+the contact book.
 
 ### Refreshed content
 

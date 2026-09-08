@@ -27,14 +27,8 @@ struct BlipNativeOnboardingView: View {
     @StateObject private var model: BlipNativeOnboardingModel
     @State private var apiKeyVisible = false
 
-    private let contactsController: BlipNativeContactsController
-
-    init(
-        controller: BlipNativeOnboardingController,
-        contactsController: BlipNativeContactsController
-    ) {
+    init(controller: BlipNativeOnboardingController) {
         _model = StateObject(wrappedValue: BlipNativeOnboardingModel(controller: controller))
-        self.contactsController = contactsController
     }
 
     var body: some View {
@@ -114,11 +108,6 @@ struct BlipNativeOnboardingView: View {
             instructions(snapshot)
         case "wallet":
             wallet(snapshot)
-        case "contacts":
-            BlipContactsImportView(
-                controller: contactsController,
-                onSkip: model.controller.finish
-            )
         default:
             ProgressView()
         }

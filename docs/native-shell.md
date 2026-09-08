@@ -29,7 +29,7 @@ is also native: Compose Canvas on Android and SwiftUI Canvas on iOS.
 
 Shared localized titles and presentation snapshots come from Kotlin. SwiftUI owns tab chrome,
 navigation stacks, lists, sheets, alerts, safe areas, keyboard behavior, and scene lifecycle. A
-product-specific section—such as Blip contact import or a provider wallet detail—enters through a
+product-specific section—such as a provider wallet detail—enters through a
 small app-supplied SwiftUI view rather than a provider flag in the shared shell.
 
 When adding or renaming a shared Swift renderer, add the same source reference to every consuming

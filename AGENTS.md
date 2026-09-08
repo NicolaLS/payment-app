@@ -297,7 +297,8 @@ can meaningfully vary; never replicate the pattern in other apps for symmetry.
 
 Android `R` types and iOS native resource handles stay in their owning platform
 source sets and must not leak into model or repository APIs. Blink contact
-import remains Blink-only and is available in Blip and Rayl’s Blink experience.
+import remains Blink-only and runs automatically after a successful connection
+in Blip and Rayl’s Blink experience.
 
 ## Resources, persistence, and sensitive data
 

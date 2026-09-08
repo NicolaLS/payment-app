@@ -39,11 +39,8 @@ struct NativePaymentHubView: View {
     @State private var draggedId: String?
     @State private var dragOffset = CGSize.zero
     @State private var hoveredId: String?
-    private let importButton: AnyView?
-
-    init(controller: NativePaymentHubController, importButton: AnyView? = nil) {
+    init(controller: NativePaymentHubController) {
         _model = StateObject(wrappedValue: NativePaymentHubModel(controller: controller))
-        self.importButton = importButton
     }
 
     var body: some View {
@@ -55,7 +52,7 @@ struct NativePaymentHubView: View {
             }
         }
         .sheet(isPresented: editorPresented) {
-            HubEditorSheet(model: model, importButton: importButton)
+            HubEditorSheet(model: model)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .interactiveDismissDisabled(model.snapshot?.busy == true)
@@ -273,7 +270,6 @@ struct NativePaymentHubView: View {
 
 private struct HubEditorSheet: View {
     @ObservedObject var model: NativePaymentHubModel
-    let importButton: AnyView?
 
     var body: some View {
         NavigationStack(path: navigationPath) {
@@ -326,8 +322,7 @@ private struct HubEditorSheet: View {
                     WidgetConfigurationView(
                         model: model,
                         editor: editor,
-                        definition: definition,
-                        importButton: importButton
+                        definition: definition
                     )
                 } else {
                     unavailable(state)
@@ -488,7 +483,6 @@ private struct WidgetConfigurationView: View {
     @ObservedObject var model: NativePaymentHubModel
     let editor: NativeHubEditor
     let definition: NativeHubDefinition
-    let importButton: AnyView?
     @State private var showingNewContact = false
     @State private var pendingContactDeletion: NativeHubContact?
 
@@ -592,7 +586,6 @@ private struct WidgetConfigurationView: View {
             Button { showingNewContact = true } label: {
                 Label(state.text.addContact, systemImage: "person.crop.circle.badge.plus")
             }
-            if let importButton { importButton }
         }
         Section {
             TextField(state.text.search, text: Binding(

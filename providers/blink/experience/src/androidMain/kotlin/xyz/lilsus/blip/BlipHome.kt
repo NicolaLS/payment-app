@@ -1,7 +1,5 @@
 package xyz.lilsus.blip
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -12,14 +10,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportButton
-import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
-import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
 import xyz.lilsus.blip.feature.payment.rememberPaymentFlowState
 import xyz.lilsus.blip.feature.payment.rememberPaymentMessages
 import xyz.lilsus.blip.feature.walletsettings.BlinkWalletSettingsActions
@@ -146,53 +139,13 @@ internal fun BlipTabContent(
     }
 }
 
-/** The hub, with Blip's own Blink contact import offered where a contact is chosen. */
 @Composable
 private fun BlipHubTab(runtime: BlipRuntime, currencyCode: String) {
-    var importing by rememberSaveable { mutableStateOf(false) }
     PaymentHubTab(
         repository = runtime.paymentHubRepository,
         controller = runtime.paymentHub,
-        preferredCurrencyCode = { currencyCode },
-        importButton = {
-            BlinkContactsImportButton(onClick = { importing = true })
-        }
+        preferredCurrencyCode = { currencyCode }
     )
-    if (importing) {
-        val viewModel =
-            remember(runtime.blinkWallet, runtime.paymentHubRepository) {
-                BlinkContactsImportViewModel(
-                    blinkWallet = runtime.blinkWallet,
-                    hubRepository = runtime.paymentHubRepository
-                )
-            }
-        val state by viewModel.uiState.collectAsStateWithLifecycle()
-        DisposableEffect(viewModel) {
-            onDispose(viewModel::clear)
-        }
-        LaunchedEffect(viewModel) {
-            viewModel.loadBlinkContacts()
-        }
-        Dialog(
-            onDismissRequest = { importing = false },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                decorFitsSystemWindows = false
-            )
-        ) {
-            Surface(modifier = Modifier.fillMaxSize()) {
-                BlinkContactsImportScreen(
-                    state = state,
-                    onBack = { importing = false },
-                    onToggleContact = viewModel::toggleBlinkContact,
-                    onToggleAll = viewModel::toggleAllBlinkContacts,
-                    onSearchQueryChange = viewModel::updateSearchQuery,
-                    onImport = viewModel::importSelectedBlinkContacts,
-                    onSkip = null
-                )
-            }
-        }
-    }
 }
 
 @Composable

@@ -126,7 +126,6 @@ fun BlinkExperience(
                         navController = navController,
                         blinkWallet = runtime.blinkWallet,
                         onboardingViewModel = runtime.onboardingViewModel,
-                        hubRepository = runtime.paymentHubRepository,
                         connectionOnly = connectionOnly,
                         onFinished = {
                             runtime.completeOnboarding()

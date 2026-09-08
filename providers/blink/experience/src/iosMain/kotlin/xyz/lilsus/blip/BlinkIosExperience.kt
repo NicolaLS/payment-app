@@ -6,7 +6,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import xyz.lilsus.blip.feature.blinkcontacts.BlipNativeContactsController
 import xyz.lilsus.blip.feature.payment.PaymentEvent
 import xyz.lilsus.blip.feature.payment.PaymentUiState
 import xyz.lilsus.blip.feature.payment.previousPaymentSituation
@@ -90,20 +89,10 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
     }
     private val nativeHubController by nativeHubControllerDelegate
 
-    private val nativeContactsControllerDelegate = lazy {
-        BlipNativeContactsController(
-            blinkWallet = runtime.blinkWallet,
-            hubRepository = runtime.paymentHubRepository,
-            languageChanges = runtime.languageRepository.preference
-        )
-    }
-    private val nativeContactsController by nativeContactsControllerDelegate
-
     private val nativeOnboardingControllerDelegate = lazy {
         BlipNativeOnboardingController(
             onboarding = runtime.onboardingViewModel,
             blinkWallet = runtime.blinkWallet,
-            contacts = nativeContactsController,
             languageChanges = runtime.languageRepository.preference,
             appName = configuration.appName,
             welcomeCompleted = configuration.welcomeCompleted,
@@ -115,7 +104,7 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
     }
     private val nativeOnboardingController by nativeOnboardingControllerDelegate
 
-    /** Connected returning users enter immediately; new users finish contact import or skip it. */
+    /** Connected users enter immediately; contact import runs in the shared runtime. */
     fun isOnboarded(): Boolean =
         !runtime.removalPending.value && isConnected() && nativeOnboardingController.isCompleted()
 
@@ -166,7 +155,6 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
         if (nativeRecentControllerDelegate.isInitialized()) nativeRecentController.clear()
         if (nativeHubControllerDelegate.isInitialized()) nativeHubController.clear()
         if (nativeSettingsControllerDelegate.isInitialized()) nativeSettingsController.clear()
-        if (nativeContactsControllerDelegate.isInitialized()) nativeContactsController.clear()
         if (blipNativeSettingsControllerDelegate.isInitialized()) {
             blipNativeSettingsController.clear()
         }
@@ -226,8 +214,6 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
     fun recentController(): NativePaymentRecentController = nativeRecentController
 
     fun hubController(): NativePaymentHubController = nativeHubController
-
-    fun contactsController(): BlipNativeContactsController = nativeContactsController
 
     fun onboardingController(): BlipNativeOnboardingController = nativeOnboardingController
 
