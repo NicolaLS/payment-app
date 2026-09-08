@@ -1,22 +1,25 @@
 package xyz.lilsus.raylsuite.integration.lnurl
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.request.parameter
+import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.prepareGet
+import io.ktor.client.statement.bodyAsChannel
+import io.ktor.http.HttpHeaders
+import io.ktor.http.URLBuilder
 import io.ktor.http.Url
+import io.ktor.http.appendPathSegments
+import io.ktor.utils.io.readAvailable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.network.NetworkConnectivity
@@ -31,219 +34,265 @@ class KtorLnurlPayClient(
     private val networkConnectivity: NetworkConnectivity,
     private val client: HttpClient = createHttpClient(),
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val json: Json = Json { ignoreUnknownKeys = true }
+    private val json: Json = Json { ignoreUnknownKeys = true },
+    private val resolveHostAddresses: suspend (String) -> List<ByteArray> = ::resolveLnurlHost
 ) : LnurlPayClient {
-    fun close() = client.close()
+    private val lnurlClient = client.config {
+        followRedirects = false
+        expectSuccess = false
+        install(HttpRequestRetry) { maxRetries = 0 }
+    }
+
+    fun close() {
+        lnurlClient.close()
+        client.close()
+    }
 
     override suspend fun fetchPayParams(endpoint: String): LnurlResult<LnurlPayParams> =
         withContext(dispatcher) {
-            val url = endpoint.trim()
-            if (url.isEmpty()) {
-                return@withContext protocolError("LNURL is blank")
-            }
-            if (!networkConnectivity.isNetworkAvailable()) {
-                return@withContext networkUnavailable()
-            }
-            val parsedUrl =
-                runCatching { Url(url) }.getOrNull()
-                    ?: return@withContext protocolError("LNURL is not a valid URL")
-            try {
-                val response = client.get(url)
-                parsePayParams(response.body(), parsedUrl.host)
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (cause: Throwable) {
-                requestFailure(cause, "Failed to reach LNURL endpoint")
+            request {
+                val url = requirePublicDestination(endpoint.trim())
+                val raw = readResponse(url)
+                parsePayParams(raw, url.host)
             }
         }
 
-    override suspend fun fetchPayParams(address: LightningAddress): LnurlResult<LnurlPayParams> {
-        if (address.domain.endsWith(".onion", ignoreCase = true)) {
-            return protocolError("Lightning addresses require HTTPS endpoints")
-        }
-        return fetchPayParams(buildAddressUrl(address))
-    }
+    override suspend fun fetchPayParams(address: LightningAddress): LnurlResult<LnurlPayParams> =
+        fetchPayParams(buildAddressUrl(address))
 
     override suspend fun requestInvoice(
         callback: String,
         amountMsats: Long,
         comment: String?
     ): LnurlResult<String> = withContext(dispatcher) {
+        request {
+            if (amountMsats <= 0) fail("LNURL amount must be positive")
+            val url = requirePublicDestination(callback)
+            val raw = readResponse(url) {
+                // Replace any server-supplied amount/comment, so the callback gets exactly the approved values.
+                this.url.parameters.remove("amount")
+                this.url.parameters.remove("comment")
+                this.url.parameters.append("amount", amountMsats.toString())
+                if (!comment.isNullOrBlank()) this.url.parameters.append("comment", comment)
+            }
+            val element = parseObject(raw)
+            element["pr"].stringValue()?.takeIf(String::isNotBlank)
+                ?: fail("LNURL invoice is missing")
+        }
+    }
+
+    private suspend fun <T> request(block: suspend () -> T): LnurlResult<T> {
         if (!networkConnectivity.isNetworkAvailable()) {
-            return@withContext networkUnavailable()
+            return LnurlResult.Error(
+                LnurlError.NetworkUnavailable
+            )
         }
-        if (amountMsats <= 0) {
-            return@withContext protocolError("Amount must be positive")
-        }
-        try {
-            val response =
-                client.get(callback) {
-                    parameter("amount", amountMsats.toString())
-                    if (!comment.isNullOrBlank()) {
-                        parameter("comment", comment)
-                    }
-                }
-            parseInvoice(response.body())
+        return try {
+            LnurlResult.Success(block())
         } catch (cancellation: CancellationException) {
             throw cancellation
+        } catch (cause: LnurlProtocolException) {
+            LnurlResult.Error(LnurlError.Protocol(cause.message))
         } catch (cause: Throwable) {
-            requestFailure(cause, "Failed to reach LNURL callback endpoint")
+            // Transport exceptions can contain URLs, query comments, or server response bodies.
+            // Keep these out of display state and diagnostics, including the retained exception cause.
+            when {
+                !networkConnectivity.isNetworkAvailable() -> LnurlResult.Error(
+                    LnurlError.NetworkUnavailable
+                )
+
+                cause is kotlinx.io.IOException -> LnurlResult.Error(
+                    LnurlError.Protocol("Failed to reach LNURL service")
+                )
+
+                else -> LnurlResult.Error(LnurlError.Unexpected("LNURL request failed"))
+            }
         }
     }
 
-    private fun parsePayParams(raw: String, domain: String): LnurlResult<LnurlPayParams> {
-        val element =
-            runCatching { json.parseToJsonElement(raw) }.getOrNull()
-                ?: return protocolError("LNURL pay response is not JSON")
-        if (
-            element is JsonObject &&
-            element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true
+    private suspend fun requirePublicDestination(value: String): Url {
+        val url = parseLnurlDestination(value) ?: fail("LNURL requires a public HTTPS destination")
+        val addresses = resolveHostAddresses(url.host)
+        if (addresses.isEmpty() || addresses.any { !isPublicLnurlAddress(it) }) {
+            fail("LNURL destination does not resolve to public addresses")
+        }
+        return url
+    }
+
+    private suspend fun readResponse(
+        url: Url,
+        configure: HttpRequestBuilder.() -> Unit = {
+        }
+    ): String = lnurlClient.prepareGet(url, configure).execute { response ->
+        if (response.status.value in 300..399) fail("LNURL redirects are not supported")
+        if (response.status.value !in
+            200..299
         ) {
-            return protocolError(element["reason"]?.jsonPrimitive?.contentOrNull)
+            fail("LNURL service returned an unsuccessful response")
         }
-        if (element !is JsonObject) {
-            return protocolError("LNURL pay response must be an object")
+        if ((response.headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: 0) >
+            MAX_RESPONSE_BYTES
+        ) {
+            fail("LNURL response is too large")
         }
+        val channel = response.bodyAsChannel()
+        val bytes = ByteArray(MAX_RESPONSE_BYTES + 1)
+        var size = 0
+        while (size < bytes.size) {
+            val count = channel.readAvailable(bytes, size, bytes.size - size)
+            if (count < 0) break
+            size += count
+        }
+        if (size > MAX_RESPONSE_BYTES) fail("LNURL response is too large")
+        try {
+            bytes.decodeToString(endIndex = size, throwOnInvalidSequence = true)
+        } catch (_: CharacterCodingException) {
+            fail("LNURL response is not UTF-8")
+        }
+    }
 
-        val callbackRaw =
-            element["callback"]?.jsonPrimitive?.contentOrNull
-                ?: return protocolError("LNURL pay callback missing")
+    private suspend fun parsePayParams(raw: String, domain: String): LnurlPayParams {
+        val element = parseObject(raw)
+        if (element["tag"].stringValue() != "payRequest") fail("LNURL tag is not payRequest")
+        val callback = element["callback"].stringValue() ?: fail("LNURL pay callback missing")
+        requirePublicDestination(callback)
         val maxSendable =
-            element["maxSendable"]?.jsonPrimitive?.longOrBigInt()
-                ?: return protocolError("LNURL maxSendable missing")
+            element["maxSendable"].integerValue() ?: fail("LNURL maxSendable must be an integer")
         val minSendable =
-            element["minSendable"]?.jsonPrimitive?.longOrBigInt()
-                ?: return protocolError("LNURL minSendable missing")
-        if (maxSendable <= 0 || minSendable <= 0 || maxSendable < minSendable) {
-            return protocolError("LNURL sendable amounts invalid")
+            element["minSendable"].integerValue() ?: fail("LNURL minSendable must be an integer")
+        if (maxSendable <= 0 || minSendable <= 0 ||
+            maxSendable < minSendable
+        ) {
+            fail("LNURL sendable amounts invalid")
         }
-        val tag = element["tag"]?.jsonPrimitive?.contentOrNull
-        if (tag != null && !tag.equals("payRequest", ignoreCase = true)) {
-            return protocolError("LNURL tag is not payRequest")
+        val metadataRaw = element["metadata"].stringValue() ?: fail("LNURL metadata missing")
+        val metadata = parseMetadata(metadataRaw)
+        val commentAllowed = element["commentAllowed"]?.let {
+            (it as? JsonPrimitive)?.takeUnless(
+                JsonPrimitive::isString
+            )?.intOrNull?.takeIf { count ->
+                count >=
+                    0
+            }
+                ?: fail("LNURL comment limit must be a non-negative integer")
         }
-        val metadataRaw =
-            element["metadata"]?.jsonPrimitive?.contentOrNull
-                ?: return protocolError("LNURL metadata missing")
-        val metadata =
-            parseMetadata(metadataRaw)
-                ?: return protocolError("LNURL metadata malformed")
-
-        return LnurlResult.Success(
-            LnurlPayParams(
-                callback = normalizeCallback(callbackRaw),
-                minSendable = minSendable,
-                maxSendable = maxSendable,
-                metadataRaw = metadataRaw,
-                metadata = metadata,
-                commentAllowed = element["commentAllowed"]?.jsonPrimitive?.intOrNull,
-                domain = domain
-            )
+        return LnurlPayParams(
+            callback = callback,
+            minSendable = minSendable,
+            maxSendable = maxSendable,
+            metadataRaw = metadataRaw,
+            metadata = metadata,
+            commentAllowed = commentAllowed,
+            domain = domain
         )
     }
 
-    private fun parseMetadata(raw: String): LnurlPayMetadata? {
-        val element = runCatching { json.parseToJsonElement(raw) }.getOrNull() ?: return null
-        if (element !is JsonArray) return null
-        var plainText: String? = null
-        var longText: String? = null
-        var imagePng: String? = null
-        var imageJpeg: String? = null
-        var identifier: String? = null
-        var email: String? = null
-        var tag: String? = null
+    private fun parseObject(raw: String): JsonObject {
+        val element = parseJson(raw) as? JsonObject ?: fail("LNURL response must be an object")
+        if (element["status"].stringValue()?.equals("ERROR", ignoreCase = true) == true) {
+            fail("LNURL service rejected the request")
+        }
+        return element
+    }
 
-        element.forEach { entry ->
-            val array = entry as? JsonArray ?: return@forEach
-            val type = array.firstOrNull()?.jsonPrimitive?.contentOrNull ?: return@forEach
-            val value = array.getOrNull(1)?.jsonPrimitive?.contentOrNull
-            when (type.lowercase()) {
-                "text/plain" -> plainText = value
-                "text/long-desc" -> longText = value
-                "image/png;base64" -> imagePng = value
-                "image/jpeg;base64" -> imageJpeg = value
-                "text/identifier" -> identifier = value
-                "text/email" -> email = value
-                "text/tag" -> tag = value
+    private fun parseMetadata(raw: String): LnurlPayMetadata {
+        val metadata = parseJson(raw) as? JsonArray ?: fail("LNURL metadata must be an array")
+        val knownValues = mutableMapOf<String, String>()
+        for (entry in metadata) {
+            val array = entry as? JsonArray ?: fail("LNURL metadata entry must be an array")
+            val type = array.firstOrNull().stringValue() ?: fail("LNURL metadata type must be text")
+            // Future metadata types can carry any JSON value; only known text/image fields are interpreted.
+            if (type !in METADATA_TYPES) continue
+            val value =
+                array.getOrNull(1).stringValue() ?: fail("LNURL metadata value must be text")
+            if (knownValues.put(type, value) !=
+                null
+            ) {
+                fail("LNURL metadata contains duplicate entries")
             }
         }
-
+        val plainText = knownValues["text/plain"]?.takeIf { value ->
+            value.any {
+                !it.isWhitespace() && !it.isISOControl() && it.code !in 0x200b..0x200f &&
+                    it.code !in 0x202a..0x202e &&
+                    it.code !in 0x2060..0x2069 &&
+                    it.code != 0xfeff
+            }
+        } ?: fail("LNURL metadata requires a description")
+        if (knownValues["image/png;base64"] != null && knownValues["image/jpeg;base64"] != null) {
+            fail("LNURL metadata contains multiple images")
+        }
         return LnurlPayMetadata(
             plainText = plainText,
-            longText = longText,
-            imagePng = imagePng,
-            imageJpeg = imageJpeg,
-            identifier = identifier,
-            email = email,
-            tag = tag
+            longText = knownValues["text/long-desc"],
+            imagePng = knownValues["image/png;base64"],
+            imageJpeg = knownValues["image/jpeg;base64"],
+            identifier = knownValues["text/identifier"],
+            email = knownValues["text/email"],
+            tag = knownValues["text/tag"]
         )
     }
 
-    private fun parseInvoice(raw: String): LnurlResult<String> {
-        val element =
-            runCatching { json.parseToJsonElement(raw) }.getOrNull()
-                ?: return protocolError("LNURL invoice response is not JSON")
-        if (
-            element is JsonObject &&
-            element["status"]?.jsonPrimitive?.contentEquals("ERROR") == true
-        ) {
-            return protocolError(element["reason"]?.jsonPrimitive?.contentOrNull)
-        }
-        if (element !is JsonObject) {
-            return protocolError("LNURL invoice response must be an object")
-        }
-        val invoice =
-            element["pr"]?.jsonPrimitive?.contentOrNull
-                ?: return protocolError("LNURL invoice is missing")
-        return LnurlResult.Success(invoice)
-    }
+    private fun parseJson(raw: String): JsonElement {
+        // A small body can still contain enough nested arrays to exhaust the native parser stack.
+        var depth = 0
+        var inString = false
+        var escaped = false
+        raw.forEach { character ->
+            if (inString) {
+                when {
+                    escaped -> escaped = false
+                    character == '\\' -> escaped = true
+                    character == '"' -> inString = false
+                }
+            } else {
+                when (character) {
+                    '"' -> inString = true
 
-    private fun requestFailure(cause: Throwable, message: String): LnurlResult.Error = when {
-        !networkConnectivity.isNetworkAvailable() -> networkUnavailable(cause)
+                    '[', '{' -> if (++depth >
+                        MAX_JSON_DEPTH
+                    ) {
+                        fail("LNURL response is too deeply nested")
+                    }
 
-        cause is kotlinx.io.IOException ->
-            LnurlResult.Error(LnurlError.Protocol(message), cause)
-
-        else -> LnurlResult.Error(LnurlError.Unexpected(cause.message), cause)
-    }
-
-    private fun normalizeCallback(original: String): String {
-        val url = runCatching { Url(original) }.getOrNull() ?: return original
-        return buildString {
-            append(url.protocol.name)
-            append("://")
-            append(url.host)
-            if (url.port != url.protocol.defaultPort && url.port != -1) {
-                append(':').append(url.port)
-            }
-            append(url.encodedPath)
-            if (url.encodedQuery.isNotEmpty()) {
-                append('?').append(url.encodedQuery)
+                    ']', '}' -> if (--depth < 0) fail("LNURL response is not valid JSON")
+                }
             }
         }
+        return runCatching {
+            json.parseToJsonElement(raw)
+        }.getOrElse { fail("LNURL response is not valid JSON") }
     }
 
-    private fun buildAddressUrl(address: LightningAddress): String = buildString {
-        append("https://")
-        append(address.domain.lowercase())
-        append("/.well-known/lnurlp/")
-        append(address.username)
-        address.tag?.takeIf(String::isNotEmpty)?.let {
-            append('+').append(it)
-        }
-    }
+    private fun buildAddressUrl(address: LightningAddress): String =
+        URLBuilder("https://${address.domain.lowercase()}").apply {
+            appendPathSegments(
+                ".well-known",
+                "lnurlp",
+                address.username + (address.tag?.takeIf(String::isNotEmpty)?.let { "+$it" } ?: "")
+            )
+        }.buildString()
 
-    private fun JsonPrimitive.contentEquals(value: String): Boolean =
-        contentOrNull?.equals(value, ignoreCase = true) == true
+    private fun JsonElement?.stringValue(): String? =
+        (this as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.content
 
-    private fun JsonPrimitive.longOrBigInt(): Long? {
-        longOrNull?.let { return it }
-        doubleOrNull?.let { return it.toLong() }
-        return contentOrNull?.toLongOrNull()
-    }
+    private fun JsonElement?.integerValue(): Long? =
+        (this as? JsonPrimitive)?.takeUnless(JsonPrimitive::isString)?.longOrNull
 
-    private fun protocolError(reason: String?): LnurlResult.Error =
-        LnurlResult.Error(LnurlError.Protocol(reason))
-
-    private fun networkUnavailable(cause: Throwable? = null): LnurlResult.Error =
-        LnurlResult.Error(LnurlError.NetworkUnavailable, cause)
+    private fun fail(message: String): Nothing = throw LnurlProtocolException(message)
 }
+
+private class LnurlProtocolException(message: String) : Exception(message)
+
+private const val MAX_RESPONSE_BYTES = 256 * 1024
+private const val MAX_JSON_DEPTH = 32
+private val METADATA_TYPES =
+    setOf(
+        "text/plain",
+        "text/long-desc",
+        "image/png;base64",
+        "image/jpeg;base64",
+        "text/identifier",
+        "text/email",
+        "text/tag"
+    )
