@@ -7,4 +7,7 @@
     <string name="add_blink_wallet_hide_api_key">Hide API key</string>
     <string name="add_blink_wallet_paste">Paste from clipboard</string>
     <string name="add_blink_wallet_connect">Connect</string>
+    <string name="add_blink_wallet_connection_notice">Connecting sends your API key to Blink and imports your Blink contacts (names and Lightning addresses) onto this device. By connecting, you accept the Terms of Use.</string>
+    <string name="add_blink_wallet_privacy">Privacy Policy</string>
+    <string name="add_blink_wallet_terms">Terms of Use</string>
 </resources>
