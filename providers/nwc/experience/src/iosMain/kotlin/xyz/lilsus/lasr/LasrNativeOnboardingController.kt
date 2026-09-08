@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import xyz.lilsus.lasr.feature.onboarding.LasrWalletConnectionOutcome
 import xyz.lilsus.lasr.feature.onboarding.NativeLasrOnboardingPage
@@ -30,6 +31,7 @@ import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.platform.CredentialClipboard
 import xyz.lilsus.raylsuite.feature.onboarding.nativeOnboardingText
 import xyz.lilsus.raylsuite.feature.onboarding.nativeOnboardingThresholdLabel
 
@@ -114,9 +116,11 @@ data class LasrNativeOnboardingSnapshot(
 class LasrNativeOnboardingController internal constructor(private val runtime: LasrRuntime) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val addWallet = AddNwcWalletViewModel()
+    private val clipboard = CredentialClipboard()
     private val connectWallet = ConnectNwcWalletViewModel(runtime.nwcWallet)
     private val scanner: QrScannerController = createNativeQrScannerController()
     private val snapshot = MutableStateFlow<LasrNativeOnboardingSnapshot?>(null)
+    private val observers = mutableSetOf<(LasrNativeOnboardingSnapshot) -> Unit>()
     private val connectionOnly = runtime.onboardingState.completed.value
     private var currentStep = when {
         connectionOnly -> STEP_WALLET
@@ -149,6 +153,9 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
             connectWallet.events.collect { event ->
                 when (event) {
                     is ConnectNwcWalletEvent.Success -> {
+                        clipboard.clearAfterSaving()
+                        addWallet.reset()
+                        clearCredentialSnapshot()
                         confirmationPresented = false
                         runtime.connectionDraft.clear()
                         when (
@@ -173,6 +180,9 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
                     }
 
                     ConnectNwcWalletEvent.Cancelled -> {
+                        clipboard.discard()
+                        addWallet.reset()
+                        clearCredentialSnapshot()
                         confirmationPresented = false
                         runtime.connectionDraft.clear()
                         publishSnapshot()
@@ -195,12 +205,24 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
         stopScanner()
         addWallet.clear()
         connectWallet.clear()
+        runtime.connectionDraft.clear()
+        clipboard.discard()
+        clearCredentialSnapshot()
+        observers.clear()
         scope.coroutineContext[Job]?.cancel()
     }
 
     fun observe(onChange: (LasrNativeOnboardingSnapshot) -> Unit): () -> Unit {
+        if (!scope.isActive) {
+            snapshot.value?.let(onChange)
+            return {}
+        }
+        observers += onChange
         val job = scope.launch { snapshot.filterNotNull().collect(onChange) }
-        return { job.cancel() }
+        return {
+            observers -= onChange
+            job.cancel()
+        }
     }
 
     fun continueWelcome() = moveTo(STEP_FEATURES)
@@ -256,11 +278,14 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
     }
 
     fun updateUri(uri: String) {
+        if (confirmationPresented) return
+        clipboard.retainFor(uri)
         addWallet.updateUri(uri)
     }
 
-    fun pasteUri(candidate: String?) {
-        addWallet.prefillUriIfValid(candidate)
+    fun pasteUri() {
+        if (confirmationPresented) return
+        addWallet.prefillUriIfValid(clipboard.read())
     }
 
     fun submitUri() {
@@ -316,6 +341,7 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
     }
 
     fun finishSettingsWalletFlow() {
+        resetConnectionInput()
         settingsFlow = false
         confirmationPresented = false
         runtime.connectionDraft.clear()
@@ -338,7 +364,10 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
 
     private fun moveTo(step: String) {
         currentStep = step
-        if (step != STEP_WALLET) stopScanner()
+        if (step != STEP_WALLET) {
+            stopScanner()
+            resetConnectionInput()
+        }
         scope.launch {
             publishSnapshot()
             reconcileScanner()
@@ -347,11 +376,45 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
 
     private fun beginConfirmation(uri: String) {
         if (!runtime.canAcceptWalletInput) return
+        clipboard.retainFor(uri)
+        addWallet.reset()
         runtime.connectionDraft.set(uri)
         confirmationPresented = true
         stopScanner()
         connectWallet.load(uri)
         scope.launch { publishSnapshot() }
+    }
+
+    private fun resetConnectionInput() {
+        addWallet.reset()
+        connectWallet.reset()
+        runtime.connectionDraft.clear()
+        clipboard.discard()
+        clearCredentialSnapshot()
+    }
+
+    private fun clearCredentialSnapshot() {
+        val cleared = snapshot.value?.copy(
+            uri = "",
+            uriError = null,
+            canSubmitUri = false,
+            alias = "",
+            walletPublicKey = null,
+            relay = null,
+            lightningAddress = null,
+            methods = null,
+            encryptionSchemes = null,
+            activeEncryption = null,
+            warnings = emptyList(),
+            connectionError = null,
+            confirmationPresented = false,
+            discoveryLoading = false,
+            saving = false,
+            canConfirm = false
+        ) ?: return
+        snapshot.value = cleared
+        // Disposal can cancel Flow collection before Swift receives the cleared snapshot.
+        observers.toList().forEach { it(cleared) }
     }
 
     private fun reconcileScanner() {
@@ -369,7 +432,10 @@ class LasrNativeOnboardingController internal constructor(private val runtime: L
         scannerUnavailable = false
         scannerStarted =
             scanner.start(
-                onQrCodeScanned = addWallet::handleScannedValue,
+                onQrCodeScanned = {
+                    clipboard.discard()
+                    addWallet.handleScannedValue(it)
+                },
                 onCameraPermissionMissing = {
                     scannerStarted = false
                     scope.launch { publishSnapshot() }

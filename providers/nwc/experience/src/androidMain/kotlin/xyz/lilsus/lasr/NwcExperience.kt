@@ -26,6 +26,7 @@ import xyz.lilsus.raylsuite.core.model.ThemePreference
 import xyz.lilsus.raylsuite.core.settings.rememberAppSettings
 import xyz.lilsus.raylsuite.core.settings.rememberSecureSettings
 import xyz.lilsus.raylsuite.core.ui.platform.LocalProductName
+import xyz.lilsus.raylsuite.core.ui.platform.rememberCredentialClipboard
 import xyz.lilsus.raylsuite.core.ui.platform.rememberHapticFeedbackManager
 import xyz.lilsus.raylsuite.core.ui.platform.rememberRetainedInstance
 import xyz.lilsus.raylsuite.core.ui.theme.RaylSuiteTheme
@@ -93,6 +94,7 @@ private fun NwcExperienceContent(
 ) {
     val connected by runtime.nwcWallet.connection.collectAsStateWithLifecycle()
     LaunchedEffect(runtime, connected) { onConnectionChanged(connected != null) }
+    val clipboard = rememberCredentialClipboard()
     val connectionOnly = remember(runtime) { runtime.onboardingState.completed.value }
     val navController = rememberNavController()
     val startDestination =
@@ -154,6 +156,7 @@ private fun NwcExperienceContent(
                 nwcWallet = runtime.nwcWallet,
                 onboardingViewModel = runtime.onboardingViewModel,
                 connectionDraft = runtime.connectionDraft,
+                clipboard = clipboard,
                 connectionOnly = connectionOnly,
                 onWalletConnected = {
                     runtime.completeOnboarding()

@@ -212,6 +212,7 @@ internal class LasrRuntime(
     fun clear() {
         if (closed) return
         closed = true
+        connectionDraft.clear()
         scope.cancel()
         onboardingViewModel.clear()
         if (runtimeStarted) paymentCoordinator.clear()

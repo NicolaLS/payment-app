@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import xyz.lilsus.blip.feature.onboarding.nativeBlipInstructionProgress
 import xyz.lilsus.blip.feature.onboarding.nativeBlipOnboardingText
@@ -22,6 +23,7 @@ import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.PaymentConfirmationMode
 import xyz.lilsus.raylsuite.core.model.PaymentPreferences
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.platform.CredentialClipboard
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.nativeOnboardingText
 import xyz.lilsus.raylsuite.feature.onboarding.nativeOnboardingThresholdLabel
@@ -109,7 +111,9 @@ class BlipNativeOnboardingController internal constructor(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val addWallet = AddBlinkWalletViewModel(blinkWallet)
+    private val clipboard = CredentialClipboard()
     private val snapshot = MutableStateFlow<BlipNativeOnboardingSnapshot?>(null)
+    private val observers = mutableSetOf<(BlipNativeOnboardingSnapshot) -> Unit>()
     private val completed = MutableStateFlow(initiallyCompleted)
     internal val completion: StateFlow<Boolean> = completed
     private var currentStep = when {
@@ -128,11 +132,16 @@ class BlipNativeOnboardingController internal constructor(
             addWallet.events.collect { event ->
                 when (event) {
                     AddBlinkWalletEvent.Success -> {
-                        addWallet.updateApiKey("")
+                        clipboard.clearAfterSaving()
+                        clearCredentialSnapshot()
                         finish()
                     }
 
-                    AddBlinkWalletEvent.Cancelled -> currentStep = STEP_INSTRUCTIONS
+                    AddBlinkWalletEvent.Cancelled -> {
+                        clipboard.discard()
+                        clearCredentialSnapshot()
+                        currentStep = STEP_INSTRUCTIONS
+                    }
                 }
                 publishSnapshot()
             }
@@ -140,8 +149,16 @@ class BlipNativeOnboardingController internal constructor(
     }
 
     fun observe(onChange: (BlipNativeOnboardingSnapshot) -> Unit): () -> Unit {
+        if (!scope.isActive) {
+            snapshot.value?.let(onChange)
+            return {}
+        }
+        observers += onChange
         val job = scope.launch { snapshot.filterNotNull().collect(onChange) }
-        return { job.cancel() }
+        return {
+            observers -= onChange
+            job.cancel()
+        }
     }
 
     fun isCompleted(): Boolean = completed.value
@@ -200,7 +217,14 @@ class BlipNativeOnboardingController internal constructor(
     }
 
     fun updateApiKey(apiKey: String) {
+        if (addWallet.uiState.value.isSaving) return
+        clipboard.retainFor(apiKey)
         addWallet.updateApiKey(apiKey)
+    }
+
+    fun pasteApiKey() {
+        if (addWallet.uiState.value.isSaving) return
+        clipboard.read()?.trim()?.takeIf(String::isNotEmpty)?.let(addWallet::updateApiKey)
     }
 
     fun connectWallet() {
@@ -225,7 +249,22 @@ class BlipNativeOnboardingController internal constructor(
 
     fun clear() {
         addWallet.clear()
+        clipboard.discard()
+        clearCredentialSnapshot()
+        observers.clear()
         scope.coroutineContext[Job]?.cancel()
+    }
+
+    private fun clearCredentialSnapshot() {
+        val cleared = snapshot.value?.copy(
+            apiKey = "",
+            canConnect = false,
+            isConnecting = false,
+            connectionError = null
+        ) ?: return
+        snapshot.value = cleared
+        // Disposal can cancel Flow collection before Swift receives the cleared snapshot.
+        observers.toList().forEach { it(cleared) }
     }
 
     private fun moveTo(step: String) {

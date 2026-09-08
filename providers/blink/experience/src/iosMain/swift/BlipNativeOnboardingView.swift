@@ -262,6 +262,7 @@ struct BlipNativeOnboardingView: View {
                                 )
                             }
                         }
+                        .textContentType(.password)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.asciiCapable)
@@ -293,13 +294,7 @@ struct BlipNativeOnboardingView: View {
                         Color(uiColor: .secondarySystemGroupedBackground),
                         in: RoundedRectangle(cornerRadius: 16))
 
-                    Button {
-                        if let value = UIPasteboard.general.string?.trimmingCharacters(
-                            in: .whitespacesAndNewlines
-                        ), !value.isEmpty {
-                            model.controller.updateApiKey(apiKey: value)
-                        }
-                    } label: {
+                    Button(action: model.controller.pasteApiKey) {
                         Label(snapshot.pasteTitle, systemImage: "doc.on.clipboard")
                             .padding(.vertical, 8)
                     }
@@ -318,6 +313,10 @@ struct BlipNativeOnboardingView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
+        .onDisappear {
+            apiKeyVisible = false
+            apiKeyFocused = false
+        }
         .background(Color(uiColor: .systemGroupedBackground))
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button {
