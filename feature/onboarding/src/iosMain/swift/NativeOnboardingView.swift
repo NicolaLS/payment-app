@@ -15,29 +15,44 @@ struct NativeOnboardingWelcomeView: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: 72, weight: .light))
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
-            Text(title)
-                .font(.largeTitle.bold())
-                .multilineTextAlignment(.center)
-            Text(subtitle)
-                .font(.headline)
-                .foregroundStyle(.secondary)
-            Text(description)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Spacer()
-            Button(actionTitle, action: action)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 24) {
+                    Spacer(minLength: 24)
+                    Image(systemName: "qrcode.viewfinder")
+                        .font(.system(size: 72, weight: .light))
+                        .foregroundStyle(.tint)
+                        .frame(width: 152, height: 152)
+                        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 36))
+                        .accessibilityHidden(true)
+                    Text(title)
+                        .font(.largeTitle.bold())
+                        .multilineTextAlignment(.center)
+                    if !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    Text(description)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                    Spacer(minLength: 24)
+                }
+                .padding(24)
+                .frame(maxWidth: 560)
+                .frame(minHeight: geometry.size.height)
                 .frame(maxWidth: .infinity)
+            }
         }
-        .padding(24)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            NativeOnboardingPrimaryButton(title: actionTitle, action: action)
+                .padding(24)
+                .frame(maxWidth: 608)
+                .frame(maxWidth: .infinity)
+                .background(Color(uiColor: .systemBackground))
+        }
     }
 }
 
@@ -82,10 +97,7 @@ struct NativeOnboardingFeaturesView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
 
-            Button(actionTitle, action: action)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
+            NativeOnboardingPrimaryButton(title: actionTitle, action: action)
         }
     }
 
@@ -154,23 +166,14 @@ struct NativeOnboardingAutoPayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(title)
-                        .font(.title2.bold())
+                        .font(.largeTitle.bold())
                     Text(description)
                         .foregroundStyle(.secondary)
 
                     VStack(alignment: .leading, spacing: 16) {
-                        Picker(
-                            title,
-                            selection: Binding(
-                                get: { confirmationMode },
-                                set: onConfirmationModeChanged
-                            )
-                        ) {
-                            Text(alwaysTitle).tag("always")
-                            Text(thresholdTitle).tag("above")
-                        }
-                        .pickerStyle(.inline)
-                        .labelsHidden()
+                        confirmationOption(alwaysTitle, mode: "always")
+                        Divider()
+                        confirmationOption(thresholdTitle, mode: "above")
 
                         if confirmationMode == "above" {
                             Divider()
@@ -185,10 +188,14 @@ struct NativeOnboardingAutoPayView: View {
                                 in: 0...Double(max(0, thresholdStepCount - 1)),
                                 step: 1
                             )
+                            .accessibilityLabel(thresholdTitle)
+                            .accessibilityValue(thresholdLabel)
                         }
                     }
                     .padding()
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 20))
 
                     Text(hint)
                         .font(.footnote)
@@ -197,11 +204,31 @@ struct NativeOnboardingAutoPayView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Button(actionTitle, action: action)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
+            NativeOnboardingPrimaryButton(title: actionTitle, action: action)
         }
+    }
+
+    private func confirmationOption(_ title: String, mode: String) -> some View {
+        Button {
+            onConfirmationModeChanged(mode)
+        } label: {
+            HStack(spacing: 16) {
+                Text(title)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Image(systemName: confirmationMode == mode ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundStyle(confirmationMode == mode ? Color.accentColor : Color.secondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(confirmationMode == mode ? .isSelected : [])
     }
 }
 
@@ -243,7 +270,7 @@ struct NativeOnboardingAgreementView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(title)
-                        .font(.title2.bold())
+                        .font(.largeTitle.bold())
                     Text(description)
                         .foregroundStyle(.secondary)
                     Toggle(
@@ -253,16 +280,17 @@ struct NativeOnboardingAgreementView: View {
                             set: onAgreementChanged
                         )
                     )
+                    .tint(.accentColor)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding()
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 20))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Button(actionTitle, action: action)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
+            NativeOnboardingPrimaryButton(title: actionTitle, action: action)
                 .disabled(!hasAgreed)
         }
     }
@@ -274,14 +302,36 @@ struct NativeOnboardingProgressLayout<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 28) {
             ProgressView(
                 value: Double(stepIndex + 1),
                 total: Double(stepCount)
             )
             content()
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
+        .frame(maxWidth: 608)
+        .frame(maxWidth: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+}
+
+struct NativeOnboardingPrimaryButton: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.headline)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, minHeight: 28)
+                .padding(.vertical, 4)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.roundedRectangle(radius: 16))
+        .controlSize(.large)
     }
 }

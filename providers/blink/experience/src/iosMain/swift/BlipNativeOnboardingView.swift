@@ -26,6 +26,7 @@ private final class BlipNativeOnboardingModel: ObservableObject {
 struct BlipNativeOnboardingView: View {
     @StateObject private var model: BlipNativeOnboardingModel
     @State private var apiKeyVisible = false
+    @FocusState private var apiKeyFocused: Bool
 
     init(controller: BlipNativeOnboardingController) {
         _model = StateObject(wrappedValue: BlipNativeOnboardingModel(controller: controller))
@@ -36,6 +37,7 @@ struct BlipNativeOnboardingView: View {
             Group {
                 if let snapshot = model.snapshot {
                     screen(snapshot)
+                        .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             if snapshot.canGoBack {
                                 ToolbarItem(placement: .topBarLeading) {
@@ -174,10 +176,13 @@ struct BlipNativeOnboardingView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
 
-            Button(snapshot.enterKeyTitle, action: model.controller.showWalletConnection)
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
+            Button(action: model.controller.showWalletConnection) {
+                Text(snapshot.enterKeyTitle)
+                    .frame(maxWidth: .infinity, minHeight: 28)
+            }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: 16))
+            .controlSize(.large)
         }
     }
 
@@ -198,7 +203,8 @@ struct BlipNativeOnboardingView: View {
             }
 
             if let imageName = page.imageName,
-               let image = UIImage(named: imageName) {
+                let image = UIImage(named: imageName)
+            {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
@@ -220,7 +226,7 @@ struct BlipNativeOnboardingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Text(snapshot.walletTitle)
-                    .font(.title2.bold())
+                    .font(.largeTitle.bold())
                 Text(snapshot.walletDescription)
                     .foregroundStyle(.secondary)
 
@@ -241,12 +247,23 @@ struct BlipNativeOnboardingView: View {
                         }
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .keyboardType(.asciiCapable)
+                        .focused($apiKeyFocused)
+                        .submitLabel(.go)
+                        .onSubmit {
+                            if snapshot.canConnect {
+                                apiKeyFocused = false
+                                model.controller.connectWallet()
+                            }
+                        }
+                        .accessibilityLabel(snapshot.walletTitle)
                         .disabled(snapshot.isConnecting)
 
                         Button {
                             apiKeyVisible.toggle()
                         } label: {
                             Image(systemName: apiKeyVisible ? "eye.slash" : "eye")
+                                .frame(width: 44, height: 44)
                         }
                         .accessibilityLabel(
                             apiKeyVisible
@@ -255,14 +272,19 @@ struct BlipNativeOnboardingView: View {
                         )
                     }
                     .padding()
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 16))
 
-                    Button(snapshot.pasteTitle) {
+                    Button {
                         if let value = UIPasteboard.general.string?.trimmingCharacters(
                             in: .whitespacesAndNewlines
                         ), !value.isEmpty {
                             model.controller.updateApiKey(apiKey: value)
                         }
+                    } label: {
+                        Label(snapshot.pasteTitle, systemImage: "doc.on.clipboard")
+                            .padding(.vertical, 8)
                     }
                     .disabled(snapshot.isConnecting)
                 }
@@ -273,23 +295,37 @@ struct BlipNativeOnboardingView: View {
                         .foregroundStyle(.red)
                 }
 
-                Button(action: model.controller.connectWallet) {
-                    HStack {
-                        if snapshot.isConnecting {
-                            ProgressView()
-                        }
-                        Text(snapshot.connectTitle)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(!snapshot.canConnect)
             }
             .padding(24)
+            .frame(maxWidth: 608, alignment: .leading)
+            .frame(maxWidth: .infinity)
         }
-        .navigationTitle(snapshot.walletTitle)
-        .navigationBarTitleDisplayMode(.inline)
+        .scrollDismissesKeyboard(.interactively)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                apiKeyFocused = false
+                model.controller.connectWallet()
+            } label: {
+                HStack {
+                    if snapshot.isConnecting {
+                        ProgressView()
+                    }
+                    Text(snapshot.connectTitle)
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 28)
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle(radius: 16))
+            .controlSize(.large)
+            .disabled(!snapshot.canConnect)
+            .padding(24)
+            .frame(maxWidth: 608)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .systemGroupedBackground))
+        }
     }
 
     private func apiKeyBinding(_ snapshot: BlipNativeOnboardingSnapshot) -> Binding<String> {
