@@ -290,18 +290,8 @@ private struct NativePaymentSettingsView: View {
 
     private var confirmationSection: some View {
         Section(snapshot.text.paymentConfirmTitle) {
-            Picker(
-                snapshot.text.paymentConfirmTitle,
-                selection: Binding(
-                    get: { payment.confirmationMode },
-                    set: controller.selectConfirmationMode
-                )
-            ) {
-                Text(snapshot.text.paymentAlways).tag("always")
-                Text(snapshot.text.paymentAbove).tag("above")
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            confirmationOption(snapshot.text.paymentAlways, mode: "always")
+            confirmationOption(snapshot.text.paymentAbove, mode: "above")
 
             if payment.confirmationMode == "above" {
                 VStack(alignment: .leading, spacing: 8) {
@@ -317,6 +307,8 @@ private struct NativePaymentSettingsView: View {
                         step: 1
                     )
                     .disabled(thresholdSteps.count < 2)
+                    .accessibilityLabel(snapshot.text.paymentConfirmTitle)
+                    .accessibilityValue(thresholdDescription)
                 }
             }
 
@@ -328,6 +320,28 @@ private struct NativePaymentSettingsView: View {
                 )
             )
         }
+    }
+
+    private func confirmationOption(_ title: String, mode: String) -> some View {
+        Button {
+            controller.selectConfirmationMode(id: mode)
+        } label: {
+            HStack(spacing: 16) {
+                Text(title)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                if payment.confirmationMode == mode {
+                    Image(systemName: "checkmark")
+                        .fontWeight(.semibold)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .accessibilityAddTraits(payment.confirmationMode == mode ? .isSelected : [])
     }
 
     private var lnurlSection: some View {
