@@ -34,25 +34,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import xyz.lilsus.blip.feature.walletconnection.R
 import xyz.lilsus.blip.ui.blinkErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
-import xyz.lilsus.raylsuite.core.ui.platform.readPlainText
 import xyz.lilsus.raylsuite.core.ui.privacy.SecureWindow
 
 /** Android renderer for the Blip-owned Blink connection flow. */
@@ -62,6 +59,7 @@ fun AddBlinkWalletScreen(
     state: AddBlinkWalletUiState,
     onBack: (() -> Unit)?,
     onApiKeyChange: (String) -> Unit,
+    onPaste: () -> Unit,
     onSubmit: () -> Unit,
     privacyPolicyUrl: String?,
     termsUrl: String?,
@@ -71,8 +69,6 @@ fun AddBlinkWalletScreen(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val focusManager = LocalFocusManager.current
     val uriHandler = LocalUriHandler.current
-    val clipboard = LocalClipboard.current
-    val coroutineScope = rememberCoroutineScope()
     var apiKeyVisible by remember { mutableStateOf(false) }
     val submitOrClearFocus = {
         focusManager.clearFocus(force = true)
@@ -163,6 +159,8 @@ fun AddBlinkWalletScreen(
                     keyboardOptions =
                         KeyboardOptions(
                             keyboardType = KeyboardType.Password,
+                            autoCorrectEnabled = false,
+                            capitalization = KeyboardCapitalization.None,
                             imeAction = ImeAction.Go
                         ),
                     keyboardActions =
@@ -194,16 +192,7 @@ fun AddBlinkWalletScreen(
                 )
 
                 TextButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            clipboard
-                                .getClipEntry()
-                                ?.readPlainText()
-                                ?.trim()
-                                ?.takeIf(String::isNotEmpty)
-                                ?.let(onApiKeyChange)
-                        }
-                    },
+                    onClick = onPaste,
                     enabled = !state.isSaving,
                     modifier = Modifier.align(Alignment.End)
                 ) {

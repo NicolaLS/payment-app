@@ -7,9 +7,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -18,7 +16,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.toRoute
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletEvent
 import xyz.lilsus.lasr.feature.walletconnection.AddNwcWalletScreen
@@ -30,7 +27,7 @@ import xyz.lilsus.lasr.integration.nwc.NwcWallet
 import xyz.lilsus.raylsuite.core.camera.CameraAuthorizationState
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
-import xyz.lilsus.raylsuite.core.ui.platform.readPlainText
+import xyz.lilsus.raylsuite.core.ui.platform.CredentialClipboard
 import xyz.lilsus.raylsuite.feature.onboarding.AgreementScreen
 import xyz.lilsus.raylsuite.feature.onboarding.AutoPaySettingsScreen
 import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
@@ -70,6 +67,7 @@ fun NavGraphBuilder.lasrOnboarding(
     nwcWallet: NwcWallet,
     onboardingViewModel: OnboardingViewModel,
     connectionDraft: NwcConnectionDraft,
+    clipboard: CredentialClipboard,
     connectionOnly: Boolean = false,
     onWalletConnected: () -> Unit
 ) {
@@ -166,6 +164,7 @@ fun NavGraphBuilder.lasrOnboarding(
             navController = navController,
             fromSettings = false,
             connectionDraft = connectionDraft,
+            clipboard = clipboard,
             connectionOnly = connectionOnly
         )
     }
@@ -173,13 +172,15 @@ fun NavGraphBuilder.lasrOnboarding(
         AddWalletDestination(
             navController = navController,
             fromSettings = true,
-            connectionDraft = connectionDraft
+            connectionDraft = connectionDraft,
+            clipboard = clipboard
         )
     }
     dialog<LasrOnboardingDestination.ConfirmWallet> { backStackEntry ->
         val route = backStackEntry.toRoute<LasrOnboardingDestination.ConfirmWallet>()
         ConfirmWalletDestination(
-            uri = connectionDraft.uri,
+            connectionDraft = connectionDraft,
+            clipboard = clipboard,
             nwcWallet = nwcWallet,
             onConnected = {
                 connectionDraft.clear()
@@ -209,16 +210,18 @@ private fun AddWalletDestination(
     navController: NavController,
     fromSettings: Boolean,
     connectionDraft: NwcConnectionDraft,
+    clipboard: CredentialClipboard,
     connectionOnly: Boolean = false
 ) {
     val viewModel = remember { AddNwcWalletViewModel() }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
     val cameraPermission = rememberCameraPermissionState()
 
     DisposableEffect(viewModel) {
-        onDispose(viewModel::clear)
+        onDispose {
+            viewModel.clear()
+            if (connectionDraft.uri == null) clipboard.discard()
+        }
     }
 
     fun handleCameraPermissionAction() {
@@ -262,16 +265,27 @@ private fun AddWalletDestination(
     Box(modifier = Modifier.fillMaxSize()) {
         AddNwcWalletScreen(
             state = state,
-            onBack = if (connectionOnly) null else ({ navController.navigateUp() }),
-            onUriChange = viewModel::updateUri,
-            onPaste = {
-                scope.launch {
-                    val text = clipboard.getClipEntry()?.readPlainText()
-                    viewModel.prefillUriIfValid(text)
-                }
+            onBack = if (connectionOnly) {
+                null
+            } else {
+                (
+                    {
+                        viewModel.reset()
+                        clipboard.discard()
+                        navController.navigateUp()
+                    }
+                    )
             },
+            onUriChange = {
+                clipboard.retainFor(it)
+                viewModel.updateUri(it)
+            },
+            onPaste = { viewModel.prefillUriIfValid(clipboard.read()) },
             onSubmit = viewModel::submit,
-            onQrCodeScanned = viewModel::handleScannedValue,
+            onQrCodeScanned = {
+                clipboard.discard()
+                viewModel.handleScannedValue(it)
+            },
             onCameraPermissionAction = ::handleCameraPermissionAction,
             cameraAuthorization = cameraPermission.authorization,
             canRequestCameraPermission = cameraPermission.canRequestPermission
@@ -281,11 +295,13 @@ private fun AddWalletDestination(
 
 @Composable
 private fun ConfirmWalletDestination(
-    uri: String?,
+    connectionDraft: NwcConnectionDraft,
+    clipboard: CredentialClipboard,
     nwcWallet: NwcWallet,
     onConnected: () -> Unit,
     onCancelled: () -> Unit
 ) {
+    val uri = connectionDraft.uri
     if (uri == null) {
         LaunchedEffect(Unit) {
             onCancelled()
@@ -296,14 +312,26 @@ private fun ConfirmWalletDestination(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     DisposableEffect(viewModel) {
-        onDispose(viewModel::clear)
+        onDispose {
+            viewModel.clear()
+            connectionDraft.clear()
+            clipboard.discard()
+        }
     }
     LaunchedEffect(viewModel, uri) {
+        clipboard.retainFor(uri)
         viewModel.load(uri)
         viewModel.events.collectLatest { event ->
             when (event) {
-                is ConnectNwcWalletEvent.Success -> onConnected()
-                ConnectNwcWalletEvent.Cancelled -> onCancelled()
+                is ConnectNwcWalletEvent.Success -> {
+                    clipboard.clearAfterSaving()
+                    onConnected()
+                }
+
+                ConnectNwcWalletEvent.Cancelled -> {
+                    clipboard.discard()
+                    onCancelled()
+                }
             }
         }
     }

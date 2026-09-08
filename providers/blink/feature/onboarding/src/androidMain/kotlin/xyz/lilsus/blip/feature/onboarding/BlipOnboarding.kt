@@ -19,6 +19,7 @@ import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletViewModel
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.raylsuite.core.camera.rememberCameraPermissionState
 import xyz.lilsus.raylsuite.core.ui.format.rememberAmountFormatter
+import xyz.lilsus.raylsuite.core.ui.platform.rememberCredentialClipboard
 import xyz.lilsus.raylsuite.feature.onboarding.AgreementScreen
 import xyz.lilsus.raylsuite.feature.onboarding.AutoPaySettingsScreen
 import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
@@ -157,6 +158,7 @@ private fun AddWalletDestination(
 ) {
     val viewModel = remember(blinkWallet) { AddBlinkWalletViewModel(blinkWallet) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val clipboard = rememberCredentialClipboard()
 
     DisposableEffect(viewModel) {
         onDispose(viewModel::clear)
@@ -164,8 +166,15 @@ private fun AddWalletDestination(
     LaunchedEffect(viewModel) {
         viewModel.events.collectLatest { event ->
             when (event) {
-                AddBlinkWalletEvent.Success -> onConnected()
-                AddBlinkWalletEvent.Cancelled -> onBack?.invoke()
+                AddBlinkWalletEvent.Success -> {
+                    clipboard.clearAfterSaving()
+                    onConnected()
+                }
+
+                AddBlinkWalletEvent.Cancelled -> {
+                    clipboard.discard()
+                    onBack?.invoke()
+                }
             }
         }
     }
@@ -175,7 +184,13 @@ private fun AddWalletDestination(
         privacyPolicyUrl = privacyPolicyUrl,
         termsUrl = termsUrl,
         onBack = onBack?.let { viewModel::cancel },
-        onApiKeyChange = viewModel::updateApiKey,
+        onApiKeyChange = {
+            clipboard.retainFor(it)
+            viewModel.updateApiKey(it)
+        },
+        onPaste = {
+            clipboard.read()?.trim()?.takeIf(String::isNotEmpty)?.let(viewModel::updateApiKey)
+        },
         onSubmit = viewModel::submit
     )
 }

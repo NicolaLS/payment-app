@@ -178,6 +178,7 @@ struct LasrNativeOnboardingView: View {
                     ),
                     prompt: Text(snapshot.uriLabel)
                 )
+                .textContentType(.password)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.done)
@@ -187,7 +188,7 @@ struct LasrNativeOnboardingView: View {
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
 
                 Button(snapshot.pasteTitle) {
-                    model.controller.pasteUri(candidate: UIPasteboard.general.string)
+                    model.controller.pasteUri()
                 }
 
                 if let error = snapshot.uriError {

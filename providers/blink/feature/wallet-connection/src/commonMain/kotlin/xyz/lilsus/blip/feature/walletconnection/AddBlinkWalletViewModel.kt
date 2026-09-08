@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -14,7 +15,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import xyz.lilsus.blip.integration.blink.BlinkApiError
 import xyz.lilsus.blip.integration.blink.BlinkApiException
 import xyz.lilsus.blip.integration.blink.BlinkConnectionError
 import xyz.lilsus.blip.integration.blink.BlinkConnectionException
@@ -36,11 +39,12 @@ class AddBlinkWalletViewModel(
     val events: SharedFlow<AddBlinkWalletEvent> = mutableEvents.asSharedFlow()
 
     fun updateApiKey(apiKey: String) {
+        if (!scope.isActive || mutableUiState.value.isSaving) return
         mutableUiState.update { it.copy(apiKey = apiKey, error = null) }
     }
 
     fun submit() {
-        if (connectionJob?.isActive == true) return
+        if (!scope.isActive || connectionJob?.isActive == true) return
         val state = mutableUiState.value
         val apiKey = state.apiKey.trim()
 
@@ -57,22 +61,29 @@ class AddBlinkWalletViewModel(
             try {
                 blinkWallet.connect(apiKey = apiKey)
 
-                mutableUiState.update { it.copy(isSaving = false) }
+                coroutineContext.ensureActive()
+                mutableUiState.value = AddBlinkWalletUiState()
                 mutableEvents.emit(AddBlinkWalletEvent.Success)
             } catch (error: BlinkApiException) {
+                coroutineContext.ensureActive()
                 mutableUiState.update {
-                    it.copy(isSaving = false, error = BlinkUiError.Api(error.error))
+                    it.copy(
+                        isSaving = false,
+                        error = BlinkUiError.Api(error.error.withoutServerDetails())
+                    )
                 }
             } catch (error: BlinkConnectionException) {
+                coroutineContext.ensureActive()
                 mutableUiState.update {
                     it.copy(isSaving = false, error = BlinkUiError.Connection(error.error))
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
+                coroutineContext.ensureActive()
                 mutableUiState.update {
                     it.copy(
                         isSaving = false,
-                        error = BlinkUiError.Unexpected(error.message)
+                        error = BlinkUiError.Unexpected(null)
                     )
                 }
             }
@@ -80,12 +91,18 @@ class AddBlinkWalletViewModel(
     }
 
     fun cancel() {
-        connectionJob?.cancel()
-        mutableUiState.update { it.copy(isSaving = false) }
+        reset()
         mutableEvents.tryEmit(AddBlinkWalletEvent.Cancelled)
     }
 
+    fun reset() {
+        connectionJob?.cancel()
+        connectionJob = null
+        mutableUiState.value = AddBlinkWalletUiState()
+    }
+
     fun clear() {
+        reset()
         scope.cancel()
     }
 }
@@ -103,4 +120,10 @@ sealed interface AddBlinkWalletEvent {
     data object Success : AddBlinkWalletEvent
 
     data object Cancelled : AddBlinkWalletEvent
+}
+
+private fun BlinkApiError.withoutServerDetails(): BlinkApiError = when (this) {
+    is BlinkApiError.Unexpected -> BlinkApiError.Unexpected()
+    is BlinkApiError.PaymentRejected -> BlinkApiError.PaymentRejected()
+    else -> this
 }
