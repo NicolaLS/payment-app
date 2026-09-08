@@ -1,0 +1,355 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Implemented service/v1 content and purchase messages",
+  "$comment": "Shape validation only. Native/backend code additionally validates amount bounds and step, offer kind, signed BOLT11 network/amount/expiry, identity, status relationships and request revision. Example invoice is deliberately not payable.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/content"
+    },
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/order"
+    }
+  ],
+  "$defs": {
+    "money": {
+      "type": "object",
+      "required": [
+        "minor",
+        "currency",
+        "fractionDigits"
+      ],
+      "properties": {
+        "minor": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,17}$"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "fractionDigits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
+      }
+    },
+    "range": {
+      "type": "object",
+      "required": [
+        "minMinor",
+        "maxMinor",
+        "stepMinor",
+        "currency",
+        "fractionDigits"
+      ],
+      "properties": {
+        "minMinor": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,17}$"
+        },
+        "maxMinor": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,17}$"
+        },
+        "stepMinor": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,17}$"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "fractionDigits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
+      }
+    },
+    "payment": {
+      "type": "object",
+      "required": [
+        "invoice",
+        "amountMsat",
+        "expiresAt"
+      ],
+      "properties": {
+        "invoice": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "amountMsat": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": [
+        "widgetId",
+        "variantId",
+        "revision",
+        "offerId",
+        "phone"
+      ],
+      "properties": {
+        "widgetId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "variantId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "\\S"
+        },
+        "offerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "phone": {
+          "type": "string",
+          "pattern": "^\\+[1-9][0-9]{6,14}$"
+        },
+        "amountMinor": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,17}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "order": {
+      "type": "object",
+      "required": [
+        "protocolVersion",
+        "orderId",
+        "serviceTitle",
+        "itemTitle",
+        "phone",
+        "state",
+        "paymentStatus",
+        "fulfillmentStatus",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "orderId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "serviceTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "itemTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "requestedAmount": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/money"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "preparing",
+            "awaiting_payment",
+            "processing",
+            "delivered",
+            "expired",
+            "failed",
+            "unknown"
+          ]
+        },
+        "paymentStatus": {
+          "enum": [
+            "unpaid",
+            "pending",
+            "paid",
+            "unknown"
+          ]
+        },
+        "fulfillmentStatus": {
+          "enum": [
+            "pending",
+            "processing",
+            "delivered",
+            "failed",
+            "unknown"
+          ]
+        },
+        "payment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/payment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "protocolVersion",
+        "widgetId",
+        "variantId",
+        "contract",
+        "service"
+      ],
+      "properties": {
+        "protocolVersion": {
+          "const": 1
+        },
+        "widgetId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "variantId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+        },
+        "contract": {
+          "const": "service/v1"
+        },
+        "metric": {
+          "type": "null"
+        },
+        "service": {
+          "type": "object",
+          "required": [
+            "title",
+            "country",
+            "callingCode",
+            "offers",
+            "revision"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "\\S"
+            },
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            },
+            "callingCode": {
+              "type": "string",
+              "pattern": "^\\+[1-9][0-9]{0,3}$"
+            },
+            "offers": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "title",
+                  "kind"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 500
+                  },
+                  "kind": {
+                    "enum": [
+                      "topup",
+                      "package"
+                    ]
+                  },
+                  "amount": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/money"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "range": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/$defs/range"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "\\S"
+            }
+          }
+        }
+      }
+    }
+  }
+}

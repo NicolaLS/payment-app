@@ -30,7 +30,7 @@ class KtorHubWidgetCatalogClientTest {
             assertEquals("1.0.0", request.headers[HubRequestHeaders.VERSION])
             assertEquals("42", request.headers[HubRequestHeaders.BUILD])
             assertEquals("ios", request.headers[HubRequestHeaders.PLATFORM])
-            assertEquals("metric/v1", request.headers[HubRequestHeaders.CONTRACTS])
+            assertEquals("metric/v1,service/v1", request.headers[HubRequestHeaders.CONTRACTS])
             assertEquals("es", request.headers[HttpHeaders.AcceptLanguage])
             respond(
                 """
@@ -135,7 +135,7 @@ class KtorHubWidgetCatalogClientTest {
         try {
             val client = KtorHubWidgetCatalogClient("https://hub.example.test", metadata, http)
             val result = assertIs<HubWidgetContentResult.Available>(client.fetchContent("btc-price", "usd", emptyMap(), "en"))
-            assertEquals("123456.789123456789", result.content.value)
+            assertEquals("123456.789123456789", result.content.metric?.value)
             assertEquals(
                 HubWidgetContentResult.Unavailable(HubWidgetUnavailableReason.InvalidResponse),
                 client.fetchContent("btc-price", "usd", emptyMap(), "en")

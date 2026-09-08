@@ -1,6 +1,7 @@
 package xyz.lilsus.raylsuite.integration.hub
 
-import xyz.lilsus.raylsuite.core.hubapi.HubMetricContent
+import xyz.lilsus.raylsuite.core.hubapi.HubServiceOrder
+import xyz.lilsus.raylsuite.core.hubapi.HubWidgetContent
 import xyz.lilsus.raylsuite.core.hubapi.HubWidgetDescriptor
 
 sealed interface HubWidgetCatalogResult {
@@ -11,7 +12,7 @@ sealed interface HubWidgetCatalogResult {
 }
 
 sealed interface HubWidgetContentResult {
-    data class Available(val content: HubMetricContent) : HubWidgetContentResult
+    data class Available(val content: HubWidgetContent) : HubWidgetContentResult
 
     data class Unavailable(val reason: HubWidgetUnavailableReason) : HubWidgetContentResult
 }
@@ -22,5 +23,14 @@ enum class HubWidgetUnavailableReason {
     HttpError,
     NotFound,
     InvalidResponse,
-    UnsupportedProtocol
+    UnsupportedProtocol,
+    Conflict,
+    InvalidRequest,
+    Unauthorized
+}
+
+sealed interface HubServiceOrderResult {
+    data class Available(val order: HubServiceOrder) : HubServiceOrderResult
+    data class Unavailable(val reason: HubWidgetUnavailableReason, val code: String? = null) :
+        HubServiceOrderResult
 }

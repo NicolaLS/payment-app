@@ -14,6 +14,8 @@ kotlin {
             api(project(":core:ui"))
             api(project(":integration:hub"))
             implementation(project(":core:network"))
+            implementation(project(":core:payment"))
+            api(project(":core:settings"))
             implementation(libs.compose.runtime)
             api(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
@@ -36,8 +38,10 @@ kotlin {
     }
 }
 
-// Rayl and Blip 1.0 ship the local Hub only. External URL overrides cannot enable it.
-val hubBackendUrl = providers.provider { "" }
+// Main supports opt-in backend experiments. The 1.0 branches keep this source-fixed to empty.
+val hubBackendUrl = providers.gradleProperty("rayl.hub.baseUrl")
+    .orElse(providers.environmentVariable("RAYL_HUB_BASE_URL"))
+    .orElse("")
 val hubConfigurationDirectory = layout.buildDirectory.dir("generated/hubConfiguration/kotlin")
 val generateHubConfiguration = tasks.register("generateHubConfiguration") {
     inputs.property("backendUrl", hubBackendUrl)

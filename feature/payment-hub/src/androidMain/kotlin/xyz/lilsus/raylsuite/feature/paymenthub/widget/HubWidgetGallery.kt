@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -130,6 +131,7 @@ private fun GalleryEntry(definition: HubWidgetDefinition, onClick: () -> Unit) {
                             HubWidgetKind.Favorites -> Icons.Filled.Star
                             HubWidgetKind.Recents -> Icons.Filled.AccessTime
                             HubWidgetKind.Metric -> Icons.Filled.Insights
+                            HubWidgetKind.Service -> Icons.Filled.PhoneAndroid
                         },
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onPrimaryContainer

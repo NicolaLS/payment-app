@@ -6,8 +6,10 @@ import kotlinx.serialization.Serializable
 object HubWidgetProtocol {
     const val VERSION = 1
     const val METRIC_CONTRACT = "metric/v1"
+    const val SERVICE_CONTRACT = "service/v1"
     const val CATALOG_PATH = "/hub/v1/widgets"
-    val supportedContracts: Set<String> = setOf(METRIC_CONTRACT)
+    const val ORDERS_PATH = "/hub/v1/orders"
+    val supportedContracts: Set<String> = setOf(METRIC_CONTRACT, SERVICE_CONTRACT)
 }
 
 object HubRequestHeaders {
@@ -93,7 +95,8 @@ data class HubWidgetContent(
     val widgetId: String,
     val variantId: String,
     val contract: String,
-    val metric: HubMetricContent
+    val metric: HubMetricContent? = null,
+    val service: HubServiceContent? = null
 )
 
 @Serializable

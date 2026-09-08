@@ -50,7 +50,8 @@ internal fun HubWidgetFace(
     onPay: (String) -> Unit,
     modifier: Modifier = Modifier,
     preview: Boolean = false,
-    interactive: Boolean = true
+    interactive: Boolean = true,
+    onOpenService: (String?) -> Unit = {}
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -59,7 +60,16 @@ internal fun HubWidgetFace(
     ) {
         when {
             tile.kind == HubWidgetKind.Metric -> MetricFace(tile)
+
+            tile.kind == HubWidgetKind.Service -> HubServiceWidgetFace(
+                tile = tile,
+                preview = preview,
+                interactive = interactive,
+                onOpen = onOpenService
+            )
+
             tile.variant.capacity == 1 -> SingleContactFace(tile, onPay, preview, interactive)
+
             else -> ContactCollectionFace(tile, onPay, preview, interactive)
         }
     }

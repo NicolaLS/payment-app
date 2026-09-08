@@ -35,7 +35,9 @@ private enum HubGeometry {
 struct NativePaymentHubView: View {
     @StateObject private var model: NativePaymentHubModel
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.appShellTabIsSelected) private var isSelected
     @State private var isVisible = false
+    @State private var purchaseSheetHasDismissed = false
     @State private var draggedId: String?
     @State private var dragOffset = CGSize.zero
     @State private var hoveredId: String?
@@ -60,24 +62,57 @@ struct NativePaymentHubView: View {
                 .presentationDragIndicator(.visible)
                 .interactiveDismissDisabled(model.snapshot?.busy == true)
         }
+        .sheet(isPresented: purchasePresented, onDismiss: {
+            purchaseSheetHasDismissed = true
+            completePaymentHandoffIfReady()
+        }) {
+            HubServicePurchaseSheet(model: model)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .interactiveDismissDisabled(model.snapshot?.purchase?.busy == true)
+                .onAppear { purchaseSheetHasDismissed = false }
+        }
         .onAppear {
             isVisible = true
-            model.controller.setActive(value: scenePhase == .active)
+            updateActivity()
         }
         .onDisappear {
             isVisible = false
             model.controller.setActive(value: false)
         }
-        .onChange(of: scenePhase) { _, phase in
-            model.controller.setActive(value: isVisible && phase == .active)
+        .onChange(of: scenePhase) { _, _ in updateActivity() }
+        .onChange(of: isSelected) { _, _ in updateActivity() }
+        .onChange(of: model.snapshot?.servicePaymentReady) { _, _ in
+            completePaymentHandoffIfReady()
         }
     }
 
     private var editorPresented: Binding<Bool> {
         Binding(
-            get: { model.snapshot.map { $0.screen != "hub" } ?? false },
+            get: { isSelected && (model.snapshot.map { ["gallery", "variants", "configure"].contains($0.screen) } ?? false) },
             set: { if !$0 { model.controller.close() } }
         )
+    }
+
+    private var purchasePresented: Binding<Bool> {
+        Binding(
+            get: { isSelected && model.snapshot?.purchase != nil },
+            set: { presented in
+                if !presented, model.snapshot?.purchase != nil { model.controller.closePurchase() }
+            }
+        )
+    }
+
+    private func updateActivity() {
+        model.controller.setActive(value: isVisible && isSelected && scenePhase == .active)
+        completePaymentHandoffIfReady()
+    }
+
+    private func completePaymentHandoffIfReady() {
+        guard purchaseSheetHasDismissed, isVisible, isSelected, scenePhase == .active,
+              model.snapshot?.servicePaymentReady == true else { return }
+        purchaseSheetHasDismissed = false
+        model.controller.completeServicePaymentHandoff()
     }
 
     private func canvas(_ state: NativePaymentHubSnapshot) -> some View {
@@ -99,6 +134,17 @@ struct NativePaymentHubView: View {
             .padding(.horizontal, HubGeometry.gutter)
             .padding(.vertical, 12)
             .disabled(state.busy)
+
+            if state.hasServiceOrder {
+                Button {
+                    model.controller.openPendingServiceOrder()
+                } label: {
+                    Label(state.text.service.orderBanner, systemImage: "shippingbox")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, HubGeometry.gutter)
+                .padding(.bottom, 12)
+            }
 
             if let error = state.error, state.screen == "hub" {
                 Text(error)
@@ -147,7 +193,8 @@ struct NativePaymentHubView: View {
                     tile: tile,
                     copy: state.text,
                     interactive: !state.canvas.arranging,
-                    pay: { model.controller.pay(actionId: $0) }
+                    pay: { model.controller.pay(actionId: $0) },
+                    openService: { model.controller.openService(widgetId: tile.id, offerId: $0) }
                 )
                 .frame(
                     width: HubGeometry.span(unit, tile.columns),
@@ -668,6 +715,10 @@ private struct WidgetConfigurationView: View {
             }
         } else {
             TextField(field.label, text: binding)
+                .keyboardType(field.type == "phone" ? .phonePad : .default)
+                .textContentType(field.type == "phone" ? .telephoneNumber : nil)
+                .textInputAutocapitalization(field.type == "phone" ? .never : .sentences)
+                .autocorrectionDisabled(field.type == "phone")
         }
     }
 
@@ -760,6 +811,7 @@ private struct WidgetContent: View {
     let copy: NativePaymentHubCopy
     let interactive: Bool
     let pay: (String) -> Void
+    var openService: (String?) -> Void = { _ in }
 
     var body: some View {
         GeometryReader { proxy in
@@ -773,6 +825,13 @@ private struct WidgetContent: View {
                 .foregroundStyle(.secondary)
                 if tile.kind == "metric" {
                     metric
+                } else if tile.kind == "service" {
+                    HubServiceWidgetContent(
+                        tile: tile,
+                        copy: copy,
+                        interactive: interactive,
+                        open: openService
+                    )
                 } else if tile.people.isEmpty {
                     Text(tile.emptyText)
                         .font(.footnote)
@@ -918,5 +977,259 @@ private struct HubAvatar: View {
         .foregroundStyle(.white)
         .frame(width: size, height: size)
         .accessibilityHidden(true)
+    }
+}
+
+private struct HubServiceWidgetContent: View {
+    let tile: NativeHubTile
+    let copy: NativePaymentHubCopy
+    let interactive: Bool
+    let open: (String?) -> Void
+
+    private var isPackages: Bool { tile.template_ == "service-packages" }
+    private var isPreview: Bool { tile.id.hasPrefix("preview:") }
+    private var hasOffers: Bool {
+        tile.service?.offers.contains { $0.kind == (isPackages ? "package" : "topup") } == true
+    }
+
+    var body: some View {
+        Group {
+            if tile.service == nil && tile.loading {
+                ProgressView(copy.loading).frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if tile.unavailable || (!isPreview && !hasOffers) {
+                Text(copy.unavailable).font(.footnote).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if isPackages {
+                packages
+            } else {
+                Button { open(nil) } label: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Image(systemName: "iphone.gen3.radiowaves.left.and.right")
+                            .font(.title2).foregroundStyle(Color.accentColor)
+                        if !tile.servicePhone.isEmpty {
+                            Text(tile.servicePhone).font(.caption).foregroundStyle(.secondary)
+                                .lineLimit(1).minimumScaleFactor(0.8).privacySensitive()
+                        }
+                        Text(copy.service.topup).font(.headline).foregroundStyle(.primary)
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .allowsHitTesting(interactive && !isPreview && !tile.unavailable && hasOffers)
+    }
+
+    private var packages: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if !tile.servicePhone.isEmpty {
+                Text(tile.servicePhone).font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(1).privacySensitive()
+            }
+            if let service = tile.service {
+                ForEach(Array(service.offers.filter { $0.kind == "package" }.prefix(tile.rows > 1 ? 3 : 1)), id: \.id) { offer in
+                    Button { open(offer.id) } label: {
+                        HStack(spacing: 10) {
+                            Text(offer.title).font(.subheadline.weight(.medium))
+                                .foregroundStyle(.primary).lineLimit(tile.rows > 1 ? 2 : 1)
+                            Spacer(minLength: 0)
+                            if let amount = offer.amountText {
+                                Text(amount).font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.accentColor).lineLimit(1)
+                            }
+                            Image(systemName: "chevron.right").font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, tile.rows > 1 ? 10 : 3)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                Image(systemName: "cellularbars").font(.title).foregroundStyle(Color.accentColor)
+                Text(copy.service.packagesBody).font(.footnote).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            Button { open(nil) } label: {
+                HStack {
+                    Text(copy.service.packages).font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "arrow.right").font(.caption)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.accentColor)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct HubServicePurchaseSheet: View {
+    @ObservedObject var model: NativePaymentHubModel
+
+    var body: some View {
+        NavigationStack {
+            if let state = model.snapshot, let purchase = state.purchase {
+                Form {
+                    if let order = purchase.order {
+                        orderSummary(order, copy: state.text.service)
+                    } else if purchase.offers.isEmpty && state.hasServiceOrder {
+                        Section {
+                            Text(state.text.service.unknownHint)
+                            if purchase.busy { ProgressView(state.text.loading) }
+                        }
+                    } else {
+                        purchaseInputs(purchase, copy: state.text.service)
+                    }
+                    if let error = purchase.error {
+                        Section { Text(error).foregroundStyle(.red) }
+                    }
+                }
+                .disabled(purchase.busy)
+                .scrollDismissesKeyboard(.interactively)
+                .safeAreaInset(edge: .bottom) {
+                    purchaseAction(purchase, state: state)
+                }
+                .navigationTitle(purchase.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(state.text.done) { model.controller.closePurchase() }
+                            .disabled(purchase.busy)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func purchaseInputs(_ purchase: NativeHubServicePurchase, copy: NativeHubServiceCopy) -> some View {
+        Section(copy.phone) {
+            TextField(copy.phone, text: Binding(
+                get: { purchase.phone },
+                set: { model.controller.updateServicePhone(value: $0) }
+            ))
+            .textContentType(.telephoneNumber)
+            .keyboardType(.phonePad)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .privacySensitive()
+        }
+        Section(copy.chooseOffer) {
+            ForEach(purchase.offers, id: \.id) { offer in
+                Button { model.controller.selectServiceOffer(id: offer.id) } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: purchase.selectedOfferId == offer.id ? "largecircle.fill.circle" : "circle")
+                            .foregroundStyle(purchase.selectedOfferId == offer.id ? Color.accentColor : .secondary)
+                            .padding(.top, 3)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(offer.title).font(.body.weight(.medium)).foregroundStyle(.primary)
+                            if let detail = offer.detail, !detail.isEmpty {
+                                Text(detail).font(.footnote).foregroundStyle(.secondary)
+                            }
+                            if let amount = offer.amountText {
+                                Text(amount).font(.subheadline).foregroundStyle(Color.accentColor)
+                            } else if let range = offer.rangeText {
+                                Text(range).font(.footnote).foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(purchase.selectedOfferId == offer.id ? .isSelected : [])
+            }
+        }
+        if let selected = purchase.selectedOffer, selected.requiresAmount {
+            Section {
+                TextField(purchase.amountLabel, text: Binding(
+                    get: { purchase.amount },
+                    set: { model.controller.updateServiceAmount(value: $0) }
+                ))
+                .keyboardType(.decimalPad)
+            } header: {
+                Text(purchase.amountLabel)
+            } footer: {
+                if let range = selected.rangeText { Text(range) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func orderSummary(_ order: NativeHubServiceOrder, copy: NativeHubServiceCopy) -> some View {
+        Section {
+            LabeledContent(copy.recipient, value: order.phone).privacySensitive()
+            LabeledContent(copy.item) {
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(order.item)
+                    if let amount = order.amountText { Text(amount).font(.footnote) }
+                }
+                .multilineTextAlignment(.trailing)
+            }
+            if let price = order.lightningPrice {
+                LabeledContent(copy.lightningPrice) {
+                    Text(price).fontWeight(.semibold).monospacedDigit()
+                }
+            }
+            if order.state == "awaiting_payment", let rawDate = order.expiresAt,
+               let date = serviceDate(rawDate) {
+                Text(copy.quoteExpires.replacingOccurrences(
+                    of: "%1$@", with: date.formatted(date: .abbreviated, time: .shortened)
+                ))
+                .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        Section {
+            LabeledContent(copy.orderStatus) {
+                Label(order.status, systemImage: statusSymbol(order.state))
+            }
+            LabeledContent(copy.paymentStatus, value: order.paymentStatus)
+            LabeledContent(copy.fulfillmentStatus, value: order.fulfillmentStatus)
+        } footer: {
+            Text(order.unconfirmed ? copy.unknownHint : copy.paymentHint)
+        }
+        Section(copy.orderReference) {
+            Text(order.id).font(.footnote.monospaced()).textSelection(.enabled)
+        }
+    }
+
+    @ViewBuilder
+    private func purchaseAction(_ purchase: NativeHubServicePurchase, state: NativePaymentHubSnapshot) -> some View {
+        if purchase.order == nil && !purchase.offers.isEmpty {
+            HubPrimaryButton(title: state.text.service.review, busy: purchase.busy) {
+                model.controller.prepareServiceOrder()
+            }
+            .disabled(purchase.selectedOfferId == nil || purchase.phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        } else if purchase.canPay {
+            HubPrimaryButton(title: state.text.service.pay, busy: purchase.busy) {
+                model.controller.payServiceOrder()
+            }
+        } else {
+            HubPrimaryButton(title: state.text.service.checkStatus, busy: purchase.busy) {
+                model.controller.refreshServiceOrder()
+            }
+        }
+    }
+
+    private func statusSymbol(_ state: String) -> String {
+        switch state {
+        case "delivered": return "checkmark.circle.fill"
+        case "failed", "expired": return "exclamationmark.circle"
+        case "unknown": return "questionmark.circle"
+        default: return "clock"
+        }
+    }
+
+    private func serviceDate(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
     }
 }

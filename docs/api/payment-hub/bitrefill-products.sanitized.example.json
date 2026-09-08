@@ -1,0 +1,52 @@
+{
+  "_description": "Authenticated product response shape with account prices and unrelated fields removed. Availability and denominations change; fetch the live API. Package labels are supplier text, not interpreted data allowances.",
+  "products": [
+    {
+      "id": "claro-el-salvador",
+      "name": "Claro El Salvador",
+      "country_code": "SV",
+      "currency": "USD",
+      "in_stock": true,
+      "range": {
+        "min": 8,
+        "max": 99,
+        "step": 1
+      },
+      "packages": [
+        {
+          "id": "claro-el-salvador<&>10",
+          "value": "10"
+        }
+      ]
+    },
+    {
+      "id": "claro-el-salvador-bundles",
+      "name": "Claro Paquetes El Salvador ",
+      "country_code": "SV",
+      "currency": "USD",
+      "in_stock": true,
+      "packages": [
+        {
+          "id": "claro-el-salvador-bundles<&>7 all included usa",
+          "value": "7 all included usa",
+          "amount": 7
+        },
+        {
+          "id": "claro-el-salvador-bundles<&>12 all included usa",
+          "value": "12 all included usa",
+          "amount": 12
+        },
+        {
+          "id": "claro-el-salvador-bundles<&>15 all included usa",
+          "value": "15 all included usa",
+          "amount": 15
+        },
+        {
+          "id": "claro-el-salvador-bundles<&>all inclusive 4 usa",
+          "value": "all inclusive 4 usa",
+          "amount": 25
+        }
+      ]
+    }
+  ]
+}

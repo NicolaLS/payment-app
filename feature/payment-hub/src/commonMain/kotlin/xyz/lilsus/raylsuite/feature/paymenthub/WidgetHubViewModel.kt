@@ -12,7 +12,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import xyz.lilsus.raylsuite.core.hubapi.HubServiceContent
 import xyz.lilsus.raylsuite.core.hubapi.HubWidgetDescriptor
+import xyz.lilsus.raylsuite.core.hubapi.HubWidgetProtocol
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.StoredAmount
@@ -34,6 +36,7 @@ class WidgetHubViewModel(
     private val defaultCurrencyCode: () -> String,
     private val locale: () -> String = { "en" },
     private val catalog: KtorHubWidgetCatalogClient? = null,
+    orderStore: HubServiceOrderStore? = null,
     dispatcher: CoroutineDispatcher = Dispatchers.Main
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -47,8 +50,20 @@ class WidgetHubViewModel(
     private var contentRefreshJob: Job? = null
     private var remoteInstances = emptyList<HubWidget>()
     private var active = true
+    private val purchases = HubServicePurchaseController(catalog, orderStore, host, locale, scope)
 
     init {
+        scope.launch {
+            purchases.state.collect { session ->
+                mutableState.update {
+                    it.copy(
+                        purchase = session.purchase,
+                        hasServiceOrder = session.hasOrder,
+                        servicePaymentReady = session.paymentReady
+                    )
+                }
+            }
+        }
         scope.launch {
             repository.hub.collect { hub ->
                 val editor = mutableState.value.editor
@@ -70,7 +85,7 @@ class WidgetHubViewModel(
                         }
                     )
                 }
-                val updated = hub.widgets.filter { it.kind == HubWidgetKind.Metric }
+                val updated = hub.widgets.filter { it.kind.isRemote }
                 if (updated != remoteInstances) {
                     val previous = remoteInstances.associateBy { it.id }
                     updated.forEach { widget ->
@@ -414,7 +429,7 @@ class WidgetHubViewModel(
         contentJob?.cancel()
         contentRefreshJob?.cancel()
         contentJob = scope.launch {
-            val widgets = repository.hub.value.widgets.filter { it.kind == HubWidgetKind.Metric }
+            val widgets = repository.hub.value.widgets.filter { it.kind.isRemote }
             var nextRefresh = 300
             for (widget in widgets) {
                 if (remoteDefinitions.none { descriptor ->
@@ -437,19 +452,23 @@ class WidgetHubViewModel(
                 remoteContent[widget.id] = when (response) {
                     is HubWidgetContentResult.Available -> {
                         nextRefresh =
-                            minOf(nextRefresh, response.content.refreshAfterSeconds ?: 300)
+                            minOf(nextRefresh, response.content.metric?.refreshAfterSeconds ?: 300)
                         RemoteContent(
-                            HubWidgetMetric(
-                                response.content.value,
-                                response.content.unit,
-                                response.content.label,
-                                response.content.asOf
-                            )
+                            metric = response.content.metric?.let { metric ->
+                                HubWidgetMetric(
+                                    metric.value,
+                                    metric.unit,
+                                    metric.label,
+                                    metric.asOf
+                                )
+                            },
+                            service = response.content.service
                         )
                     }
 
                     is HubWidgetContentResult.Unavailable -> RemoteContent(
                         metric = remoteContent[widget.id]?.metric,
+                        service = remoteContent[widget.id]?.service,
                         unavailable = true
                     )
                 }
@@ -468,6 +487,7 @@ class WidgetHubViewModel(
     fun setActive(value: Boolean) {
         if (active == value) return
         active = value
+        purchases.setActive(value)
         if (value) {
             refreshCatalog()
         } else {
@@ -479,6 +499,22 @@ class WidgetHubViewModel(
             rebuildTiles()
         }
     }
+
+    fun openService(widgetId: String, offerId: String? = null) {
+        val widget = repository.hub.value.widget(widgetId) ?: return
+        val content = remoteContent[widgetId]?.service ?: return fail(HubWidgetError.Unavailable)
+        if (widget.kind != HubWidgetKind.Service) return
+        purchases.open(widget, content, offerId)
+    }
+    fun closePurchase() = purchases.close()
+    fun updateServicePhone(value: String) = purchases.updatePhone(value)
+    fun selectServiceOffer(id: String) = purchases.selectOffer(id)
+    fun updateServiceAmount(value: String) = purchases.updateAmount(value)
+    fun prepareServiceOrder() = purchases.prepare()
+    fun payServiceOrder() = purchases.pay()
+    fun refreshServiceOrder() = purchases.refresh()
+    fun openPendingServiceOrder() = purchases.openSaved()
+    fun completeServicePaymentHandoff() = purchases.completePaymentHandoff()
 
     fun clear() = scope.cancel()
 
@@ -509,7 +545,13 @@ class WidgetHubViewModel(
 
     private fun definition(remote: HubWidgetDescriptor) = HubWidgetDefinition(
         id = remote.id,
-        kind = HubWidgetKind.Metric,
+        kind = if (remote.contract ==
+            HubWidgetProtocol.SERVICE_CONTRACT
+        ) {
+            HubWidgetKind.Service
+        } else {
+            HubWidgetKind.Metric
+        },
         title = remote.title,
         description = remote.description,
         variants = remote.variants.map { variant ->
@@ -518,7 +560,7 @@ class WidgetHubViewModel(
                 "large" -> LocalHubWidgets.Card
                 else -> LocalHubWidgets.Single
             }
-            size.copy(id = variant.id, title = variant.title)
+            size.copy(id = variant.id, title = variant.title, template = variant.template)
         },
         fields = remote.fields.map { field ->
             HubWidgetField(
@@ -554,7 +596,7 @@ class WidgetHubViewModel(
                 HubWidgetKind.Shortcut -> listOfNotNull(widget.targetId?.let(hub::target))
                 HubWidgetKind.Favorites -> favorites.take(widget.variant.capacity)
                 HubWidgetKind.Recents -> recents.take(widget.variant.capacity)
-                HubWidgetKind.Metric -> emptyList()
+                HubWidgetKind.Metric, HubWidgetKind.Service -> emptyList()
             }
             val remote = remoteContent[widget.id]
             val available = remoteDefinitions.any { descriptor ->
@@ -584,8 +626,9 @@ class WidgetHubViewModel(
                     }
                 },
                 metric = remote?.metric, loading = available && remote?.loading == true,
-                unavailable = widget.kind == HubWidgetKind.Metric &&
-                    (remote?.unavailable == true || !available)
+                unavailable = widget.kind.isRemote && (remote?.unavailable == true || !available),
+                service = remote?.service,
+                servicePhone = widget.configuration["phone"].orEmpty()
             )
         }
         mutableState.update { it.copy(widgets = tiles) }
@@ -593,6 +636,7 @@ class WidgetHubViewModel(
 
     private data class RemoteContent(
         val metric: HubWidgetMetric? = null,
+        val service: HubServiceContent? = null,
         val loading: Boolean = false,
         val unavailable: Boolean = false
     )

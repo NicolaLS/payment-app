@@ -24,6 +24,7 @@ import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
+import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubServicePurchaseSheet
 import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubWidgetCanvas
 import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubWidgetEditorScreen
 import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubWidgetGallery
@@ -52,7 +53,8 @@ fun PaymentHubTab(
             host = controller,
             defaultCurrencyCode = { currency() },
             locale = { currentContext.resources.configuration.locales[0].toLanguageTag() },
-            catalog = remote?.catalog
+            catalog = remote?.catalog,
+            orderStore = remote?.orderStore
         )
     }
     DisposableEffect(viewModel, remote) {
@@ -75,7 +77,8 @@ fun PaymentHubTab(
     NavigationEventHandler(
         state = rememberNavigationEventState(currentInfo = WidgetHubNavigationInfo(state.screen)),
         isForwardEnabled = false,
-        isBackEnabled = state.screen != HubWidgetScreen.Hub || state.arranging,
+        isBackEnabled = state.purchase == null &&
+            (state.screen != HubWidgetScreen.Hub || state.arranging),
         onBackCompleted = {
             if (state.arranging &&
                 state.screen == HubWidgetScreen.Hub
@@ -132,6 +135,7 @@ fun PaymentHubTab(
             )
         }
     }
+    HubServicePurchaseSheet(state, viewModel)
 }
 
 private data class WidgetHubNavigationInfo(val screen: HubWidgetScreen) : NavigationEventInfo()

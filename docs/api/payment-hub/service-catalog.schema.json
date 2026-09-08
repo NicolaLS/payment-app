@@ -1,7 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Future service catalogue example \u2014 unsupported by current clients",
-  "$comment": "Design example only. There are no service purchase endpoints or supported native purchase handlers.",
+  "title": "Implemented native service/v1 catalogue for the Claro experiment",
   "type": "object",
   "required": [
     "protocolVersion",
@@ -21,7 +20,9 @@
           "revision",
           "contract",
           "title",
-          "variants"
+          "variants",
+          "fields",
+          "actions"
         ],
         "properties": {
           "id": {
@@ -59,7 +60,8 @@
               "required": [
                 "id",
                 "title",
-                "template"
+                "template",
+                "size"
               ],
               "properties": {
                 "id": {
@@ -73,33 +75,62 @@
                   "pattern": "\\S"
                 },
                 "template": {
-                  "const": "service-options"
+                  "enum": [
+                    "service-topup",
+                    "service-packages"
+                  ]
                 },
                 "size": {
                   "enum": [
                     "small",
                     "wide",
                     "large"
-                  ],
-                  "default": "small"
+                  ]
                 }
-              }
+              },
+              "oneOf": [
+                {
+                  "properties": {
+                    "template": {
+                      "const": "service-topup"
+                    },
+                    "size": {
+                      "const": "small"
+                    }
+                  }
+                },
+                {
+                  "properties": {
+                    "template": {
+                      "const": "service-packages"
+                    },
+                    "size": {
+                      "enum": [
+                        "wide",
+                        "large"
+                      ]
+                    }
+                  }
+                }
+              ]
             }
           },
           "fields": {
             "type": "array",
-            "maxItems": 16,
+            "minItems": 1,
+            "maxItems": 1,
             "items": {
               "type": "object",
               "required": [
                 "id",
                 "label",
-                "type"
+                "type",
+                "required",
+                "maxLength"
               ],
               "properties": {
                 "id": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+                  "const": "phone"
                 },
                 "label": {
                   "type": "string",
@@ -108,86 +139,37 @@
                   "pattern": "\\S"
                 },
                 "type": {
-                  "enum": [
-                    "text",
-                    "phone",
-                    "choice"
-                  ]
+                  "const": "phone"
                 },
                 "required": {
-                  "type": "boolean",
-                  "default": false
+                  "const": true
                 },
                 "maxLength": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 1,
-                  "maximum": 256
+                  "maximum": 16
                 },
                 "options": {
                   "type": "array",
-                  "maxItems": 64,
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "id",
-                      "label"
-                    ],
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
-                      },
-                      "label": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 120,
-                        "pattern": "\\S"
-                      }
-                    }
-                  }
+                  "maxItems": 0
                 }
-              },
-              "allOf": [
-                {
-                  "if": {
-                    "properties": {
-                      "type": {
-                        "const": "choice"
-                      }
-                    }
-                  },
-                  "then": {
-                    "required": [
-                      "options"
-                    ],
-                    "properties": {
-                      "options": {
-                        "minItems": 1
-                      }
-                    }
-                  }
-                }
-              ]
+              }
             }
           },
           "actions": {
             "type": "array",
-            "maxItems": 4,
+            "minItems": 1,
+            "maxItems": 1,
             "items": {
               "type": "object",
               "required": [
                 "id",
                 "title",
-                "kind",
-                "purchaseContract"
+                "kind"
               ],
               "properties": {
                 "id": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+                  "const": "purchase"
                 },
                 "title": {
                   "type": "string",
@@ -197,11 +179,6 @@
                 },
                 "kind": {
                   "const": "purchase"
-                },
-                "purchaseContract": {
-                  "type": "string",
-                  "minLength": 1,
-                  "pattern": "\\S"
                 }
               }
             }

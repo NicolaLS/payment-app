@@ -9,6 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import platform.Foundation.NSBundle
+import platform.Foundation.NSDecimalNumber
+import platform.Foundation.NSNumberFormatter
+import platform.Foundation.NSNumberFormatterDecimalStyle
+import xyz.lilsus.raylsuite.core.hubapi.HubServiceMoney
+import xyz.lilsus.raylsuite.core.hubapi.HubServiceOffer
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
@@ -35,7 +40,8 @@ class NativePaymentHubController(
         host = host,
         defaultCurrencyCode = { currencyCode },
         locale = { NSBundle.mainBundle.preferredLocalizations.firstOrNull()?.toString() ?: "en" },
-        catalog = remote?.catalog
+        catalog = remote?.catalog,
+        orderStore = remote?.orderStore
     )
     private val snapshot = MutableStateFlow<NativePaymentHubSnapshot?>(null)
 
@@ -108,6 +114,26 @@ class NativePaymentHubController(
     fun refreshCatalog() = viewModel.refreshCatalog()
 
     fun refreshContent() = viewModel.refreshContent()
+
+    fun openService(widgetId: String, offerId: String?) = viewModel.openService(widgetId, offerId)
+
+    fun closePurchase() = viewModel.closePurchase()
+
+    fun updateServicePhone(value: String) = viewModel.updateServicePhone(value)
+
+    fun selectServiceOffer(id: String) = viewModel.selectServiceOffer(id)
+
+    fun updateServiceAmount(value: String) = viewModel.updateServiceAmount(value)
+
+    fun prepareServiceOrder() = viewModel.prepareServiceOrder()
+
+    fun payServiceOrder() = viewModel.payServiceOrder()
+
+    fun refreshServiceOrder() = viewModel.refreshServiceOrder()
+
+    fun openPendingServiceOrder() = viewModel.openPendingServiceOrder()
+
+    fun completeServicePaymentHandoff() = viewModel.completeServicePaymentHandoff()
 
     fun resizeWidget(id: String, variantId: String) {
         viewModel.editWidget(id)
@@ -219,7 +245,10 @@ class NativePaymentHubController(
                     HubWidgetError.SaveFailed -> localized("hub_widget_error_save")
                 }
             },
-            contactSavedSerial = state.contactSavedSerial
+            contactSavedSerial = state.contactSavedSerial,
+            purchase = state.purchase?.toNative(),
+            hasServiceOrder = state.hasServiceOrder,
+            servicePaymentReady = state.servicePaymentReady
         )
     }
 
@@ -234,7 +263,7 @@ class NativePaymentHubController(
                 NativeHubVariant(
                     id = variant.id,
                     title = variant.title ?: localized(variant.titleKey()),
-                    detail = if (kind == HubWidgetKind.Metric) {
+                    detail = if (kind == HubWidgetKind.Metric || kind == HubWidgetKind.Service) {
                         description.orEmpty()
                     } else {
                         localized(variant.descriptionKey())
@@ -251,7 +280,9 @@ class NativePaymentHubController(
                         row = 0,
                         columns = variant.columns,
                         rows = variant.rows,
-                        people = if (kind == HubWidgetKind.Metric) {
+                        people = if (kind == HubWidgetKind.Metric ||
+                            kind == HubWidgetKind.Service
+                        ) {
                             emptyList()
                         } else {
                             (0 until variant.capacity).map { index ->
@@ -276,7 +307,10 @@ class NativePaymentHubController(
                         metric = null,
                         loading = false,
                         unavailable = false,
-                        emptyText = ""
+                        emptyText = "",
+                        template = variant.template,
+                        service = null,
+                        servicePhone = ""
                     )
                 )
             }
@@ -321,10 +355,15 @@ class NativePaymentHubController(
                 when (kind) {
                     HubWidgetKind.Favorites -> "hub_widget_favorites_empty"
                     HubWidgetKind.Recents -> "hub_widget_recent_empty"
-                    HubWidgetKind.Metric -> "hub_widget_unavailable"
+                    HubWidgetKind.Metric, HubWidgetKind.Service -> "hub_widget_unavailable"
                     else -> "hub_widget_contacts_empty"
                 }
-            )
+            ),
+            template = variant.template,
+            service = service?.let {
+                NativeHubService(it.title, it.offers.map(HubServiceOffer::toNative))
+            },
+            servicePhone = servicePhone
         )
 }
 
@@ -341,7 +380,10 @@ data class NativePaymentHubSnapshot(
     val catalogLoading: Boolean,
     val catalogUnavailable: Boolean,
     val error: String?,
-    val contactSavedSerial: Int
+    val contactSavedSerial: Int,
+    val purchase: NativeHubServicePurchase?,
+    val hasServiceOrder: Boolean,
+    val servicePaymentReady: Boolean
 )
 
 data class NativeHubCanvas(
@@ -384,7 +426,10 @@ data class NativeHubTile(
     val metric: NativeHubMetric?,
     val loading: Boolean,
     val unavailable: Boolean,
-    val emptyText: String
+    val emptyText: String,
+    val template: String?,
+    val service: NativeHubService?,
+    val servicePhone: String
 )
 
 data class NativeHubSizeChoice(val id: String, val title: String)
@@ -476,7 +521,8 @@ data class NativePaymentHubCopy(
     val retry: String,
     val catalogUnavailable: String,
     val contactsTitle: String,
-    val automaticHint: String
+    val automaticHint: String,
+    val service: NativeHubServiceCopy
 )
 
 private fun loadCopy() = NativePaymentHubCopy(
@@ -515,7 +561,8 @@ private fun loadCopy() = NativePaymentHubCopy(
     retry = localized("hub_widget_retry"),
     catalogUnavailable = localized("hub_widget_catalog_unavailable"),
     contactsTitle = localized("hub_widget_contacts"),
-    automaticHint = localized("hub_widget_recents_hint")
+    automaticHint = localized("hub_widget_recents_hint"),
+    service = loadServiceCopy()
 )
 
 private fun HubContact.toNative() = NativeHubContact(id, title, address.full, title.initials())
@@ -523,10 +570,12 @@ private fun HubContact.toNative() = NativeHubContact(id, title, address.full, ti
 private fun String.initials(): String = trim().split(Regex("\\s+"))
     .filter { it.isNotEmpty() }.take(2).joinToString("") { it.take(1).uppercase() }
 
-private fun HubWidgetKind.titleKey(): String = "hub_widget_${name.lowercase()}"
+private fun HubWidgetKind.titleKey(): String =
+    if (this == HubWidgetKind.Service) "hub_service_title" else "hub_widget_${name.lowercase()}"
 
 private fun HubWidgetKind.descriptionKey(): String = when (this) {
     HubWidgetKind.Metric -> "hub_widget_metric"
+    HubWidgetKind.Service -> "hub_service_body"
     else -> "hub_widget_${name.lowercase()}_body"
 }
 
@@ -536,6 +585,7 @@ private fun HubWidgetKind.symbol(): String = when (this) {
     HubWidgetKind.Favorites -> "star.fill"
     HubWidgetKind.Recents -> "clock.fill"
     HubWidgetKind.Metric -> "chart.line.uptrend.xyaxis"
+    HubWidgetKind.Service -> "cellularbars"
 }
 
 private fun HubWidgetVariant.titleKey(): String = when (id) {
@@ -560,3 +610,180 @@ private fun localized(key: String, value: Int): String = nativeString(resource(k
 
 private fun localized(key: String, first: Int, second: Int): String =
     nativeString(resource(key), first, second)
+
+data class NativeHubService(val title: String, val offers: List<NativeHubServiceOffer>)
+
+data class NativeHubServiceOffer(
+    val id: String,
+    val title: String,
+    val detail: String?,
+    val kind: String,
+    val amountText: String?,
+    val rangeText: String?,
+    val currencyCode: String?,
+    val requiresAmount: Boolean
+)
+
+data class NativeHubServicePurchase(
+    val title: String,
+    val phone: String,
+    val offers: List<NativeHubServiceOffer>,
+    val selectedOfferId: String?,
+    val amount: String,
+    val amountLabel: String,
+    val selectedOffer: NativeHubServiceOffer?,
+    val busy: Boolean,
+    val error: String?,
+    val order: NativeHubServiceOrder?,
+    val canPay: Boolean
+)
+
+/** Display-only order values. Invoice and recovery credential never cross into Swift. */
+data class NativeHubServiceOrder(
+    val id: String,
+    val title: String,
+    val item: String,
+    val phone: String,
+    val amountText: String?,
+    val lightningPrice: String?,
+    val expiresAt: String?,
+    val state: String,
+    val status: String,
+    val paymentStatus: String,
+    val fulfillmentStatus: String,
+    val unconfirmed: Boolean
+)
+
+data class NativeHubServiceCopy(
+    val title: String,
+    val topup: String,
+    val packages: String,
+    val topupBody: String,
+    val packagesBody: String,
+    val phone: String,
+    val chooseOffer: String,
+    val review: String,
+    val pay: String,
+    val checkStatus: String,
+    val orderBanner: String,
+    val recipient: String,
+    val item: String,
+    val lightningPrice: String,
+    val quoteExpires: String,
+    val orderStatus: String,
+    val paymentStatus: String,
+    val fulfillmentStatus: String,
+    val orderReference: String,
+    val unknownHint: String,
+    val paymentHint: String
+)
+
+private fun loadServiceCopy() = NativeHubServiceCopy(
+    title = localized("hub_service_title"),
+    topup = localized("hub_service_topup"),
+    packages = localized("hub_service_packages"),
+    topupBody = localized("hub_service_topup_body"),
+    packagesBody = localized("hub_service_packages_body"),
+    phone = localized("hub_service_phone"),
+    chooseOffer = localized("hub_service_choose_offer"),
+    review = localized("hub_service_review"),
+    pay = localized("hub_service_pay"),
+    checkStatus = localized("hub_service_check_status"),
+    orderBanner = localized("hub_service_order_banner"),
+    recipient = localized("hub_service_recipient"),
+    item = localized("hub_service_item"),
+    lightningPrice = localized("hub_service_lightning_price"),
+    quoteExpires = localized("hub_service_quote_expires"),
+    orderStatus = localized("hub_service_order_status"),
+    paymentStatus = localized("hub_service_payment_status"),
+    fulfillmentStatus = localized("hub_service_fulfillment_status"),
+    orderReference = localized("hub_service_order_reference"),
+    unknownHint = localized("hub_service_unknown_hint"),
+    paymentHint = localized("hub_service_payment_hint")
+)
+
+private fun HubServiceOffer.toNative() = NativeHubServiceOffer(
+    id = id,
+    title = title,
+    detail = description,
+    kind = kind,
+    amountText = amount?.displayText(),
+    rangeText = range?.let {
+        localized("hub_service_amount_range")
+            .replace("%1\$@", "${decimalText(it.minMinor, it.fractionDigits)} ${it.currency}")
+            .replace("%2\$@", "${decimalText(it.maxMinor, it.fractionDigits)} ${it.currency}")
+            .replace("%3\$@", "${decimalText(it.stepMinor, it.fractionDigits)} ${it.currency}")
+    },
+    currencyCode = range?.currency ?: amount?.currency,
+    requiresAmount = range != null
+)
+
+private fun HubServicePurchaseState.toNative() = NativeHubServicePurchase(
+    title = title,
+    phone = phone,
+    offers = offers.map(HubServiceOffer::toNative),
+    selectedOfferId = selectedOfferId,
+    amount = amountInput,
+    amountLabel = nativeString(
+        resource("hub_service_amount"),
+        selectedOffer?.range?.currency ?: selectedOffer?.amount?.currency.orEmpty()
+    ),
+    selectedOffer = selectedOffer?.toNative(),
+    busy = busy,
+    error = error?.let {
+        localized(
+            when (it) {
+                HubServiceError.InvalidPhone -> "hub_service_invalid_phone"
+                HubServiceError.InvalidAmount -> "hub_service_invalid_amount"
+                HubServiceError.SelectOffer -> "hub_service_select_offer"
+                HubServiceError.Unavailable -> "hub_service_unavailable"
+                HubServiceError.Changed -> "hub_service_changed"
+                HubServiceError.SaveFailed -> "hub_service_save_failed"
+                HubServiceError.InvalidInvoice -> "hub_service_invalid_invoice"
+            }
+        )
+    },
+    order = order?.let {
+        NativeHubServiceOrder(
+            id = it.orderId,
+            title = it.serviceTitle,
+            item = it.itemTitle,
+            phone = it.phone,
+            amountText = it.requestedAmount?.displayText(),
+            lightningPrice = it.payment?.let { payment ->
+                "${decimalText(payment.amountMsat, 3)} sat"
+            },
+            expiresAt = it.payment?.expiresAt,
+            state = it.state,
+            status = serviceStatus(it.state),
+            paymentStatus = serviceStatus(it.paymentStatus),
+            fulfillmentStatus = serviceStatus(it.fulfillmentStatus),
+            unconfirmed = "unknown" in listOf(it.state, it.paymentStatus, it.fulfillmentStatus)
+        )
+    },
+    canPay = canPay
+)
+
+private fun serviceStatus(value: String): String = localized(
+    "hub_service_status_${value.takeIf {
+        it in setOf(
+            "preparing", "awaiting_payment", "processing", "delivered", "expired", "failed",
+            "unknown", "unpaid", "pending", "paid"
+        )
+    } ?: "unknown"}"
+)
+
+private fun HubServiceMoney.displayText(): String =
+    "${decimalText(minor, fractionDigits)} $currency"
+
+private fun decimalText(minor: String, fractionDigits: Int): String {
+    val number = NSDecimalNumber(string = minor)
+        .decimalNumberByMultiplyingByPowerOf10((-fractionDigits).toShort())
+    val formatter = NSNumberFormatter().apply {
+        numberStyle = NSNumberFormatterDecimalStyle
+        minimumFractionDigits = 0u
+        maximumFractionDigits = fractionDigits.toULong()
+        usesGroupingSeparator = true
+    }
+    return formatter.stringFromNumber(number) ?: number.stringValue
+}
