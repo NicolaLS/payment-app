@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import xyz.lilsus.blip.feature.blinkcontacts.BlipNativeContactsController
 import xyz.lilsus.blip.feature.onboarding.nativeBlipInstructionProgress
 import xyz.lilsus.blip.feature.onboarding.nativeBlipOnboardingText
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletEvent
@@ -93,7 +92,6 @@ data class BlipNativeOnboardingSnapshot(
 class BlipNativeOnboardingController internal constructor(
     private val onboarding: OnboardingViewModel,
     blinkWallet: BlinkWallet,
-    private val contacts: BlipNativeContactsController,
     languageChanges: Flow<*>,
     private val appName: String,
     private val welcomeCompleted: Boolean,
@@ -124,13 +122,7 @@ class BlipNativeOnboardingController internal constructor(
                 when (event) {
                     AddBlinkWalletEvent.Success -> {
                         addWallet.updateApiKey("")
-                        if (connectionOnly) {
-                            finish()
-                        } else {
-                            currentStep = STEP_CONTACTS
-                            contacts.updateSearch("")
-                            contacts.load()
-                        }
+                        finish()
                     }
 
                     AddBlinkWalletEvent.Cancelled -> currentStep = STEP_INSTRUCTIONS
@@ -138,7 +130,6 @@ class BlipNativeOnboardingController internal constructor(
                 publishSnapshot()
             }
         }
-        contacts.observeImported { finish() }
     }
 
     fun observe(onChange: (BlipNativeOnboardingSnapshot) -> Unit): () -> Unit {
@@ -217,7 +208,6 @@ class BlipNativeOnboardingController internal constructor(
             STEP_AGREEMENT -> moveTo(STEP_AUTO_PAY)
             STEP_INSTRUCTIONS -> moveTo(STEP_AGREEMENT)
             STEP_WALLET -> addWallet.cancel()
-            STEP_CONTACTS -> finish()
         }
     }
 
@@ -352,7 +342,6 @@ class BlipNativeOnboardingController internal constructor(
         const val STEP_AGREEMENT = "agreement"
         const val STEP_INSTRUCTIONS = "instructions"
         const val STEP_WALLET = "wallet"
-        const val STEP_CONTACTS = "contacts"
         const val CONFIRMATION_ALWAYS = "always"
         const val CONFIRMATION_ABOVE = "above"
         const val ONBOARDING_STEP_COUNT = 5

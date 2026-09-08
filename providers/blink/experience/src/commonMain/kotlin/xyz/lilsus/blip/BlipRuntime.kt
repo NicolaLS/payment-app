@@ -9,6 +9,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImporter
 import xyz.lilsus.blip.feature.payment.BlipPaymentPreferences
 import xyz.lilsus.blip.feature.payment.PaymentCoordinator
 import xyz.lilsus.blip.feature.payment.PaymentDeepLinkEvents
@@ -127,9 +128,17 @@ internal class BlipRuntime(
     private fun start() {
         runtimeStarted = true
         if (blinkWallet.connection.value != null) completeOnboarding()
-        mutableConnected.value = blinkWallet.connection.value != null
+        var wasConnected = blinkWallet.connection.value != null
+        mutableConnected.value = wasConnected
         scope.launch {
-            blinkWallet.connection.collect { mutableConnected.value = it != null }
+            blinkWallet.connection.collect { connection ->
+                val isConnected = connection != null
+                mutableConnected.value = isConnected
+                if (isConnected && !wasConnected) {
+                    launch { importBlinkContacts() }
+                }
+                wasConnected = isConnected
+            }
         }
         scope.launch {
             PaymentDeepLinkEvents.events.collect { uri ->
@@ -145,6 +154,16 @@ internal class BlipRuntime(
             paymentCoordinator.uiState.collect { state ->
                 if (state != PaymentUiState.Active) tabState.requestScan()
             }
+        }
+    }
+
+    private suspend fun importBlinkContacts() {
+        try {
+            BlinkContactsImporter(blinkWallet, paymentHubRepository).importAll()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            // Contact sync is helpful, but must not turn a valid wallet connection into a failure.
         }
     }
 

@@ -10,12 +10,10 @@
 		33DD96B4F486FAEA94E1F9F9 /* BlipUI.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0D78D1E3C8DCAC0CF7558919 /* BlipUI.xcstrings */; };
 		364B06883589390BF5141EF0 /* BlipPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 5390762BB6A88E0D26F7FE4C /* BlipPayment.xcstrings */; };
 		4343E1308DBD79AB01CAD1B6 /* blink_dashboard_key_settings.png in Resources */ = {isa = PBXBuildFile; fileRef = 8BF1858AEA2F1117CB741F14 /* blink_dashboard_key_settings.png */; };
-		54D207457E1FF8D848854B89 /* BlipContacts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 42F80EAF1B45B96E1B3045E2 /* BlipContacts.xcstrings */; };
 		59E91E194796F1BBA9A081CA /* BlipWalletSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AC25F142F2335CECAEAB2D19 /* BlipWalletSettings.xcstrings */; };
 		5B1C5B7B3775A165E5BFF883 /* BlipPayment.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 5390762BB6A88E0D26F7FE4C /* BlipPayment.xcstrings */; };
 		70CFA88E4D65102D39A38552 /* BlipOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 846C2B8D1C4AD650E9AB648D /* BlipOnboarding.xcstrings */; };
 		75688C8DE56E18D33C5CE8D2 /* BlipWalletConnection.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 121F94BD3E44023657EF0431 /* BlipWalletConnection.xcstrings */; };
-		7BEAF6D13D993CCE73A9FBEB /* BlipContacts.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 42F80EAF1B45B96E1B3045E2 /* BlipContacts.xcstrings */; };
 		8227313BC629C54B3BA575B4 /* BlipOnboarding.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 846C2B8D1C4AD650E9AB648D /* BlipOnboarding.xcstrings */; };
 		8B87575323C51126ACC2CE53 /* blink_dashboard_email.png in Resources */ = {isa = PBXBuildFile; fileRef = BC2886D02E50CCBBE7296BF7 /* blink_dashboard_email.png */; };
 		8D5C3B2A3E3846634502C4CA /* blink_dashboard_copy_key.png in Resources */ = {isa = PBXBuildFile; fileRef = 2452E53FCF66E3EE09362089 /* blink_dashboard_copy_key.png */; };
@@ -66,7 +64,6 @@
 		121F94BD3E44023657EF0431 /* BlipWalletConnection.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipWalletConnection.xcstrings; path = "../../../providers/blink/feature/wallet-connection/src/iosMain/resources/BlipWalletConnection.xcstrings"; sourceTree = "<group>"; };
 		2452E53FCF66E3EE09362089 /* blink_dashboard_copy_key.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_copy_key.png; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/assets/blink_dashboard_copy_key.png; sourceTree = "<group>"; };
 		3E2F28A87C1CC1A08DDA1A6F /* Rayl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rayl.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		42F80EAF1B45B96E1B3045E2 /* BlipContacts.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipContacts.xcstrings; path = "../../../providers/blink/feature/blink-contacts/src/iosMain/resources/BlipContacts.xcstrings"; sourceTree = "<group>"; };
 		5390762BB6A88E0D26F7FE4C /* BlipPayment.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipPayment.xcstrings; path = ../../../providers/blink/feature/payment/src/iosMain/resources/BlipPayment.xcstrings; sourceTree = "<group>"; };
 		846C2B8D1C4AD650E9AB648D /* BlipOnboarding.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; name = BlipOnboarding.xcstrings; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/BlipOnboarding.xcstrings; sourceTree = "<group>"; };
 		8BF1858AEA2F1117CB741F14 /* blink_dashboard_key_settings.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = blink_dashboard_key_settings.png; path = ../../../providers/blink/feature/onboarding/src/iosMain/resources/assets/blink_dashboard_key_settings.png; sourceTree = "<group>"; };
@@ -245,7 +242,6 @@
 				2452E53FCF66E3EE09362089 /* blink_dashboard_copy_key.png */,
 				E44C5776A776765F3F772AE6 /* blink_dashboard_api_keys.png */,
 				846C2B8D1C4AD650E9AB648D /* BlipOnboarding.xcstrings */,
-				42F80EAF1B45B96E1B3045E2 /* BlipContacts.xcstrings */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -379,7 +375,6 @@
 				8D5C3B2A3E3846634502C4CA /* blink_dashboard_copy_key.png in Resources */,
 				F66FC212555C239ADBBF0F03 /* blink_dashboard_api_keys.png in Resources */,
 				8227313BC629C54B3BA575B4 /* BlipOnboarding.xcstrings in Resources */,
-				54D207457E1FF8D848854B89 /* BlipContacts.xcstrings in Resources */,
 				D30000000000000000000001 /* CoreUI.xcstrings in Resources */,
 				D30000000000000000000002 /* AppShell.xcstrings in Resources */,
 				D30000000000000000000003 /* CurrencySettings.xcstrings in Resources */,
@@ -412,7 +407,6 @@
 				E1DD348ED9D15B051664ABCC /* blink_dashboard_copy_key.png in Resources */,
 				9319F0D3424F21CA12CFD693 /* blink_dashboard_api_keys.png in Resources */,
 				70CFA88E4D65102D39A38552 /* BlipOnboarding.xcstrings in Resources */,
-				7BEAF6D13D993CCE73A9FBEB /* BlipContacts.xcstrings in Resources */,
 				E30000000000000000000001 /* CoreUI.xcstrings in Resources */,
 				E30000000000000000000002 /* AppShell.xcstrings in Resources */,
 				E30000000000000000000003 /* CurrencySettings.xcstrings in Resources */,

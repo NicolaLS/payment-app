@@ -12,9 +12,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.serialization.Serializable
-import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportEvent
-import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportScreen
-import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsImportViewModel
 import xyz.lilsus.blip.feature.onboarding.R
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletEvent
 import xyz.lilsus.blip.feature.walletconnection.AddBlinkWalletScreen
@@ -28,7 +25,6 @@ import xyz.lilsus.raylsuite.feature.onboarding.FeaturesScreen
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingFeaturePage
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.WelcomeScreen
-import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 
 @Serializable
 sealed interface BlipOnboardingDestination {
@@ -49,16 +45,12 @@ sealed interface BlipOnboardingDestination {
 
     @Serializable
     data object AddWallet : BlipOnboardingDestination
-
-    @Serializable
-    data object BlinkContactsImport : BlipOnboardingDestination
 }
 
 fun NavGraphBuilder.blipOnboarding(
     navController: NavController,
     blinkWallet: BlinkWallet,
     onboardingViewModel: OnboardingViewModel,
-    hubRepository: PaymentHubRepository,
     connectionOnly: Boolean,
     onFinished: () -> Unit
 ) {
@@ -145,21 +137,8 @@ fun NavGraphBuilder.blipOnboarding(
     composable<BlipOnboardingDestination.AddWallet> {
         AddWalletDestination(
             blinkWallet = blinkWallet,
-            onConnected = {
-                if (connectionOnly) {
-                    onFinished()
-                } else {
-                    navController.navigate(BlipOnboardingDestination.BlinkContactsImport)
-                }
-            },
+            onConnected = onFinished,
             onBack = if (connectionOnly) null else ({ navController.navigateUp() })
-        )
-    }
-    composable<BlipOnboardingDestination.BlinkContactsImport> {
-        OnboardingBlinkContactsImportDestination(
-            blinkWallet = blinkWallet,
-            hubRepository = hubRepository,
-            onFinished = onFinished
         )
     }
 }
@@ -190,44 +169,6 @@ private fun AddWalletDestination(
         onBack = onBack?.let { viewModel::cancel },
         onApiKeyChange = viewModel::updateApiKey,
         onSubmit = viewModel::submit
-    )
-}
-
-@Composable
-private fun OnboardingBlinkContactsImportDestination(
-    blinkWallet: BlinkWallet,
-    hubRepository: PaymentHubRepository,
-    onFinished: () -> Unit
-) {
-    val viewModel =
-        remember(blinkWallet, hubRepository) {
-            BlinkContactsImportViewModel(
-                blinkWallet = blinkWallet,
-                hubRepository = hubRepository
-            )
-        }
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-
-    DisposableEffect(viewModel) {
-        onDispose(viewModel::clear)
-    }
-    LaunchedEffect(viewModel) {
-        viewModel.loadBlinkContacts()
-        viewModel.events.collectLatest { event ->
-            when (event) {
-                is BlinkContactsImportEvent.Imported -> onFinished()
-            }
-        }
-    }
-
-    BlinkContactsImportScreen(
-        state = state,
-        onBack = onFinished,
-        onToggleContact = viewModel::toggleBlinkContact,
-        onToggleAll = viewModel::toggleAllBlinkContacts,
-        onSearchQueryChange = viewModel::updateSearchQuery,
-        onImport = viewModel::importSelectedBlinkContacts,
-        onSkip = onFinished
     )
 }
 

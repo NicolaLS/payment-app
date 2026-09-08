@@ -65,8 +65,7 @@ import xyz.lilsus.raylsuite.feature.paymenthub.WidgetHubViewModel
 internal fun HubWidgetEditorScreen(
     state: WidgetHubState,
     viewModel: WidgetHubViewModel,
-    modifier: Modifier = Modifier,
-    importButton: (@Composable () -> Unit)? = null
+    modifier: Modifier = Modifier
 ) {
     val editor = state.editor ?: return
     val variant = state.selectedVariant ?: return
@@ -170,7 +169,6 @@ internal fun HubWidgetEditorScreen(
                     }
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            importButton?.invoke()
                             OutlinedButton(onClick = {
                                 addingContact = true
                             }, modifier = Modifier.fillMaxWidth()) {
