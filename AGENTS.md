@@ -42,8 +42,9 @@ Do not add links to private machine-specific documentation from repository files
 
 ## Products and identity
 
-- Rayl is the default unified product, initially supporting Blink and NWC with
-  exactly one connection at a time. Its Android application ID and iOS bundle
+- Rayl is the default unified product, initially offering Blink with exactly one
+  connection at a time. NWC composition is retained for future releases.
+  Its Android application ID and iOS bundle
   ID are `com.nicolasusca.rayl`; Android adds `.dev` and `.e2e`, and iOS E2E adds
   `.e2e`. Its Kotlin/Android namespace is `xyz.lilsus.rayl`.
 - All apps are prerelease. Do not introduce migrations, compatibility wrappers,

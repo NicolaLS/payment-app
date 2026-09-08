@@ -57,8 +57,9 @@ struct ContentView: View {
                 Text(snapshot.text[snapshot.welcomeCompleted ? "choose_body" : "welcome_body"] ?? "")
                     .foregroundStyle(.secondary)
                 if snapshot.welcomeCompleted {
-                    choice("blink", snapshot)
-                    choice("nwc", snapshot)
+                    ForEach(snapshot.availableWallets, id: \.self) { wallet in
+                        choice(wallet, snapshot)
+                    }
                 } else {
                     Button(snapshot.text["get_started"] ?? "") { RaylIosApp.shared.completeWelcome() }
                         .buttonStyle(.borderedProminent)

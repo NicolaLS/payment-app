@@ -1,6 +1,6 @@
 # Rayl prerelease terms
 
-Rayl connects to your own Blink or NWC-compatible wallet to make payments.
+Rayl connects to your own Blink account to make payments.
 You are responsible for the wallet, connection permissions, payment details,
 and payments you authorize. Use a limited spending balance or budget.
 

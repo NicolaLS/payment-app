@@ -99,19 +99,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle deine Verbindung. Rayl nutzt jeweils eine Wallet."
+            "value" : "Verbinde dein Blink-Konto. Rayl nutzt jeweils eine Wallet."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose how to connect. Rayl uses one wallet at a time."
+            "value" : "Connect your Blink account. Rayl uses one wallet at a time."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige cómo conectarte. Rayl usa una billetera a la vez."
+            "value" : "Conecta tu cuenta de Blink. Rayl usa una billetera a la vez."
           }
         }
       }
@@ -273,6 +273,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nostr Wallet Connect"
+          }
+        }
+      }
+    },
+    "wallet_unavailable" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Version von Rayl unterstützt nur Blink-Verbindungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version of Rayl supports Blink connections only."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta versión de Rayl solo admite conexiones con Blink."
           }
         }
       }
