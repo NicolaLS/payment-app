@@ -40,26 +40,11 @@ CoinGecko or LNURL servers.
 Camera access is optional and is used to scan QR codes. Frames are processed
 on the device and Lasr does not store or upload camera images.
 
-## Optional performance diagnostics
+## Performance diagnostics
 
-On Android, Lasr offers an optional **Performance diagnostics** setting. It is
-off by default. If you enable it, Lasr uses Google Firebase Performance
-Monitoring to send technical performance measurements such as app startup,
-screen rendering, and fixed-duration camera startup and shutdown timings.
-
-Firebase receives technical metadata needed for those measurements, including
-a Firebase installation identifier, a random session identifier, app version,
-device model and operating system, device resources and CPU usage, network type,
-locale, and country derived from the IP address. Google's Firebase privacy and
-security information, including retention, is available at
-<https://firebase.google.com/support/privacy/>.
-
-Lasr does not send payment amounts, destinations, addresses, invoices, wallet
-credentials, contacts, transaction history, relay traffic, NWC URIs, QR
-contents, camera images, URLs, or free-form trace attributes through
-performance diagnostics. It does not use Firebase Analytics or advertising
-features. You can disable future collection at any time in Settings. Lasr does
-not add this third-party telemetry on iOS.
+Lasr does not include Firebase Performance Monitoring or offer remote
+performance diagnostics in this version. Local system performance traces are
+available for development and troubleshooting.
 
 ## Questions
 

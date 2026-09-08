@@ -27,3 +27,6 @@ app/composeApp/release/
 dist/
 .envrc
 .envrc.local
+
+# Local Firebase configuration is never part of a release by file presence alone.
+apps/*/androidApp/**/google-services.json

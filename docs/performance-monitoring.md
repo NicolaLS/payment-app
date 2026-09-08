@@ -83,9 +83,8 @@ documentation for the broader Instruments and Organizer workflow.
 | `camera.stop` | Android, iOS | Camera shutdown and teardown. |
 
 The benchmark reads `camera.start_to_ready` and
-`camera.start_to_first_frame`. Firebase receives only durations for
-`camera_start_to_ready`, `camera_start_to_first_frame`, and `camera_stop`. It
-never receives frame-analysis or QR-detection events.
+`camera.start_to_first_frame`. These measurements remain local; the apps do not
+upload the camera markers to a performance-monitoring service.
 
 Typical interpretations:
 
@@ -102,31 +101,19 @@ Typical interpretations:
 QR detection is not a repeatable benchmark without controlled QR size,
 distance, light, and device position.
 
-## Optional Android camera telemetry
+## Remote performance monitoring
 
-Android builds support Firebase Performance Monitoring, but collection is
-disabled in the manifest and remains off until a person explicitly enables
-**Performance diagnostics** in Settings. The row is absent when the build has
-no Firebase configuration.
+The current apps do not include Firebase Performance Monitoring or apply the
+Google Services plugin. Local Firebase configuration files are ignored and do
+not activate telemetry. The Performance diagnostics setting is absent because
+app entry points do not supply a remote diagnostics implementation.
 
-When enabled, Firebase receives its standard performance metadata (including a
-Firebase installation ID, session ID, app/device/OS information, network type,
-and country derived from IP address), lifecycle and screen-rendering timings,
-and the three fixed camera durations listed above. Google's
-[Firebase privacy documentation](https://firebase.google.com/support/privacy/)
-describes the exact fields and retention.
-
-This project intentionally does not apply the Firebase Performance Gradle
-plugin, so HTTP instrumentation and URL collection are disabled. It also does
-not add Firebase Analytics, Crashlytics, custom attributes, custom metrics, or
-dynamic trace names. Keep that boundary: never attach an amount, address,
-destination, invoice, QR value, wallet identifier, credential, preimage, relay,
-URL, error message, or free-form string to a performance trace.
-
-Disabling the setting stops future collection. The preference is local to the
-app and defaults to off after a fresh install.
-
+Android system traces, local benchmarks, and iOS signposts remain available.
 Preserve marker meanings over time so comparisons remain useful. Add a new
 marker only when it isolates an actionable stage and has a fixed, non-sensitive
-name. Apps build without Firebase configuration; collection controls remain
-hidden when configuration is absent.
+name. Never attach an amount, address, destination, invoice, QR value, wallet
+identifier, credential, preimage, relay, URL, error message, or free-form string
+to a performance marker.
+
+Future remote monitoring requires an explicit integration, consent validation,
+and matching product disclosures before distribution. MOB-31 tracks that work.
