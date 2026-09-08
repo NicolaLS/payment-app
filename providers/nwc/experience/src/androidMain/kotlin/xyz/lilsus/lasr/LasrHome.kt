@@ -23,6 +23,7 @@ import xyz.lilsus.lasr.feature.payment.rememberPaymentMessages
 import xyz.lilsus.lasr.feature.walletdetails.NwcWalletDetailsScreen
 import xyz.lilsus.lasr.integration.nwc.NwcWalletConnection
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
+import xyz.lilsus.raylsuite.core.ui.platform.rememberCredentialClipboard
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
 import xyz.lilsus.raylsuite.feature.appshell.AppTabScaffold
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubTab
@@ -237,6 +238,7 @@ private fun LasrSettingsTab(runtime: LasrRuntime, performanceDiagnostics: Perfor
  */
 @Composable
 private fun LasrWalletFlow(runtime: LasrRuntime, onFinished: () -> Unit) {
+    val clipboard = rememberCredentialClipboard()
     val navController = rememberNavController()
     val pendingDraft = runtime.connectionDraft.uri
 
@@ -259,6 +261,7 @@ private fun LasrWalletFlow(runtime: LasrRuntime, onFinished: () -> Unit) {
             nwcWallet = runtime.nwcWallet,
             onboardingViewModel = runtime.onboardingViewModel,
             connectionDraft = runtime.connectionDraft,
+            clipboard = clipboard,
             onWalletConnected = onFinished
         )
     }

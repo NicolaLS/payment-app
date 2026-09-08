@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import xyz.lilsus.lasr.integration.nwc.NwcConnectionError
 import xyz.lilsus.lasr.integration.nwc.NwcConnectionException
@@ -37,7 +39,9 @@ class ConnectNwcWalletViewModel(
 
     fun load(uri: String) {
         val normalized = uri.trim()
+        if (!scope.isActive || mutableUiState.value.isSaving) return
         if (normalized.isEmpty()) {
+            reset()
             mutableUiState.value =
                 ConnectNwcWalletUiState(
                     uri = normalized,
@@ -58,6 +62,7 @@ class ConnectNwcWalletViewModel(
                 mutableUiState.update {
                     it.copy(
                         uri = normalized,
+                        alias = if (it.uri == normalized) it.alias else "",
                         isDiscoveryLoading = true,
                         discovery = null,
                         error = null
@@ -65,6 +70,7 @@ class ConnectNwcWalletViewModel(
                 }
                 try {
                     val discovery = nwcWallet.discover(normalized)
+                    coroutineContext.ensureActive()
                     mutableUiState.update { current ->
                         current.copy(
                             discovery = discovery,
@@ -78,17 +84,19 @@ class ConnectNwcWalletViewModel(
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: NwcConnectionException) {
+                    coroutineContext.ensureActive()
                     mutableUiState.update {
                         it.copy(
                             isDiscoveryLoading = false,
-                            error = error.error
+                            error = error.error.withoutServerDetails()
                         )
                     }
                 } catch (error: Exception) {
+                    coroutineContext.ensureActive()
                     mutableUiState.update {
                         it.copy(
                             isDiscoveryLoading = false,
-                            error = NwcConnectionError.ConnectionFailed(error.message)
+                            error = NwcConnectionError.ConnectionFailed()
                         )
                     }
                 }
@@ -100,6 +108,7 @@ class ConnectNwcWalletViewModel(
     }
 
     fun updateAlias(alias: String) {
+        if (!scope.isActive || mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(
                 alias = alias.toSingleLine(),
@@ -109,6 +118,7 @@ class ConnectNwcWalletViewModel(
     }
 
     fun confirm() {
+        if (!scope.isActive) return
         val state = mutableUiState.value
         val discovery = state.discovery ?: return
         if (state.isSaving) return
@@ -127,19 +137,22 @@ class ConnectNwcWalletViewModel(
                         discovery = discovery,
                         alias = state.alias
                     )
-                mutableUiState.update { it.copy(isSaving = false) }
+                coroutineContext.ensureActive()
+                mutableUiState.value = ConnectNwcWalletUiState()
                 mutableEvents.emit(ConnectNwcWalletEvent.Success(connection))
             } catch (error: CancellationException) {
                 throw error
             } catch (error: NwcConnectionException) {
+                coroutineContext.ensureActive()
                 mutableUiState.update {
-                    it.copy(isSaving = false, error = error.error)
+                    it.copy(isSaving = false, error = error.error.withoutServerDetails())
                 }
             } catch (error: Exception) {
+                coroutineContext.ensureActive()
                 mutableUiState.update {
                     it.copy(
                         isSaving = false,
-                        error = NwcConnectionError.ConnectionFailed(error.message)
+                        error = NwcConnectionError.ConnectionFailed()
                     )
                 }
             }
@@ -147,14 +160,20 @@ class ConnectNwcWalletViewModel(
     }
 
     fun cancel() {
+        reset()
+        mutableEvents.tryEmit(ConnectNwcWalletEvent.Cancelled)
+    }
+
+    fun reset() {
         discoveryJob?.cancel()
+        discoveryJob = null
         saveJob?.cancel()
-        scope.launch {
-            mutableEvents.emit(ConnectNwcWalletEvent.Cancelled)
-        }
+        saveJob = null
+        mutableUiState.value = ConnectNwcWalletUiState()
     }
 
     fun clear() {
+        reset()
         scope.cancel()
     }
 }
@@ -175,3 +194,8 @@ sealed interface ConnectNwcWalletEvent {
 }
 
 private fun String.toSingleLine(): String = replace(Regex("[\\r\\n]+"), " ")
+
+private fun NwcConnectionError.withoutServerDetails(): NwcConnectionError = when (this) {
+    is NwcConnectionError.ConnectionFailed -> NwcConnectionError.ConnectionFailed()
+    else -> this
+}

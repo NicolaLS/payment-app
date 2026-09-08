@@ -3,6 +3,7 @@ package xyz.lilsus.lasr.feature.walletconnection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -12,12 +13,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import xyz.lilsus.lasr.integration.nwc.NwcConnectionError
 import xyz.lilsus.lasr.integration.nwc.isValidNwcConnectionUri
 
-class AddNwcWalletViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Default) {
+class AddNwcWalletViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private var submissionJob: Job? = null
     private val mutableUiState = MutableStateFlow(AddNwcWalletUiState())
     private val mutableEvents =
         MutableSharedFlow<AddNwcWalletEvent>(extraBufferCapacity = 4)
@@ -26,6 +29,7 @@ class AddNwcWalletViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Defaul
     val events: SharedFlow<AddNwcWalletEvent> = mutableEvents.asSharedFlow()
 
     fun updateUri(uri: String) {
+        if (!scope.isActive) return
         mutableUiState.update {
             it.copy(
                 uri = uri,
@@ -36,6 +40,7 @@ class AddNwcWalletViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Defaul
     }
 
     fun prefillUriIfValid(candidate: String?) {
+        if (!scope.isActive) return
         val normalized = candidate?.trim()?.takeIf(::isValid) ?: return
         mutableUiState.value =
             AddNwcWalletUiState(
@@ -45,6 +50,7 @@ class AddNwcWalletViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Defaul
     }
 
     fun submit() {
+        if (!scope.isActive) return
         val normalized = mutableUiState.value.uri.trim()
         if (!isValid(normalized)) {
             mutableUiState.update {
@@ -56,12 +62,14 @@ class AddNwcWalletViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Defaul
             return
         }
 
-        scope.launch {
+        reset()
+        submissionJob = scope.launch {
             mutableEvents.emit(AddNwcWalletEvent.Confirm(normalized))
         }
     }
 
     fun handleScannedValue(value: String) {
+        if (!scope.isActive) return
         val normalized = value.trim()
         if (normalized.isEmpty()) return
         val isValid = isValid(normalized)
@@ -75,7 +83,14 @@ class AddNwcWalletViewModel(dispatcher: CoroutineDispatcher = Dispatchers.Defaul
         }
     }
 
+    fun reset() {
+        submissionJob?.cancel()
+        submissionJob = null
+        mutableUiState.value = AddNwcWalletUiState()
+    }
+
     fun clear() {
+        reset()
         scope.cancel()
     }
 
