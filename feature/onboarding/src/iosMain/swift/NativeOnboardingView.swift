@@ -96,6 +96,7 @@ struct NativeOnboardingFeaturesView: View {
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
 
             NativeOnboardingPrimaryButton(title: actionTitle, action: action)
         }
