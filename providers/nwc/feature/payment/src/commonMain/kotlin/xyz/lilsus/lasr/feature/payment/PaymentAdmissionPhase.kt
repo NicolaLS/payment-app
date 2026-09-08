@@ -3,7 +3,6 @@ package xyz.lilsus.lasr.feature.payment
 import fr.acinq.lightning.payment.Bolt11Invoice
 import fr.acinq.lightning.utils.currentTimestampSeconds
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
-import xyz.lilsus.raylsuite.core.model.CurrencyInfo
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
 import xyz.lilsus.raylsuite.core.model.DisplayCurrency
 import xyz.lilsus.raylsuite.core.model.LightningAddress
@@ -307,35 +306,6 @@ internal class PaymentAdmissionPhase(
         }
     }
 
-    suspend fun startDonation(
-        amountSats: Long,
-        address: LightningAddress,
-        token: PaymentTaskToken
-    ): AdmissionResult {
-        if (amountSats <= 0) return AdmissionResult.Presented
-        presentation.showLoading(LoadingKind.Resolving)
-        val result = lnurlPayClient.fetchPayParams(address)
-        token.ensureCurrent()
-        return when (result) {
-            is LnurlResult.Success ->
-                handleLnurlParams(
-                    params = result.data,
-                    paymentSource = PaymentRequestSource.Camera,
-                    forceManualEntry = true,
-                    prefillMsats = amountSats * MSATS_PER_SAT,
-                    inputCurrencyOverride =
-                        CurrencyCatalog.infoFor(CurrencyCatalog.DEFAULT_CODE),
-                    sourceKey = lightningAddressDynamicPaymentSourceKey(address),
-                    token = token
-                )
-
-            is LnurlResult.Error -> {
-                presentation.presentError(result.error.toPaymentUiError())
-                AdmissionResult.Presented
-            }
-        }
-    }
-
     fun updateManualAmount(key: ManualAmountKey) {
         val state = presentation.uiState.value as? PaymentUiState.EnterAmount ?: return
         preparation.manualEntryContext ?: return
@@ -586,9 +556,6 @@ internal class PaymentAdmissionPhase(
     private suspend fun handleLnurlParams(
         params: LnurlPayParams,
         paymentSource: PaymentRequestSource,
-        forceManualEntry: Boolean = false,
-        prefillMsats: Long? = null,
-        inputCurrencyOverride: CurrencyInfo? = null,
         sourceKey: DynamicPaymentSourceKey? = null,
         targetContext: HubTargetContext? = null,
         presetQuote: PaymentAmountQuote? = null,
@@ -631,7 +598,7 @@ internal class PaymentAdmissionPhase(
                 replacesDynamicGuardId = replacesDynamicGuardId
             )
         val currencyState = currencyManager.state.value
-        val inputInfo = inputCurrencyOverride ?: currencyState.info
+        val inputInfo = currencyState.info
         val manualCurrencyState =
             CurrencyState(
                 info = inputInfo,
@@ -681,7 +648,7 @@ internal class PaymentAdmissionPhase(
             }
         }
 
-        if (!forceManualEntry && params.minSendable == params.maxSendable) {
+        if (params.minSendable == params.maxSendable) {
             return if (session.display != null) {
                 AdmissionResult.LnurlReview(
                     LnurlReviewRequest(
@@ -719,15 +686,7 @@ internal class PaymentAdmissionPhase(
                 minMsats = params.minSendable,
                 maxMsats = params.maxSendable
             )
-        val baseEntry = manualAmount.reset(config, clearInput = true)
-        val entry =
-            prefillMsats
-                ?.coerceIn(params.minSendable, params.maxSendable)
-                ?.let { amount ->
-                    manualAmount.presetAmount(
-                        currencyManager.convertMsatsToDisplay(amount, manualCurrencyState)
-                    )
-                } ?: baseEntry
+        val entry = manualAmount.reset(config, clearInput = true)
         presentation.showManualAmount(entry, session.display)
         return AdmissionResult.Presented
     }
@@ -802,9 +761,5 @@ internal class PaymentAdmissionPhase(
         preparation.manualEntryContext = null
         presentation.presentError(PaymentUiError.InvalidInvoice("Invoice has expired"))
         return true
-    }
-
-    private companion object {
-        const val MSATS_PER_SAT = 1_000L
     }
 }

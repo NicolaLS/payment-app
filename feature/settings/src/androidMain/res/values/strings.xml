@@ -17,11 +17,6 @@
     <string name="settings_theme_system_default">Use system setting (%1$s)</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
-    <string name="settings_donate_title">Enjoying %1$s?</string>
-    <string name="settings_donate_subtitle">Help us grow and improve by supporting our development.</string>
-    <string name="settings_donate_tier_small">1k 🎁</string>
-    <string name="settings_donate_tier_medium">5k 🚀</string>
-    <string name="settings_donate_tier_large">10k ✨</string>
     <string name="settings_footer_version">Version %1$s</string>
     <string name="settings_performance_diagnostics">Performance diagnostics</string>
     <string name="settings_performance_diagnostics_subtitle">Share startup and camera timing data. Payment and QR details are never included.</string>

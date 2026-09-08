@@ -23,11 +23,9 @@ import xyz.lilsus.flint.feature.walletconnection.WalletAction
 import xyz.lilsus.flint.feature.walletconnection.WalletViewModel
 import xyz.lilsus.flint.shared.R
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
-import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.appshell.AppTab
 import xyz.lilsus.raylsuite.feature.appshell.AppTabScaffold
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubTab
-import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentRecentScreen
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentScanScreen
 import xyz.lilsus.raylsuite.feature.settings.PerformanceDiagnostics
@@ -126,13 +124,7 @@ internal fun FlintTabContent(
             FlintSettingsTab(
                 runtime = runtime,
                 performanceDiagnostics = performanceDiagnostics,
-                onWalletRemoved = onWalletRemoved,
-                onDonate = { amountSats ->
-                    tabState.requestScan()
-                    coordinator.dispatch(
-                        PaymentIntent.StartDonation(amountSats, FLINT_DONATION_ADDRESS)
-                    )
-                }
+                onWalletRemoved = onWalletRemoved
             )
     }
 }
@@ -141,8 +133,7 @@ internal fun FlintTabContent(
 private fun FlintSettingsTab(
     runtime: FlintRuntime,
     performanceDiagnostics: PerformanceDiagnostics?,
-    onWalletRemoved: () -> Unit,
-    onDonate: (Long) -> Unit
+    onWalletRemoved: () -> Unit
 ) {
     var destination by rememberSaveable { mutableStateOf(FlintSettingsDestination.Root) }
     val walletViewModel = viewModel { WalletViewModel(runtime.walletAccess) }
@@ -171,9 +162,7 @@ private fun FlintSettingsTab(
                             subtitle = stringResource(R.string.settings_wallet_subtitle),
                             onClick = { destination = FlintSettingsDestination.WalletManagement }
                         )
-                    ),
-                donationAppName = stringResource(R.string.app_name),
-                onDonate = onDonate
+                    )
             )
 
         FlintSettingsDestination.WalletManagement ->
@@ -219,6 +208,3 @@ private enum class FlintSettingsDestination {
     WalletManagement,
     WalletFlow
 }
-
-private val FLINT_DONATION_ADDRESS =
-    checkNotNull(LightningAddress.parse("lilsus@blink.sv"))
