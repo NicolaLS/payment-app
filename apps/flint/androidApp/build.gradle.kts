@@ -4,10 +4,6 @@ plugins {
     id("xyz.lilsus.raylsuite.android.application")
 }
 
-if (file("google-services.json").isFile) {
-    apply(plugin = "com.google.gms.google-services")
-}
-
 val localProperties =
     Properties().apply {
         val file = rootProject.file("local.properties")
@@ -65,5 +61,4 @@ android {
 dependencies {
     implementation(project(":flint:shared"))
     implementation(project(":core:ui"))
-    implementation(project(":integration:performance-monitoring"))
 }
