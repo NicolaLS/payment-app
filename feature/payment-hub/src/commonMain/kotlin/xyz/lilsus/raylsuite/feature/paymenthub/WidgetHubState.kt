@@ -1,7 +1,10 @@
 package xyz.lilsus.raylsuite.feature.paymenthub
 
 import xyz.lilsus.raylsuite.core.hubapi.HubServiceContent
+import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.StoredAmount
+import xyz.lilsus.raylsuite.feature.paymenthub.create.hasFractionForWholeCurrency
+import xyz.lilsus.raylsuite.feature.paymenthub.create.parseMinorAmount
 
 enum class HubWidgetKind { Contacts, Shortcut, Favorites, Recents, Metric, Service }
 
@@ -112,6 +115,38 @@ data class WidgetHubState(
 
     val selectedVariant: HubWidgetVariant?
         get() = selectedDefinition?.variants?.firstOrNull { it.id == editor?.variantId }
+}
+
+internal fun HubWidgetEditor.shortcutAmount(): StoredAmount? {
+    val digits = CurrencyCatalog.infoFor(currencyCode).fractionDigits
+    if (amountInput.hasFractionForWholeCurrency(digits)) return null
+    val minor = amountInput.parseMinorAmount(digits)?.takeIf { it > 0 } ?: return null
+    return StoredAmount(minor, currencyCode)
+}
+
+internal fun WidgetHubState.editorValidationError(): HubWidgetError? {
+    val editor = editor ?: return HubWidgetError.Unavailable
+    val definition = selectedDefinition ?: return HubWidgetError.Unavailable
+    val variant = selectedVariant ?: return HubWidgetError.Unavailable
+    if (editor.kind == HubWidgetKind.Contacts || editor.kind == HubWidgetKind.Shortcut) {
+        if (editor.contactIds.isEmpty()) return HubWidgetError.SelectContacts
+        if (editor.contactIds.size > variant.capacity) return HubWidgetError.TooManyContacts
+    }
+    if (editor.kind == HubWidgetKind.Shortcut && editor.shortcutAmount() == null) {
+        return HubWidgetError.InvalidAmount
+    }
+    if (definition.fields.any { field ->
+            val value = editor.configuration[field.key].orEmpty().trim()
+            (field.required && value.isEmpty()) ||
+                (
+                    value.isNotEmpty() && field.type == "choice" &&
+                        field.options.none { it.id == value }
+                    )
+        }
+    ) {
+        return HubWidgetError.RequiredConfiguration
+    }
+    return null
 }
 
 object LocalHubWidgets {

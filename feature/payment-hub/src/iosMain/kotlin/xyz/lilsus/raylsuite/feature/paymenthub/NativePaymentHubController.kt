@@ -206,6 +206,27 @@ class NativePaymentHubController(
                         variant.capacity
                     ),
                     capacity = variant.capacity,
+                    canSave = state.editorValidationError() == null,
+                    validationMessage = when (state.editorValidationError()) {
+                        HubWidgetError.SelectContacts -> localized(
+                            "hub_widget_select_contacts_error"
+                        )
+
+                        HubWidgetError.TooManyContacts -> localized(
+                            "hub_widget_choose_contacts",
+                            variant.capacity
+                        )
+
+                        HubWidgetError.InvalidAmount -> localized("hub_error_enter_amount")
+
+                        HubWidgetError.RequiredConfiguration -> localized(
+                            "hub_widget_required_fields"
+                        )
+
+                        null -> null
+
+                        else -> copy.unavailable
+                    },
                     fields = state.selectedDefinition?.fields.orEmpty().map { field ->
                         NativeHubField(
                             key = field.key,
@@ -482,6 +503,8 @@ data class NativeHubEditor(
     val selectionTitle: String,
     val selectionCount: String,
     val capacity: Int,
+    val canSave: Boolean,
+    val validationMessage: String?,
     val fields: List<NativeHubField>
 )
 

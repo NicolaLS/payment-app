@@ -515,8 +515,7 @@ private struct WidgetConfigurationView: View {
     @ObservedObject var model: NativePaymentHubModel
     let editor: NativeHubEditor
     let definition: NativeHubDefinition
-    @State private var showingNewContact = false
-    @State private var pendingContactDeletion: NativeHubContact?
+    @State private var showingContactPicker = false
 
     private var controller: NativePaymentHubController { model.controller }
     private var isPersonal: Bool { editor.kind == "contacts" || editor.kind == "shortcut" }
@@ -526,20 +525,12 @@ private struct WidgetConfigurationView: View {
             if let state = model.snapshot {
                 Form {
                     Section {
-                        if definition.variants.count > 1 {
-                            Picker(state.text.chooseLayout, selection: Binding(
-                                get: { editor.variantId },
-                                set: { controller.selectVariant(id: $0) }
-                            )) {
-                                ForEach(definition.variants, id: \.id) { variant in
-                                    Text(variant.title).tag(variant.id)
-                                }
-                            }
-                        }
-                        TextField(state.text.widgetName, text: Binding(
-                            get: { editor.title },
-                            set: { controller.updateTitle(value: $0) }
-                        ))
+                        TextField(
+                            state.text.widgetName,
+                            text: Binding(
+                                get: { editor.title },
+                                set: { controller.updateTitle(value: $0) }
+                            ))
                     }
                     if isPersonal {
                         contacts(state)
@@ -552,25 +543,33 @@ private struct WidgetConfigurationView: View {
                     if editor.kind == "shortcut" {
                         Section(state.text.amount) {
                             HStack {
-                                TextField(state.text.amount, text: Binding(
-                                    get: { editor.amount },
-                                    set: { controller.updateAmount(value: $0) }
-                                ))
+                                TextField(
+                                    state.text.amount,
+                                    text: Binding(
+                                        get: { editor.amount },
+                                        set: { controller.updateAmount(value: $0) }
+                                    )
+                                )
                                 .keyboardType(.decimalPad)
-                                Picker(editor.currencyCode, selection: Binding(
-                                    get: { editor.currencyCode },
-                                    set: { controller.selectCurrency(code: $0) }
-                                )) {
+                                Picker(
+                                    editor.currencyCode,
+                                    selection: Binding(
+                                        get: { editor.currencyCode },
+                                        set: { controller.selectCurrency(code: $0) }
+                                    )
+                                ) {
                                     ForEach(editor.currencyCodes, id: \.self) { code in
                                         Text(code).tag(code)
                                     }
                                 }
                                 .labelsHidden()
                             }
-                            TextField(state.text.comment, text: Binding(
-                                get: { editor.comment },
-                                set: { controller.updateComment(value: $0) }
-                            ))
+                            TextField(
+                                state.text.comment,
+                                text: Binding(
+                                    get: { editor.comment },
+                                    set: { controller.updateComment(value: $0) }
+                                ))
                         }
                     }
                     if !editor.fields.isEmpty {
@@ -580,33 +579,35 @@ private struct WidgetConfigurationView: View {
                             }
                         }
                     }
-                    if let error = state.error, !showingNewContact {
-                        Section { Text(error).foregroundStyle(.red) }
-                    }
                 }
                 .disabled(state.busy)
+                .scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom) {
-                    HubPrimaryButton(
-                        title: editor.isEditing ? state.text.save : state.text.addWidget,
-                        busy: state.busy,
-                        action: controller.saveWidget
-                    )
+                    VStack(spacing: 0) {
+                        if let message = state.error ?? editor.validationMessage {
+                            Text(message)
+                                .font(.footnote)
+                                .foregroundStyle(state.error == nil ? Color.secondary : Color.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 8)
+                        }
+                        HubPrimaryButton(
+                            title: editor.isEditing ? state.text.save : state.text.addWidget,
+                            busy: state.busy,
+                            action: controller.saveWidget
+                        )
+                        .disabled(!editor.canSave)
+                    }
+                    .background(Color(uiColor: .systemGroupedBackground))
                 }
                 .navigationTitle(editor.isEditing ? state.text.editWidget : definition.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationBarBackButtonHidden(state.busy)
-                .sheet(isPresented: $showingNewContact) {
-                    AddHubContactSheet(model: model)
+                .sheet(isPresented: $showingContactPicker) {
+                    HubContactPicker(model: model)
+                        .presentationDetents([.large])
                         .interactiveDismissDisabled(model.snapshot?.busy == true)
-                }
-                .alert(state.text.deleteContactTitle, isPresented: deletionPresented, presenting: pendingContactDeletion) { contact in
-                    Button(state.text.deleteContact, role: .destructive) {
-                        controller.deleteContact(id: contact.id)
-                        pendingContactDeletion = nil
-                    }
-                    Button(state.text.cancel, role: .cancel) { pendingContactDeletion = nil }
-                } message: { contact in
-                    Text(contact.title + "\n" + contact.address + "\n\n" + state.text.deleteContactBody)
                 }
             }
         }
@@ -615,66 +616,28 @@ private struct WidgetConfigurationView: View {
     @ViewBuilder
     private func contacts(_ state: NativePaymentHubSnapshot) -> some View {
         Section {
-            Button { showingNewContact = true } label: {
-                Label(state.text.addContact, systemImage: "person.crop.circle.badge.plus")
-            }
-        }
-        Section {
-            TextField(state.text.search, text: Binding(
-                get: { state.query },
-                set: { controller.updateQuery(value: $0) }
-            ))
-            ForEach(Array(editor.selectedContacts.enumerated()), id: \.element.id) { index, contact in
-                contactRow(contact, selected: true, copy: state.text)
-                    .contextMenu {
-                        Button(state.text.moveUp, systemImage: "arrow.up") {
-                            controller.moveContact(id: contact.id, offset: -1)
+            ForEach(editor.selectedContacts, id: \.id) { contact in
+                Button {
+                    showingContactPicker = true
+                } label: {
+                    HStack(spacing: 12) {
+                        HubAvatar(initials: contact.initials, size: 38)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(contact.title).foregroundStyle(.primary)
+                            Text(contact.address).font(.caption).foregroundStyle(.secondary)
                         }
-                        .disabled(index == 0)
-                        Button(state.text.moveDown, systemImage: "arrow.down") {
-                            controller.moveContact(id: contact.id, offset: 1)
-                        }
-                        .disabled(index == editor.selectedContacts.count - 1)
-                        Button(state.text.deleteContact, systemImage: "trash", role: .destructive) {
-                            pendingContactDeletion = contact
-                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
                     }
+                }
             }
-            ForEach(editor.availableContacts, id: \.id) { contact in
-                contactRow(contact, selected: false, copy: state.text)
+            Button {
+                showingContactPicker = true
+            } label: {
+                Label(editor.selectionTitle, systemImage: "person.crop.circle.badge.checkmark")
             }
-            if editor.selectedContacts.isEmpty && editor.availableContacts.isEmpty {
-                Text(state.contactsEmpty ? state.text.noContacts : state.text.noMatches)
-                    .foregroundStyle(.secondary)
-            }
-        } header: {
-            Text(editor.selectionTitle)
         } footer: {
             Text(editor.selectionCount)
-        }
-    }
-
-    private func contactRow(_ contact: NativeHubContact, selected: Bool, copy: NativePaymentHubCopy) -> some View {
-        Button { controller.toggleContact(id: contact.id) } label: {
-            HStack(spacing: 12) {
-                HubAvatar(initials: contact.initials, size: 38)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(contact.title).foregroundStyle(.primary)
-                    Text(contact.address).font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 4)
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button { pendingContactDeletion = contact } label: {
-                Label(copy.deleteContact, systemImage: "trash")
-            }
-            .tint(.red)
         }
     }
 
@@ -700,11 +663,143 @@ private struct WidgetConfigurationView: View {
         }
     }
 
-    private var deletionPresented: Binding<Bool> {
-        Binding(
-            get: { pendingContactDeletion != nil },
-            set: { if !$0 { pendingContactDeletion = nil } }
-        )
+}
+
+private struct HubContactPicker: View {
+    @ObservedObject var model: NativePaymentHubModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingNewContact = false
+    @State private var pendingDeletion: NativeHubContact?
+
+    var body: some View {
+        NavigationStack {
+            if let state = model.snapshot, let editor = state.editor {
+                let selected = editor.selectedContacts.filter { contact in
+                    let query = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return query.isEmpty || contact.title.localizedCaseInsensitiveContains(query)
+                        || contact.address.localizedCaseInsensitiveContains(query)
+                }
+                List {
+                    Section {
+                        ForEach(selected, id: \.id) { contact in
+                            contactRow(contact, selected: true, state: state, editor: editor)
+                                .contextMenu {
+                                    if let index = editor.selectedContacts.firstIndex(where: {
+                                        $0.id == contact.id
+                                    }) {
+                                        Button(state.text.moveUp, systemImage: "arrow.up") {
+                                            model.controller.moveContact(id: contact.id, offset: -1)
+                                        }.disabled(index == 0)
+                                        Button(state.text.moveDown, systemImage: "arrow.down") {
+                                            model.controller.moveContact(id: contact.id, offset: 1)
+                                        }.disabled(index == editor.selectedContacts.count - 1)
+                                    }
+                                }
+                        }
+                        ForEach(editor.availableContacts, id: \.id) { contact in
+                            contactRow(contact, selected: false, state: state, editor: editor)
+                        }
+                        if selected.isEmpty && editor.availableContacts.isEmpty {
+                            Text(state.contactsEmpty ? state.text.noContacts : state.text.noMatches)
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text(editor.selectionCount)
+                    } footer: {
+                        if editor.capacity > 1 && editor.selectedContacts.count >= editor.capacity {
+                            Text(editor.selectionTitle)
+                        }
+                    }
+                    if let error = state.error, !showingNewContact {
+                        Section { Text(error).foregroundStyle(.red) }
+                    }
+                }
+                .disabled(state.busy)
+                .searchable(
+                    text: Binding(
+                        get: { state.query },
+                        set: { model.controller.updateQuery(value: $0) }
+                    ), placement: .navigationBarDrawer(displayMode: .always), prompt: Text(state.text.search)
+                )
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .scrollDismissesKeyboard(.interactively)
+                .navigationTitle(editor.selectionTitle)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            showingNewContact = true
+                        } label: {
+                            Label(state.text.addContact, systemImage: "person.crop.circle.badge.plus")
+                        }
+                        .disabled(
+                            state.busy
+                                || (editor.capacity > 1 && editor.selectedContacts.count >= editor.capacity))
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(state.text.done) { dismiss() }.disabled(state.busy)
+                    }
+                }
+                .sheet(isPresented: $showingNewContact) {
+                    AddHubContactSheet(model: model)
+                        .interactiveDismissDisabled(model.snapshot?.busy == true)
+                }
+                .alert(
+                    state.text.deleteContactTitle,
+                    isPresented: Binding(
+                        get: { pendingDeletion != nil },
+                        set: { if !$0 { pendingDeletion = nil } }
+                    ), presenting: pendingDeletion
+                ) { contact in
+                    Button(state.text.deleteContact, role: .destructive) {
+                        model.controller.deleteContact(id: contact.id)
+                        pendingDeletion = nil
+                    }
+                    Button(state.text.cancel, role: .cancel) { pendingDeletion = nil }
+                } message: { contact in
+                    Text(contact.title + "\n" + contact.address + "\n\n" + state.text.deleteContactBody)
+                }
+            }
+        }
+        .onAppear { model.controller.updateQuery(value: "") }
+        .onDisappear { model.controller.updateQuery(value: "") }
+    }
+
+    private func contactRow(
+        _ contact: NativeHubContact, selected: Bool, state: NativePaymentHubSnapshot, editor: NativeHubEditor
+    ) -> some View {
+        let atCapacity = editor.capacity > 1 && editor.selectedContacts.count >= editor.capacity
+        return Button {
+            model.controller.toggleContact(id: contact.id)
+            if editor.capacity == 1 { dismiss() }
+        } label: {
+            HStack(spacing: 12) {
+                HubAvatar(initials: contact.initials, size: 38)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(contact.title).foregroundStyle(.primary).lineLimit(1)
+                    Text(contact.address).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+            .opacity(!selected && atCapacity ? 0.45 : 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(!selected && atCapacity)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                pendingDeletion = contact
+            } label: {
+                Label(state.text.deleteContact, systemImage: "trash")
+            }
+            .tint(.red)
+        }
     }
 }
 

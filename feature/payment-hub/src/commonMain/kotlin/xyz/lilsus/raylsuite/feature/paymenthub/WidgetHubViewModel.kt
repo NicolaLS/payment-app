@@ -17,11 +17,9 @@ import xyz.lilsus.raylsuite.core.hubapi.HubWidgetDescriptor
 import xyz.lilsus.raylsuite.core.hubapi.HubWidgetProtocol
 import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LightningAddress
-import xyz.lilsus.raylsuite.core.model.StoredAmount
 import xyz.lilsus.raylsuite.feature.paymenthub.create.cleanAmountInput
 import xyz.lilsus.raylsuite.feature.paymenthub.create.formatMinorAmount
 import xyz.lilsus.raylsuite.feature.paymenthub.create.hasFractionForWholeCurrency
-import xyz.lilsus.raylsuite.feature.paymenthub.create.parseMinorAmount
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubIntent
 import xyz.lilsus.raylsuite.integration.hub.HubWidgetCatalogResult
@@ -164,8 +162,8 @@ class WidgetHubViewModel(
 
     fun selectVariant(id: String) {
         val definition = mutableState.value.selectedDefinition ?: return
-        if (definition.variants.none { it.id == id }) return
-        edit { it.copy(variantId = id) }
+        val variant = definition.variants.firstOrNull { it.id == id } ?: return
+        edit { it.copy(variantId = id, contactIds = it.contactIds.take(variant.capacity)) }
     }
 
     fun configureSelected() {
@@ -183,8 +181,13 @@ class WidgetHubViewModel(
 
     fun toggleContact(id: String) {
         if (repository.hub.value.contact(id) == null) return
+        val capacity = mutableState.value.selectedVariant?.capacity ?: return
+        val current = mutableState.value.editor ?: return
+        if (capacity > 1 && id !in current.contactIds && current.contactIds.size >= capacity) {
+            return fail(HubWidgetError.TooManyContacts)
+        }
         edit { editor ->
-            if (editor.kind == HubWidgetKind.Shortcut) {
+            if (capacity == 1) {
                 editor.copy(contactIds = listOf(id))
             } else {
                 editor.copy(
@@ -254,7 +257,8 @@ class WidgetHubViewModel(
         }
         val editor = mutableState.value.editor
         val capacity = mutableState.value.selectedVariant?.capacity ?: 1
-        if (editor?.kind == HubWidgetKind.Contacts && existing?.id !in editor.contactIds &&
+        if (capacity > 1 && editor?.kind == HubWidgetKind.Contacts &&
+            existing?.id !in editor.contactIds &&
             editor.contactIds.size >= capacity
         ) {
             return fail(HubWidgetError.TooManyContacts)
@@ -266,9 +270,7 @@ class WidgetHubViewModel(
                 current.copy(
                     contactSavedSerial = current.contactSavedSerial + 1,
                     editor = currentEditor?.copy(
-                        contactIds = if (currentEditor.kind ==
-                            HubWidgetKind.Shortcut
-                        ) {
+                        contactIds = if (capacity == 1) {
                             listOf(contact.id)
                         } else {
                             (currentEditor.contactIds + contact.id).distinct()
@@ -286,38 +288,11 @@ class WidgetHubViewModel(
         val editor = snapshot.editor ?: return
         val definition = snapshot.selectedDefinition ?: return fail(HubWidgetError.Unavailable)
         val variant = snapshot.selectedVariant ?: return fail(HubWidgetError.Unavailable)
-        if (editor.kind == HubWidgetKind.Contacts || editor.kind == HubWidgetKind.Shortcut) {
-            if (editor.contactIds.isEmpty()) return fail(HubWidgetError.SelectContacts)
-            if (editor.contactIds.size >
-                variant.capacity
-            ) {
-                return fail(HubWidgetError.TooManyContacts)
-            }
-        }
+        snapshot.editorValidationError()?.let { return fail(it) }
         val amount = if (editor.kind == HubWidgetKind.Shortcut) {
-            val digits = CurrencyCatalog.infoFor(editor.currencyCode).fractionDigits
-            if (editor.amountInput.hasFractionForWholeCurrency(
-                    digits
-                )
-            ) {
-                return fail(HubWidgetError.InvalidAmount)
-            }
-            val minor = editor.amountInput.parseMinorAmount(digits)
-            if (minor == null || minor <= 0) return fail(HubWidgetError.InvalidAmount)
-            StoredAmount(minor, editor.currencyCode)
+            editor.shortcutAmount()
         } else {
             null
-        }
-        if (definition.fields.any { field ->
-                val value = editor.configuration[field.key].orEmpty().trim()
-                (field.required && value.isEmpty()) ||
-                    (
-                        value.isNotEmpty() && field.type == "choice" &&
-                            field.options.none { it.id == value }
-                        )
-            }
-        ) {
-            return fail(HubWidgetError.RequiredConfiguration)
         }
         val draft = HubWidgetDraft(
             editor.definitionId,
