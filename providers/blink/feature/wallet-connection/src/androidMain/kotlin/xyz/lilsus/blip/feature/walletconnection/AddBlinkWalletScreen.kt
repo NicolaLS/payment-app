@@ -53,6 +53,7 @@ import xyz.lilsus.blip.feature.walletconnection.R
 import xyz.lilsus.blip.ui.blinkErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.core.ui.platform.readPlainText
+import xyz.lilsus.raylsuite.core.ui.privacy.SecureWindow
 
 /** Android renderer for the Blip-owned Blink connection flow. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +67,7 @@ fun AddBlinkWalletScreen(
     termsUrl: String?,
     modifier: Modifier = Modifier
 ) {
+    SecureWindow()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val focusManager = LocalFocusManager.current
     val uriHandler = LocalUriHandler.current

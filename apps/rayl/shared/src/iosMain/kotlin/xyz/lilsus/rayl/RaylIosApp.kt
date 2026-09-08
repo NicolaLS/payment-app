@@ -37,6 +37,9 @@ private data class RaylExperienceState(
 )
 
 object RaylIosApp {
+    fun privacyCaptureMessage(): String =
+        nativeString(NativeStringResource(table = "CoreUI", key = "privacy_capture_message"))
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val appSettings = createAppSettings()
     private val selection = RaylSelection(appSettings)
