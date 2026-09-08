@@ -36,8 +36,6 @@ struct NativePaymentHubView: View {
     @StateObject private var model: NativePaymentHubModel
     @Environment(\.scenePhase) private var scenePhase
     @State private var isVisible = false
-    @State private var draggedId: String?
-    @State private var dragOffset = CGSize.zero
     @State private var hoveredId: String?
     init(controller: NativePaymentHubController) {
         _model = StateObject(wrappedValue: NativePaymentHubModel(controller: controller))
@@ -79,24 +77,6 @@ struct NativePaymentHubView: View {
 
     private func canvas(_ state: NativePaymentHubSnapshot) -> some View {
         VStack(spacing: 0) {
-            HStack {
-                if !state.canvas.tiles.isEmpty {
-                    Button(state.canvas.arranging ? state.text.done : state.text.edit) {
-                        model.controller.setArranging(value: !state.canvas.arranging)
-                    }
-                }
-                Spacer()
-                Button {
-                    model.controller.openGallery()
-                } label: {
-                    Label(state.text.addWidget, systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .padding(.horizontal, HubGeometry.gutter)
-            .padding(.vertical, 12)
-            .disabled(state.busy)
-
             if let error = state.error, state.screen == "hub" {
                 Text(error)
                     .font(.footnote)
@@ -106,31 +86,21 @@ struct NativePaymentHubView: View {
                     .padding(.bottom, 12)
             }
 
-            if state.canvas.tiles.isEmpty {
-                ContentUnavailableView {
-                    Label(state.text.emptyTitle, systemImage: "square.grid.2x2")
-                } description: {
-                    Text(state.text.emptyBody)
-                } actions: {
-                    Button(state.text.addWidget) { model.controller.openGallery() }
-                        .buttonStyle(.borderedProminent)
+            GeometryReader { viewport in
+                let columns = viewport.size.width >= 700 ? 4 : 2
+                let width = viewport.size.width - HubGeometry.gutter * 2
+                let unit = (width - HubGeometry.gap * CGFloat(columns - 1)) / CGFloat(columns)
+                ScrollView {
+                    widgetGrid(state, unit: unit)
+                        .padding(.horizontal, HubGeometry.gutter)
+                        .padding(.top, HubGeometry.gutter)
+                        .padding(.bottom, 24)
+                        .disabled(state.busy)
                 }
-            } else {
-                GeometryReader { viewport in
-                    let columns = viewport.size.width >= 700 ? 4 : 2
-                    let width = viewport.size.width - HubGeometry.gutter * 2
-                    let unit = (width - HubGeometry.gap * CGFloat(columns - 1)) / CGFloat(columns)
-                    ScrollView {
-                        widgetGrid(state, unit: unit)
-                            .padding(.horizontal, HubGeometry.gutter)
-                            .padding(.bottom, 24)
-                            .disabled(state.busy)
-                    }
-                    .refreshable { model.controller.refreshContent() }
-                    .onAppear { model.controller.setCanvasColumns(value: Int32(columns)) }
-                    .onChange(of: columns) { _, value in
-                        model.controller.setCanvasColumns(value: Int32(value))
-                    }
+                .refreshable { model.controller.refreshContent() }
+                .onAppear { model.controller.setCanvasColumns(value: Int32(columns)) }
+                .onChange(of: columns) { _, value in
+                    model.controller.setCanvasColumns(value: Int32(value))
                 }
             }
         }
@@ -138,45 +108,25 @@ struct NativePaymentHubView: View {
     }
 
     private func widgetGrid(_ state: NativePaymentHubSnapshot, unit: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
+        let addPosition = addWidgetPosition(state.canvas)
+        return ZStack(alignment: .topLeading) {
             ForEach(Array(state.canvas.tiles.enumerated()), id: \.element.id) { index, tile in
                 WidgetContent(
                     tile: tile,
                     copy: state.text,
-                    interactive: !state.canvas.arranging,
+                    interactive: true,
                     pay: { model.controller.pay(actionId: $0) }
                 )
                 .frame(
                     width: HubGeometry.span(unit, tile.columns),
                     height: HubGeometry.span(unit, tile.rows)
                 )
-                .overlay(alignment: .topTrailing) {
-                    if state.canvas.arranging {
-                        Menu {
-                            widgetActions(tile, index: index, state: state)
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .frame(width: 36, height: 36)
-                                .background(.regularMaterial, in: Circle())
-                        }
-                        .accessibilityLabel(state.text.widgetOptions)
-                        .padding(6)
-                    }
-                }
                 .overlay {
                     if hoveredId == tile.id {
                         RoundedRectangle(cornerRadius: 24)
                             .strokeBorder(Color.accentColor, lineWidth: 3)
                     }
                 }
-                .offset(
-                    x: (unit + HubGeometry.gap) * CGFloat(tile.column),
-                    y: (unit + HubGeometry.gap) * CGFloat(tile.row)
-                )
-                .offset(draggedId == tile.id ? dragOffset : .zero)
-                .scaleEffect(draggedId == tile.id ? 1.025 : 1)
-                .shadow(color: .black.opacity(draggedId == tile.id ? 0.18 : 0), radius: 12, y: 6)
-                .zIndex(draggedId == tile.id ? 1 : 0)
                 .animation(.snappy(duration: 0.22), value: tile.row)
                 .animation(.snappy(duration: 0.22), value: tile.column)
                 .contextMenu { widgetActions(tile, index: index, state: state) }
@@ -192,21 +142,71 @@ struct NativePaymentHubView: View {
                 .accessibilityAction(named: Text(state.text.remove)) {
                     model.controller.removeWidget(id: tile.id)
                 }
-                .gesture(
-                    dragGesture(tile, state: state, unit: unit),
-                    including: state.canvas.arranging ? .all : .none
+                .draggable(tile.id)
+                .dropDestination(for: String.self) { ids, _ in
+                    guard !state.busy, ids.count == 1, let id = ids.first,
+                        id != tile.id, state.canvas.tiles.contains(where: { $0.id == id })
+                    else {
+                        return false
+                    }
+                    model.controller.moveWidget(id: id, onto: tile.id)
+                    hoveredId = nil
+                    return true
+                } isTargeted: { targeted in
+                    if targeted {
+                        hoveredId = tile.id
+                    } else if hoveredId == tile.id {
+                        hoveredId = nil
+                    }
+                }
+                .offset(
+                    x: (unit + HubGeometry.gap) * CGFloat(tile.column),
+                    y: (unit + HubGeometry.gap) * CGFloat(tile.row)
                 )
             }
+
+            Button {
+                model.controller.openGallery()
+            } label: {
+                VStack(spacing: 12) {
+                    Image(systemName: "plus")
+                        .font(.title2.weight(.medium))
+                        .accessibilityHidden(true)
+                    Text(state.text.addWidget)
+                        .font(.subheadline.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundStyle(.secondary)
+                .padding(12)
+                .frame(width: unit, height: unit)
+                .background(
+                    Color(uiColor: .secondarySystemGroupedBackground).opacity(0.5),
+                    in: RoundedRectangle(cornerRadius: 24)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(
+                            Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                }
+                .contentShape(RoundedRectangle(cornerRadius: 24))
+            }
+            .buttonStyle(.plain)
+            .offset(
+                x: (unit + HubGeometry.gap) * CGFloat(addPosition.column),
+                y: (unit + HubGeometry.gap) * CGFloat(addPosition.row)
+            )
         }
         .frame(
             maxWidth: .infinity,
-            minHeight: HubGeometry.span(unit, state.canvas.rows),
+            minHeight: HubGeometry.span(unit, max(state.canvas.rows, addPosition.row + 1)),
             alignment: .topLeading
         )
     }
 
     @ViewBuilder
-    private func widgetActions(_ tile: NativeHubTile, index: Int, state: NativePaymentHubSnapshot) -> some View {
+    private func widgetActions(_ tile: NativeHubTile, index: Int, state: NativePaymentHubSnapshot)
+        -> some View
+    {
         Button(state.text.editWidget, systemImage: "slider.horizontal.3") {
             model.controller.editWidget(id: tile.id)
         }
@@ -239,32 +239,17 @@ struct NativePaymentHubView: View {
         }
     }
 
-    private func dragGesture(_ tile: NativeHubTile, state: NativePaymentHubSnapshot, unit: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 8)
-            .onChanged { value in
-                draggedId = tile.id
-                dragOffset = value.translation
-                let point = CGPoint(
-                    x: CGFloat(tile.column) * (unit + HubGeometry.gap) + value.startLocation.x + value.translation.width,
-                    y: CGFloat(tile.row) * (unit + HubGeometry.gap) + value.startLocation.y + value.translation.height
-                )
-                hoveredId = state.canvas.tiles.first { other in
-                    other.id != tile.id && CGRect(
-                        x: CGFloat(other.column) * (unit + HubGeometry.gap),
-                        y: CGFloat(other.row) * (unit + HubGeometry.gap),
-                        width: HubGeometry.span(unit, other.columns),
-                        height: HubGeometry.span(unit, other.rows)
-                    ).contains(point)
-                }?.id
+    private func addWidgetPosition(_ canvas: NativeHubCanvas) -> (column: Int32, row: Int32) {
+        // Append on the final occupied row when it has room, otherwise begin the next row.
+        let lastRow = max(0, canvas.rows - 1)
+        for column in 0..<max(1, canvas.columns) {
+            let occupied = canvas.tiles.contains { tile in
+                column >= tile.column && column < tile.column + tile.columns && lastRow >= tile.row
+                    && lastRow < tile.row + tile.rows
             }
-            .onEnded { _ in
-                if let target = hoveredId {
-                    model.controller.moveWidget(id: tile.id, onto: target)
-                }
-                draggedId = nil
-                dragOffset = .zero
-                hoveredId = nil
-            }
+            if !occupied { return (column, lastRow) }
+        }
+        return (0, canvas.rows)
     }
 }
 

@@ -359,6 +359,14 @@ private struct NativePaymentScanSheetView: View {
     let controller: NativePaymentScanController
 
     var body: some View {
+        if sheet.kind == "manualAmount" {
+            amountEntry
+        } else {
+            standardSheet
+        }
+    }
+
+    private var standardSheet: some View {
         ScrollView {
             VStack(spacing: 16) {
                 Text(sheet.title)
@@ -375,7 +383,6 @@ private struct NativePaymentScanSheetView: View {
                 NativePaymentRecipientView(sheet: sheet)
 
                 switch sheet.kind {
-                case "manualAmount": manualAmountContent
                 case "confirmation": confirmationContent
                 case "saveTarget": saveTargetContent
                 default: EmptyView()
@@ -389,19 +396,70 @@ private struct NativePaymentScanSheetView: View {
         }
     }
 
+    private var amountEntry: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    NativePaymentRecipientView(sheet: sheet)
+                    if let body = sheet.body {
+                        Text(body)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    manualAmountContent
+                    NativePaymentAmountKeypad(controller: controller, allowsDecimal: sheet.allowsDecimal)
+                }
+                .padding(24)
+                .frame(maxWidth: 480)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Button(action: primaryAction) {
+                    Text(sheet.primaryActionTitle)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 28)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle(radius: 16))
+                .controlSize(.large)
+                .disabled(!sheet.canSubmit)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
+                .frame(maxWidth: 480)
+                .frame(maxWidth: .infinity)
+                .background(Color(uiColor: .systemGroupedBackground))
+            }
+            .navigationTitle(sheet.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if let cancel = sheet.secondaryActionTitle {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(cancel, action: secondaryAction)
+                    }
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private var manualAmountContent: some View {
         if let amount = sheet.amount, let currency = sheet.currencyLabel {
-            HStack(spacing: 10) {
+            VStack(spacing: 8) {
                 Text(amount)
-                    .font(.largeTitle.weight(sheet.canSubmit ? .semibold : .regular))
+                    .font(.system(size: 56, weight: .medium, design: .rounded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.35)
+                    .frame(maxWidth: .infinity)
                 Text(currency)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.tint)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.tint.opacity(0.12), in: Capsule())
+                    .foregroundStyle(.secondary)
             }
+            .padding(.vertical, 16)
+            .accessibilityElement(children: .combine)
         }
 
         HStack(spacing: 8) {
@@ -421,11 +479,10 @@ private struct NativePaymentScanSheetView: View {
 
         if let rangeMessage = sheet.rangeMessage {
             Text(rangeMessage)
-                .font(.body)
+                .font(.footnote)
+                .multilineTextAlignment(.center)
                 .foregroundStyle(.red)
         }
-
-        NativePaymentAmountKeypad(controller: controller, allowsDecimal: sheet.allowsDecimal)
     }
 
     @ViewBuilder
@@ -466,15 +523,15 @@ private struct NativePaymentScanSheetView: View {
             Text(sheet.primaryActionTitle)
                 .frame(maxWidth: .infinity)
         }
-            .buttonStyle(.borderedProminent)
-            .disabled(!sheet.canSubmit)
+        .buttonStyle(.borderedProminent)
+        .disabled(!sheet.canSubmit)
 
         if let secondary = sheet.secondaryActionTitle {
             Button(action: secondaryAction) {
                 Text(secondary)
                     .frame(maxWidth: .infinity)
             }
-                .buttonStyle(.bordered)
+            .buttonStyle(.bordered)
         }
 
         if let tertiary = sheet.tertiaryActionTitle {
@@ -517,8 +574,9 @@ private struct NativePaymentRecipientView: View {
         if let title = sheet.recipientTitle, let description = sheet.recipientDescription {
             HStack(spacing: 12) {
                 if let encoded = sheet.recipientImageBase64,
-                   let data = Data(base64Encoded: encoded),
-                   let image = UIImage(data: data) {
+                    let data = Data(base64Encoded: encoded),
+                    let image = UIImage(data: data)
+                {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
@@ -549,13 +607,13 @@ private struct NativePaymentAmountKeypad: View {
         ["1", "2", "3"],
         ["4", "5", "6"],
         ["7", "8", "9"],
-        ["decimal", "0", "backspace"]
+        ["decimal", "0", "backspace"],
     ]
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             ForEach(rows, id: \.self) { row in
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     ForEach(row, id: \.self) { key in
                         Button {
                             controller.manualAmountKey(key: key)
@@ -564,14 +622,22 @@ private struct NativePaymentAmountKeypad: View {
                                 if key == "backspace" {
                                     Image(systemName: "delete.left")
                                 } else {
-                                    Text(key == "decimal" ? "." : key)
+                                    Text(key == "decimal" ? (Locale.current.decimalSeparator ?? ".") : key)
                                 }
                             }
-                            .font(.title2)
-                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .font(.title.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity, minHeight: 56)
+                            .background(
+                                Color(uiColor: .secondarySystemGroupedBackground),
+                                in: RoundedRectangle(cornerRadius: 16)
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 16))
                         }
                         .buttonStyle(.plain)
                         .disabled(key == "decimal" && !allowsDecimal)
+                        .opacity(key == "decimal" && !allowsDecimal ? 0 : 1)
+                        .accessibilityHidden(key == "decimal" && !allowsDecimal)
                     }
                 }
             }
