@@ -13,6 +13,7 @@ import fr.acinq.lightning.utils.toByteVector32
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 
@@ -98,6 +99,35 @@ class LnurlInvoiceResolverTest {
         val result = resolver(client).resolve(request())
 
         assertIs<LnurlInvoiceResolutionError.MetadataMismatch>(failure(result))
+    }
+
+    @Test
+    fun rejectsUnrepresentableAndOutOfRangeAmountsBeforeRequesting() = runTest {
+        val client = FakeLnurlPayClient { _, _ -> error("invoice must not be requested") }
+        val resolver = resolver(client)
+        listOf(0L, -1L, Long.MAX_VALUE, Long.MIN_VALUE, 999L, 1_000_001L).forEach { amount ->
+            assertIs<LnurlInvoiceResolutionError.AmountOutOfRange>(failure(resolver.resolve(request(amountMsats = amount))))
+        }
+        assertIs<LnurlInvoiceResolutionError.AmountOutOfRange>(
+            failure(
+                resolver.resolve(
+                    request(amountMsats = 1_500L, params = params().copy(minSendable = 1_500L, maxSendable = 1_500L))
+                )
+            )
+        )
+        assertEquals(0, client.requestCount)
+        assertEquals(1_000L, roundToFullSatoshis(1L))
+        assertEquals(Long.MAX_VALUE - 807L, roundToFullSatoshis(Long.MAX_VALUE - 807L))
+        assertNull(roundToFullSatoshis(Long.MAX_VALUE - 806L))
+    }
+
+    @Test
+    fun rejectsAbsentPlaintextInsteadOfAcceptingAnArbitraryInvoiceDescription() = runTest {
+        val client = FakeLnurlPayClient { amount, _ -> LnurlResult.Success(invoice(amount).write()) }
+        val params = params().let { it.copy(metadata = it.metadata.copy(plainText = null)) }
+        val result = resolver(client).resolve(request(params = params))
+        assertIs<LnurlInvoiceResolutionError.MetadataMismatch>(failure(result))
+        assertEquals(0, client.requestCount)
     }
 
     private fun resolver(client: LnurlPayClient) = LnurlInvoiceResolver(client) { 1L }

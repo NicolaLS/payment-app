@@ -5,6 +5,9 @@ at a time. Version 1.0 offers Blink only; NWC composition remains for future
 releases. Blip, Lasr, and Flint remain independent single-provider products.
 Spark is not a Rayl dependency.
 
+See [LNURL-pay behavior](lnurl-pay.md) for endpoint restrictions, invoice
+validation, and how recipient details interact with Auto Pay.
+
 All apps are prerelease. They do not import another app's credentials, preferences,
 databases, or installation state.
 

@@ -570,27 +570,22 @@ internal class PaymentAdmissionPhase(
             return AdmissionResult.Presented
         }
         val lnurlPayDisplay =
-            if (showLnurlPayDetails()) {
-                LnurlPayDisplay.fromUntrusted(
-                    domain = params.domain,
-                    description = params.metadata.plainText,
-                    imagePngBase64 = params.metadata.imagePng,
-                    imageJpegBase64 = params.metadata.imageJpeg
-                ) ?: run {
-                    presentation.presentError(
-                        PaymentUiError.InvalidInvoice(
-                            "LNURL payment details are invalid"
-                        )
-                    )
-                    return AdmissionResult.Presented
-                }
-            } else {
-                null
+            LnurlPayDisplay.fromUntrusted(
+                domain = params.domain,
+                description = params.metadata.plainText,
+                imagePngBase64 = params.metadata.imagePng,
+                imageJpegBase64 = params.metadata.imageJpeg
+            ) ?: run {
+                presentation.presentError(
+                    PaymentUiError.InvalidInvoice("LNURL payment details are invalid")
+                )
+                return AdmissionResult.Presented
             }
         val session =
             LnurlSession(
                 params = params,
                 display = lnurlPayDisplay,
+                requiresDetailsReview = showLnurlPayDetails(),
                 sourceKey = sourceKey,
                 paymentSource = paymentSource,
                 targetContext = targetContext,
@@ -628,7 +623,7 @@ internal class PaymentAdmissionPhase(
                 )
                 return AdmissionResult.Presented
             }
-            return if (session.display != null) {
+            return if (session.requiresDetailsReview) {
                 AdmissionResult.LnurlReview(
                     LnurlReviewRequest(
                         session = session,
@@ -649,7 +644,7 @@ internal class PaymentAdmissionPhase(
         }
 
         if (params.minSendable == params.maxSendable) {
-            return if (session.display != null) {
+            return if (session.requiresDetailsReview) {
                 AdmissionResult.LnurlReview(
                     LnurlReviewRequest(
                         session = session,
@@ -745,7 +740,8 @@ internal class PaymentAdmissionPhase(
                 dynamicSourceKey = session.sourceKey,
                 targetContext = session.targetContext,
                 replacesDynamicGuardId = session.replacesDynamicGuardId,
-                lnurlAuthorized = session.display != null,
+                lnurlAuthorized = session.requiresDetailsReview,
+                lnurlPayDisplay = session.display,
                 paymentQuote = paymentQuote
             )
         )
