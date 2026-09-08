@@ -1,5 +1,5 @@
-import SwiftUI
 import Shared
+import SwiftUI
 
 @MainActor
 private final class RaylModel: ObservableObject {
@@ -16,7 +16,7 @@ struct ContentView: View {
         Group {
             if let snapshot = model.snapshot {
                 VStack(spacing: 0) {
-                    if snapshot.canCancelSetup {
+                    if snapshot.canCancelSetup && snapshot.availableWallets.count > 1 {
                         HStack {
                             Button(snapshot.text["choose_another"] ?? "") { RaylIosApp.shared.cancelSetup() }
                             Spacer()
@@ -34,10 +34,19 @@ struct ContentView: View {
                 }
                 .id(snapshot.wallet)
                 .preferredColorScheme(colorScheme(snapshot.colorScheme))
-                .alert("Rayl", isPresented: Binding(get: { snapshot.message != nil }, set: { if !$0 { RaylIosApp.shared.dismissMessage() } })) {
+                .alert(
+                    "Rayl",
+                    isPresented: Binding(
+                        get: { snapshot.message != nil },
+                        set: { if !$0 { RaylIosApp.shared.dismissMessage() } })
+                ) {
                     Button(snapshot.text["close"] ?? "") { RaylIosApp.shared.dismissMessage() }
-                } message: { Text(snapshot.message ?? "") }
-            } else { ProgressView() }
+                } message: {
+                    Text(snapshot.message ?? "")
+                }
+            } else {
+                ProgressView()
+            }
         }
     }
 
@@ -49,31 +58,67 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder
     private func selection(_ snapshot: RaylSnapshot) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text(snapshot.text[snapshot.welcomeCompleted ? "choose_wallet" : "welcome_title"] ?? "")
-                    .font(.largeTitle.bold())
-                Text(snapshot.text[snapshot.welcomeCompleted ? "choose_body" : "welcome_body"] ?? "")
-                    .foregroundStyle(.secondary)
-                if snapshot.welcomeCompleted {
+        if !snapshot.welcomeCompleted {
+            NativeOnboardingWelcomeView(
+                title: snapshot.text["welcome_title"] ?? "",
+                subtitle: "",
+                description: snapshot.text["welcome_body"] ?? "",
+                actionTitle: snapshot.text["get_started"] ?? "",
+                action: { RaylIosApp.shared.completeWelcome() }
+            )
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Image(systemName: "wallet.bifold")
+                        .font(.system(size: 36, weight: .medium))
+                        .foregroundStyle(.tint)
+                        .frame(width: 80, height: 80)
+                        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 24))
+                        .accessibilityHidden(true)
+                    Text(snapshot.text["choose_wallet"] ?? "")
+                        .font(.largeTitle.bold())
+                    Text(snapshot.text["choose_body"] ?? "")
+                        .foregroundStyle(.secondary)
                     ForEach(snapshot.availableWallets, id: \.self) { wallet in
                         choice(wallet, snapshot)
                     }
-                } else {
-                    Button(snapshot.text["get_started"] ?? "") { RaylIosApp.shared.completeWelcome() }
-                        .buttonStyle(.borderedProminent)
                 }
-            }.padding(24).frame(maxWidth: 600, alignment: .leading)
-        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(24)
+                .frame(maxWidth: 608, alignment: .leading)
+                .frame(maxWidth: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(uiColor: .systemGroupedBackground))
+        }
     }
 
     private func choice(_ wallet: String, _ snapshot: RaylSnapshot) -> some View {
-        Button { RaylIosApp.shared.choose(wallet: wallet) } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(snapshot.text[wallet + "_title"] ?? "").font(.title2.bold())
-                Text(snapshot.text[wallet + "_body"] ?? "").font(.body)
-            }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
-        }.buttonStyle(.bordered)
+        Button {
+            RaylIosApp.shared.choose(wallet: wallet)
+        } label: {
+            HStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(snapshot.text[wallet + "_title"] ?? "")
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+                    Text(snapshot.text[wallet + "_body"] ?? "")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "arrow.right")
+                    .font(.headline)
+                    .foregroundStyle(.tint)
+            }
+            .multilineTextAlignment(.leading)
+            .padding(24)
+            .background(
+                Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 24))
+        }
+        .buttonStyle(.plain)
     }
 }
