@@ -398,6 +398,7 @@ private struct NativePaymentScanContentView: View {
 private struct NativePaymentScanSheetView: View {
     let sheet: NativePaymentScanSheet
     let controller: NativePaymentScanController
+    @State private var contentHeight: CGFloat = 320
 
     var body: some View {
         if sheet.kind == "manualAmount" {
@@ -434,7 +435,19 @@ private struct NativePaymentScanSheetView: View {
             .padding(.horizontal, 24)
             .padding(.top, 20)
             .padding(.bottom, 32)
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                ceil(proxy.size.height)
+            } action: { height in
+                contentHeight = max(1, height)
+            }
         }
+        // Measure the content, not the scroll viewport, so longer copy and Dynamic Type can
+        // grow the sheet. The scroll view remains usable when the content exceeds the screen.
+        .presentationDetents(
+            sheet.kind == "confirmation" || sheet.kind == "repeatPayment"
+                ? [.height(contentHeight)] : [.large]
+        )
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     private var amountEntry: some View {
