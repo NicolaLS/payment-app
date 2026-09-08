@@ -31,5 +31,8 @@ struct ContentView: View {
     var body: some View {
         BlinkExperienceView(experience: model.experience)
             .id(ObjectIdentifier(model.experience))
+            .background(NativeAppPrivacyProtection(appName: "Blip") {
+                BlipApplication.shared.privacyCaptureMessage()
+            })
     }
 }

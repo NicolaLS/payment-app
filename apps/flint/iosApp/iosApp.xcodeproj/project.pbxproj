@@ -102,6 +102,12 @@
 			path = ../../../feature/wallet-management/src/iosMain/swift;
 			sourceTree = "<group>";
 		};
+		F77E00000000000000000001 /* Core UI Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Core UI Swift";
+			path = ../../../core/ui/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,6 +125,7 @@
 		84B56AC18DF4F792378E7281 = {
 			isa = PBXGroup;
 			children = (
+				F77E00000000000000000001 /* Core UI Swift */,
 				C20000000000000000000001 /* CoreUI.xcstrings */,
 				C20000000000000000000002 /* AppShell.xcstrings */,
 				C20000000000000000000003 /* CurrencySettings.xcstrings */,
@@ -170,6 +177,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				F77E00000000000000000001 /* Core UI Swift */,
 				57A9F0E1B32B9C0C32E3D02F /* iosApp */,
 				F23E00000000000000000001 /* App Shell Swift */,
 				F23E00000000000000000002 /* Settings Swift */,

@@ -33,6 +33,7 @@ import xyz.lilsus.flint.application.wallet.CredentialProblemKind
 import xyz.lilsus.flint.application.wallet.WalletAccessState
 import xyz.lilsus.flint.feature.walletconnection.R
 import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
+import xyz.lilsus.raylsuite.core.ui.privacy.SecureWindow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +68,7 @@ fun WalletConnectionContent(
     dispatch: (WalletAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    SecureWindow()
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
