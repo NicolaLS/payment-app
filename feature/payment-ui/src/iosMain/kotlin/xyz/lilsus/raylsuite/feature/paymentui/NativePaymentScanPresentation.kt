@@ -31,7 +31,11 @@ data class NativeCameraPermissionContent(
  * The Scan screen's way into this session's payments. Only a product without a Recent tab supplies
  * it, and only once the session has a payment to look back at.
  */
-data class NativePaymentScanRecentEntry(val title: String, val newTransactionCount: Int)
+data class NativePaymentScanRecentEntry(
+    val title: String,
+    val newTransactionCount: Int,
+    val transactionCount: Int
+)
 
 data class NativePaymentScanContent(
     val kind: String,
@@ -116,7 +120,8 @@ suspend fun nativePaymentScanSnapshot(
                     title = nativeString(
                         NativeStringResource(table = "PaymentUI", key = "view_session_transactions")
                     ),
-                    newTransactionCount = newRecentCount
+                    newTransactionCount = newRecentCount,
+                    transactionCount = recentCount
                 )
             } else {
                 null

@@ -19,28 +19,39 @@ extension EnvironmentValues {
 
 private struct RecentPaymentsButton: View {
     let entry: NativePaymentScanRecentEntry
+    let newCount: Int
     let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var notificationPulse = 0
 
     var body: some View {
         Button(action: action) {
             Image(systemName: "clock.arrow.circlepath")
                 .font(.system(size: 17, weight: .semibold))
+                .symbolEffect(.bounce, value: notificationPulse)
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
         .background(.thinMaterial, in: Circle())
         .overlay(alignment: .topTrailing) {
-            if entry.newTransactionCount > 0 {
-                Text(Int(entry.newTransactionCount).badgeLabel)
+            if newCount > 0 {
+                Text(newCount.badgeLabel)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.white)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(Color.red, in: Capsule())
                     .offset(x: 4, y: -4)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
         }
         .accessibilityLabel(entry.title)
+        .accessibilityValue(newCount > 0 ? String(newCount) : "")
+        .onAppear { if newCount > 0 && !reduceMotion { notificationPulse += 1 } }
+        .onChange(of: newCount) { old, new in
+            if new > old && !reduceMotion { notificationPulse += 1 }
+        }
     }
 }
 
@@ -96,6 +107,7 @@ struct NativePaymentScanView: View {
     @StateObject private var model: NativePaymentScanModel
 
     @State private var showsRecent = false
+    @State private var seenRecentCount = 0
 
     private let recentController: NativePaymentRecentController?
 
@@ -124,9 +136,13 @@ struct NativePaymentScanView: View {
         .background(Color(uiColor: .systemBackground))
         .overlay(alignment: .topTrailing) {
             if let recent = model.snapshot?.recent, recentController != nil {
-                RecentPaymentsButton(entry: recent) { showsRecent = true }
-                    .padding(.top, 12)
-                    .padding(.trailing, 20)
+                RecentPaymentsButton(
+                    entry: recent,
+                    newCount: max(
+                        Int(recent.newTransactionCount), Int(recent.transactionCount) - seenRecentCount)
+                ) { showsRecent = true }
+                .padding(.top, 12)
+                .padding(.trailing, 20)
             }
         }
         .overlay(alignment: .top) {
@@ -173,7 +189,12 @@ struct NativePaymentScanView: View {
             updateActivity()
         }
         .onChange(of: showsRecent) { _, _ in
+            if showsRecent { seenRecentCount = Int(model.snapshot?.recent?.transactionCount ?? 0) }
             updateActivity()
+        }
+        .onChange(of: model.snapshot?.recent?.transactionCount) { _, count in
+            let total = Int(count ?? 0)
+            seenRecentCount = showsRecent ? total : min(seenRecentCount, total)
         }
         .onChange(of: scenePhase) { _, _ in
             updateActivity()
@@ -191,6 +212,7 @@ struct NativePaymentScanView: View {
                     receiptPreimage: snapshot.receiptPreimage
                 )
                 .frame(height: proxy.size.height * 0.5)
+                .allowsHitTesting(false)
 
                 NativePaymentScanContentView(
                     content: snapshot.content,
@@ -199,6 +221,17 @@ struct NativePaymentScanView: View {
                     onDismissResult: model.controller.dismissResult
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .background {
+            if snapshot.content.tapToContinue != nil && snapshot.cameraPermission == nil
+                && snapshot.sheet == nil
+            {
+                // Keep this behind content so receipt and Recent buttons consume their own taps.
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: model.controller.dismissResult)
+                    .accessibilityHidden(true)
             }
         }
     }
@@ -253,6 +286,30 @@ private struct NativePaymentScanContentView: View {
 
     @ViewBuilder
     private var paymentContent: some View {
+        VStack(spacing: 12) {
+            paymentSummary
+        }
+        .allowsHitTesting(false)
+
+        if let actionTitle = content.actionTitle {
+            Button(action: onViewReceipt) {
+                Label(actionTitle, systemImage: "receipt")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+        }
+
+        if let tapToContinue = content.tapToContinue {
+            Button(tapToContinue, action: onDismissResult)
+                .buttonStyle(.plain)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(minHeight: 44)
+        }
+    }
+
+    @ViewBuilder
+    private var paymentSummary: some View {
         if content.kind == "resolving" {
             ProgressView()
                 .controlSize(.small)
@@ -296,22 +353,6 @@ private struct NativePaymentScanContentView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-        }
-
-        if let actionTitle = content.actionTitle {
-            Button(action: onViewReceipt) {
-                Label(actionTitle, systemImage: "receipt")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-
-        if let tapToContinue = content.tapToContinue {
-            Button(tapToContinue, action: onDismissResult)
-                .buttonStyle(.plain)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
         }
     }
 
@@ -524,6 +565,7 @@ private struct NativePaymentScanSheetView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .disabled(!sheet.canSubmit)
 
         if let secondary = sheet.secondaryActionTitle {
@@ -532,6 +574,7 @@ private struct NativePaymentScanSheetView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .controlSize(.large)
         }
 
         if let tertiary = sheet.tertiaryActionTitle {
@@ -542,6 +585,7 @@ private struct NativePaymentScanSheetView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .controlSize(.large)
         }
     }
 
