@@ -7,8 +7,8 @@ import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks
 internal const val RAYL_PREFERENCES = "rayl_preferences"
 internal val RAYL_LEGAL_LINKS = SettingsLegalLinks(
     privacyPolicyUrl =
-        "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/rayl/privacy.md",
-    termsUrl = "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/rayl/terms.md",
+        "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/privacy.md",
+    termsUrl = "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/terms.md",
     sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite"
 )
 internal val RAYL_BLINK = BlinkExperienceConfiguration(

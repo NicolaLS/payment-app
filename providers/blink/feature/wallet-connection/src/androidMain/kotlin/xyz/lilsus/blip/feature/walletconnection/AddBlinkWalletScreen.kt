@@ -2,6 +2,7 @@ package xyz.lilsus.blip.feature.walletconnection
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -60,10 +62,13 @@ fun AddBlinkWalletScreen(
     onBack: (() -> Unit)?,
     onApiKeyChange: (String) -> Unit,
     onSubmit: () -> Unit,
+    privacyPolicyUrl: String?,
+    termsUrl: String?,
     modifier: Modifier = Modifier
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val focusManager = LocalFocusManager.current
+    val uriHandler = LocalUriHandler.current
     val clipboard = LocalClipboard.current
     val coroutineScope = rememberCoroutineScope()
     var apiKeyVisible by remember { mutableStateOf(false) }
@@ -106,6 +111,32 @@ fun AddBlinkWalletScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Column {
+                Text(
+                    text = stringResource(R.string.add_blink_wallet_connection_notice),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    privacyPolicyUrl?.let { url ->
+                        TextButton(
+                            onClick = { uriHandler.openUri(url) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.add_blink_wallet_privacy))
+                        }
+                    }
+                    termsUrl?.let { url ->
+                        TextButton(
+                            onClick = { uriHandler.openUri(url) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.add_blink_wallet_terms))
+                        }
+                    }
+                }
+            }
 
             Column {
                 OutlinedTextField(
