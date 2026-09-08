@@ -68,9 +68,7 @@ fun SettingsScreen(
     leadingEntries: List<SettingsEntry> = emptyList(),
     trailingEntries: List<SettingsEntry> = emptyList(),
     performanceDiagnosticsEnabled: Boolean? = null,
-    onPerformanceDiagnosticsChanged: ((Boolean) -> Unit)? = null,
-    donationAppName: String? = null,
-    onDonate: ((Long) -> Unit)? = null
+    onPerformanceDiagnosticsChanged: ((Boolean) -> Unit)? = null
 ) {
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     val resolvedCurrencySubtitle =
@@ -152,16 +150,6 @@ fun SettingsScreen(
                     PerformanceDiagnosticsRow(
                         enabled = performanceDiagnosticsEnabled,
                         onEnabledChanged = onPerformanceDiagnosticsChanged
-                    )
-                }
-            }
-            if (donationAppName != null && onDonate != null) {
-                item {
-                    DonationCard(
-                        appName = donationAppName,
-                        onDonate1k = { onDonate(1_000) },
-                        onDonate5k = { onDonate(5_000) },
-                        onDonate10k = { onDonate(10_000) }
                     )
                 }
             }

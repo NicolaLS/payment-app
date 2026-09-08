@@ -1,7 +1,6 @@
 package xyz.lilsus.raylsuite.feature.paymentui
 
 import xyz.lilsus.raylsuite.core.model.DisplayAmount
-import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.paymentui.amount.ManualAmountKey
 
 sealed interface PaymentToastMessage {
@@ -49,6 +48,4 @@ sealed interface PaymentIntent {
     data object PendingRetryDismiss : PaymentIntent
 
     data class RetryTransaction(val id: String) : PaymentIntent
-
-    data class StartDonation(val amountSats: Long, val address: LightningAddress) : PaymentIntent
 }

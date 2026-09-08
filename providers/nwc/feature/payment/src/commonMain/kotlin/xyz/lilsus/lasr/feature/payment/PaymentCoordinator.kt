@@ -294,16 +294,6 @@ private class LasrPaymentFlow(
             is PaymentIntent.RetryTransaction ->
                 reconciliation.retryRecord(intent.id)?.let(execution::retry)
 
-            is PaymentIntent.StartDonation ->
-                handleAdmissionResult(
-                    admission.startDonation(
-                        amountSats = intent.amountSats,
-                        address = intent.address,
-                        token = token
-                    ),
-                    token
-                )
-
             is PaymentIntent.RawInputSubmitted ->
                 handleAdmissionResult(
                     admission.handlePaymentInput(
