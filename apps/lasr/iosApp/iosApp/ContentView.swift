@@ -31,5 +31,8 @@ struct ContentView: View {
     var body: some View {
         NwcExperienceView(experience: model.experience)
             .id(ObjectIdentifier(model.experience))
+            .background(NativeAppPrivacyProtection(appName: "Lasr") {
+                LasrApplication.shared.privacyCaptureMessage()
+            })
     }
 }

@@ -31,6 +31,9 @@ import xyz.lilsus.raylsuite.feature.settings.nativeSettingsAppVersionName
  * so every tab's view controller shares one runtime.
  */
 class FlintIosApp(host: FlintAppHost) {
+    fun privacyCaptureMessage(): String =
+        nativeString(NativeStringResource(table = "CoreUI", key = "privacy_capture_message"))
+
     private val observerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val runtime =

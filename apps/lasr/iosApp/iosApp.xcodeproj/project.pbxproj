@@ -137,6 +137,12 @@
 			sourceTree = "<group>";
 		};
 		ABC5659E4400D0CC657B53E3 /* Nwc Experience Swift */ = {isa = PBXFileSystemSynchronizedRootGroup; name = "Nwc Experience Swift"; path = ../../../providers/nwc/experience/src/iosMain/swift; sourceTree = "<group>"; };
+		F77E00000000000000000001 /* Core UI Swift */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = "Core UI Swift";
+			path = ../../../core/ui/src/iosMain/swift;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +166,7 @@
 		97A229AE63675C10A9DAA454 = {
 			isa = PBXGroup;
 			children = (
+				F77E00000000000000000001 /* Core UI Swift */,
 				C30000000000000000000001 /* CoreUI.xcstrings */,
 				C30000000000000000000002 /* AppShell.xcstrings */,
 				C30000000000000000000003 /* CurrencySettings.xcstrings */,
@@ -216,6 +223,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				F77E00000000000000000001 /* Core UI Swift */,
 				ABC5659E4400D0CC657B53E3 /* Nwc Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				F22E00000000000000000001 /* App Shell Swift */,
@@ -246,6 +254,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				F77E00000000000000000001 /* Core UI Swift */,
 				ABC5659E4400D0CC657B53E3 /* Nwc Experience Swift */,
 				D90BDCC58B0B3EAC96B0EEB8 /* iosApp */,
 				E2E000000000000000000002 /* iosAppE2E */,

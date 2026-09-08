@@ -46,6 +46,29 @@
           }
         }
       }
+    },
+    "privacy_capture_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beende die Bildschirmaufnahme oder Bildschirmspiegelung, um die App zu verwenden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop screen recording or mirroring to use the app."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detén la grabación o duplicación de pantalla para usar la app."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
