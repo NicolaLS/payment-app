@@ -17,7 +17,6 @@ plugins {
     alias(libs.plugins.mokkery) apply false
     alias(libs.plugins.breezSpark) apply false
     alias(libs.plugins.sqldelight) apply false
-    alias(libs.plugins.googleServices) apply false
     id("xyz.lilsus.raylsuite.kover")
 }
 

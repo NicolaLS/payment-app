@@ -2,10 +2,6 @@ plugins {
     id("xyz.lilsus.raylsuite.android.application")
 }
 
-if (file("google-services.json").isFile) {
-    apply(plugin = "com.google.gms.google-services")
-}
-
 android {
     namespace = "xyz.lilsus.blip"
 
@@ -53,7 +49,6 @@ dependencies {
     implementation(project(":blip:shared"))
     implementation(project(":core:network"))
     implementation(project(":core:ui"))
-    implementation(project(":integration:performance-monitoring"))
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.core.ktx)
