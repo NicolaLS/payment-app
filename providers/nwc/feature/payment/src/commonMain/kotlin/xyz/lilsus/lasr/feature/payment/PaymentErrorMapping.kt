@@ -32,6 +32,9 @@ internal fun LnurlInvoiceResolutionError.toPaymentUiError(): PaymentUiError = wh
     LnurlInvoiceResolutionError.ExpiredInvoice ->
         PaymentUiError.InvalidInvoice("Invoice has expired")
 
+    LnurlInvoiceResolutionError.AmountOutOfRange ->
+        PaymentUiError.InvalidInvoice("Amount is outside the allowed range")
+
     is LnurlInvoiceResolutionError.AmountMismatch ->
         PaymentUiError.InvalidInvoice("LNURL invoice amount does not match")
 

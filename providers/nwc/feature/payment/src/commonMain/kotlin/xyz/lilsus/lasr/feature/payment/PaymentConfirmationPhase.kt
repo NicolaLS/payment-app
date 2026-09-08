@@ -79,7 +79,7 @@ internal class PaymentConfirmationPhase(
             ) {
                 return ConfirmationResult.Presented
             }
-            presentation.showConfirmation(display)
+            presentation.showConfirmation(display, lnurlPayDisplay = request.lnurlPayDisplay)
             return ConfirmationResult.Presented
         } finally {
             confirmationSession.finishPreparation(token)
@@ -93,6 +93,18 @@ internal class PaymentConfirmationPhase(
         if (!confirmationSession.begin(token)) return ConfirmationResult.Presented
         try {
             val roundedAmount = roundToFullSatoshis(review.amountMsats)
+            if (
+                roundedAmount == null ||
+                review.amountMsats !in
+                review.session.params.minSendable..review.session.params.maxSendable ||
+                roundedAmount !in
+                review.session.params.minSendable..review.session.params.maxSendable
+            ) {
+                presentation.presentError(
+                    PaymentUiError.InvalidInvoice("Amount is outside the allowed range")
+                )
+                return ConfirmationResult.Presented
+            }
             val confirmationAmount =
                 confirmationAmount(
                     amountMsats = roundedAmount,

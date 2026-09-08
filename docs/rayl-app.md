@@ -4,6 +4,9 @@ Rayl is the suite's default Android/iOS product. It connects to exactly one Blin
 or Nostr Wallet Connect wallet at a time. Blip, Lasr, and Flint remain independent
 single-provider products. Spark is not a Rayl dependency.
 
+See [LNURL-pay behavior](lnurl-pay.md) for endpoint restrictions, invoice
+validation, and how recipient details interact with Auto Pay.
+
 All apps are prerelease. They do not import another app's credentials, preferences,
 databases, or installation state.
 

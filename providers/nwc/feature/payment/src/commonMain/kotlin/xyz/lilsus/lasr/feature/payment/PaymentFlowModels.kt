@@ -3,6 +3,7 @@ package xyz.lilsus.lasr.feature.payment
 import fr.acinq.lightning.payment.Bolt11Invoice
 import xyz.lilsus.raylsuite.core.payment.DynamicPaymentSourceKey
 import xyz.lilsus.raylsuite.feature.paymentcurrency.PaymentAmountQuote
+import xyz.lilsus.raylsuite.feature.paymentui.LnurlPayDisplay
 
 internal data class PreparedPayment(
     val invoice: Bolt11Invoice,
@@ -13,6 +14,7 @@ internal data class PreparedPayment(
     val targetContext: HubTargetContext? = null,
     val replacesDynamicGuardId: String? = null,
     val lnurlAuthorized: Boolean = false,
+    val lnurlPayDisplay: LnurlPayDisplay? = null,
     val paymentQuote: PaymentAmountQuote? = null
 )
 

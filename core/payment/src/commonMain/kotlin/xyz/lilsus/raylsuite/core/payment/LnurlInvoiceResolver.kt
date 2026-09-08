@@ -13,6 +13,18 @@ class LnurlInvoiceResolver(
     private val inputParser = LightningInputParser()
 
     suspend fun resolve(request: LnurlInvoiceRequest): LnurlInvoiceResolution {
+        val amountMsats = roundToFullSatoshis(request.amountMsats)
+        if (
+            amountMsats == null ||
+            request.params.minSendable <= 0 ||
+            request.amountMsats !in request.params.minSendable..request.params.maxSendable ||
+            amountMsats !in request.params.minSendable..request.params.maxSendable
+        ) {
+            return LnurlInvoiceResolution.Failure(LnurlInvoiceResolutionError.AmountOutOfRange)
+        }
+        if (request.params.metadata.plainText.isNullOrBlank()) {
+            return LnurlInvoiceResolution.Failure(LnurlInvoiceResolutionError.MetadataMismatch)
+        }
         val comment = request.comment?.takeIf(String::isNotBlank)
         if (
             comment != null &&
@@ -24,7 +36,6 @@ class LnurlInvoiceResolver(
             return LnurlInvoiceResolution.Failure(LnurlInvoiceResolutionError.CommentRejected)
         }
 
-        val amountMsats = roundToFullSatoshis(request.amountMsats)
         val encodedInvoice =
             when (
                 val result =
@@ -93,18 +104,26 @@ sealed interface LnurlInvoiceResolutionError {
 
     data object ExpiredInvoice : LnurlInvoiceResolutionError
 
+    data object AmountOutOfRange : LnurlInvoiceResolutionError
+
     data class AmountMismatch(val expectedMsats: Long, val actualMsats: Long?) :
         LnurlInvoiceResolutionError
 
     data object MetadataMismatch : LnurlInvoiceResolutionError
 }
 
-fun roundToFullSatoshis(msats: Long): Long =
-    ((msats + MSATS_PER_SAT - 1) / MSATS_PER_SAT) * MSATS_PER_SAT
+/** Returns null when a positive, rounded millisatoshi amount cannot be represented. */
+fun roundToFullSatoshis(msats: Long): Long? {
+    if (msats <= 0) return null
+    val remainder = msats % MSATS_PER_SAT
+    if (remainder == 0L) return msats
+    val increment = MSATS_PER_SAT - remainder
+    return if (msats <= Long.MAX_VALUE - increment) msats + increment else null
+}
 
 private fun Bolt11Invoice.matchesMetadata(params: LnurlPayParams): Boolean {
     description?.let { description ->
-        return params.metadata.plainText?.let { it == description } ?: true
+        return params.metadata.plainText?.takeIf(String::isNotBlank) == description
     }
     descriptionHash?.let { hash ->
         return Crypto.sha256(params.metadataRaw.encodeToByteArray()).toByteVector32() == hash
