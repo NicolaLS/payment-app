@@ -11,139 +11,94 @@ import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.StoredAmount
 
 class DefaultPaymentHubRepositoryTest {
-    private val alice = requireNotNull(LightningAddress.parse("alice@example.com"))
-
-    private fun repository(settings: MapSettings, ids: Iterator<String> = generateSequence(1) { it + 1 }.map { "id$it" }.iterator()) =
-        DefaultPaymentHubRepository(
-            settings = settings,
-            clock = { 1_000L },
-            idGenerator = ids::next
-        )
-
     @Test
-    fun payAliceTipAliceAndFavoriteFriendsAreIndependent() = runTest {
+    fun contactDeletionPrunesCollectionsWhileRemovingWidgetsPreservesContactsAndHistory() = runTest {
         val settings = MapSettings()
-        val repository = repository(settings)
-
-        val payAlice =
-            assertNotNull(
-                repository.createTarget(
-                    DirectTargetDraft(
-                        title = "Pay Alice",
-                        address = alice,
-                        amountRule = DirectTargetAmountRule.AskEveryTime
-                    )
+        val repository = DefaultPaymentHubRepository(settings)
+        val alice = repository.saveContact(address("alice"), "Alice")
+        val bob = repository.saveContact(address("bob"), "Bob")
+        val row = assertNotNull(
+            repository.saveWidget(
+                HubWidgetDraft(
+                    "local.contacts",
+                    HubWidgetKind.Contacts,
+                    LocalHubWidgets.Row,
+                    contactIds = listOf(alice.id, bob.id)
                 )
             )
-        val tipAlice =
-            assertNotNull(
-                repository.createTarget(
-                    DirectTargetDraft(
-                        title = "Tip Alice",
-                        address = alice,
-                        amountRule = DirectTargetAmountRule.Preset(StoredAmount(100, "usd")),
-                        comment = "  thanks "
-                    )
+        )
+        val single = assertNotNull(
+            repository.saveWidget(
+                HubWidgetDraft(
+                    "local.contacts",
+                    HubWidgetKind.Contacts,
+                    LocalHubWidgets.Single,
+                    contactIds = listOf(alice.id)
                 )
             )
-        val friends =
-            assertNotNull(
-                repository.createGroup(
-                    GroupDraft(
-                        title = "Favorite Friends",
-                        memberIds =
-                            listOf(tipAlice.id, payAlice.id, HubItemId("group:other"), payAlice.id)
-                    )
+        )
+        val shortcut = assertNotNull(
+            repository.saveWidget(
+                HubWidgetDraft(
+                    "local.shortcut",
+                    HubWidgetKind.Shortcut,
+                    LocalHubWidgets.Single,
+                    contactIds = listOf(alice.id),
+                    amount = StoredAmount(500, "USD")
                 )
             )
-
+        )
+        val bobAction = assertNotNull(repository.hub.value.contactTarget(bob.id))
+        repository.recordSuccessfulPayment(bobAction.id, 100)
+        repository.deleteContact(alice.id)
         val hub = repository.hub.value
-        assertEquals(listOf(tipAlice.id, payAlice.id), assertNotNull(hub.group(friends.id)).memberIds)
-        assertEquals("thanks", assertNotNull(hub.target(tipAlice.id)).comment)
-        assertEquals(
-            DirectTargetAmountRule.Preset(StoredAmount(100, "USD")),
-            assertNotNull(hub.target(tipAlice.id)).amountRule
-        )
-
-        repository.deleteTarget(payAlice.id)
-        val afterDelete = repository.hub.value
-        assertNull(afterDelete.target(payAlice.id))
-        assertNotNull(afterDelete.target(tipAlice.id))
-        assertEquals(listOf(tipAlice.id), assertNotNull(afterDelete.group(friends.id)).memberIds)
-
-        repository.deleteGroup(friends.id)
-        assertNotNull(repository.hub.value.target(tipAlice.id))
-        assertTrue(repository.hub.value.groups.isEmpty())
-
-        val reloaded = repository(settings)
-        assertEquals(repository.hub.value, reloaded.hub.value)
+        assertNull(hub.widget(single.id))
+        assertNull(hub.widget(shortcut.id))
+        assertEquals(listOf(bob.id), hub.widget(row.id)?.contactIds)
+        repository.deleteWidget(row.id)
+        assertEquals(listOf(bob), repository.hub.value.contacts)
+        assertEquals(1, repository.hub.value.targets.size)
+        assertEquals(1L, repository.hub.value.targets.single().stats.successfulPaymentCount)
+        assertEquals(repository.hub.value, DefaultPaymentHubRepository(settings).hub.value)
     }
 
     @Test
-    fun editingUpdatesMembershipWithoutChangingIdentity() = runTest {
-        val repository = repository(MapSettings())
-        val target =
-            assertNotNull(
-                repository.createTarget(
-                    DirectTargetDraft("Alice", alice, DirectTargetAmountRule.AskEveryTime)
-                )
-            )
-        val group = assertNotNull(repository.createGroup(GroupDraft(title = "Friends")))
-        repository.recordSuccessfulPayment(target.id, paidAtMs = 5_000L)
-
-        val updated =
-            assertNotNull(
-                repository.updateTarget(
-                    target.id,
-                    DirectTargetDraft(
-                        title = "Tip Alice",
-                        address = alice,
-                        amountRule = DirectTargetAmountRule.Preset(StoredAmount(2_000, "SAT")),
-                        groupIds = setOf(group.id)
-                    )
-                )
-            )
-        assertEquals(target.id, updated.id)
-        assertEquals(HubItemStats(1, 5_000L), updated.stats)
-        val hub = repository.hub.value
-        assertEquals(listOf(target.id), assertNotNull(hub.group(group.id)).memberIds)
-
-        repository.updateTarget(
-            target.id,
-            DirectTargetDraft("Alice", alice, DirectTargetAmountRule.AskEveryTime)
+    fun duplicatePlacementsShareActionIdentityAndInvalidEditsDoNotWrite() = runTest {
+        val repository = DefaultPaymentHubRepository(MapSettings())
+        val contact = repository.saveContact(address("alice"), "Alice")
+        val draft = HubWidgetDraft(
+            "local.shortcut",
+            HubWidgetKind.Shortcut,
+            LocalHubWidgets.Single,
+            contactIds = listOf(contact.id),
+            amount = StoredAmount(500, "USD")
         )
-        val reverted = repository.hub.value
-        assertEquals(DirectTargetAmountRule.AskEveryTime, assertNotNull(reverted.target(target.id)).amountRule)
-        assertTrue(assertNotNull(reverted.group(group.id)).memberIds.isEmpty())
-        assertEquals(1, reverted.targets.size)
+        val first = assertNotNull(repository.saveWidget(draft))
+        val second = assertNotNull(repository.saveWidget(draft))
+        assertEquals(first.targetId, second.targetId)
+        val before = repository.hub.value
+        assertNull(repository.saveWidget(draft.copy(variant = LocalHubWidgets.Row)))
+        assertNull(repository.saveWidget(draft.copy(amount = StoredAmount(0, "USD"))))
+        assertNull(repository.saveWidget(draft, "missing"))
+        assertEquals(before, repository.hub.value)
+        repository.moveWidget(second.id, 0)
+        assertEquals(listOf(second.id, first.id), repository.hub.value.widgets.map { it.id })
     }
 
     @Test
-    fun invalidDraftsAreRejected() = runTest {
-        val repository = repository(MapSettings())
-        assertNull(repository.createTarget(DirectTargetDraft("  ", alice, DirectTargetAmountRule.AskEveryTime)))
-        assertNull(
-            repository.createTarget(
-                DirectTargetDraft("Bad", alice, DirectTargetAmountRule.Preset(StoredAmount(0, "USD")))
-            )
-        )
-        assertNull(
-            repository.createTarget(
-                DirectTargetDraft("Bad", alice, DirectTargetAmountRule.Preset(StoredAmount(10, "XXX")))
-            )
-        )
-        assertNull(repository.createGroup(GroupDraft(title = "")))
-        assertTrue(repository.hub.value.isEmpty)
-    }
-
-    @Test
-    fun undecodableDocumentStartsEmptyAndIsReplacedOnWrite() = runTest {
+    fun suggestionSavesBothWithoutOverwritingExistingContactNameOrDuplicatingItsWidget() = runTest {
         val settings = MapSettings()
-        settings.putString("paymentHub.document", "{broken")
-
-        val repository = repository(settings)
-        assertTrue(repository.hub.value.isEmpty)
-        assertNotNull(repository.createTarget(DirectTargetDraft("Alice", alice, DirectTargetAmountRule.AskEveryTime)))
-        assertEquals(1, repository(settings).hub.value.targets.size)
+        val repository = DefaultPaymentHubRepository(settings)
+        val contact = repository.saveContact(address("alice"), "My friend")
+        repository.saveContactAndWidget(address("alice"), "Alice")
+        repository.saveContactAndWidget(address("alice"), "Alice")
+        val hub = DefaultPaymentHubRepository(settings).hub.value
+        assertEquals(contact, hub.contacts.single())
+        assertEquals(listOf(contact.id), hub.widgets.single().contactIds)
+        assertEquals(DirectTargetAmountRule.AskEveryTime, hub.targets.single().amountRule)
+        repository.deleteContact(contact.id)
+        assertTrue(repository.hub.value.widgets.isEmpty())
     }
+
+    private fun address(name: String) = assertNotNull(LightningAddress.parse("$name@example.com"))
 }

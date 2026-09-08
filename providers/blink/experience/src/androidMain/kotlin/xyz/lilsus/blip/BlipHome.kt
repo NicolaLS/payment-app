@@ -1,5 +1,7 @@
 package xyz.lilsus.blip
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -10,6 +12,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
@@ -157,12 +161,20 @@ internal fun BlipTabContent(
 @Composable
 private fun BlipHubTab(runtime: BlipRuntime, currencyCode: String) {
     var importing by rememberSaveable { mutableStateOf(false) }
+    PaymentHubTab(
+        repository = runtime.paymentHubRepository,
+        controller = runtime.paymentHub,
+        preferredCurrencyCode = { currencyCode },
+        importButton = {
+            BlinkContactsImportButton(onClick = { importing = true })
+        }
+    )
     if (importing) {
         val viewModel =
-            remember(runtime.blinkWallet, runtime.contactsRepository) {
+            remember(runtime.blinkWallet, runtime.paymentHubRepository) {
                 BlinkContactsImportViewModel(
                     blinkWallet = runtime.blinkWallet,
-                    contactsRepository = runtime.contactsRepository
+                    hubRepository = runtime.paymentHubRepository
                 )
             }
         val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -172,26 +184,25 @@ private fun BlipHubTab(runtime: BlipRuntime, currencyCode: String) {
         LaunchedEffect(viewModel) {
             viewModel.loadBlinkContacts()
         }
-        BlinkContactsImportScreen(
-            state = state,
-            onBack = { importing = false },
-            onToggleContact = viewModel::toggleBlinkContact,
-            onToggleAll = viewModel::toggleAllBlinkContacts,
-            onSearchQueryChange = viewModel::updateSearchQuery,
-            onImport = viewModel::importSelectedBlinkContacts,
-            onSkip = null
-        )
-    } else {
-        PaymentHubTab(
-            repository = runtime.paymentHubRepository,
-            canvasLayout = runtime.canvasLayout,
-            controller = runtime.paymentHub,
-            preferredCurrencyCode = { currencyCode },
-            contacts = runtime.paymentHubContacts,
-            importButton = {
-                BlinkContactsImportButton(onClick = { importing = true })
+        Dialog(
+            onDismissRequest = { importing = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Surface(modifier = Modifier.fillMaxSize()) {
+                BlinkContactsImportScreen(
+                    state = state,
+                    onBack = { importing = false },
+                    onToggleContact = viewModel::toggleBlinkContact,
+                    onToggleAll = viewModel::toggleAllBlinkContacts,
+                    onSearchQueryChange = viewModel::updateSearchQuery,
+                    onImport = viewModel::importSelectedBlinkContacts,
+                    onSkip = null
+                )
             }
-        )
+        }
     }
 }
 

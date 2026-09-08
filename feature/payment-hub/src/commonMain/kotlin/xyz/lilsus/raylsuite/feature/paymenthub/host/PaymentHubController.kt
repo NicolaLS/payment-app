@@ -7,21 +7,18 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetAmountRule
-import xyz.lilsus.raylsuite.feature.paymenthub.DirectTargetDraft
 import xyz.lilsus.raylsuite.feature.paymenthub.HubItemId
-import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHub
 import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 import xyz.lilsus.raylsuite.feature.paymenthub.platformCurrentTimeMillis
 
 /**
  * Shared hub host logic: owns the post-payment save prompt and emits [DirectTargetPaymentIntent]
  * when a target is chosen. Each app maps that intent into its own provider-native payment flow.
- * Arrangement and grouping belong to the canvas, not here.
+ * Widget placement belongs to the Hub presentation, not here.
  */
 class PaymentHubController(
     private val repository: PaymentHubRepository,
@@ -36,13 +33,8 @@ class PaymentHubController(
     val paymentRequests: SharedFlow<DirectTargetPaymentIntent> =
         mutablePaymentRequests.asSharedFlow()
 
-    private var hub = PaymentHub()
-
-    init {
-        scope.launch {
-            repository.hub.collectLatest { updated -> hub = updated }
-        }
-    }
+    private val hub get() = repository.hub.value
+    private var saving = false
 
     fun dispatch(intent: PaymentHubIntent) {
         when (intent) {
@@ -54,8 +46,10 @@ class PaymentHubController(
                 mutableState.update { it.copy(scannerRequested = false) }
 
             is PaymentHubIntent.SavePromptTitleChanged ->
-                mutableState.update { current ->
-                    current.copy(savePrompt = current.savePrompt?.copy(title = intent.title))
+                if (!saving) {
+                    mutableState.update { current ->
+                        current.copy(savePrompt = current.savePrompt?.copy(title = intent.title))
+                    }
                 }
 
             PaymentHubIntent.SavePromptSave -> savePrompt()
@@ -70,9 +64,9 @@ class PaymentHubController(
         scope.launch { repository.recordSuccessfulPayment(targetId, paidAtMs) }
     }
 
-    /** Offers to save [address] as an AskEveryTime target unless a target already uses it. */
+    /** Offers to save a new contact together with a single Contacts widget. */
     fun offerSave(address: LightningAddress) {
-        if (hub.targets.any { it.address.isSameAddressAs(address) }) return
+        if (hub.contacts.any { it.address.isSameAddressAs(address) }) return
         mutableState.update { current ->
             current.copy(
                 savePrompt = HubSavePrompt(address = address, title = address.username)
@@ -85,12 +79,14 @@ class PaymentHubController(
     }
 
     private fun selectItem(id: HubItemId) {
-        val target = hub.target(id) ?: return
+        val snapshot = hub
+        val target = snapshot.target(id) ?: return
+        val contact = snapshot.contact(target.contactId) ?: return
         mutableState.update { it.copy(scannerRequested = false) }
         mutablePaymentRequests.tryEmit(
             DirectTargetPaymentIntent(
                 targetId = target.id,
-                address = target.address,
+                address = contact.address,
                 amountRule = target.amountRule,
                 comment = target.comment
             )
@@ -98,16 +94,27 @@ class PaymentHubController(
     }
 
     private fun savePrompt() {
+        if (saving) return
         val prompt = mutableState.value.savePrompt ?: return
+        saving = true
         scope.launch {
-            repository.createTarget(
-                DirectTargetDraft(
-                    title = prompt.title.trim().ifEmpty { prompt.address.username },
-                    address = prompt.address,
-                    amountRule = DirectTargetAmountRule.AskEveryTime
+            try {
+                repository.saveContactAndWidget(
+                    prompt.address,
+                    prompt.title.trim().ifEmpty { prompt.address.username }
                 )
-            )
-            mutableState.update { it.copy(savePrompt = null) }
+                mutableState.update {
+                    if (it.savePrompt ==
+                        prompt
+                    ) {
+                        it.copy(savePrompt = null)
+                    } else {
+                        it
+                    }
+                }
+            } finally {
+                saving = false
+            }
         }
     }
 }

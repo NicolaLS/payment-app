@@ -14,7 +14,6 @@ import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymenthub.DefaultPaymentHubRepository
-import xyz.lilsus.raylsuite.feature.paymenthub.canvas.DefaultCanvasLayoutRepository
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.themesettings.DefaultThemePreferences
@@ -39,7 +38,6 @@ internal class FlintRuntime(
     val languageRepository = createLanguageRepository()
     val paymentPreferences = DefaultPaymentPreferencesRepository(appSettings)
     val paymentHubRepository = DefaultPaymentHubRepository(appSettings)
-    val canvasLayout = DefaultCanvasLayoutRepository(appSettings)
     val bitcoinPriceProvider = CoinGeckoBitcoinPriceProvider()
     val tabState = AppTabState()
     val paymentHub = PaymentHubController(repository = paymentHubRepository, scope = scope)

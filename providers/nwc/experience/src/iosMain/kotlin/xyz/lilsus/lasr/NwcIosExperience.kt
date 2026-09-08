@@ -77,7 +77,6 @@ class NwcIosExperience(private val configuration: NwcExperienceConfiguration) {
     private val nativeHubControllerDelegate = lazy {
         NativePaymentHubController(
             repository = runtime.paymentHubRepository,
-            canvasLayout = runtime.canvasLayout,
             host = runtime.paymentHub,
             languageChanges = runtime.languageRepository.preference,
             currencyCodes = runtime.currencyPreferences.code

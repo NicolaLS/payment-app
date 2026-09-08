@@ -2,41 +2,26 @@ package xyz.lilsus.raylsuite.feature.paymenthub
 
 import kotlinx.coroutines.flow.StateFlow
 import xyz.lilsus.raylsuite.core.model.LightningAddress
+import xyz.lilsus.raylsuite.core.model.StoredAmount
 
-/**
- * App-scoped, non-sensitive hub storage. Targets, groups, and statistics intentionally survive
- * wallet credential removal or replacement. No lens or payment value enters it.
- */
 interface PaymentHubRepository {
     val hub: StateFlow<PaymentHub>
-
-    suspend fun createTarget(draft: DirectTargetDraft): DirectPaymentTarget?
-
-    suspend fun updateTarget(id: HubItemId, draft: DirectTargetDraft): DirectPaymentTarget?
-
-    suspend fun deleteTarget(id: HubItemId)
-
-    suspend fun createGroup(draft: GroupDraft): PaymentTargetGroup?
-
-    suspend fun updateGroup(id: HubItemId, draft: GroupDraft): PaymentTargetGroup?
-
-    suspend fun deleteGroup(id: HubItemId)
-
-    /** Counts one terminal successful wallet payment for a direct target. */
+    suspend fun saveContact(address: LightningAddress, title: String?): HubContact
+    suspend fun deleteContact(id: String)
+    suspend fun saveWidget(draft: HubWidgetDraft, id: String? = null): HubWidget?
+    suspend fun deleteWidget(id: String)
+    suspend fun moveWidget(id: String, index: Int)
+    suspend fun saveContactAndWidget(address: LightningAddress, title: String): HubContact
     suspend fun recordSuccessfulPayment(id: HubItemId, paidAtMs: Long)
 }
 
-data class DirectTargetDraft(
-    val title: String,
-    val address: LightningAddress,
-    val amountRule: DirectTargetAmountRule,
+data class HubWidgetDraft(
+    val definitionId: String,
+    val kind: HubWidgetKind,
+    val variant: HubWidgetVariant,
+    val title: String? = null,
+    val contactIds: List<String> = emptyList(),
+    val amount: StoredAmount? = null,
     val comment: String? = null,
-    val appearance: HubItemAppearance = HubItemAppearance.None,
-    val groupIds: Set<HubItemId> = emptySet()
-)
-
-data class GroupDraft(
-    val title: String,
-    val memberIds: List<HubItemId> = emptyList(),
-    val appearance: HubItemAppearance = HubItemAppearance.None
+    val configuration: Map<String, String> = emptyMap()
 )

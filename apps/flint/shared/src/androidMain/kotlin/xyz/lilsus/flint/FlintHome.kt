@@ -118,7 +118,6 @@ internal fun FlintTabContent(
         AppTab.Hub ->
             PaymentHubTab(
                 repository = runtime.paymentHubRepository,
-                canvasLayout = runtime.canvasLayout,
                 controller = runtime.paymentHub,
                 preferredCurrencyCode = { currencyCode }
             )

@@ -83,11 +83,9 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
     private val nativeHubControllerDelegate = lazy {
         NativePaymentHubController(
             repository = runtime.paymentHubRepository,
-            canvasLayout = runtime.canvasLayout,
             host = runtime.paymentHub,
             languageChanges = runtime.languageRepository.preference,
-            currencyCodes = runtime.currencyPreferences.code,
-            contacts = runtime.paymentHubContacts
+            currencyCodes = runtime.currencyPreferences.code
         )
     }
     private val nativeHubController by nativeHubControllerDelegate
@@ -95,7 +93,7 @@ class BlinkIosExperience(private val configuration: BlinkExperienceConfiguration
     private val nativeContactsControllerDelegate = lazy {
         BlipNativeContactsController(
             blinkWallet = runtime.blinkWallet,
-            contactsRepository = runtime.contactsRepository,
+            hubRepository = runtime.paymentHubRepository,
             languageChanges = runtime.languageRepository.preference
         )
     }

@@ -237,6 +237,13 @@ val verifyModuleDependencies = tasks.register("verifyModuleDependencies") {
                             val sourceProvider = source.path.providerOwner()
                             val targetProvider = targetPath.providerOwner()
                             when {
+                                targetPath.startsWith(":backend:") && !source.path.startsWith(":backend:") ->
+                                    "${source.path} -> $targetPath (client module depends on backend implementation)"
+
+                                source.path.startsWith(":backend:") &&
+                                    !targetPath.startsWith(":backend:") && targetPath != ":core:hub-api" ->
+                                    "${source.path} -> $targetPath (backend may share only the Hub wire contract)"
+
                                 targetProvider != null && sourceOwner == null &&
                                     sourceProvider == null ->
                                     "${source.path} -> $targetPath (neutral module depends on a provider)"

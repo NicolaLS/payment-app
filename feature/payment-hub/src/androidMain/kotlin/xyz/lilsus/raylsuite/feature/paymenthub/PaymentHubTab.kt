@@ -1,223 +1,137 @@
 package xyz.lilsus.raylsuite.feature.paymenthub
 
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationEventHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.emptyFlow
-import xyz.lilsus.raylsuite.feature.paymenthub.canvas.CanvasLayoutRepository
-import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubCanvasActions
-import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubCanvasScreen
-import xyz.lilsus.raylsuite.feature.paymenthub.canvas.HubCanvasViewModel
-import xyz.lilsus.raylsuite.feature.paymenthub.create.HubContact
-import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetActions
-import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetEvent
-import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetFlow
-import xyz.lilsus.raylsuite.feature.paymenthub.create.NewTargetViewModel
-import xyz.lilsus.raylsuite.feature.paymenthub.group.GroupEditorScreen
-import xyz.lilsus.raylsuite.feature.paymenthub.group.GroupEditorViewModel
-import xyz.lilsus.raylsuite.feature.paymenthub.group.HubEditorEvent
+import xyz.lilsus.raylsuite.core.ui.components.BackIconButton
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
-import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubIntent
+import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubWidgetCanvas
+import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubWidgetEditorScreen
+import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubWidgetGallery
+import xyz.lilsus.raylsuite.feature.paymenthub.widget.HubWidgetVariants
 
-/**
- * The Hub tab: the canvas plus the flow that composes a target. Selecting a target asks the
- * controller to emit a payment intent; the app decides what that means and shows the payment
- * itself on its own surface.
- *
- * [contacts] is an app-owned contact projection. Choosing one copies its editable values into a
- * new Hub target; the Hub never owns or deletes the source contact.
- *
- * [importButton] is an app-owned action offered where a user looks for a contact and does not
- * find one. Blip supplies its Blink import there; Flint and Lasr pass nothing.
- */
+/** Native gallery, configuration, and canvas. Payment policy stays with the host. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentHubTab(
     repository: PaymentHubRepository,
-    canvasLayout: CanvasLayoutRepository,
     controller: PaymentHubController,
     preferredCurrencyCode: () -> String,
-    contacts: Flow<List<HubContact>> = emptyFlow(),
     modifier: Modifier = Modifier,
     importButton: (@Composable () -> Unit)? = null
 ) {
-    var destination by remember { mutableStateOf<HubDestination>(HubDestination.Canvas) }
-    val canvasViewModel =
-        remember(repository, canvasLayout) {
-            HubCanvasViewModel(
-                repository = repository,
-                layoutRepository = canvasLayout
-            )
+    val context = LocalContext.current
+    val currentContext by rememberUpdatedState(context)
+    val currency by rememberUpdatedState(preferredCurrencyCode)
+    val remote =
+        remember(repository, controller, context.applicationContext) {
+            createHubRemoteSession(context)
         }
-    DisposableEffect(canvasViewModel) {
-        onDispose(canvasViewModel::clear)
+    val viewModel = remember(repository, controller, remote) {
+        WidgetHubViewModel(
+            repository = repository,
+            host = controller,
+            defaultCurrencyCode = { currency() },
+            locale = { currentContext.resources.configuration.locales[0].toLanguageTag() },
+            catalog = remote.catalog
+        )
     }
-    val canvasState by canvasViewModel.uiState.collectAsStateWithLifecycle()
-
+    DisposableEffect(viewModel, remote) {
+        onDispose {
+            viewModel.clear()
+            remote.close()
+        }
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(viewModel, lifecycleOwner) {
+        val lifecycle = lifecycleOwner.lifecycle
+        val observer = LifecycleEventObserver { owner, _ ->
+            viewModel.setActive(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+        }
+        lifecycle.addObserver(observer)
+        viewModel.setActive(lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    val state by viewModel.state.collectAsStateWithLifecycle()
     NavigationEventHandler(
-        state = rememberNavigationEventState(currentInfo = HubTabInfo(destination)),
+        state = rememberNavigationEventState(currentInfo = WidgetHubNavigationInfo(state.screen)),
         isForwardEnabled = false,
-        isBackEnabled = destination is HubDestination.GroupEditor,
-        onBackCompleted = { destination = HubDestination.Canvas }
-    )
-
-    when (val current = destination) {
-        HubDestination.Canvas ->
-            HubCanvasScreen(
-                state = canvasState,
-                actions =
-                    HubCanvasActions(
-                        pay = { controller.dispatch(PaymentHubIntent.SelectItem(it)) },
-                        expand = canvasViewModel::toggleExpanded,
-                        edit = { id ->
-                            destination =
-                                if (id.isGroupId()) {
-                                    HubDestination.GroupEditor(id)
-                                } else {
-                                    HubDestination.NewTarget(id)
-                                }
-                        },
-                        addTarget = { destination = HubDestination.NewTarget(null) },
-                        startEditing = canvasViewModel::startEditing,
-                        stopEditing = canvasViewModel::stopEditing,
-                        resize = canvasViewModel::resize,
-                        delete = canvasViewModel::delete,
-                        move = canvasViewModel::move
-                    ),
-                modifier = modifier
-            )
-
-        is HubDestination.NewTarget ->
-            NewTargetDestination(
-                repository = repository,
-                canvasLayout = canvasLayout,
-                preferredCurrencyCode = preferredCurrencyCode,
-                contacts = contacts,
-                editTargetId = current.id,
-                onClose = { destination = HubDestination.Canvas },
-                importButton = importButton,
-                modifier = modifier
-            )
-
-        is HubDestination.GroupEditor ->
-            GroupEditorDestination(
-                repository = repository,
-                groupId = current.id,
-                onClose = { destination = HubDestination.Canvas },
-                modifier = modifier
-            )
-    }
-}
-
-@Composable
-private fun NewTargetDestination(
-    repository: PaymentHubRepository,
-    canvasLayout: CanvasLayoutRepository,
-    preferredCurrencyCode: () -> String,
-    contacts: Flow<List<HubContact>>,
-    editTargetId: HubItemId?,
-    onClose: () -> Unit,
-    importButton: (@Composable () -> Unit)?,
-    modifier: Modifier
-) {
-    val viewModel =
-        remember(repository, canvasLayout, contacts, editTargetId) {
-            NewTargetViewModel(
-                repository = repository,
-                layoutRepository = canvasLayout,
-                defaultCurrencyCode = preferredCurrencyCode,
-                contacts = contacts,
-                editTargetId = editTargetId
-            )
-        }
-    DisposableEffect(viewModel) {
-        onDispose(viewModel::clear)
-    }
-    LaunchedEffect(viewModel) {
-        viewModel.events.collectLatest { event ->
-            when (event) {
-                NewTargetEvent.Finished -> onClose()
+        isBackEnabled = state.screen != HubWidgetScreen.Hub || state.arranging,
+        onBackCompleted = {
+            if (state.arranging &&
+                state.screen == HubWidgetScreen.Hub
+            ) {
+                viewModel.setArranging(false)
+            } else {
+                viewModel.back()
             }
         }
-    }
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    NewTargetFlow(
-        state = state,
-        actions =
-            NewTargetActions(
-                openContacts = viewModel::openContacts,
-                openServices = viewModel::openServices,
-                selectContact = viewModel::selectContact,
-                addManually = viewModel::addManually,
-                selectService = viewModel::selectService,
-                dismissComingSoon = viewModel::dismissComingSoon,
-                updateQuery = viewModel::updateQuery,
-                updateTitle = viewModel::updateTitle,
-                updateAddress = viewModel::updateAddress,
-                selectAmount = viewModel::selectAmount,
-                updateCustomAmount = viewModel::updateCustomAmount,
-                selectCurrency = viewModel::selectCurrency,
-                updateComment = viewModel::updateComment,
-                selectSize = viewModel::selectSize,
-                submit = viewModel::submit,
-                delete = viewModel::delete,
-                back = { if (!viewModel.back()) onClose() }
-            ),
+    )
+    Scaffold(
         modifier = modifier,
-        importButton = importButton
-    )
-}
+        topBar = {
+            if (state.screen != HubWidgetScreen.Hub) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            stringResource(
+                                when (state.screen) {
+                                    HubWidgetScreen.Gallery -> R.string.hub_widget_gallery_title
 
-@Composable
-private fun GroupEditorDestination(
-    repository: PaymentHubRepository,
-    groupId: HubItemId,
-    onClose: () -> Unit,
-    modifier: Modifier
-) {
-    val viewModel = remember(repository, groupId) { GroupEditorViewModel(repository, groupId) }
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    DisposableEffect(viewModel) {
-        onDispose(viewModel::clear)
-    }
-    LaunchedEffect(viewModel) {
-        viewModel.events.collectLatest { event ->
-            when (event) {
-                HubEditorEvent.Closed -> onClose()
+                                    HubWidgetScreen.Variants -> R.string.hub_widget_select_variant
+
+                                    HubWidgetScreen.Configure ->
+                                        if (state.editor?.existingWidgetId != null) {
+                                            R.string.hub_widget_edit
+                                        } else {
+                                            R.string.hub_configure_title
+                                        }
+
+                                    HubWidgetScreen.Hub -> R.string.hub_widget_gallery_title
+                                }
+                            )
+                        )
+                    },
+                    navigationIcon = { BackIconButton(onClick = { viewModel.back() }) }
+                )
             }
         }
+    ) { padding ->
+        val content = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
+        when (state.screen) {
+            HubWidgetScreen.Hub -> HubWidgetCanvas(state, viewModel, content)
+
+            HubWidgetScreen.Gallery -> HubWidgetGallery(state, viewModel, content)
+
+            HubWidgetScreen.Variants -> HubWidgetVariants(state, viewModel, content)
+
+            HubWidgetScreen.Configure -> HubWidgetEditorScreen(
+                state,
+                viewModel,
+                content,
+                importButton
+            )
+        }
     }
-    GroupEditorScreen(
-        state = state,
-        onBack = onClose,
-        onTitleChange = viewModel::updateTitle,
-        onIconChange = viewModel::selectIcon,
-        onAccentChange = viewModel::selectAccent,
-        onAddMember = viewModel::addMember,
-        onRemoveMember = viewModel::removeMember,
-        onMoveMember = viewModel::moveMember,
-        onSave = viewModel::save,
-        onDelete = viewModel::delete,
-        modifier = modifier
-    )
 }
 
-private sealed interface HubDestination {
-    data object Canvas : HubDestination
-
-    data class NewTarget(val id: HubItemId?) : HubDestination
-
-    data class GroupEditor(val id: HubItemId) : HubDestination
-}
-
-private data class HubTabInfo(val destination: HubDestination) : NavigationEventInfo()
+private data class WidgetHubNavigationInfo(val screen: HubWidgetScreen) : NavigationEventInfo()

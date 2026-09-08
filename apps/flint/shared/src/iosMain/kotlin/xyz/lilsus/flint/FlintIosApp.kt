@@ -58,7 +58,6 @@ class FlintIosApp(host: FlintAppHost) {
     private val nativeHubController by lazy {
         NativePaymentHubController(
             repository = runtime.paymentHubRepository,
-            canvasLayout = runtime.canvasLayout,
             host = runtime.paymentHub,
             languageChanges = runtime.languageRepository.preference,
             currencyCodes = runtime.currencyPreferences.code

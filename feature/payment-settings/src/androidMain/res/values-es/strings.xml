@@ -11,5 +11,5 @@
     <string name="settings_payments_haptics_scan">Vibrar cuando se reconoce un código</string>
     <string name="settings_payments_haptics_payment">Vibrar al completar el pago</string>
     <string name="settings_payments_hub_title">Centro de pagos</string>
-    <string name="settings_payments_offer_save_targets">Ofrecer guardar direcciones nuevas después de pagar</string>
+    <string name="settings_payments_offer_save_targets">Ofrecer guardar un contacto y añadir un widget de Contactos después de pagar</string>
 </resources>

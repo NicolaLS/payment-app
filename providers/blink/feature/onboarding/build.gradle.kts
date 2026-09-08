@@ -18,7 +18,7 @@ kotlin {
             implementation(project(":providers:blink:integration:blink"))
             implementation(project(":core:camera"))
             implementation(project(":core:ui"))
-            implementation(project(":feature:payment-hub"))
+            api(project(":feature:payment-hub"))
             implementation(project(":feature:onboarding"))
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.compose.material3)

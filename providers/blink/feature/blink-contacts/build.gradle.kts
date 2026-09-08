@@ -1,6 +1,5 @@
 plugins {
     id("xyz.lilsus.raylsuite.kmp.compose")
-    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -13,9 +12,8 @@ kotlin {
             api(project(":providers:blink:integration:blink"))
             api(project(":providers:blink:ui"))
             api(project(":core:model"))
+            api(project(":feature:payment-hub"))
             implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.multiplatform.settings)
             implementation(libs.compose.runtime)
         }
         androidMain.dependencies {
@@ -29,7 +27,6 @@ kotlin {
             implementation(project(":core:ui"))
         }
         commonTest.dependencies {
-            implementation(project(":feature:payment-hub"))
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.multiplatform.settings.test)

@@ -3,7 +3,6 @@ package xyz.lilsus.raylsuite.feature.paymenthub
 import com.russhwolf.settings.Settings
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -13,361 +12,337 @@ import xyz.lilsus.raylsuite.core.model.CurrencyCatalog
 import xyz.lilsus.raylsuite.core.model.LightningAddress
 import xyz.lilsus.raylsuite.core.model.StoredAmount
 
-/** Single-writer hub document stored in app-scoped preferences under [HUB_DOCUMENT_KEY]. */
+/** One app-scoped document keeps contacts, widget instances and action history consistent. */
 class DefaultPaymentHubRepository(
     private val settings: Settings,
-    private val clock: () -> Long = ::platformCurrentTimeMillis,
-    private val idGenerator: () -> String = ::randomId
+    private val idGenerator: () -> String = { Random.nextLong().toULong().toString(16) }
 ) : PaymentHubRepository {
-    private val json =
-        Json {
-            ignoreUnknownKeys = true
-            encodeDefaults = false
-        }
-    private val mutationMutex = Mutex()
+    private val json = Json { ignoreUnknownKeys = true }
+    private val mutex = Mutex()
     private val mutableHub = MutableStateFlow(load())
+    override val hub = mutableHub.asStateFlow()
 
-    override val hub: StateFlow<PaymentHub> = mutableHub.asStateFlow()
-
-    override suspend fun createTarget(draft: DirectTargetDraft): DirectPaymentTarget? {
-        val validated = draft.validated() ?: return null
-        var created: DirectPaymentTarget? = null
-        mutate { hub ->
-            val now = clock()
-            val target =
-                DirectPaymentTarget(
-                    id = HubItemIds.target(idGenerator()),
-                    title = validated.title,
-                    address = validated.address,
-                    amountRule = validated.amountRule,
-                    comment = validated.comment,
-                    appearance = validated.appearance,
-                    stats = HubItemStats(),
-                    createdAtMs = now,
-                    updatedAtMs = now
-                )
-            created = target
-            hub
-                .copy(targets = hub.targets + target)
-                .withMembership(target.id, validated.groupIds)
+    override suspend fun saveContact(address: LightningAddress, title: String?): HubContact {
+        lateinit var result: HubContact
+        mutate { current ->
+            val existing = current.contacts.firstOrNull { it.address.isSameAddressAs(address) }
+            result = HubContact(
+                existing?.id ?: "contact:${idGenerator()}",
+                title?.trim()?.takeIf(String::isNotEmpty) ?: existing?.title ?: address.username,
+                address
+            )
+            current.withContact(result)
         }
-        return created
+        return result
     }
 
-    override suspend fun updateTarget(
-        id: HubItemId,
-        draft: DirectTargetDraft
-    ): DirectPaymentTarget? {
-        val validated = draft.validated() ?: return null
-        var updated: DirectPaymentTarget? = null
-        mutate { hub ->
-            val existing = hub.target(id) ?: return@mutate hub
-            val replacement =
-                existing.copy(
-                    title = validated.title,
-                    address = validated.address,
-                    amountRule = validated.amountRule,
-                    comment = validated.comment,
-                    appearance = validated.appearance,
-                    updatedAtMs = clock()
-                )
-            updated = replacement
-            hub
-                .copy(targets = hub.targets.map { if (it.id == id) replacement else it })
-                .withMembership(id, validated.groupIds)
-        }
-        return updated
+    override suspend fun deleteContact(id: String) {
+        mutate { it.copy(contacts = it.contacts.filterNot { contact -> contact.id == id }) }
     }
 
-    override suspend fun deleteTarget(id: HubItemId) {
-        mutate { hub ->
-            hub.copy(
-                targets = hub.targets.filterNot { it.id == id },
-                groups =
-                    hub.groups.map { group ->
-                        group.copy(memberIds = group.memberIds.filterNot { it == id })
+    override suspend fun saveWidget(draft: HubWidgetDraft, id: String?): HubWidget? {
+        var result: HubWidget? = null
+        mutate { current ->
+            if (id != null && current.widget(id) == null) return@mutate current
+            val contacts = draft.contactIds.distinct()
+            val local = LocalHubWidgets.definitions.firstOrNull { it.id == draft.definitionId }
+            if (draft.kind != HubWidgetKind.Metric &&
+                (local == null || local.kind != draft.kind || draft.variant !in local.variants)
+            ) {
+                return@mutate current
+            }
+            if (draft.kind == HubWidgetKind.Metric &&
+                (
+                    draft.definitionId.startsWith("local.") || draft.definitionId.isBlank() ||
+                        draft.variant.columns !in 1..2 || draft.variant.rows !in 1..2
+                    )
+            ) {
+                return@mutate current
+            }
+            if (draft.kind == HubWidgetKind.Contacts || draft.kind == HubWidgetKind.Shortcut) {
+                if (contacts.isEmpty() || contacts.size > draft.variant.capacity ||
+                    contacts.any { current.contact(it) == null }
+                ) {
+                    return@mutate current
+                }
+            }
+            var updated = current
+            var targetId: HubItemId? = null
+            when (draft.kind) {
+                HubWidgetKind.Contacts -> contacts.forEach {
+                    updated = updated.withContactAction(it)
+                }
+
+                HubWidgetKind.Shortcut -> {
+                    val amount = draft.amount ?: return@mutate current
+                    if (amount.minor <= 0 ||
+                        amount.normalizedCurrencyCode !in CurrencyCatalog.supportedCodes ||
+                        contacts.size != 1 || draft.variant != LocalHubWidgets.Single
+                    ) {
+                        return@mutate current
                     }
+                    val normalizedAmount = StoredAmount(amount.minor, amount.normalizedCurrencyCode)
+                    val comment = draft.comment?.trim()?.takeIf(String::isNotEmpty)
+                    val existing = current.targets.firstOrNull {
+                        it.contactId == contacts.single() &&
+                            it.amountRule == DirectTargetAmountRule.Preset(normalizedAmount) &&
+                            it.comment == comment
+                    }
+                    val target = existing ?: DirectPaymentTarget(
+                        id = HubItemId("preset:${idGenerator()}"),
+                        title = draft.title?.trim()?.takeIf(String::isNotEmpty)
+                            ?: current.contact(contacts.single())!!.title,
+                        contactId = contacts.single(),
+                        amountRule = DirectTargetAmountRule.Preset(normalizedAmount),
+                        comment = comment
+                    )
+                    targetId = target.id
+                    if (existing == null) updated = updated.copy(targets = updated.targets + target)
+                }
+
+                else -> Unit
+            }
+            result = HubWidget(
+                id = id ?: "widget:${idGenerator()}",
+                definitionId = draft.definitionId,
+                kind = draft.kind,
+                variant = draft.variant,
+                title = draft.title?.trim()?.takeIf(String::isNotEmpty),
+                contactIds = if (draft.kind == HubWidgetKind.Contacts) contacts else emptyList(),
+                targetId = targetId,
+                configuration = if (draft.kind ==
+                    HubWidgetKind.Metric
+                ) {
+                    draft.configuration
+                } else {
+                    emptyMap()
+                }
+            )
+            updated.copy(
+                widgets = if (id == null) {
+                    updated.widgets + result!!
+                } else {
+                    updated.widgets.map { if (it.id == id) result!! else it }
+                }
+            )
+        }
+        return result
+    }
+
+    override suspend fun deleteWidget(id: String) {
+        // Removing presentation never removes a contact or its successful payment history.
+        mutate { it.copy(widgets = it.widgets.filterNot { widget -> widget.id == id }) }
+    }
+
+    override suspend fun moveWidget(id: String, index: Int) {
+        mutate { current ->
+            val from = current.widgets.indexOfFirst { it.id == id }
+            if (from < 0) return@mutate current
+            val ordered = current.widgets.toMutableList()
+            val item = ordered.removeAt(from)
+            ordered.add(index.coerceIn(0, ordered.size), item)
+            current.copy(widgets = ordered)
+        }
+    }
+
+    override suspend fun saveContactAndWidget(
+        address: LightningAddress,
+        title: String
+    ): HubContact {
+        lateinit var saved: HubContact
+        mutate { current ->
+            saved = current.contacts.firstOrNull { it.address.isSameAddressAs(address) }
+                ?: HubContact(
+                    "contact:${idGenerator()}",
+                    title.trim().ifEmpty {
+                        address.username
+                    },
+                    address
+                )
+            val updated = current.withContact(saved).withContactAction(saved.id)
+            if (updated.widgets.any { saved.id in it.contactIds }) return@mutate updated
+            updated.copy(
+                widgets = updated.widgets + HubWidget(
+                    id = "widget:${idGenerator()}",
+                    definitionId = "local.contacts",
+                    kind = HubWidgetKind.Contacts,
+                    variant = LocalHubWidgets.Single,
+                    contactIds = listOf(saved.id)
+                )
+            )
+        }
+        return saved
+    }
+
+    override suspend fun recordSuccessfulPayment(id: HubItemId, paidAtMs: Long) {
+        mutate { current ->
+            current.copy(
+                targets = current.targets.map { target ->
+                    if (target.id != id) {
+                        target
+                    } else {
+                        target.copy(
+                            stats = HubItemStats(
+                                successfulPaymentCount =
+                                    (target.stats.successfulPaymentCount + 1)
+                                        .coerceAtLeast(target.stats.successfulPaymentCount),
+                                lastSuccessfulPaymentAtMs = paidAtMs
+                            )
+                        )
+                    }
+                }
             )
         }
     }
 
-    override suspend fun createGroup(draft: GroupDraft): PaymentTargetGroup? {
-        val title = draft.title.cleanRequiredText() ?: return null
-        var created: PaymentTargetGroup? = null
-        mutate { hub ->
-            val group =
-                PaymentTargetGroup(
-                    id = HubItemIds.group(idGenerator()),
-                    title = title,
-                    memberIds = hub.validMemberIds(draft.memberIds),
-                    appearance = draft.appearance
-                )
-            created = group
-            hub.copy(groups = hub.groups + group)
+    private fun PaymentHub.withContact(contact: HubContact): PaymentHub = copy(
+        contacts = if (contacts.any { it.id == contact.id }) {
+            contacts.map { if (it.id == contact.id) contact else it }
+        } else {
+            contacts + contact
         }
-        return created
-    }
+    )
 
-    override suspend fun updateGroup(id: HubItemId, draft: GroupDraft): PaymentTargetGroup? {
-        val title = draft.title.cleanRequiredText() ?: return null
-        var updated: PaymentTargetGroup? = null
-        mutate { hub ->
-            val existing = hub.group(id) ?: return@mutate hub
-            val replacement =
-                existing.copy(
-                    title = title,
-                    memberIds = hub.validMemberIds(draft.memberIds),
-                    appearance = draft.appearance
-                )
-            updated = replacement
-            hub.copy(groups = hub.groups.map { if (it.id == id) replacement else it })
-        }
-        return updated
-    }
-
-    override suspend fun deleteGroup(id: HubItemId) {
-        mutate { hub ->
-            hub.copy(groups = hub.groups.filterNot { it.id == id })
-        }
-    }
-
-    override suspend fun recordSuccessfulPayment(id: HubItemId, paidAtMs: Long) {
-        mutate { hub ->
-            val target = hub.target(id) ?: return@mutate hub
-            val replacement =
-                target.copy(
-                    stats =
-                        HubItemStats(
-                            successfulPaymentCount = target.stats.successfulPaymentCount + 1,
-                            lastSuccessfulPaymentAtMs = paidAtMs
-                        )
-                )
-            hub.copy(targets = hub.targets.map { if (it.id == id) replacement else it })
-        }
-    }
-
-    private suspend fun mutate(transform: (PaymentHub) -> PaymentHub) {
-        mutationMutex.withLock {
-            val current = mutableHub.value
-            val updated = transform(current).normalized()
-            if (updated == current) return
-
-            persist(updated)
-            mutableHub.value = updated
-        }
-    }
-
-    private fun load(): PaymentHub =
-        settings.getStringOrNull(HUB_DOCUMENT_KEY)?.let(::decode) ?: PaymentHub()
-
-    private fun decode(encoded: String): PaymentHub? = runCatching {
-        val document = json.decodeFromString<HubDocument>(encoded)
-        require(document.schemaVersion == HUB_SCHEMA_VERSION) {
-            "Unsupported payment hub schema version: ${document.schemaVersion}"
-        }
-        document.toDomain()
-    }.getOrNull()
-
-    private fun persist(hub: PaymentHub) {
-        settings.putString(HUB_DOCUMENT_KEY, json.encodeToString(hub.toDocument()))
-    }
-
-    private fun DirectTargetDraft.validated(): DirectTargetDraft? {
-        val cleanTitle = title.cleanRequiredText() ?: return null
-        val normalizedAddress = LightningAddress.parse(address.full) ?: return null
-        val rule =
-            when (val rule = amountRule) {
-                DirectTargetAmountRule.AskEveryTime -> rule
-
-                is DirectTargetAmountRule.Preset -> {
-                    val code = rule.amount.normalizedCurrencyCode
-                    if (rule.amount.minor <= 0L || code !in CurrencyCatalog.supportedCodes) {
-                        return null
-                    }
-                    DirectTargetAmountRule.Preset(StoredAmount(rule.amount.minor, code))
-                }
-            }
+    private fun PaymentHub.withContactAction(id: String): PaymentHub {
+        if (contactTarget(id) != null) return this
+        val contact = contact(id) ?: return this
         return copy(
-            title = cleanTitle,
-            address = normalizedAddress,
-            amountRule = rule,
-            comment = comment.cleanOptionalText(),
-            groupIds = groupIds.filter(HubItemId::isGroupId).toSet()
+            targets = targets + DirectPaymentTarget(
+                id = HubItemId("contact-payment:$id"),
+                title = contact.title,
+                contactId = id,
+                amountRule = DirectTargetAmountRule.AskEveryTime
+            )
         )
     }
 
+    private suspend fun mutate(transform: (PaymentHub) -> PaymentHub) {
+        mutex.withLock {
+            val current = mutableHub.value
+            val next = transform(current).normalized()
+            if (next == current) return
+            settings.putString(DOCUMENT_KEY, json.encodeToString(next.toRecord()))
+            mutableHub.value = next
+        }
+    }
+
+    private fun load(): PaymentHub = settings.getStringOrNull(DOCUMENT_KEY)?.let { encoded ->
+        runCatching {
+            val record = json.decodeFromString<HubRecord>(encoded)
+            require(record.schemaVersion == SCHEMA_VERSION)
+            record.toHub().normalized()
+        }.getOrNull()
+    } ?: PaymentHub()
+
     private companion object {
-        const val HUB_DOCUMENT_KEY = "paymentHub.document"
-        const val HUB_SCHEMA_VERSION = 1
+        const val DOCUMENT_KEY = "paymentHub.widgets.document"
+        const val SCHEMA_VERSION = 1
     }
 }
-
-private fun PaymentHub.withMembership(targetId: HubItemId, groupIds: Set<HubItemId>): PaymentHub =
-    copy(
-        groups =
-            groups.map { group ->
-                val isMember = targetId in group.memberIds
-                when {
-                    group.id in groupIds && !isMember ->
-                        group.copy(memberIds = group.memberIds + targetId)
-
-                    group.id !in groupIds && isMember ->
-                        group.copy(memberIds = group.memberIds.filterNot { it == targetId })
-
-                    else -> group
-                }
-            }
-    )
-
-private fun PaymentHub.validMemberIds(memberIds: List<HubItemId>): List<HubItemId> =
-    memberIds.filter { it.isDirectTargetId() && target(it) != null }.distinct()
-
-private fun String?.cleanOptionalText(): String? = this?.trim()?.takeIf(String::isNotEmpty)
-
-private fun String.cleanRequiredText(): String? = trim().takeIf(String::isNotEmpty)
-
-private fun randomId(): String = Random.nextLong().toULong().toString(radix = 16)
 
 internal expect fun platformCurrentTimeMillis(): Long
 
 @Serializable
-private data class HubDocument(
-    val schemaVersion: Int,
-    val targets: List<TargetRecord> = emptyList(),
-    val groups: List<GroupRecord> = emptyList()
+private data class HubRecord(
+    val schemaVersion: Int = 1,
+    val contacts: List<ContactRecord>,
+    val actions: List<ActionRecord>,
+    val widgets: List<WidgetRecord>
 )
 
 @Serializable
-private data class TargetRecord(
+private data class ContactRecord(val id: String, val title: String, val address: String)
+
+@Serializable
+private data class ActionRecord(
     val id: String,
     val title: String,
-    val username: String,
-    val domain: String,
-    val tag: String? = null,
-    val amountRule: AmountRuleRecord,
-    val comment: String? = null,
-    val icon: String? = null,
-    val accent: String? = null,
-    val successfulPaymentCount: Int = 0,
-    val lastSuccessfulPaymentAtMs: Long? = null,
-    val createdAtMs: Long,
-    val updatedAtMs: Long
-)
-
-@Serializable
-private data class AmountRuleRecord(
-    val kind: String,
+    val contactId: String,
     val minor: Long? = null,
-    val currencyCode: String? = null
+    val currency: String? = null,
+    val comment: String? = null,
+    val count: Long = 0,
+    val lastPaid: Long? = null
 )
 
 @Serializable
-private data class GroupRecord(
+private data class WidgetRecord(
     val id: String,
-    val title: String,
-    val memberIds: List<String> = emptyList(),
-    val icon: String? = null,
-    val accent: String? = null
+    val definitionId: String,
+    val kind: String,
+    val variantId: String,
+    val columns: Int,
+    val rows: Int,
+    val capacity: Int,
+    val title: String? = null,
+    val contactIds: List<String> = emptyList(),
+    val actionId: String? = null,
+    val configuration: Map<String, String> = emptyMap()
 )
 
-private fun PaymentHub.toDocument(): HubDocument = HubDocument(
-    schemaVersion = 1,
-    targets =
-        targets.map { target ->
-            TargetRecord(
-                id = target.id.value,
-                title = target.title,
-                username = target.address.username,
-                domain = target.address.domain,
-                tag = target.address.tag,
-                amountRule =
-                    when (val rule = target.amountRule) {
-                        DirectTargetAmountRule.AskEveryTime ->
-                            AmountRuleRecord(kind = AMOUNT_RULE_ASK)
-
-                        is DirectTargetAmountRule.Preset ->
-                            AmountRuleRecord(
-                                kind = AMOUNT_RULE_PRESET,
-                                minor = rule.amount.minor,
-                                currencyCode = rule.amount.normalizedCurrencyCode
-                            )
-                    },
-                comment = target.comment,
-                icon = target.appearance.icon?.storedValue,
-                accent = target.appearance.accent?.storedValue,
-                successfulPaymentCount = target.stats.successfulPaymentCount,
-                lastSuccessfulPaymentAtMs = target.stats.lastSuccessfulPaymentAtMs,
-                createdAtMs = target.createdAtMs,
-                updatedAtMs = target.updatedAtMs
-            )
-        },
-    groups =
-        groups.map { group ->
-            GroupRecord(
-                id = group.id.value,
-                title = group.title,
-                memberIds = group.memberIds.map(HubItemId::value),
-                icon = group.appearance.icon?.storedValue,
-                accent = group.appearance.accent?.storedValue
-            )
-        }
+private fun PaymentHub.toRecord() = HubRecord(
+    contacts = contacts.map { ContactRecord(it.id, it.title, it.address.full) },
+    actions = targets.map { target ->
+        val amount = (target.amountRule as? DirectTargetAmountRule.Preset)?.amount
+        ActionRecord(
+            target.id.value,
+            target.title,
+            target.contactId,
+            amount?.minor,
+            amount?.normalizedCurrencyCode,
+            target.comment,
+            target.stats.successfulPaymentCount,
+            target.stats.lastSuccessfulPaymentAtMs
+        )
+    },
+    widgets = widgets.map { widget ->
+        WidgetRecord(
+            widget.id, widget.definitionId, widget.kind.name,
+            widget.variant.id, widget.variant.columns, widget.variant.rows, widget.variant.capacity,
+            widget.title, widget.contactIds, widget.targetId?.value, widget.configuration
+        )
+    }
 )
 
-private fun HubDocument.toDomain(): PaymentHub = PaymentHub(
-    targets =
-        targets.map { record ->
-            DirectPaymentTarget(
-                id = HubItemId(record.id),
-                title = record.title,
-                address =
-                    LightningAddress(
-                        username = record.username,
-                        domain = record.domain,
-                        tag = record.tag
-                    ),
-                amountRule =
-                    when (record.amountRule.kind) {
-                        AMOUNT_RULE_PRESET ->
-                            DirectTargetAmountRule.Preset(
-                                StoredAmount(
-                                    minor = requireNotNull(record.amountRule.minor),
-                                    currencyCode = requireNotNull(record.amountRule.currencyCode)
-                                )
-                            )
-
-                        AMOUNT_RULE_ASK -> DirectTargetAmountRule.AskEveryTime
-
-                        else -> error("Unknown amount rule: ${record.amountRule.kind}")
-                    },
-                comment = record.comment,
-                appearance =
-                    HubItemAppearance(
-                        icon = HubIcon.fromStoredValue(record.icon),
-                        accent = HubAccent.fromStoredValue(record.accent)
-                    ),
-                stats =
-                    HubItemStats(
-                        successfulPaymentCount = record.successfulPaymentCount,
-                        lastSuccessfulPaymentAtMs = record.lastSuccessfulPaymentAtMs
-                    ),
-                createdAtMs = record.createdAtMs,
-                updatedAtMs = record.updatedAtMs
-            )
-        },
-    groups =
-        groups.map { record ->
-            PaymentTargetGroup(
-                id = HubItemId(record.id),
-                title = record.title,
-                memberIds = record.memberIds.map(::HubItemId),
-                appearance =
-                    HubItemAppearance(
-                        icon = HubIcon.fromStoredValue(record.icon),
-                        accent = HubAccent.fromStoredValue(record.accent)
-                    )
-            )
+private fun HubRecord.toHub() = PaymentHub(
+    contacts = contacts.mapNotNull { record ->
+        LightningAddress.parse(record.address)?.let { HubContact(record.id, record.title, it) }
+    },
+    targets = actions.mapNotNull { record ->
+        val amount = if (record.minor != null && record.currency != null) {
+            if (record.minor <= 0 ||
+                record.currency !in CurrencyCatalog.supportedCodes
+            ) {
+                return@mapNotNull null
+            }
+            DirectTargetAmountRule.Preset(StoredAmount(record.minor, record.currency))
+        } else if (record.minor == null && record.currency == null) {
+            DirectTargetAmountRule.AskEveryTime
+        } else {
+            return@mapNotNull null
         }
-).normalized()
-
-private const val AMOUNT_RULE_ASK = "ask"
-private const val AMOUNT_RULE_PRESET = "preset"
+        DirectPaymentTarget(
+            HubItemId(record.id),
+            record.title,
+            record.contactId,
+            amount,
+            record.comment,
+            HubItemStats(record.count.coerceAtLeast(0), record.lastPaid)
+        )
+    },
+    widgets = widgets.mapNotNull { record ->
+        val kind =
+            HubWidgetKind.entries.firstOrNull { it.name == record.kind } ?: return@mapNotNull null
+        if (record.columns !in 1..2 || record.rows !in 1..2) return@mapNotNull null
+        HubWidget(
+            record.id,
+            record.definitionId,
+            kind,
+            HubWidgetVariant(record.variantId, record.columns, record.rows, record.capacity),
+            record.title,
+            record.contactIds,
+            record.actionId?.let(::HubItemId),
+            record.configuration
+        )
+    }
+)

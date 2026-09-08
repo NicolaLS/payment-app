@@ -8,9 +8,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import xyz.lilsus.blip.feature.blinkcontacts.BlinkContactsRepository
 import xyz.lilsus.blip.feature.payment.BlipPaymentPreferences
 import xyz.lilsus.blip.feature.payment.PaymentCoordinator
 import xyz.lilsus.blip.feature.payment.PaymentDeepLinkEvents
@@ -25,8 +23,6 @@ import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymenthub.DefaultPaymentHubRepository
-import xyz.lilsus.raylsuite.feature.paymenthub.canvas.DefaultCanvasLayoutRepository
-import xyz.lilsus.raylsuite.feature.paymenthub.create.HubContact
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
@@ -75,19 +71,7 @@ internal class BlipRuntime(
     val languageRepository = createLanguageRepository()
     val paymentPreferences = DefaultPaymentPreferencesRepository(appSettings)
     val blipPaymentPreferences = BlipPaymentPreferences(appSettings)
-    val contactsRepository = BlinkContactsRepository(appSettings)
-    val paymentHubContacts =
-        contactsRepository.contacts.map { contacts ->
-            contacts.map { contact ->
-                HubContact(
-                    id = contact.id,
-                    title = contact.displayName,
-                    address = contact.address
-                )
-            }
-        }
     val paymentHubRepository = DefaultPaymentHubRepository(appSettings)
-    val canvasLayout = DefaultCanvasLayoutRepository(appSettings)
     val tabState = AppTabState()
     val paymentHub = PaymentHubController(paymentHubRepository, scope)
 

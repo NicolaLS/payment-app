@@ -19,10 +19,11 @@ import xyz.lilsus.blip.integration.blink.BlinkContact
 import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.blip.ui.BlinkUiError
 import xyz.lilsus.raylsuite.core.model.LightningAddress
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 
 class BlinkContactsImportViewModel(
     private val blinkWallet: BlinkWallet,
-    private val contactsRepository: BlinkContactsRepository,
+    private val hubRepository: PaymentHubRepository,
     dispatcher: CoroutineDispatcher = Dispatchers.Default
 ) {
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -54,7 +55,7 @@ class BlinkContactsImportViewModel(
             }
             try {
                 val existingAddressKeys =
-                    contactsRepository.contacts.value
+                    hubRepository.hub.value.contacts
                         .map { it.address.importKey() }
                         .toSet()
                 val items =
@@ -153,7 +154,7 @@ class BlinkContactsImportViewModel(
                     val address =
                         LightningAddress.parse(item.address)
                             ?: error("Invalid contact address")
-                    contactsRepository.saveContact(address, item.alias)
+                    hubRepository.saveContact(address, item.alias)
                 }
                 val importedIds = selectedItems.map(BlinkContactImportItem::id).toSet()
                 mutableUiState.update {

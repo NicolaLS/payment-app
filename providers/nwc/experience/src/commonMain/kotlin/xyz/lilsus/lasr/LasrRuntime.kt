@@ -26,7 +26,6 @@ import xyz.lilsus.raylsuite.feature.currencysettings.DefaultCurrencyPreferences
 import xyz.lilsus.raylsuite.feature.languagesettings.createLanguageRepository
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.paymenthub.DefaultPaymentHubRepository
-import xyz.lilsus.raylsuite.feature.paymenthub.canvas.DefaultCanvasLayoutRepository
 import xyz.lilsus.raylsuite.feature.paymenthub.host.PaymentHubController
 import xyz.lilsus.raylsuite.feature.paymentsettings.DefaultPaymentPreferencesRepository
 import xyz.lilsus.raylsuite.feature.paymentui.PaymentIntent
@@ -74,7 +73,6 @@ internal class LasrRuntime(
     val languageRepository = createLanguageRepository()
     val paymentPreferences = DefaultPaymentPreferencesRepository(appSettings)
     val paymentHubRepository = DefaultPaymentHubRepository(appSettings)
-    val canvasLayout = DefaultCanvasLayoutRepository(appSettings)
     val tabState = AppTabState()
 
     /** A pasted or scanned NWC link that still needs confirmation, before a wallet exists. */

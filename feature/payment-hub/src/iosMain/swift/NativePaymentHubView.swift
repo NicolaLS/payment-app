@@ -4,39 +4,41 @@ import SwiftUI
 @MainActor
 private final class NativePaymentHubModel: ObservableObject {
     @Published private(set) var snapshot: NativePaymentHubSnapshot?
-
     let controller: NativePaymentHubController
     private var cancel: (() -> Void)?
 
     init(controller: NativePaymentHubController) {
         self.controller = controller
-        cancel = controller.observe { [weak self] snapshot in
-            self?.snapshot = snapshot
+        cancel = controller.observe { [weak self] value in
+            self?.snapshot = value
         }
     }
 
-    deinit {
-        cancel?()
+    deinit { cancel?() }
+}
+
+private enum HubRoute: Hashable {
+    case variants
+    case configure
+}
+
+private enum HubGeometry {
+    static let gap: CGFloat = 12
+    static let gutter: CGFloat = 16
+
+    static func span(_ unit: CGFloat, _ count: Int32) -> CGFloat {
+        unit * CGFloat(count) + gap * CGFloat(max(count - 1, 0))
     }
 }
 
-private enum NativePaymentHubRoute: Hashable {
-    case newTarget
-    case groupEditor
-}
-
-private enum HubGrid {
-    static let columns = 2
-    static let rowHeight = CGFloat(NativeHubGrid.shared.rowHeight)
-    static let gap = CGFloat(NativeHubGrid.shared.gap)
-    static let gutter = CGFloat(NativeHubGrid.shared.gutter)
-}
-
-/// Native iOS Hub. Kotlin owns persistence, arrangement, and payment intents; SwiftUI owns UI.
+/// The app owns payment behavior; the Hub presents independently configured native widgets.
 struct NativePaymentHubView: View {
     @StateObject private var model: NativePaymentHubModel
-    @State private var pendingRemoval: NativeHubTile?
-
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isVisible = false
+    @State private var draggedId: String?
+    @State private var dragOffset = CGSize.zero
+    @State private var hoveredId: String?
     private let importButton: AnyView?
 
     init(controller: NativePaymentHubController, importButton: AnyView? = nil) {
@@ -45,12 +47,241 @@ struct NativePaymentHubView: View {
     }
 
     var body: some View {
+        Group {
+            if let state = model.snapshot {
+                canvas(state)
+            } else {
+                ProgressView()
+            }
+        }
+        .sheet(isPresented: editorPresented) {
+            HubEditorSheet(model: model, importButton: importButton)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .interactiveDismissDisabled(model.snapshot?.busy == true)
+        }
+        .onAppear {
+            isVisible = true
+            model.controller.setActive(value: scenePhase == .active)
+        }
+        .onDisappear {
+            isVisible = false
+            model.controller.setActive(value: false)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            model.controller.setActive(value: isVisible && phase == .active)
+        }
+    }
+
+    private var editorPresented: Binding<Bool> {
+        Binding(
+            get: { model.snapshot.map { $0.screen != "hub" } ?? false },
+            set: { if !$0 { model.controller.close() } }
+        )
+    }
+
+    private func canvas(_ state: NativePaymentHubSnapshot) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                if !state.canvas.tiles.isEmpty {
+                    Button(state.canvas.arranging ? state.text.done : state.text.edit) {
+                        model.controller.setArranging(value: !state.canvas.arranging)
+                    }
+                }
+                Spacer()
+                Button {
+                    model.controller.openGallery()
+                } label: {
+                    Label(state.text.addWidget, systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal, HubGeometry.gutter)
+            .padding(.vertical, 12)
+            .disabled(state.busy)
+
+            if let error = state.error, state.screen == "hub" {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, HubGeometry.gutter)
+                    .padding(.bottom, 12)
+            }
+
+            if state.canvas.tiles.isEmpty {
+                ContentUnavailableView {
+                    Label(state.text.emptyTitle, systemImage: "square.grid.2x2")
+                } description: {
+                    Text(state.text.emptyBody)
+                } actions: {
+                    Button(state.text.addWidget) { model.controller.openGallery() }
+                        .buttonStyle(.borderedProminent)
+                }
+            } else {
+                GeometryReader { viewport in
+                    let columns = viewport.size.width >= 700 ? 4 : 2
+                    let width = viewport.size.width - HubGeometry.gutter * 2
+                    let unit = (width - HubGeometry.gap * CGFloat(columns - 1)) / CGFloat(columns)
+                    ScrollView {
+                        widgetGrid(state, unit: unit)
+                            .padding(.horizontal, HubGeometry.gutter)
+                            .padding(.bottom, 24)
+                            .disabled(state.busy)
+                    }
+                    .refreshable { model.controller.refreshContent() }
+                    .onAppear { model.controller.setCanvasColumns(value: Int32(columns)) }
+                    .onChange(of: columns) { _, value in
+                        model.controller.setCanvasColumns(value: Int32(value))
+                    }
+                }
+            }
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+
+    private func widgetGrid(_ state: NativePaymentHubSnapshot, unit: CGFloat) -> some View {
+        ZStack(alignment: .topLeading) {
+            ForEach(Array(state.canvas.tiles.enumerated()), id: \.element.id) { index, tile in
+                WidgetContent(
+                    tile: tile,
+                    copy: state.text,
+                    interactive: !state.canvas.arranging,
+                    pay: { model.controller.pay(actionId: $0) }
+                )
+                .frame(
+                    width: HubGeometry.span(unit, tile.columns),
+                    height: HubGeometry.span(unit, tile.rows)
+                )
+                .overlay(alignment: .topTrailing) {
+                    if state.canvas.arranging {
+                        Menu {
+                            widgetActions(tile, index: index, state: state)
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .frame(width: 36, height: 36)
+                                .background(.regularMaterial, in: Circle())
+                        }
+                        .accessibilityLabel(state.text.widgetOptions)
+                        .padding(6)
+                    }
+                }
+                .overlay {
+                    if hoveredId == tile.id {
+                        RoundedRectangle(cornerRadius: 24)
+                            .strokeBorder(Color.accentColor, lineWidth: 3)
+                    }
+                }
+                .offset(
+                    x: (unit + HubGeometry.gap) * CGFloat(tile.column),
+                    y: (unit + HubGeometry.gap) * CGFloat(tile.row)
+                )
+                .offset(draggedId == tile.id ? dragOffset : .zero)
+                .scaleEffect(draggedId == tile.id ? 1.025 : 1)
+                .shadow(color: .black.opacity(draggedId == tile.id ? 0.18 : 0), radius: 12, y: 6)
+                .zIndex(draggedId == tile.id ? 1 : 0)
+                .animation(.snappy(duration: 0.22), value: tile.row)
+                .animation(.snappy(duration: 0.22), value: tile.column)
+                .contextMenu { widgetActions(tile, index: index, state: state) }
+                .accessibilityAction(named: Text(state.text.editWidget)) {
+                    model.controller.editWidget(id: tile.id)
+                }
+                .accessibilityAction(named: Text(state.text.moveUp)) {
+                    model.controller.moveWidgetBy(id: tile.id, offset: -1)
+                }
+                .accessibilityAction(named: Text(state.text.moveDown)) {
+                    model.controller.moveWidgetBy(id: tile.id, offset: 1)
+                }
+                .accessibilityAction(named: Text(state.text.remove)) {
+                    model.controller.removeWidget(id: tile.id)
+                }
+                .gesture(
+                    dragGesture(tile, state: state, unit: unit),
+                    including: state.canvas.arranging ? .all : .none
+                )
+            }
+        }
+        .frame(
+            maxWidth: .infinity,
+            minHeight: HubGeometry.span(unit, state.canvas.rows),
+            alignment: .topLeading
+        )
+    }
+
+    @ViewBuilder
+    private func widgetActions(_ tile: NativeHubTile, index: Int, state: NativePaymentHubSnapshot) -> some View {
+        Button(state.text.editWidget, systemImage: "slider.horizontal.3") {
+            model.controller.editWidget(id: tile.id)
+        }
+        if tile.sizes.count > 1 {
+            Menu(state.text.chooseLayout) {
+                ForEach(tile.sizes, id: \.id) { size in
+                    Button {
+                        model.controller.resizeWidget(id: tile.id, variantId: size.id)
+                    } label: {
+                        if size.id == tile.variantId {
+                            Label(size.title, systemImage: "checkmark")
+                        } else {
+                            Text(size.title)
+                        }
+                    }
+                }
+            }
+        }
+        Button(state.text.moveUp, systemImage: "arrow.up") {
+            model.controller.moveWidgetBy(id: tile.id, offset: -1)
+        }
+        .disabled(index == 0)
+        Button(state.text.moveDown, systemImage: "arrow.down") {
+            model.controller.moveWidgetBy(id: tile.id, offset: 1)
+        }
+        .disabled(index == state.canvas.tiles.count - 1)
+        Divider()
+        Button(state.text.remove, systemImage: "minus.circle", role: .destructive) {
+            model.controller.removeWidget(id: tile.id)
+        }
+    }
+
+    private func dragGesture(_ tile: NativeHubTile, state: NativePaymentHubSnapshot, unit: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in
+                draggedId = tile.id
+                dragOffset = value.translation
+                let point = CGPoint(
+                    x: CGFloat(tile.column) * (unit + HubGeometry.gap) + value.startLocation.x + value.translation.width,
+                    y: CGFloat(tile.row) * (unit + HubGeometry.gap) + value.startLocation.y + value.translation.height
+                )
+                hoveredId = state.canvas.tiles.first { other in
+                    other.id != tile.id && CGRect(
+                        x: CGFloat(other.column) * (unit + HubGeometry.gap),
+                        y: CGFloat(other.row) * (unit + HubGeometry.gap),
+                        width: HubGeometry.span(unit, other.columns),
+                        height: HubGeometry.span(unit, other.rows)
+                    ).contains(point)
+                }?.id
+            }
+            .onEnded { _ in
+                if let target = hoveredId {
+                    model.controller.moveWidget(id: tile.id, onto: target)
+                }
+                draggedId = nil
+                dragOffset = .zero
+                hoveredId = nil
+            }
+    }
+}
+
+private struct HubEditorSheet: View {
+    @ObservedObject var model: NativePaymentHubModel
+    let importButton: AnyView?
+
+    var body: some View {
         NavigationStack(path: navigationPath) {
             Group {
-                if let snapshot = model.snapshot {
-                    canvas(snapshot)
-                        .navigationDestination(for: NativePaymentHubRoute.self) { route in
-                            destination(route, snapshot: snapshot)
+                if let state = model.snapshot {
+                    gallery(state)
+                        .navigationDestination(for: HubRoute.self) { route in
+                            destination(route)
                         }
                 } else {
                     ProgressView()
@@ -59,1159 +290,633 @@ struct NativePaymentHubView: View {
         }
     }
 
-    private var navigationPath: Binding<[NativePaymentHubRoute]> {
+    private var routes: [HubRoute] {
+        guard let state = model.snapshot else { return [] }
+        switch state.screen {
+        case "variants": return [.variants]
+        case "configure": return [.variants, .configure]
+        default: return []
+        }
+    }
+
+    private var navigationPath: Binding<[HubRoute]> {
         Binding(
-            get: {
-                switch model.snapshot?.destination {
-                case "newTarget": return [.newTarget]
-                case "groupEditor": return [.groupEditor]
-                default: return []
-                }
-            },
-            set: { routes in
-                guard routes.isEmpty else { return }
-                if model.snapshot?.destination == "newTarget" {
-                    model.controller.stepBack()
-                } else if model.snapshot?.destination == "groupEditor" {
-                    model.controller.closeNewTarget()
+            get: { routes },
+            set: { next in
+                guard model.snapshot?.busy != true else { return }
+                for _ in 0..<max(0, routes.count - next.count) {
+                    model.controller.back()
                 }
             }
         )
     }
 
     @ViewBuilder
-    private func destination(
-        _ route: NativePaymentHubRoute,
-        snapshot: NativePaymentHubSnapshot
-    ) -> some View {
-        switch route {
-        case .newTarget:
-            if let newTarget = model.snapshot?.newTarget {
-                NewTargetView(
-                    state: newTarget,
-                    copy: snapshot.text,
-                    controller: model.controller,
-                    importButton: importButton
-                )
-            } else {
-                ProgressView()
-            }
-        case .groupEditor:
-            if let editor = model.snapshot?.groupEditor {
-                GroupEditorView(
-                    state: editor,
-                    copy: snapshot.text,
-                    controller: model.controller
-                )
-            } else {
-                ProgressView()
+    private func destination(_ route: HubRoute) -> some View {
+        if let state = model.snapshot {
+            switch route {
+            case .variants:
+                if let definition = state.selectedDefinition {
+                    VariantGallery(state: state, definition: definition, controller: model.controller)
+                } else {
+                    unavailable(state)
+                }
+            case .configure:
+                if let editor = state.editor, let definition = state.selectedDefinition {
+                    WidgetConfigurationView(
+                        model: model,
+                        editor: editor,
+                        definition: definition,
+                        importButton: importButton
+                    )
+                } else {
+                    unavailable(state)
+                }
             }
         }
     }
 
-    // MARK: - Canvas
+    private func unavailable(_ state: NativePaymentHubSnapshot) -> some View {
+        ContentUnavailableView(state.text.unavailable, systemImage: "square.dashed")
+            .toolbar { dismissButton(state.text.cancel) }
+    }
 
-    @ViewBuilder
-    private func canvas(_ snapshot: NativePaymentHubSnapshot) -> some View {
-        let copy = snapshot.text
+    private func gallery(_ state: NativePaymentHubSnapshot) -> some View {
         ScrollView {
-            canvasGrid(snapshot.canvas, copy: copy)
-                .padding(.horizontal, HubGrid.gutter)
-                .padding(.top, snapshot.canvas.hasItems ? 60 : 12)
-                .padding(.bottom, 12)
-        }
-        .overlay(alignment: .bottom) {
-            if let message = snapshot.canvas.message {
-                Text(message)
-                    .font(.footnote)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    .padding(16)
-            }
-        }
-        .overlay(alignment: .topTrailing) {
-            if snapshot.canvas.hasItems {
-                Button {
-                    snapshot.canvas.editing
-                        ? model.controller.stopEditing()
-                        : model.controller.startEditing()
-                } label: {
-                    Image(systemName: snapshot.canvas.editing ? "checkmark" : "pencil")
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
-                .accessibilityLabel(snapshot.canvas.editing ? copy.done : copy.edit)
-                .padding(.top, 8)
-                .padding(.trailing, HubGrid.gutter)
-            }
-        }
-        .toolbar(.hidden, for: .navigationBar)
-        .alert(pendingRemoval?.removeTitle ?? "", isPresented: removalPresented) {
-            Button(copy.removeConfirm, role: .destructive) {
-                if let tile = pendingRemoval {
-                    model.controller.removeTile(id: tile.id)
-                }
-                pendingRemoval = nil
-            }
-            Button(copy.removeCancel, role: .cancel) { pendingRemoval = nil }
-        } message: {
-            Text(pendingRemoval?.removeBody ?? "")
-        }
-    }
-
-    private var removalPresented: Binding<Bool> {
-        Binding(
-            get: { pendingRemoval != nil },
-            set: { presented in
-                if !presented { pendingRemoval = nil }
-            }
-        )
-    }
-
-    private func canvasGrid(_ canvas: NativeHubCanvas, copy: NativePaymentHubCopy) -> some View {
-        let rows = Int(canvas.gridRows)
-        let height =
-            HubGrid.rowHeight * CGFloat(rows) + HubGrid.gap * CGFloat(max(rows - 1, 0))
-        return GeometryReader { proxy in
-            let columnWidth =
-                (proxy.size.width - HubGrid.gap * CGFloat(HubGrid.columns - 1))
-                    / CGFloat(HubGrid.columns)
-            ZStack(alignment: .topLeading) {
-                ForEach(canvas.tiles, id: \.id) { tile in
-                    CanvasTileView(
-                        tile: tile,
-                        editing: canvas.editing,
-                        columnWidth: columnWidth,
-                        copy: copy,
-                        controller: model.controller,
-                        onRequestRemoval: { pendingRemoval = tile }
-                    )
-                    .frame(
-                        width: span(columnWidth, Int(tile.columns)),
-                        height: span(HubGrid.rowHeight, Int(tile.rows))
-                    )
-                    .offset(
-                        x: (columnWidth + HubGrid.gap) * CGFloat(tile.column),
-                        y: (HubGrid.rowHeight + HubGrid.gap) * CGFloat(tile.row)
-                    )
-                    .animation(.snappy(duration: 0.24), value: tile.column)
-                    .animation(.snappy(duration: 0.24), value: tile.row)
-                }
-                if canvas.showsAddTarget {
-                    addTargetTile
-                        .frame(width: columnWidth, height: HubGrid.rowHeight)
-                        .offset(
-                            x: (columnWidth + HubGrid.gap) * CGFloat(canvas.addTargetColumn),
-                            y: (HubGrid.rowHeight + HubGrid.gap) * CGFloat(canvas.addTargetRow)
-                        )
-                }
-            }
-        }
-        .frame(height: height)
-    }
-
-    private var addTargetTile: some View {
-        Button {
-            model.controller.openNewTarget()
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: "plus")
-                Text(model.snapshot?.text.addTarget ?? "")
-                    .font(.caption)
-            }
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(
-                        Color.secondary.opacity(0.4),
-                        style: StrokeStyle(lineWidth: 1, dash: [4, 3])
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private func span(_ unit: CGFloat, _ count: Int) -> CGFloat {
-    unit * CGFloat(count) + HubGrid.gap * CGFloat(max(count - 1, 0))
-}
-
-// MARK: - Canvas tile
-
-private struct CanvasTileView: View {
-    let tile: NativeHubTile
-    let editing: Bool
-    let columnWidth: CGFloat
-    let copy: NativePaymentHubCopy
-    let controller: NativePaymentHubController
-    let onRequestRemoval: () -> Void
-
-    @State private var dragging = false
-    @State private var drop: NativeHubDropTarget?
-    @State private var dragOffset = CGSize.zero
-    @State private var jiggling = false
-    @State private var menuPresented = false
-    @State private var menuFeedback = 0
-
-    var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: 14).fill(Color(uiColor: .secondarySystemBackground))
-            )
-            .overlay(highlight)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-            .offset(dragOffset)
-            .scaleEffect(dragging ? 1.025 : 1)
-            .opacity(dragging ? 0.96 : 1)
-            .shadow(color: .black.opacity(dragging ? 0.2 : 0), radius: 12, y: 6)
-            .rotationEffect(.degrees(jiggling ? 0.45 : -0.45))
-            .animation(
-                editing
-                    ? .easeInOut(duration: 0.55).repeatForever(autoreverses: true)
-                    : .default,
-                value: jiggling
-            )
-            .onTapGesture(perform: tapped)
-            .onLongPressGesture(minimumDuration: 0.42) {
-                guard !editing else { return }
-                menuFeedback += 1
-                menuPresented = true
-            }
-            .gesture(editing ? dragGesture : nil)
-            .popover(
-                isPresented: $menuPresented,
-                attachmentAnchor: .rect(.bounds),
-                arrowEdge: .top
-            ) {
-                TileActionMenu(
-                    tile: tile,
-                    copy: copy,
-                    onResize: { size in
-                        performMenuAction {
-                            controller.resizeTile(id: tile.id, size: size)
-                        }
-                    },
-                    onEdit: {
-                        performMenuAction {
-                            controller.editTile(id: tile.id)
-                        }
-                    },
-                    onMove: {
-                        performMenuAction {
-                            controller.startEditing()
-                        }
-                    },
-                    onRemove: {
-                        performMenuAction(onRequestRemoval)
-                    }
-                )
-                .presentationCompactAdaptation(.popover)
-            }
-            .sensoryFeedback(.impact(weight: .medium), trigger: menuFeedback)
-            .accessibilityLabel(tile.accessibilityLabel)
-            .onAppear { jiggling = editing }
-            .onChange(of: editing) { _, value in jiggling = value }
-            .zIndex(dragging ? 1 : 0)
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if tile.isContainer {
-            ContainerTileContent(tile: tile, editing: editing, controller: controller)
-        } else {
-            LeafTileContent(tile: tile, editing: editing)
-        }
-    }
-
-    @ViewBuilder
-    private var highlight: some View {
-        if drop != nil {
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(Color.accentColor, lineWidth: 2)
-        }
-    }
-
-    private func performMenuAction(_ action: @escaping () -> Void) {
-        menuPresented = false
-        DispatchQueue.main.async(execute: action)
-    }
-
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 6)
-            .onChanged { value in
-                dragging = true
-                dragOffset = value.translation
-                drop = resolve(dragLocation(value))
-            }
-            .onEnded { value in
-                if let target = resolve(dragLocation(value)) {
-                    controller.moveTile(id: tile.id, onto: target.id)
-                }
-                dragging = false
-                dragOffset = .zero
-                drop = nil
-            }
-    }
-
-    private func dragLocation(_ value: DragGesture.Value) -> CGPoint {
-        CGPoint(
-            x: value.startLocation.x + value.translation.width,
-            y: value.startLocation.y + value.translation.height
-        )
-    }
-
-    private func resolve(_ location: CGPoint) -> NativeHubDropTarget? {
-        let originX = (columnWidth + HubGrid.gap) * CGFloat(tile.column)
-        let originY = (HubGrid.rowHeight + HubGrid.gap) * CGFloat(tile.row)
-        return controller.resolveDrop(
-            draggedId: tile.id,
-            x: Double(originX + location.x),
-            y: Double(originY + location.y),
-            columnWidth: Double(columnWidth),
-            rowHeight: Double(HubGrid.rowHeight),
-            gap: Double(HubGrid.gap)
-        )
-    }
-
-    private func tapped() {
-        if editing {
-            return
-        } else if tile.expandable {
-            controller.expandTile(id: tile.id)
-        } else if !tile.isContainer {
-            controller.payTile(id: tile.id)
-        }
-    }
-}
-
-private struct TileActionMenu: View {
-    let tile: NativeHubTile
-    let copy: NativePaymentHubCopy
-    let onResize: (String) -> Void
-    let onEdit: () -> Void
-    let onMove: () -> Void
-    let onRemove: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(copy.sizeLabel)
-                    .font(.caption.weight(.medium))
+            VStack(alignment: .leading, spacing: 20) {
+                Text(state.text.galleryBody)
+                    .font(.title3.weight(.medium))
                     .foregroundStyle(.secondary)
-
-                HStack(spacing: 7) {
-                    ForEach(tile.sizes, id: \.id) { size in
-                        sizeButton(size)
+                    .padding(.top, 8)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), spacing: 16)], spacing: 24) {
+                    ForEach(state.gallery, id: \.id) { definition in
+                        Button {
+                            model.controller.selectDefinition(id: definition.id)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                GalleryIllustration(kind: definition.kind, symbol: definition.symbol)
+                                    .frame(height: 126)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22))
+                                Text(definition.title)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(definition.detail)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(3)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-            }
-            .padding(12)
-
-            Divider()
-            menuButton(copy.edit, systemImage: "slider.horizontal.3", action: onEdit)
-            menuButton(copy.move, systemImage: "arrow.up.and.down.and.arrow.left.and.right", action: onMove)
-            Divider()
-            menuButton(
-                copy.removeConfirm,
-                systemImage: "minus.circle",
-                role: .destructive,
-                action: onRemove
-            )
-        }
-        .frame(width: 276)
-    }
-
-    private func sizeButton(_ size: NativeHubSizeOption) -> some View {
-        Button { onResize(size.id) } label: {
-            VStack(spacing: 4) {
-                TileSizeGlyph(columns: Int(size.columns), rows: Int(size.rows))
-                Text("\(size.columns) × \(size.rows)")
-                    .font(.caption2.weight(.medium))
-            }
-            .foregroundStyle(size.selected ? Color.accentColor : Color.secondary)
-            .frame(maxWidth: .infinity, minHeight: 62)
-            .background(
-                size.selected
-                    ? Color.accentColor.opacity(0.14)
-                    : Color(uiColor: .tertiarySystemFill),
-                in: RoundedRectangle(cornerRadius: 10)
-            )
-            .overlay {
-                if size.selected {
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color.accentColor.opacity(0.55), lineWidth: 1)
+                if state.catalogLoading {
+                    ProgressView(state.text.loading).frame(maxWidth: .infinity)
                 }
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(size.label), \(size.columns) × \(size.rows)")
-    }
-
-    private func menuButton(
-        _ title: String,
-        systemImage: String,
-        role: ButtonRole? = nil,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(role: role, action: action) {
-            Label(title, systemImage: systemImage)
-                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                .padding(.horizontal, 16)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct TileSizeGlyph: View {
-    let columns: Int
-    let rows: Int
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 3)
-            .strokeBorder(lineWidth: 2)
-            .frame(width: columns == 1 ? 17 : 29, height: rows == 1 ? 17 : 29)
-            .frame(width: 30, height: 30)
-    }
-}
-
-private struct LeafTileContent: View {
-    let tile: NativeHubTile
-    let editing: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HubMarkView(mark: tile.mark, size: 32)
-            Spacer(minLength: 0)
-            Text(tile.label)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-            // Only a two-row tile has room for the address; at one row the amount line wins.
-            if tile.rows >= 2, let subtitle = tile.subtitle, !editing {
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            if let amount = tile.amountLine, !editing {
-                Text(amount)
-                    .font(.caption.weight(.medium))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .padding(.top, 4)
-            }
-        }
-        .padding(12)
-    }
-}
-
-private struct ContainerTileContent: View {
-    let tile: NativeHubTile
-    let editing: Bool
-    let controller: NativePaymentHubController
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text(tile.label)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                Spacer(minLength: 4)
-                if tile.columns >= 2 && !editing {
-                    Text(tile.memberCount)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if !tile.showsMembers {
-                Spacer(minLength: 0)
-                HStack(spacing: 4) {
-                    ForEach(tile.members.prefix(5), id: \.id) { member in
-                        HubMarkView(mark: member.mark, size: 26)
+                if state.catalogUnavailable {
+                    VStack(spacing: 8) {
+                        Text(state.text.catalogUnavailable).font(.footnote).foregroundStyle(.secondary)
+                        Button(state.text.retry) { model.controller.refreshCatalog() }
                     }
+                    .frame(maxWidth: .infinity)
                 }
-            } else if tile.rows == 1 {
-                HStack(spacing: 5) {
-                    ForEach(tile.members, id: \.id) { member in
-                        memberCard(member)
-                    }
-                }
-                .padding(.top, 8)
-            } else {
-                VStack(spacing: 5) {
-                    ForEach(tile.members, id: \.id) { member in
-                        memberRow(member)
-                    }
-                }
-                .padding(.top, 8)
             }
+            .padding(20)
+            .frame(maxWidth: 700)
+            .frame(maxWidth: .infinity)
         }
-        .padding(12)
-    }
-
-    private func memberCard(_ member: NativeHubTileMember) -> some View {
-        Button {
-            controller.payTile(id: member.id)
-        } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                HubMarkView(mark: member.mark, size: 22)
-                Spacer(minLength: 0)
-                Text(member.label).font(.caption).lineLimit(1)
-                if !editing {
-                    Text(member.amountLine)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(8)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(memberBackground)
-        }
-        .buttonStyle(.plain)
-        .disabled(editing)
-    }
-
-    private func memberRow(_ member: NativeHubTileMember) -> some View {
-        Button {
-            controller.payTile(id: member.id)
-        } label: {
-            HStack(spacing: 8) {
-                HubMarkView(mark: member.mark, size: 20)
-                Text(member.label).font(.caption).lineLimit(1)
-                Spacer(minLength: 4)
-                if !editing {
-                    Text(member.amountLine)
-                        .font(.caption2)
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .background(memberBackground)
-        }
-        .buttonStyle(.plain)
-        .disabled(editing)
-    }
-
-    private var memberBackground: some View {
-        RoundedRectangle(cornerRadius: 8).fill(Color(uiColor: .tertiarySystemBackground))
-    }
-}
-
-// MARK: - Compose a target
-
-private struct NewTargetView: View {
-    let state: NativeNewTarget
-    let copy: NativePaymentHubCopy
-    let controller: NativePaymentHubController
-    let importButton: AnyView?
-
-    var body: some View {
-        content
-            .navigationTitle(state.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .toolbar(.visible, for: .navigationBar)
-            .toolbar { toolbarContent }
-            .alert(comingSoonTitle, isPresented: comingSoonPresented) {
-                Button(copy.comingSoonConfirm) { controller.dismissComingSoon() }
-            } message: {
-                Text(state.comingSoon?.body ?? "")
-            }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .navigationTitle(state.text.galleryTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { dismissButton(state.text.cancel) }
     }
 
     @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button(action: controller.stepBack) {
-                Image(systemName: "chevron.left")
-            }
-            .accessibilityLabel(copy.back)
-        }
-    }
-
-    private var comingSoonTitle: String { state.comingSoon?.title ?? "" }
-
-    private var comingSoonPresented: Binding<Bool> {
-        Binding(
-            get: { state.comingSoon != nil },
-            set: { presented in
-                if !presented { controller.dismissComingSoon() }
-            }
-        )
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        switch state.view {
-        case "contacts": contacts
-        case "services": services
-        case "configure":
-            if let configure = state.configure {
-                ConfigureView(state: configure, copy: copy, controller: controller)
-            } else {
-                ProgressView()
-            }
-        default: launchpad
-        }
-    }
-
-    private var launchpad: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2),
-            spacing: 10
-        ) {
-            LaunchpadActionCell(
-                label: copy.sectionPeople,
-                symbol: "person.2",
-                action: controller.openContacts
-            )
-            ForEach(state.featuredServices, id: \.id) { service in
-                LaunchpadCell(label: service.name) {
-                    controller.selectService(id: service.id)
-                } mark: {
-                    AnyView(HubServiceMarkView(initials: service.mark, size: 58))
-                }
-            }
-            LaunchpadActionCell(
-                label: copy.more,
-                symbol: "ellipsis",
-                action: controller.openServices
-            )
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-    }
-
-    private var contacts: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(copy.contactsTitle)
-                .font(.title2.weight(.semibold))
-                .padding(.horizontal, 16)
-                .padding(.top, 18)
-                .padding(.bottom, 12)
-            // These sit here, not in settings: this is the moment someone fails to find a name.
-            HStack(spacing: 8) {
-                if let importButton {
-                    importButton.frame(maxWidth: .infinity)
-                }
-                Button(copy.addManually) { controller.addManually() }
-                    .buttonStyle(.bordered)
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.horizontal, 16)
-
-            if state.contacts.isEmpty {
-                Text(state.hasContacts ? copy.noMatches : copy.noContacts)
-                    .foregroundStyle(.secondary)
-                    .padding(16)
-                Spacer()
-            } else {
-                List(state.contacts, id: \.id) { contact in
-                    Button {
-                        controller.selectContact(id: contact.id)
-                    } label: {
-                        HubContactRow(contact: contact)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .listStyle(.plain)
-            }
-        }
-        .searchable(
-            text: Binding(
-                get: { state.query },
-                set: { controller.updateQuery(value: $0) }
-            ),
-            prompt: copy.search
-        )
-    }
-
-    private var services: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(copy.servicesTitle)
-                .font(.title2.weight(.semibold))
-                .padding(.horizontal, 16)
-                .padding(.top, 18)
-                .padding(.bottom, 12)
-            List(state.services, id: \.id) { service in
-                Button {
-                    controller.selectService(id: service.id)
-                } label: {
-                    HStack(spacing: 11) {
-                        HubServiceMarkView(initials: service.mark, size: 32)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(service.name).font(.body.weight(.semibold))
-                            Text(service.subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-            .listStyle(.plain)
+    private func dismissButton(_ label: String) -> some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { model.controller.close() } label: { Image(systemName: "xmark") }
+                .accessibilityLabel(label)
+                .disabled(model.snapshot?.busy == true)
         }
     }
 }
 
-private struct LaunchpadCell: View {
-    let label: String
-    let action: () -> Void
-    @ViewBuilder let mark: () -> AnyView
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                mark()
-                Text(label)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, minHeight: 112)
-            .background(
-                RoundedRectangle(cornerRadius: 14).fill(Color(uiColor: .secondarySystemBackground))
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct LaunchpadActionCell: View {
-    let label: String
+private struct GalleryIllustration: View {
+    let kind: String
     let symbol: String
-    let action: () -> Void
 
     var body: some View {
-        LaunchpadCell(label: label, action: action) {
-            AnyView(
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(
-                        Color.secondary.opacity(0.5),
-                        style: StrokeStyle(lineWidth: 1, dash: [4, 3])
-                    )
-                    .frame(width: 58, height: 58)
-                    .overlay(Image(systemName: symbol).foregroundStyle(.secondary))
-            )
-        }
-    }
-}
-
-private struct HubContactRow: View {
-    let contact: NativeHubContact
-
-    var body: some View {
-        HStack(spacing: 11) {
-            HubMarkView(mark: contact.mark, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(contact.title).font(.body.weight(.semibold)).lineLimit(1)
-                Text(contact.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 4)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .contentShape(Rectangle())
-    }
-}
-
-private struct ConfigureView: View {
-    let state: NativeHubConfigure
-    let copy: NativePaymentHubCopy
-    let controller: NativePaymentHubController
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Form {
-                Section {
-                    TextField(
-                        copy.nameLabel,
-                        text: Binding(
-                            get: { state.title },
-                            set: { controller.updateTargetTitle(value: $0) }
-                        )
-                    )
-                    TextField(
-                        copy.addressLabel,
-                        text: Binding(
-                            get: { state.address },
-                            set: { controller.updateTargetAddress(value: $0) }
-                        )
-                    )
-                    .textContentType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+        Group {
+            if kind == "contacts" {
+                HStack(spacing: -10) {
+                    HubAvatar(initials: "", size: 54, seed: 0)
+                    HubAvatar(initials: "", size: 64, seed: 1)
+                    HubAvatar(initials: "", size: 54, seed: 2)
                 }
-
-                Section(copy.amountLabel) {
-                    chips
-                    if state.showsCustomAmount {
-                        HStack {
-                            TextField(
-                                copy.amountLabel,
-                                text: Binding(
-                                    get: { state.customAmount },
-                                    set: { controller.updateCustomAmount(value: $0) }
-                                )
-                            )
-                            .keyboardType(.decimalPad)
-                            Picker(
-                                state.currencyCode,
-                                selection: Binding(
-                                    get: { state.currencyCode },
-                                    set: { controller.selectCurrency(code: $0) }
-                                )
-                            ) {
-                                ForEach(state.currencyCodes, id: \.self) { code in
-                                    Text(code).tag(code)
-                                }
-                            }
-                            .labelsHidden()
-                        }
-                    }
-                    if let hint = state.fiatHint {
-                        Text(hint).font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
-
-                Section {
-                    TextField(
-                        copy.commentLabel,
-                        text: Binding(
-                            get: { state.comment },
-                            set: { controller.updateTargetComment(value: $0) }
-                        )
-                    )
-                }
-
-                Section(copy.sizeLabel) {
-                    HStack(spacing: 8) {
-                        ForEach(state.sizes, id: \.id) { size in
-                            SizeCard(option: size) { controller.selectSize(id: size.id) }
-                        }
-                    }
-                    Text(state.sizeHint).font(.footnote).foregroundStyle(.secondary)
-                }
-
-                if let error = state.error {
-                    Section { Text(error).foregroundStyle(.red) }
-                }
-
-                if !state.isNew {
-                    Section {
-                        Button(copy.deleteTarget, role: .destructive) {
-                            controller.deleteTarget()
-                        }
-                    }
-                }
-            }
-        }
-        .safeAreaInset(edge: .bottom) {
-            Button(state.submitTitle) { controller.submitTarget() }
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(.bar)
-        }
-    }
-
-    private var chips: some View {
-        // A wrapping row of chips; the design's grammar is "ask, a preset, or something else".
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 96), spacing: 6)],
-            alignment: .leading,
-            spacing: 6
-        ) {
-            ForEach(state.amountChips, id: \.id) { chip in
-                Button {
-                    controller.selectAmountChip(id: chip.id)
-                } label: {
-                    Text(chip.label)
-                        .font(.subheadline.weight(chip.selected ? .semibold : .medium))
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(chip.selected ? Color.accentColor : Color.clear)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .strokeBorder(
-                                    chip.selected ? Color.clear : Color.secondary.opacity(0.4)
-                                )
-                        )
-                        .foregroundStyle(chip.selected ? Color.white : Color.primary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-}
-
-private struct SizeCard: View {
-    let option: NativeHubSizeOption
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                ZStack {
-                    Color.clear.frame(height: 38)
-                    glyph
-                }
-                Text(option.label).font(.caption.weight(.semibold))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 9)
-            .padding(.vertical, 10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(
-                        option.selected ? Color.accentColor : Color.secondary.opacity(0.35),
-                        lineWidth: option.selected ? 2 : 1
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var glyph: some View {
-        RoundedRectangle(cornerRadius: 4)
-            .fill(Color.secondary.opacity(0.25))
-            .frame(
-                width: option.columns >= 2 ? 46 : 22,
-                height: option.rows >= 2 ? 38 : 22
-            )
-            .overlay(alignment: .top) {
-                // A large tile draws its internal rows to read as "always open".
-                if option.rows >= 2 {
-                    VStack(spacing: 3) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(Color.secondary)
-                                .frame(height: 4)
-                        }
-                    }
-                    .padding(4)
-                }
-            }
-    }
-}
-
-// MARK: - Group editor
-
-private struct GroupEditorView: View {
-    let state: NativeHubGroupEditor
-    let copy: NativePaymentHubCopy
-    let controller: NativePaymentHubController
-
-    var body: some View {
-        Form {
-            Section {
-                TextField(
-                    copy.groupNameLabel,
-                    text: Binding(
-                        get: { state.title },
-                        set: { controller.updateGroupTitle(value: $0) }
-                    )
-                )
-            }
-
-            Section {
-                Picker(
-                    copy.appearanceIcon,
-                    selection: Binding(
-                        get: { state.icon },
-                        set: { controller.updateGroupIcon(value: $0) }
-                    )
-                ) {
-                    Text(copy.appearanceNone).tag(String?.none)
-                    ForEach(copy.iconOptions, id: \.id) { option in
-                        Label(option.title, systemImage: hubSymbol(option.id))
-                            .tag(Optional(option.id))
-                    }
-                }
-                Picker(
-                    copy.appearanceAccent,
-                    selection: Binding(
-                        get: { state.accent },
-                        set: { controller.updateGroupAccent(value: $0) }
-                    )
-                ) {
-                    Text(copy.appearanceNone).tag(String?.none)
-                    ForEach(copy.accentOptions, id: \.id) { option in
-                        Label {
-                            Text(option.title)
-                        } icon: {
-                            Circle().fill(hubAccentColor(option.id)).frame(width: 14, height: 14)
-                        }
-                        .tag(Optional(option.id))
-                    }
-                }
-            }
-
-            Section(copy.groupMembersLabel) {
-                if state.members.isEmpty {
-                    Text(copy.groupMembersEmpty).foregroundStyle(.secondary)
-                }
-                ForEach(Array(state.members.enumerated()), id: \.element.id) { index, member in
-                    HStack {
-                        HubContactRow(contact: member)
-                        Button {
-                            controller.moveGroupMember(id: member.id, offset: -1)
-                        } label: {
-                            Image(systemName: "arrow.up")
-                        }
-                        .disabled(index == 0)
-                        .accessibilityLabel(copy.moveUp)
-                        Button {
-                            controller.moveGroupMember(id: member.id, offset: 1)
-                        } label: {
-                            Image(systemName: "arrow.down")
-                        }
-                        .disabled(index == state.members.count - 1)
-                        .accessibilityLabel(copy.moveDown)
-                        Button {
-                            controller.removeGroupMember(id: member.id)
-                        } label: {
-                            Image(systemName: "minus.circle")
-                        }
-                        .accessibilityLabel(copy.removeMember)
-                    }
-                }
-            }
-
-            Section(copy.groupAvailableLabel) {
-                if state.available.isEmpty {
-                    Text(
-                        state.members.isEmpty
-                            ? copy.groupAvailableNone
-                            : copy.groupAvailableAllAdded
-                    )
-                    .foregroundStyle(.secondary)
-                }
-                ForEach(state.available, id: \.id) { item in
-                    HStack {
-                        HubContactRow(contact: item)
-                        Button {
-                            controller.addGroupMember(id: item.id)
-                        } label: {
-                            Image(systemName: "plus.circle")
-                        }
-                        .accessibilityLabel(copy.addMember)
-                    }
-                }
-            }
-
-            if let error = state.error {
-                Section { Text(error).foregroundStyle(.red) }
-            }
-
-            Section {
-                Button(copy.save) { controller.saveGroup() }
-                    .frame(maxWidth: .infinity)
-                if !state.isNew {
-                    Button(copy.delete_, role: .destructive) { controller.deleteGroup() }
-                        .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .navigationTitle(state.isNew ? copy.groupEditorNew : copy.groupEditorEdit)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
-    }
-}
-
-// MARK: - Marks
-
-private struct HubMarkView: View {
-    let mark: NativeHubMark
-    let size: CGFloat
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: size >= 44 ? 10 : 6)
-        return ZStack {
-            shape.fill(hubAccentColor(mark.accent).opacity(0.22))
-            if let symbol = mark.symbol {
-                Image(systemName: hubSymbol(symbol))
-                    .font(.system(size: size * 0.46, weight: .semibold))
             } else {
-                Text(mark.initials)
-                    .font(.system(size: size * 0.42, weight: .semibold))
-                    .lineLimit(1)
+                Image(systemName: symbol)
+                    .font(.system(size: 42, weight: .medium))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 82, height: 82)
+                    .background(Color.accentColor.opacity(0.10), in: RoundedRectangle(cornerRadius: 24))
             }
         }
-        .foregroundStyle(hubAccentColor(mark.accent))
-        .frame(width: size, height: size)
         .accessibilityHidden(true)
     }
 }
 
-/// A catalogue service is outlined, which is the whole difference the hub draws from a person.
-private struct HubServiceMarkView: View {
-    let initials: String
-    let size: CGFloat
+private struct VariantGallery: View {
+    let state: NativePaymentHubSnapshot
+    let definition: NativeHubDefinition
+    let controller: NativePaymentHubController
+
+    private var selected: NativeHubVariant? {
+        definition.variants.first { $0.id == state.editor?.variantId }
+    }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: size >= 44 ? 10 : 6)
-        return Text(initials)
-            .font(.system(size: size * 0.36, weight: .semibold))
-            .frame(width: size, height: size)
-            .overlay(shape.strokeBorder(Color.secondary.opacity(0.5)))
-            .accessibilityHidden(true)
+        VStack(spacing: 12) {
+            Text(definition.title).font(.largeTitle.bold()).padding(.top, 20)
+            Text(definition.detail)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+            TabView(selection: Binding(
+                get: { state.editor?.variantId ?? definition.variants.first?.id ?? "" },
+                set: { controller.selectVariant(id: $0) }
+            )) {
+                ForEach(definition.variants, id: \.id) { variant in
+                    GeometryReader { proxy in
+                        let aspect = CGFloat(variant.columns) / CGFloat(variant.rows)
+                        let width = min(proxy.size.width - 40, variant.columns == 1 ? 180 : 360, proxy.size.height * aspect)
+                        WidgetContent(tile: variant.preview, copy: state.text, interactive: false, pay: { _ in })
+                            .frame(width: width, height: width * CGFloat(variant.rows) / CGFloat(variant.columns))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .padding(.bottom, 25)
+                    .tag(variant.id)
+                    .accessibilityLabel(variant.title)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: definition.variants.count > 1 ? .always : .never))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
+            .frame(minHeight: 220, maxHeight: 400)
+            if let selected {
+                Text(selected.title).font(.headline)
+                Text(selected.detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+            }
+            Spacer(minLength: 0)
+        }
+        .safeAreaInset(edge: .bottom) {
+            HubPrimaryButton(title: state.text.continueTitle, busy: false) {
+                controller.configureSelected()
+            }
+        }
+        .navigationTitle(definition.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-private func hubSymbol(_ value: String) -> String {
-    switch value {
-    case "person": return "person.fill"
-    case "group": return "person.2.fill"
-    case "store": return "storefront.fill"
-    case "restaurant": return "fork.knife"
-    case "coffee": return "cup.and.saucer.fill"
-    case "gift": return "gift.fill"
-    case "heart": return "heart.fill"
-    case "star": return "star.fill"
-    case "bolt": return "bolt.fill"
-    case "home": return "house.fill"
-    case "wallet": return "wallet.bifold.fill"
-    case "work": return "briefcase.fill"
-    default: return "circle.fill"
+private struct WidgetConfigurationView: View {
+    @ObservedObject var model: NativePaymentHubModel
+    let editor: NativeHubEditor
+    let definition: NativeHubDefinition
+    let importButton: AnyView?
+    @State private var showingNewContact = false
+    @State private var pendingContactDeletion: NativeHubContact?
+
+    private var controller: NativePaymentHubController { model.controller }
+    private var isPersonal: Bool { editor.kind == "contacts" || editor.kind == "shortcut" }
+
+    var body: some View {
+        Group {
+            if let state = model.snapshot {
+                Form {
+                    Section {
+                        if definition.variants.count > 1 {
+                            Picker(state.text.chooseLayout, selection: Binding(
+                                get: { editor.variantId },
+                                set: { controller.selectVariant(id: $0) }
+                            )) {
+                                ForEach(definition.variants, id: \.id) { variant in
+                                    Text(variant.title).tag(variant.id)
+                                }
+                            }
+                        }
+                        TextField(state.text.widgetName, text: Binding(
+                            get: { editor.title },
+                            set: { controller.updateTitle(value: $0) }
+                        ))
+                    }
+                    if isPersonal {
+                        contacts(state)
+                    } else if editor.kind == "favorites" || editor.kind == "recents" {
+                        Section {
+                            Text(definition.detail)
+                            Text(state.text.automaticHint).font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                    if editor.kind == "shortcut" {
+                        Section(state.text.amount) {
+                            HStack {
+                                TextField(state.text.amount, text: Binding(
+                                    get: { editor.amount },
+                                    set: { controller.updateAmount(value: $0) }
+                                ))
+                                .keyboardType(.decimalPad)
+                                Picker(editor.currencyCode, selection: Binding(
+                                    get: { editor.currencyCode },
+                                    set: { controller.selectCurrency(code: $0) }
+                                )) {
+                                    ForEach(editor.currencyCodes, id: \.self) { code in
+                                        Text(code).tag(code)
+                                    }
+                                }
+                                .labelsHidden()
+                            }
+                            TextField(state.text.comment, text: Binding(
+                                get: { editor.comment },
+                                set: { controller.updateComment(value: $0) }
+                            ))
+                        }
+                    }
+                    if !editor.fields.isEmpty {
+                        Section {
+                            ForEach(editor.fields, id: \.key) { field in
+                                configurationField(field)
+                            }
+                        }
+                    }
+                    if let error = state.error, !showingNewContact {
+                        Section { Text(error).foregroundStyle(.red) }
+                    }
+                }
+                .disabled(state.busy)
+                .safeAreaInset(edge: .bottom) {
+                    HubPrimaryButton(
+                        title: editor.isEditing ? state.text.save : state.text.addWidget,
+                        busy: state.busy,
+                        action: controller.saveWidget
+                    )
+                }
+                .navigationTitle(editor.isEditing ? state.text.editWidget : definition.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .navigationBarBackButtonHidden(state.busy)
+                .sheet(isPresented: $showingNewContact) {
+                    AddHubContactSheet(model: model)
+                        .interactiveDismissDisabled(model.snapshot?.busy == true)
+                }
+                .alert(state.text.deleteContactTitle, isPresented: deletionPresented, presenting: pendingContactDeletion) { contact in
+                    Button(state.text.deleteContact, role: .destructive) {
+                        controller.deleteContact(id: contact.id)
+                        pendingContactDeletion = nil
+                    }
+                    Button(state.text.cancel, role: .cancel) { pendingContactDeletion = nil }
+                } message: { contact in
+                    Text(contact.title + "\n" + contact.address + "\n\n" + state.text.deleteContactBody)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func contacts(_ state: NativePaymentHubSnapshot) -> some View {
+        Section {
+            Button { showingNewContact = true } label: {
+                Label(state.text.addContact, systemImage: "person.crop.circle.badge.plus")
+            }
+            if let importButton { importButton }
+        }
+        Section {
+            TextField(state.text.search, text: Binding(
+                get: { state.query },
+                set: { controller.updateQuery(value: $0) }
+            ))
+            ForEach(Array(editor.selectedContacts.enumerated()), id: \.element.id) { index, contact in
+                contactRow(contact, selected: true, copy: state.text)
+                    .contextMenu {
+                        Button(state.text.moveUp, systemImage: "arrow.up") {
+                            controller.moveContact(id: contact.id, offset: -1)
+                        }
+                        .disabled(index == 0)
+                        Button(state.text.moveDown, systemImage: "arrow.down") {
+                            controller.moveContact(id: contact.id, offset: 1)
+                        }
+                        .disabled(index == editor.selectedContacts.count - 1)
+                        Button(state.text.deleteContact, systemImage: "trash", role: .destructive) {
+                            pendingContactDeletion = contact
+                        }
+                    }
+            }
+            ForEach(editor.availableContacts, id: \.id) { contact in
+                contactRow(contact, selected: false, copy: state.text)
+            }
+            if editor.selectedContacts.isEmpty && editor.availableContacts.isEmpty {
+                Text(state.contactsEmpty ? state.text.noContacts : state.text.noMatches)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text(editor.selectionTitle)
+        } footer: {
+            Text(editor.selectionCount)
+        }
+    }
+
+    private func contactRow(_ contact: NativeHubContact, selected: Bool, copy: NativePaymentHubCopy) -> some View {
+        Button { controller.toggleContact(id: contact.id) } label: {
+            HStack(spacing: 12) {
+                HubAvatar(initials: contact.initials, size: 38)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(contact.title).foregroundStyle(.primary)
+                    Text(contact.address).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 4)
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button { pendingContactDeletion = contact } label: {
+                Label(copy.deleteContact, systemImage: "trash")
+            }
+            .tint(.red)
+        }
+    }
+
+    @ViewBuilder
+    private func configurationField(_ field: NativeHubField) -> some View {
+        let binding = Binding(
+            get: { field.value },
+            set: { controller.updateConfiguration(key: field.key, value: $0) }
+        )
+        if field.type == "choice" {
+            Picker(field.label, selection: binding) {
+                if !field.required || field.value.isEmpty { Text("—").tag("") }
+                ForEach(field.options, id: \.id) { option in
+                    Text(option.label).tag(option.id)
+                }
+            }
+        } else {
+            TextField(field.label, text: binding)
+        }
+    }
+
+    private var deletionPresented: Binding<Bool> {
+        Binding(
+            get: { pendingContactDeletion != nil },
+            set: { if !$0 { pendingContactDeletion = nil } }
+        )
     }
 }
 
-private func hubAccentColor(_ value: String?) -> Color {
-    switch value {
-    case "orange": return .orange
-    case "blue": return .blue
-    case "green": return .green
-    case "purple": return .purple
-    case "pink": return .pink
-    case "teal": return .teal
-    case "amber": return Color(red: 0.75, green: 0.52, blue: 0.05)
-    case "slate": return Color(red: 0.34, green: 0.42, blue: 0.48)
-    default: return .primary
+private struct AddHubContactSheet: View {
+    @ObservedObject var model: NativePaymentHubModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var address = ""
+    @State private var attemptedSave = false
+    @State private var initialSerial: Int32
+
+    init(model: NativePaymentHubModel) {
+        self.model = model
+        _initialSerial = State(initialValue: model.snapshot?.contactSavedSerial ?? 0)
+    }
+
+    var body: some View {
+        NavigationStack {
+            if let state = model.snapshot {
+                Form {
+                    Section {
+                        TextField(state.text.name, text: $title)
+                            .textContentType(.name)
+                        TextField(state.text.address, text: $address)
+                            .textContentType(.emailAddress)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    if attemptedSave, let error = state.error {
+                        Section { Text(error).foregroundStyle(.red) }
+                    }
+                }
+                .disabled(state.busy)
+                .navigationTitle(state.text.addContact)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(state.text.cancel) { dismiss() }
+                            .disabled(state.busy)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(state.text.saveContact) {
+                            attemptedSave = true
+                            model.controller.addContact(title: title, address: address)
+                        }
+                        .disabled(state.busy)
+                    }
+                }
+                .onChange(of: state.contactSavedSerial) { _, value in
+                    if value != initialSerial { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+private struct HubPrimaryButton: View {
+    let title: String
+    let busy: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                if busy { ProgressView().tint(.white) }
+                Text(title).fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity, minHeight: 36)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(busy)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.bar)
+    }
+}
+
+private struct WidgetContent: View {
+    let tile: NativeHubTile
+    let copy: NativePaymentHubCopy
+    let interactive: Bool
+    let pay: (String) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 5) {
+                    if tile.kind == "shortcut" { Image(systemName: "bolt.fill") }
+                    Text(tile.title).lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                if tile.kind == "metric" {
+                    metric
+                } else if tile.people.isEmpty {
+                    Text(tile.emptyText)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .multilineTextAlignment(.center)
+                } else {
+                    people(size: proxy.size)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24))
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var metric: some View {
+        if tile.metric == nil && tile.loading {
+            ProgressView(copy.loading).frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if tile.metric == nil && tile.unavailable {
+            Text(copy.unavailable).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Spacer(minLength: 0)
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(tile.metric?.value ?? "—")
+                        .font(.system(.title, design: .rounded, weight: .semibold))
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                    if let metric = tile.metric, !metric.unit.isEmpty {
+                        Text(metric.unit).font(.caption).foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                if let metric = tile.metric {
+                    if !metric.label.isEmpty {
+                        Text(metric.label).font(.caption).lineLimit(tile.rows > 1 ? 2 : 1)
+                    }
+                    if let asOf = metric.asOf, let date = metricDate(asOf) {
+                        Text(date, format: .relative(presentation: .named))
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    if tile.loading {
+                        ProgressView().controlSize(.mini).accessibilityLabel(copy.loading)
+                    } else if tile.unavailable {
+                        Label(copy.unavailable, systemImage: "exclamationmark.circle")
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func metricDate(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
+
+    @ViewBuilder
+    private func people(size: CGSize) -> some View {
+        let columns = tile.columns == 1 ? 1 : (tile.rows >= 2 ? 3 : 4)
+        let singleHeightAllowance: CGFloat = tile.people.first?.amount == nil ? 82 : 108
+        let avatarSize = min(
+            tile.columns == 1 ? 66 : (tile.rows >= 2 ? 72 : 50),
+            (size.width - 40) / CGFloat(columns) - 10,
+            tile.columns == 1 ? size.height - singleHeightAllowance : size.height
+        )
+        if tile.columns == 1 {
+            if let person = tile.people.first {
+                personButton(person, avatarSize: max(32, avatarSize))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        } else {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: columns),
+                spacing: tile.rows >= 2 ? 20 : 8
+            ) {
+                ForEach(Array(tile.people.enumerated()), id: \.element.id) { index, person in
+                    personButton(person, avatarSize: max(28, avatarSize), seed: index)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        }
+    }
+
+    private func personButton(_ person: NativeHubPerson, avatarSize: CGFloat, seed: Int = 0) -> some View {
+        Button {
+            if !person.actionId.isEmpty { pay(person.actionId) }
+        } label: {
+            VStack(spacing: 6) {
+                HubAvatar(initials: person.initials, size: avatarSize, seed: seed)
+                Text(person.title)
+                    .font(tile.columns == 1 ? .subheadline.weight(.semibold) : .caption.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if let amount = person.amount {
+                    Text(amount)
+                        .font(tile.kind == "shortcut" ? .headline : .caption2)
+                        .foregroundStyle(Color.accentColor)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .allowsHitTesting(interactive)
+        .accessibilityLabel(person.title + (person.amount.map { ", " + $0 } ?? ""))
+    }
+}
+
+private struct HubAvatar: View {
+    let initials: String
+    let size: CGFloat
+    var seed: Int = 0
+
+    private var color: Color {
+        let colors: [Color] = [.blue, .purple, .pink, .teal, .indigo, .orange]
+        let value = initials.unicodeScalars.reduce(seed) { $0 + Int($1.value) }
+        return colors[value % colors.count]
+    }
+
+    var body: some View {
+        ZStack {
+            Circle().fill(color.gradient)
+            if initials.isEmpty {
+                Image(systemName: "person.fill").font(.system(size: size * 0.45, weight: .medium))
+            } else {
+                Text(initials).font(.system(size: size * 0.36, weight: .semibold, design: .rounded))
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }

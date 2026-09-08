@@ -11,6 +11,7 @@ import xyz.lilsus.blip.integration.blink.BlinkWallet
 import xyz.lilsus.blip.ui.nativeBlinkErrorMessageFor
 import xyz.lilsus.raylsuite.core.ui.resources.NativeStringResource
 import xyz.lilsus.raylsuite.core.ui.resources.nativeString
+import xyz.lilsus.raylsuite.feature.paymenthub.PaymentHubRepository
 
 data class BlipNativeContactsSnapshot(
     val title: String,
@@ -46,11 +47,11 @@ data class BlipNativeContactItem(
 /** Blip-owned native presentation boundary for importing provider contacts into its contact book. */
 class BlipNativeContactsController(
     blinkWallet: BlinkWallet,
-    contactsRepository: BlinkContactsRepository,
+    hubRepository: PaymentHubRepository,
     private val languageChanges: Flow<*>
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val viewModel = BlinkContactsImportViewModel(blinkWallet, contactsRepository)
+    private val viewModel = BlinkContactsImportViewModel(blinkWallet, hubRepository)
 
     fun observe(onChange: (BlipNativeContactsSnapshot) -> Unit): () -> Unit {
         val job =

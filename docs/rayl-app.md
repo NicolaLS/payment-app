@@ -41,9 +41,25 @@ provider's add/confirm controls without repeating general onboarding. Cancelling
 setup returns to wallet choice. Blip and Lasr return directly to their own
 provider setup. Saved payment defaults remain visible in Settings.
 
-Payment Hub shortcuts, groups, and layout are local app features. Its service
-catalogue is a placeholder; the app does not implement service purchasing or
-fulfillment.
+Contacts and Payment Hub widgets are local app features. The native widget
+gallery offers Contacts in single, row, and card variants, a single configured
+payment Shortcut, and row/card Favorites and Recents computed from successful
+Hub payment actions. Widgets reference contacts and reusable payment actions;
+multiple widgets can show the same action without duplicating its history.
+
+The post-payment save prompt saves both the contact and a single Contacts
+widget. Blink contact import saves contacts without placing widgets. Removing a
+widget keeps its contacts and history. Deleting a contact asks for confirmation
+and removes its payment actions, dependent Shortcuts, and Contacts memberships;
+empty Contacts widgets are removed. Contacts, actions, and the ordered widget
+layout share one app-scoped document and are saved together.
+
+The optional backend catalogue is initially empty. Local widgets remain usable
+without a configured backend or network connection. The client understands a
+bounded native metric contract; service purchasing and supplier fulfillment are
+future work. See [Payment Hub widgets and backend contract](payment-hub-widgets.md)
+for setup, request metadata, and the distinction between definitions, local
+instances, refreshed content, and future purchases.
 
 ## Connection removal and input isolation
 
@@ -53,7 +69,7 @@ acknowledgment that local payment records will be erased and the original wallet
 must be checked before retrying. Removal does not cancel or reverse a payment.
 
 Keep imported contacts, onboarding completion, general preferences, and local Hub
-shortcuts/groups/layout. Imported Blink contacts remain available across
+widgets, layout, and action history. Imported Blink contacts remain available across
 connection changes. Erase credentials, connection-specific settings, payment
 session records, and queued input. Close provider resources and invalidate
 outstanding work before mounting another connection.
