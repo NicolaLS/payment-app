@@ -52,6 +52,8 @@ fun NavGraphBuilder.blipOnboarding(
     blinkWallet: BlinkWallet,
     onboardingViewModel: OnboardingViewModel,
     connectionOnly: Boolean,
+    privacyPolicyUrl: String?,
+    termsUrl: String?,
     onFinished: () -> Unit
 ) {
     composable<BlipOnboardingDestination.Welcome> {
@@ -137,6 +139,8 @@ fun NavGraphBuilder.blipOnboarding(
     composable<BlipOnboardingDestination.AddWallet> {
         AddWalletDestination(
             blinkWallet = blinkWallet,
+            privacyPolicyUrl = privacyPolicyUrl,
+            termsUrl = termsUrl,
             onConnected = onFinished,
             onBack = if (connectionOnly) null else ({ navController.navigateUp() })
         )
@@ -146,6 +150,8 @@ fun NavGraphBuilder.blipOnboarding(
 @Composable
 private fun AddWalletDestination(
     blinkWallet: BlinkWallet,
+    privacyPolicyUrl: String?,
+    termsUrl: String?,
     onConnected: () -> Unit,
     onBack: (() -> Unit)?
 ) {
@@ -166,6 +172,8 @@ private fun AddWalletDestination(
 
     AddBlinkWalletScreen(
         state = state,
+        privacyPolicyUrl = privacyPolicyUrl,
+        termsUrl = termsUrl,
         onBack = onBack?.let { viewModel::cancel },
         onApiKeyChange = viewModel::updateApiKey,
         onSubmit = viewModel::submit

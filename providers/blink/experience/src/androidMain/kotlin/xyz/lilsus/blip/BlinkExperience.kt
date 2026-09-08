@@ -127,6 +127,8 @@ fun BlinkExperience(
                         blinkWallet = runtime.blinkWallet,
                         onboardingViewModel = runtime.onboardingViewModel,
                         connectionOnly = connectionOnly,
+                        privacyPolicyUrl = configuration.legalLinks.privacyPolicyUrl,
+                        termsUrl = configuration.legalLinks.termsUrl,
                         onFinished = {
                             runtime.completeOnboarding()
                             navController.navigate(BlipDestination.Home) {

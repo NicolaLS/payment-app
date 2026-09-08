@@ -230,6 +230,23 @@ struct BlipNativeOnboardingView: View {
                 Text(snapshot.walletDescription)
                     .foregroundStyle(.secondary)
 
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(snapshot.connectionNotice)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: 20) {
+                        if let value = snapshot.privacyPolicyUrl, let url = URL(string: value) {
+                            Link(snapshot.privacyTitle, destination: url)
+                                .frame(minHeight: 44)
+                        }
+                        if let value = snapshot.termsUrl, let url = URL(string: value) {
+                            Link(snapshot.termsTitle, destination: url)
+                                .frame(minHeight: 44)
+                        }
+                    }
+                    .font(.footnote)
+                }
+
                 VStack(alignment: .trailing, spacing: 8) {
                     HStack {
                         Group {

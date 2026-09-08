@@ -25,6 +25,7 @@ import xyz.lilsus.raylsuite.core.ui.format.currentAmountFormatter
 import xyz.lilsus.raylsuite.feature.onboarding.OnboardingViewModel
 import xyz.lilsus.raylsuite.feature.onboarding.nativeOnboardingText
 import xyz.lilsus.raylsuite.feature.onboarding.nativeOnboardingThresholdLabel
+import xyz.lilsus.raylsuite.feature.settings.SettingsLegalLinks
 
 data class BlipNativeOnboardingPage(
     val title: String,
@@ -73,6 +74,11 @@ data class BlipNativeOnboardingSnapshot(
     val enterKeyTitle: String,
     val walletTitle: String,
     val walletDescription: String,
+    val connectionNotice: String,
+    val privacyTitle: String,
+    val privacyPolicyUrl: String?,
+    val termsTitle: String,
+    val termsUrl: String?,
     val apiKeyLabel: String,
     val apiKeyPlaceholder: String,
     val showApiKeyTitle: String,
@@ -95,6 +101,7 @@ class BlipNativeOnboardingController internal constructor(
     languageChanges: Flow<*>,
     private val appName: String,
     private val welcomeCompleted: Boolean,
+    private val legalLinks: SettingsLegalLinks,
     private val connectionOnly: Boolean,
     private val onCompleted: () -> Unit,
     private val canConnectWallet: () -> Boolean,
@@ -314,6 +321,11 @@ class BlipNativeOnboardingController internal constructor(
                 enterKeyTitle = blip.enterKeyButton,
                 walletTitle = wallet.title,
                 walletDescription = wallet.description,
+                connectionNotice = wallet.connectionNotice,
+                privacyTitle = wallet.privacy,
+                privacyPolicyUrl = legalLinks.privacyPolicyUrl,
+                termsTitle = wallet.terms,
+                termsUrl = legalLinks.termsUrl,
                 apiKeyLabel = wallet.apiKeyLabel,
                 apiKeyPlaceholder = wallet.apiKeyPlaceholder,
                 showApiKeyTitle = wallet.showApiKey,

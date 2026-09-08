@@ -8,9 +8,9 @@ internal const val BLIP_CREDENTIALS = "blip_wallet"
 internal val BLIP_LEGAL_LINKS =
     SettingsLegalLinks(
         privacyPolicyUrl =
-            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/blip/privacy.md",
+            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/privacy.md",
         termsUrl =
-            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/blip/terms.md",
+            "https://github.com/NicolaLS/rayl-suite/blob/main/docs/legal/terms.md",
         sourceCodeUrl = "https://github.com/NicolaLS/rayl-suite"
     )
 
