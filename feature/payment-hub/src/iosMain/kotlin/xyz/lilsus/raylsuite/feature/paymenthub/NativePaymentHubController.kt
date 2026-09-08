@@ -35,7 +35,7 @@ class NativePaymentHubController(
         host = host,
         defaultCurrencyCode = { currencyCode },
         locale = { NSBundle.mainBundle.preferredLocalizations.firstOrNull()?.toString() ?: "en" },
-        catalog = remote.catalog
+        catalog = remote?.catalog
     )
     private val snapshot = MutableStateFlow<NativePaymentHubSnapshot?>(null)
 
@@ -125,7 +125,7 @@ class NativePaymentHubController(
 
     fun clear() {
         viewModel.clear()
-        remote.close()
+        remote?.close()
         scope.cancel()
     }
 

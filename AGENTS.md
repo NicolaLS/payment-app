@@ -20,6 +20,15 @@ rather than one Compose renderer for both.
 - Reference the `MOB-…` identifier in related branches, commits, and pull
   requests when practical, and keep the Linear issue current as scope or status
   changes.
+- `main` is the integration line for future development. `release/rayl/1.0`
+  and `release/blip/1.0` maintain each app's local-only 1.0 scope; Hub backend
+  services and the Claro experiment are excluded. Keep their backend URL
+  disabled regardless of environment or Gradle property overrides.
+- Prefer small fixes on `main`, then cherry-pick with `-x` to each affected
+  release branch. Record applicability to both Rayl and Blip in the related
+  Linear issue or PR. Forward-port release-originated fixes promptly. Do not
+  merge `main` wholesale into a 1.0 branch or merge the release branches into
+  one another. MOB-48 tracks future Hub integration and branch maintenance.
 
 ## Documentation audience
 

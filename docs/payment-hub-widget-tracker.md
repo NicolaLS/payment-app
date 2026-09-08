@@ -12,7 +12,7 @@ Canonical issue status remains in [MOB-28](https://linear.app/nicola-susca/issue
 | Local widget definitions, instance persistence, and projections | Implemented and verified | Contacts, Shortcut, Favorites, Recents; 10 focused Hub tests pass |
 | Android native gallery, previews, configuration, and canvas | Implemented; Debug build passes | Contact selection/creation, variant previews, drag and accessible reorder, direct removal |
 | iOS native gallery, previews, configuration, and canvas | Implemented; Debug simulator build passes | Shared SwiftUI renderer, native navigation/forms, drag and accessible reorder, direct removal |
-| App composition and configurable backend URL | Implemented and verified | Native app/version/build/platform metadata; local behavior without a URL; foreground remote refresh |
+| App composition and local-only 1.0 configuration | Implemented | Backend URL overrides are ignored; neither platform constructs a remote session; native local widgets remain available |
 | Localization and module boundaries | Verified | English, German, Spanish resources; `verifyNativeLocalizations` and `verifyModuleDependencies` pass |
 | Owner UI review | Pending | Review both native flows and interaction details before closing MOB-28 |
 | Live supplier integrations and service purchasing/fulfillment | Out of scope | Future work; example JSON is not a live capability |

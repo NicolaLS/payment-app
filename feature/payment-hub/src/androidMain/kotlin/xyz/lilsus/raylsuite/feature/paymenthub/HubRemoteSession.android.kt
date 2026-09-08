@@ -4,7 +4,8 @@ import android.content.Context
 import android.os.Build
 import xyz.lilsus.raylsuite.core.hubapi.HubClientMetadata
 
-internal fun createHubRemoteSession(context: Context): HubRemoteSession {
+internal fun createHubRemoteSession(context: Context): HubRemoteSession? {
+    if (HubBackendConfiguration.baseUrl.isBlank()) return null
     val app = context.applicationContext
     val info = app.packageManager.getPackageInfo(app.packageName, 0)
 

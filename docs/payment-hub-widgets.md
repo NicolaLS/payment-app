@@ -45,10 +45,11 @@ curl http://127.0.0.1:8080/hub/v1/widgets \
   -H 'Accept-Language: en'
 ```
 
-Mobile builds accept `-Prayl.hub.baseUrl=https://your-configured-host` or the
-`RAYL_HUB_BASE_URL` environment variable. The Gradle property takes precedence.
-No value means that the remote catalogue is unavailable; local Hub features
-continue to work. The URL is build configuration, not a user account setting.
+Rayl and Blip 1.0 mobile builds use the local Hub only. Their source configuration
+fixes the backend URL to an empty value and ignores `rayl.hub.baseUrl` and
+`RAYL_HUB_BASE_URL`. Neither native platform creates a remote session in this
+configuration. Local widgets remain available without a Hub backend. The JVM
+server and wire fixtures remain available for contributor development.
 
 The HTTP client accepts HTTPS, plus HTTP loopback development hosts `localhost`,
 `127.0.0.1`, `::1`, and Android emulator host alias `10.0.2.2`. Android and Apple

@@ -36,9 +36,8 @@ kotlin {
     }
 }
 
-val hubBackendUrl = providers.gradleProperty("rayl.hub.baseUrl")
-    .orElse(providers.environmentVariable("RAYL_HUB_BASE_URL"))
-    .orElse("")
+// Rayl and Blip 1.0 ship the local Hub only. External URL overrides cannot enable it.
+val hubBackendUrl = providers.provider { "" }
 val hubConfigurationDirectory = layout.buildDirectory.dir("generated/hubConfiguration/kotlin")
 val generateHubConfiguration = tasks.register("generateHubConfiguration") {
     inputs.property("backendUrl", hubBackendUrl)

@@ -52,13 +52,13 @@ fun PaymentHubTab(
             host = controller,
             defaultCurrencyCode = { currency() },
             locale = { currentContext.resources.configuration.locales[0].toLanguageTag() },
-            catalog = remote.catalog
+            catalog = remote?.catalog
         )
     }
     DisposableEffect(viewModel, remote) {
         onDispose {
             viewModel.clear()
-            remote.close()
+            remote?.close()
         }
     }
     val lifecycleOwner = LocalLifecycleOwner.current
